@@ -1,0 +1,9 @@
+# Ignorar bases de datos y archivos pesados
+*.csv
+*.sql
+*.keras
+*.h5
+
+# Ignorar archivos temporales de Python
+__pycache__/
+*.pyc
