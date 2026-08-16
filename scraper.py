@@ -1,12 +1,18 @@
+from turtle import st
+
 import requests
 import mysql.connector
-from datetime import datetime
+from datetime import datetime, timedelta
 
 def conectar_bd():
     try:
         return mysql.connector.connect(
-            host="127.0.0.1", user="root", password="", database="sports_analytics"
-        )
+        host=st.secrets["host"],
+        port=st.secrets["port"],
+        user=st.secrets["user"],
+        password=st.secrets["password"],
+        database=st.secrets["database"]
+    )
     except mysql.connector.Error as err:
         print(f"❌ Error DB: {err}")
         return None
@@ -44,7 +50,10 @@ def guardar_todo(conexion, datos):
             continue
             
         # 1. GUARDAR EL JUEGO
-        fecha_limpia = partido['commence_time'].replace('T', ' ').replace('Z', '')
+        fecha_utc = datetime.strptime(partido['commence_time'], "%Y-%m-%dT%H:%M:%SZ")
+        fecha_local = fecha_utc - timedelta(hours=6)
+        fecha_limpia = fecha_local.strftime('%Y-%m-%d %H:%M:%S')
+        
         cursor.execute("""
             INSERT INTO juegos (id_juego, fecha, equipo_local, equipo_visitante)
             VALUES (%s, %s, %s, %s)

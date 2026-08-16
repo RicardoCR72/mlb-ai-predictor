@@ -1,0 +1,8 @@
+streamlit
+pandas
+mysql-connector-python
+tensorflow
+scikit-learn
+joblib
+requests
+bs4

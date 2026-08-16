@@ -1,4 +1,6 @@
-from turtle import pd
+from turtle import st
+
+import pandas as pd
 
 import requests
 import mysql.connector
@@ -21,11 +23,12 @@ print("⚾ Iniciando actualización de marcadores de la MLB...")
 
 # 1. CONEXIÓN A TU BD
 conexion = mysql.connector.connect(
-    host="localhost",
-    user="root",
-    password="",
-    database="sports_analytics" # <--- CAMBIA ESTO por el nombre de tu BD
-)
+        host=st.secrets["host"],
+        port=st.secrets["port"],
+        user=st.secrets["user"],
+        password=st.secrets["password"],
+        database=st.secrets["database"]
+    )
 cursor = conexion.cursor()
 
 # 2. FECHA DE AYER PARA LA API
@@ -54,16 +57,19 @@ if 'dates' in respuesta and len(respuesta['dates']) > 0:
             carreras_local = juego['teams']['home']['score']
             carreras_visita = juego['teams']['away']['score']
             
-            # 3. ACTUALIZAR TU TABLA EN XAMPP
-            # Buscamos por equipo y que siga marcado como 'programado' para evitar problemas de fechas
+# 3. ACTUALIZAR TU TABLA EN XAMPP
+            # Buscamos por equipo, estado programado Y LA FECHA EXACTA para evitar errores de series
             query = """
             UPDATE juegos
             SET marcador_local = %s, marcador_visitante = %s, estado = 'finalizado'
-            WHERE equipo_local = %s AND equipo_visitante = %s AND estado = 'programado'
+            WHERE equipo_local = %s 
+              AND equipo_visitante = %s 
+              AND estado = 'programado'
+              AND DATE(fecha) = %s
             """
-            # <--- CAMBIA 'el_nombre_de_tu_tabla' en la línea de arriba
             
-            cursor.execute(query, (carreras_local, carreras_visita, equipo_local_api, equipo_visita_api))
+            # Aquí añadimos la variable 'ayer' al final
+            cursor.execute(query, (carreras_local, carreras_visita, equipo_local_api, equipo_visita_api, ayer))
             
             # Solo contamos si realmente modificó una fila (si la encontró)
             if cursor.rowcount > 0:

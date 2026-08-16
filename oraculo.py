@@ -1,3 +1,5 @@
+from turtle import st
+
 import pandas as pd
 import numpy as np
 import mysql.connector
@@ -26,7 +28,13 @@ modelo = load_model('cerebro_mlb.keras')
 # 3. EXTRAER LOS DATOS DE HOY DESDE XAMPP
 print("📡 Buscando los partidos de hoy en tu base de datos...")
 try:
-    conexion = mysql.connector.connect(host="127.0.0.1", user="root", password="", database="sports_analytics")
+    conexion = mysql.connector.connect(
+    host=st.secrets["host"],
+    port=st.secrets["port"],
+    user=st.secrets["user"],
+    password=st.secrets["password"],
+    database=st.secrets["database"]
+)
     # Hacemos GROUP BY para que no nos repita el mismo partido si hay varias casas de apuestas
     consulta = """
         SELECT j.equipo_local AS 'team', j.equipo_visitante AS 'opponent', 

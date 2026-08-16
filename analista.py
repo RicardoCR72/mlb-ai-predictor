@@ -1,10 +1,16 @@
+from turtle import st
+
 import mysql.connector
 
 def conectar_bd():
     try:
         return mysql.connector.connect(
-            host="127.0.0.1", user="root", password="", database="sports_analytics"
-        )
+        host=st.secrets["host"],
+        port=st.secrets["port"],
+        user=st.secrets["user"],
+        password=st.secrets["password"],
+        database=st.secrets["database"]
+    )
     except mysql.connector.Error as err:
         print(f"❌ Error DB: {err}")
         return None
