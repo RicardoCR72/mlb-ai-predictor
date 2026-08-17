@@ -1,10 +1,21 @@
-from turtle import st
-
 import pandas as pd
-
 import requests
 import mysql.connector
+import streamlit as st
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
+
+# 🔧 CORRECCIÓN: la línea original era "from turtle import st", que importaba
+# la función showturtle() del módulo de gráficos turtle en vez de Streamlit.
+# Eso hacía que st.secrets fallara. Ya corregido arriba con "import streamlit as st".
+
+# 🔧 CORRECCIÓN: mismo ajuste de zona horaria que en el dashboard, para que
+# "ayer" siempre se calcule con la fecha de México y no con la del servidor (UTC).
+ZONA_MX = ZoneInfo("America/Mazatlan")
+
+def hoy_mx():
+    return datetime.now(ZONA_MX).date()
+
 
 def notificar_telegram(mensaje):
     # Pega aquí los datos que obtuviste en los pasos 1 y 2
@@ -31,8 +42,9 @@ conexion = mysql.connector.connect(
     )
 cursor = conexion.cursor()
 
-# 2. FECHA DE AYER PARA LA API
-ayer = (datetime.now() - timedelta(days=1)).strftime('%Y-%m-%d')
+# 2. FECHA DE AYER PARA LA API (ya con zona horaria de México)
+fecha_ayer_dt = hoy_mx() - timedelta(days=1)
+ayer = fecha_ayer_dt.strftime('%Y-%m-%d')
 print(f"📅 Buscando resultados oficiales del: {ayer}")
 
 url = f"https://statsapi.mlb.com/api/v1/schedule?sportId=1&date={ayer}"
@@ -57,7 +69,7 @@ if 'dates' in respuesta and len(respuesta['dates']) > 0:
             carreras_local = juego['teams']['home']['score']
             carreras_visita = juego['teams']['away']['score']
             
-# 3. ACTUALIZAR TU TABLA EN XAMPP
+            # 3. ACTUALIZAR TU TABLA EN XAMPP
             # Buscamos por equipo, estado programado Y LA FECHA EXACTA para evitar errores de series
             query = """
             UPDATE juegos
@@ -90,8 +102,11 @@ else:
 
 print("🧠 Iniciando actualización de la memoria de la IA...")
 
-# 1. Definir la fecha de ayer
-fecha_ayer = (datetime.now() - timedelta(1)).strftime('%Y-%m-%d')
+# 1. Reutilizamos la misma fecha de ayer (zona horaria de México) calculada arriba,
+# 🔧 CORRECCIÓN: antes se recalculaba por separado con datetime.now() sin zona
+# horaria, lo que podía dar un día distinto al usado en el bloque anterior si
+# el script corría justo cerca de la medianoche.
+fecha_ayer = ayer
 archivo_csv = 'mlb_dataset_ia.csv'
 
 try:
@@ -137,6 +152,10 @@ try:
                 if visita == "Oakland Athletics": visita = "Athletics"
 
                 # Candado de seguridad: Evitar duplicados si el script corre dos veces
+                # ⚠️ NOTA: este candado solo compara fecha + equipo_local. Si algún día
+                # hay doble cartelera (dos juegos el mismo día entre los mismos equipos),
+                # el segundo juego se saltaría por error. Si te llega a pasar, hay que
+                # comparar también equipo_visitante para diferenciarlos.
                 ya_existe = df_memoria[(df_memoria['fecha'] == fecha_ayer) & (df_memoria['equipo_local'] == local)].shape[0] > 0
                 
                 if not ya_existe:
@@ -164,3 +183,7 @@ try:
             
 except Exception as e:
     print(f"🚨 Error actualizando la memoria de la IA: {e}")
+
+# 🔧 CORRECCIÓN: cerramos la conexión a la BD al terminar el script.
+cursor.close()
+conexion.close()
