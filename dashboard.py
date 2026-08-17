@@ -20,23 +20,26 @@ st.markdown("Predicciones del mercado usando rachas y fatiga de la temporada 202
 @st.cache_resource
 def cargar_oraculo():
     try:
-        # Recreamos la arquitectura exacta de tu red neuronal
+        # Recreamos la arquitectura exacta de este script (32 -> 16 -> 1 con input_shape=6)
         modelo = Sequential([
-            Input(shape=(102,)),
-            Dense(64, activation='relu'),
-            Dropout(0.3),
+            Input(shape=(6,)), # ¡Son 6 variables de entrada, no 102!
             Dense(32, activation='relu'),
+            Dropout(0.2),
+            Dense(16, activation='relu'),
             Dropout(0.2),
             Dense(1, activation='sigmoid')
         ])
         
-        # Cargamos los pesos en lugar de .keras completo
+        # Cargamos los pesos limpios
         modelo.load_weights('pesos_mlb_v2.weights.h5')
+        
+        # Cargamos el scaler y el encoder de equipos
         scaler = joblib.load('scaler_v2.pkl')
-        columnas = joblib.load('columnas_entrenamiento_v2.pkl')
-        return modelo, columnas, scaler
+        encoder = joblib.load('encoder_equipos.pkl')
+        
+        return modelo, scaler, encoder
     except Exception as e:
-        st.error(f"Error real de Python: {e}")
+        st.error(f"Error real de Python cargando la IA: {e}")
         return None, None, None
 
 def conectar_bd():
