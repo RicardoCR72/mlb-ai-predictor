@@ -1,3 +1,4 @@
+import os
 import streamlit as st
 import pandas as pd
 import mysql.connector
@@ -5,6 +6,9 @@ from tensorflow.keras.models import load_model
 import joblib
 import warnings
 from datetime import datetime
+
+st.write("Archivos encontrados en el servidor:")
+st.write(os.listdir('.'))
 
 warnings.filterwarnings('ignore')
 
