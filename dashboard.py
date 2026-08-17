@@ -550,14 +550,17 @@ if not df.empty and modelo is not None:
                 cuota_v = df_pasado.loc[i, 'Paga Visitante']
                 
                 # 1. Simular la predicción de la IA
-                racha_l, descanso_l = obtener_estado_actual(local, df_hist)
-                racha_v, descanso_v = obtener_estado_actual(visita, df_hist)
+                # 🔧 CORRECCIÓN CRÍTICA: ¡Le pasamos la fecha exacta del juego pasado!
+                racha_l, descanso_l = obtener_estado_actual(local, df_hist, fecha_objetivo=fecha_juego)
+                racha_v, descanso_v = obtener_estado_actual(visita, df_hist, fecha_objetivo=fecha_juego)
 
-                # 🔧 CORRECCIÓN: normalizamos el nombre antes de pasarlo al encoder
+                # Normalizamos el nombre antes de pasarlo al encoder
                 try:
                     t_code = encoder.transform([normalizar_equipo(local)])[0]
                     o_code = encoder.transform([normalizar_equipo(visita)])[0]
                 except ValueError:
+                    # 🚨 Aviso tipo pop-up si un equipo nos rompe la simulación
+                    st.toast(f"Equipo ignorado en historial: {local} o {visita}")
                     continue
 
                 fila_ia = pd.DataFrame([{
@@ -571,12 +574,11 @@ if not df.empty and modelo is not None:
 
                 vars_escaladas = scaler.transform(fila_ia)
                 prob_local_val = modelo.predict(vars_escaladas, verbose=0)[0][0]
-                prob_local = prob_local_val
                 
-                prob_visitante = 1 - prob_local
-                confianza = max(prob_local, prob_visitante) * 100
+                prob_visitante_val = 1 - prob_local_val
+                confianza = max(prob_local_val, prob_visitante_val) * 100
                 
-                ia_pick_local = prob_local > 0.50
+                ia_pick_local = prob_local_val > 0.50
                 favorito = local if ia_pick_local else visita
                 cuota_favorito = cuota_l if ia_pick_local else cuota_v
                 
@@ -619,7 +621,11 @@ if not df.empty and modelo is not None:
             col3.metric("Profit Neto", f"${ganancia_neta:,.2f}", f"ROI: {roi:.2f}%")
             
             st.markdown("#### 📈 Crecimiento del Bankroll")
-            st.area_chart(historial_banco, color="#4CAF50")
+            # 🛡️ PROTECCIÓN: Aseguramos que la gráfica exista validando los puntos de datos
+            if apuestas_realizadas > 0:
+                st.area_chart(historial_banco, color="#4CAF50")
+            else:
+                st.warning("📉 Ningún partido histórico alcanzó esa confianza. ¡Baja el filtro del slider para ver la gráfica!")
             
             # 4. TABLA HISTÓRICA DETALLADA DE APUESTAS
             st.markdown("---")
@@ -628,6 +634,9 @@ if not df.empty and modelo is not None:
                 df_tabla_apuestas = pd.DataFrame(registros_apuestas)
                 df_tabla_apuestas['Fecha'] = pd.to_datetime(df_tabla_apuestas['Fecha']).dt.date
                 st.dataframe(df_tabla_apuestas, use_container_width=True, hide_index=True)
+        else:
+            # 🛡️ PROTECCIÓN: Por si la BD de XAMPP no nos arroja historiales aún
+            st.info("⏳ Aún no hay partidos terminados en la base de datos para generar el ROI histórico.")
 else:
     if df.empty:
         st.error("🚨 ERROR DE DATOS: La base de datos de XAMPP no tiene juegos nuevos registrados para hoy. El scraper no corrió o falló.")
