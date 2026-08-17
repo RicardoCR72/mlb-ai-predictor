@@ -7,9 +7,19 @@ from tensorflow.keras.layers import Dense, Dropout, Input
 import joblib
 import warnings
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 
 warnings.filterwarnings('ignore')
+
+# 🔧 CORRECCIÓN: Streamlit Cloud corre en UTC, pero tus datos se guardan
+# con la fecha de México. Usamos esta zona horaria en vez de datetime.now()
+# "a secas" para que "hoy" siempre coincida con tu fecha local.
+ZONA_MX = ZoneInfo("America/Mazatlan")  # Misma zona que Durango (UTC-6 / UTC-7 en horario de verano)
+
+def hoy_mx():
+    """Regresa la fecha de hoy en la zona horaria de México, sin importar dónde corra el servidor."""
+    return datetime.now(ZONA_MX).date()
 
 # 1. Configuración de la página web
 st.set_page_config(page_title="MLB AI Dashboard V2", page_icon="🤖", layout="wide")
@@ -100,10 +110,12 @@ def cargar_datos_hoy():
                MAX(c.cuota_local) AS 'Paga Local', MAX(c.cuota_visitante) AS 'Paga Visitante'
         FROM juegos j
         JOIN cuotas_moneyline c ON j.id_juego = c.id_juego
-        WHERE j.marcador_local IS NULL AND DATE(j.fecha) >= CURDATE()
+        WHERE j.marcador_local IS NULL AND DATE(j.fecha) >= %s
         GROUP BY j.id_juego
     """
-    df = pd.read_sql(consulta, conexion)
+    # 🔧 CORRECCIÓN: usamos la fecha de México calculada en Python en vez de
+    # CURDATE() de MySQL, que puede depender de la zona horaria del servidor.
+    df = pd.read_sql(consulta, conexion, params=(hoy_mx(),))
     conexion.close()
     
     if not df.empty:
@@ -114,9 +126,9 @@ modelo, scaler, encoder = cargar_oraculo()
 
 # 4. EL MOTOR MATEMÁTICO: Calcular racha y fatiga en vivo (con viaje en el tiempo)
 def obtener_estado_actual(equipo, df_hist, fecha_objetivo=None):
-    # Si no le pasamos fecha, asume que es hoy
+    # Si no le pasamos fecha, asume que es hoy (en zona horaria de México)
     if fecha_objetivo is None:
-        fecha_objetivo = datetime.now().date()
+        fecha_objetivo = hoy_mx()
     else:
         # Convertimos la fecha que nos pasen a formato puro de fecha
         fecha_objetivo = pd.to_datetime(fecha_objetivo).date()
@@ -157,7 +169,7 @@ def obtener_estado_actual(equipo, df_hist, fecha_objetivo=None):
 def cargar_lesiones_hoy():
     try:
         conexion = conectar_bd()
-        hoy = datetime.now().strftime('%Y-%m-%d')
+        hoy = hoy_mx().strftime('%Y-%m-%d')
         query = f"SELECT equipo, impacto_total FROM factor_lesiones WHERE fecha = '{hoy}'"
         df_les = pd.read_sql(query, conexion)
         conexion.close()
@@ -197,7 +209,7 @@ def aplicar_filtro_medico(equipo_elegido, confianza_base, equipo_local, equipo_v
 def cargar_pitchers_hoy():
     try:
         conexion = conectar_bd()
-        hoy = datetime.now().strftime('%Y-%m-%d')
+        hoy = hoy_mx().strftime('%Y-%m-%d')
         query = f"SELECT equipo, nombre_pitcher, era FROM abridores WHERE fecha = '{hoy}'"
         df_pitchers = pd.read_sql(query, conexion)
         conexion.close()
@@ -341,11 +353,12 @@ def cargar_historial_xampp():
         FROM juegos j
         JOIN cuotas_moneyline c ON j.id_juego = c.id_juego
         WHERE j.marcador_local IS NOT NULL 
-          AND DATE(j.fecha) < CURDATE()  -- 🛡️ ESTO FILTRA Y EXCLUYE LOS PARTIDOS DE HOY Y DEL FUTURO
+          AND DATE(j.fecha) < %s  -- 🛡️ ESTO FILTRA Y EXCLUYE LOS PARTIDOS DE HOY Y DEL FUTURO
         GROUP BY j.id_juego
         ORDER BY j.fecha ASC
     """
-    df = pd.read_sql(consulta, conexion)
+    # 🔧 CORRECCIÓN: fecha de México en vez de CURDATE() del servidor MySQL.
+    df = pd.read_sql(consulta, conexion, params=(hoy_mx(),))
     conexion.close()
     
     if not df.empty:
@@ -380,7 +393,8 @@ if not df.empty and modelo is not None:
     # 🔧 DEBUG TEMPORAL: confirma qué está trayendo la tabla abridores hoy.
     # Bórralo una vez resuelto el problema.
     with st.expander("🔧 DEBUG: contenido de df_pitchers_hoy"):
-        st.write(f"Fecha 'hoy' calculada por el servidor (posible UTC): {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        st.write(f"Fecha 'hoy' calculada por el servidor (UTC): {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        st.write(f"Fecha 'hoy' corregida (zona horaria México): {hoy_mx().strftime('%Y-%m-%d')}")
         try:
             _conn_debug = conectar_bd()
             _fechas_debug = pd.read_sql("SELECT DISTINCT fecha FROM abridores ORDER BY fecha DESC LIMIT 5", _conn_debug)
