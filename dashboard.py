@@ -2,7 +2,7 @@ import os
 import streamlit as st
 import pandas as pd
 import mysql.connector
-from tensorflow.keras.models import load_model
+from tensorflow.keras.models import modelo
 import joblib
 import warnings
 from datetime import datetime
