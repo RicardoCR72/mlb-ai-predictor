@@ -1,4 +1,4 @@
-from turtle import st
+from streamlit import st
 
 import requests
 import mysql.connector
