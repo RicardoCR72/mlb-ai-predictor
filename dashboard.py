@@ -70,6 +70,8 @@ def cargar_datos_hoy():
         df = df.drop_duplicates(subset=['Equipo Local', 'Equipo Visitante'], keep='last').reset_index(drop=True)
     return df
 
+modelo, scaler, encoder = cargar_oraculo()
+
 # 4. EL MOTOR MATEMÁTICO: Calcular racha y fatiga en vivo (con viaje en el tiempo)
 def obtener_estado_actual(equipo, df_hist, fecha_objetivo=None):
     # Si no le pasamos fecha, asume que es hoy
@@ -342,22 +344,35 @@ if not df.empty and modelo is not None:
             
             racha_l, descanso_l = obtener_estado_actual(local, df_hist)
             racha_v, descanso_v = obtener_estado_actual(visita, df_hist)
+
+            try:
+                t_code = encoder.transform([local])[0]
+                o_code = encoder.transform([visita])[0]
+            except ValueError:
+                continue
+
+            cuota_l = df.loc[i, 'Paga Local']
+            cuota_v = df.loc[i, 'Paga Visitante']
+
+            fila_ia = pd.DataFrame([{
+                'team_code': t_code,
+                'opponent_code': o_code,
+                'moneyLine': cuota_l,
+                'oppMoneyLine': cuota_v,
+                'dias_descanso': descanso_l,
+                'racha_ultimos_5': racha_l
+            }])
+
+            vars_escaladas = scaler.transform(fila_ia)
+            
+            prob_local = modelo.predict(vars_escaladas, verbose=0)[0][0] * 100
+            prob_visitante = 100 - prob_local
             
             fila_ia = pd.DataFrame([{
                 'equipo_local': local, 'equipo_visitante': visita,
                 'racha_local': racha_l, 'racha_visitante': racha_v,
                 'descanso_local': descanso_l, 'descanso_visitante': descanso_v
             }])
-            
-            equipos_encoded = pd.get_dummies(fila_ia[['equipo_local', 'equipo_visitante']])
-            vars_escaladas = scaler.transform(fila_ia[['racha_local', 'racha_visitante', 'descanso_local', 'descanso_visitante']])
-            df_num = pd.DataFrame(vars_escaladas, columns=['racha_local', 'racha_visitante', 'descanso_local', 'descanso_visitante'])
-            
-            X_hoy = pd.concat([equipos_encoded, df_num], axis=1)
-            X_hoy = X_hoy.reindex(columns=columnas, fill_value=0)
-            
-            prob_local = modelo.predict(X_hoy, verbose=0)[0][0] * 100
-            prob_visitante = 100 - prob_local
             
             favorito = local if prob_local > 50 else visita
             confianza = max(prob_local, prob_visitante)
@@ -474,15 +489,25 @@ if not df.empty and modelo is not None:
                 # 1. Simular la predicción de la IA
                 racha_l, descanso_l = obtener_estado_actual(local, df_hist)
                 racha_v, descanso_v = obtener_estado_actual(visita, df_hist)
+
+                try:
+                    t_code = encoder.transform([local])[0]
+                    o_code = encoder.transform([visita])[0]
+                except ValueError:
+                    continue
+
+                fila_ia = pd.DataFrame([{
+                    'team_code': t_code,
+                    'opponent_code': o_code,
+                    'moneyLine': cuota_l,
+                    'oppMoneyLine': cuota_v,
+                    'dias_descanso': descanso_l,
+                    'racha_ultimos_5': racha_l
+                }])
+
+                vars_escaladas = scaler.transform(fila_ia)
+                prob_local_val = modelo.predict(vars_escaladas, verbose=0)[0][0]
                 
-                fila_ia = pd.DataFrame([{'equipo_local': local, 'equipo_visitante': visita}])
-                equipos_encoded = pd.get_dummies(fila_ia)
-                
-                vars_escaladas = scaler.transform([[racha_l, racha_v, descanso_l, descanso_v]])
-                df_num = pd.DataFrame(vars_escaladas, columns=['racha_local', 'racha_visitante', 'descanso_local', 'descanso_visitante'])
-                
-                X_sim = pd.concat([equipos_encoded, df_num], axis=1).reindex(columns=columnas, fill_value=0)
-                prob_local = modelo.predict(X_sim, verbose=0)[0][0]
                 
                 prob_visitante = 1 - prob_local
                 confianza = max(prob_local, prob_visitante) * 100
