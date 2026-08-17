@@ -354,7 +354,10 @@ def cargar_historial_xampp():
 
 # ---------------- FLUJO PRINCIPAL ----------------
 df = cargar_datos_hoy()
-modelo, columnas, scaler = cargar_oraculo()
+# 🔧 CORRECCIÓN: se eliminó la llamada duplicada a cargar_oraculo() que
+# desempaquetaba mal las variables (modelo, columnas, scaler) y terminaba
+# asignando el ENCODER a la variable "scaler", rompiendo scaler.transform().
+# Ya tenemos modelo, scaler y encoder cargados correctamente arriba.
 
 # 🛡️ FILTRO ANTI-DUPLICADOS PARA HOY
 if not df.empty:
