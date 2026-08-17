@@ -203,6 +203,9 @@ def cargar_pitchers_hoy():
         conexion.close()
         return df_pitchers
     except Exception as e:
+        # 🔧 DEBUG TEMPORAL: mostramos el error real en vez de esconderlo.
+        # Quítalo una vez que confirmemos que ya está trayendo datos.
+        st.warning(f"⚠️ No se pudieron cargar los pitchers de hoy: {e}")
         return pd.DataFrame()
 
 # ⚾ El Filtro de Efectividad (ERA)
@@ -373,6 +376,13 @@ if not df.empty and modelo is not None:
     # Hacemos la fusión: CSV + XAMPP = Cerebro actualizado al día de hoy
     df_hist = fusionar_historiales(df_csv_estatico, df_pasado)
     df_lesiones_hoy = cargar_lesiones_hoy()
+
+    # 🔧 DEBUG TEMPORAL: confirma qué está trayendo la tabla abridores hoy.
+    # Bórralo una vez resuelto el problema.
+    with st.expander("🔧 DEBUG: contenido de df_pitchers_hoy"):
+        _debug_pitchers = cargar_pitchers_hoy()
+        st.write(f"Filas encontradas: {len(_debug_pitchers)}")
+        st.dataframe(_debug_pitchers)
     
     # CREAMOS LAS PESTAÑAS
     tab1, tab2 = st.tabs(["🔮 Picks de Hoy", "💰 Tracker de ROI"])
