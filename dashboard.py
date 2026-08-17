@@ -380,8 +380,17 @@ if not df.empty and modelo is not None:
     # 🔧 DEBUG TEMPORAL: confirma qué está trayendo la tabla abridores hoy.
     # Bórralo una vez resuelto el problema.
     with st.expander("🔧 DEBUG: contenido de df_pitchers_hoy"):
+        st.write(f"Fecha 'hoy' calculada por el servidor (posible UTC): {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        try:
+            _conn_debug = conectar_bd()
+            _fechas_debug = pd.read_sql("SELECT DISTINCT fecha FROM abridores ORDER BY fecha DESC LIMIT 5", _conn_debug)
+            _conn_debug.close()
+            st.write("Últimas 5 fechas distintas en la tabla `abridores`:")
+            st.dataframe(_fechas_debug)
+        except Exception as _e:
+            st.warning(f"No se pudo leer fechas de abridores: {_e}")
         _debug_pitchers = cargar_pitchers_hoy()
-        st.write(f"Filas encontradas: {len(_debug_pitchers)}")
+        st.write(f"Filas encontradas con fecha = hoy: {len(_debug_pitchers)}")
         st.dataframe(_debug_pitchers)
     
     # CREAMOS LAS PESTAÑAS
