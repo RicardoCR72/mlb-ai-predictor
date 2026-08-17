@@ -51,6 +51,46 @@ def conectar_bd():
         database=st.secrets["database"]
     )
 
+# ==========================================================
+# 🔧 CORRECCIÓN: Mapeo de nombres completos (BD) -> abreviaturas (encoder)
+# ==========================================================
+MAPEO_EQUIPOS = {
+    'Arizona Diamondbacks': 'ARI',
+    'Athletics': 'OAK',
+    'Atlanta Braves': 'ATL',
+    'Baltimore Orioles': 'BAL',
+    'Boston Red Sox': 'BOS',
+    'Chicago Cubs': 'CHC',
+    'Chicago White Sox': 'CWS',
+    'Cincinnati Reds': 'CIN',
+    'Cleveland Guardians': 'CLE',
+    'Colorado Rockies': 'COL',
+    'Detroit Tigers': 'DET',
+    'Houston Astros': 'HOU',
+    'Kansas City Royals': 'KC',
+    'Los Angeles Angels': 'LAA',
+    'Los Angeles Dodgers': 'LAD',
+    'Miami Marlins': 'MIA',
+    'Milwaukee Brewers': 'MIL',
+    'Minnesota Twins': 'MIN',
+    'New York Mets': 'NYM',
+    'New York Yankees': 'NYY',
+    'Philadelphia Phillies': 'PHI',
+    'Pittsburgh Pirates': 'PIT',
+    'San Diego Padres': 'SD',
+    'San Francisco Giants': 'SF',
+    'Seattle Mariners': 'SEA',
+    'St. Louis Cardinals': 'STL',
+    'Tampa Bay Rays': 'TB',
+    'Texas Rangers': 'TEX',
+    'Toronto Blue Jays': 'TOR',
+    'Washington Nationals': 'WSH',
+}
+
+def normalizar_equipo(nombre):
+    """Convierte el nombre completo que viene de la BD a la abreviatura que conoce el encoder."""
+    return MAPEO_EQUIPOS.get(nombre, nombre)
+
 # 3. Descargar cuotas de hoy y limpiar repetidos
 @st.cache_data(ttl=60)
 def cargar_datos_hoy():
@@ -112,7 +152,7 @@ def obtener_estado_actual(equipo, df_hist, fecha_objetivo=None):
         
     return racha_actual, descanso
 
-# 🩺 NUEVO: Función para traer el reporte médico de hoy desde XAMPP
+# 🩺 Función para traer el reporte médico de hoy desde XAMPP
 @st.cache_data(ttl=300)
 def cargar_lesiones_hoy():
     try:
@@ -125,7 +165,7 @@ def cargar_lesiones_hoy():
     except Exception as e:
         return pd.DataFrame() # Si falla, regresa vacío para no romper el dashboard
 
-# 🩺 NUEVO: El Filtro Médico que castiga la confianza
+# 🩺 El Filtro Médico que castiga la confianza
 def aplicar_filtro_medico(equipo_elegido, confianza_base, equipo_local, equipo_visitante, df_lesiones):
     if df_lesiones.empty: return confianza_base
     
@@ -152,7 +192,7 @@ def aplicar_filtro_medico(equipo_elegido, confianza_base, equipo_local, equipo_v
         
     return round(confianza_final, 1)
 
-# ⚾ NUEVO: Función para traer los pitchers de hoy desde XAMPP
+# ⚾ Función para traer los pitchers de hoy desde XAMPP
 @st.cache_data(ttl=300)
 def cargar_pitchers_hoy():
     try:
@@ -165,7 +205,7 @@ def cargar_pitchers_hoy():
     except Exception as e:
         return pd.DataFrame()
 
-# ⚾ NUEVO: El Filtro de Efectividad (ERA)
+# ⚾ El Filtro de Efectividad (ERA)
 def aplicar_filtro_pitchers(equipo_elegido, confianza_base, equipo_local, equipo_visitante, df_pitchers):
     if df_pitchers.empty: return confianza_base, "TBD", "TBD"
 
@@ -199,7 +239,7 @@ def aplicar_filtro_pitchers(equipo_elegido, confianza_base, equipo_local, equipo
         
     return round(confianza_final, 1), f"{pitcher_local} ({era_local})", f"{pitcher_visita} ({era_visita})"
 
-# 🏟️ NUEVO: Función para traer el Park Factor desde XAMPP
+# 🏟️ Función para traer el Park Factor desde XAMPP
 @st.cache_data(ttl=86400) # Guardamos en caché por 24 horas para no saturar la BD
 def cargar_park_factor():
     try:
@@ -217,7 +257,7 @@ def cargar_park_factor():
     except Exception as e:
         return pd.DataFrame()
 
-# 🏟️ NUEVO: El Filtro del Estadio para los Totales (Over/Under)
+# 🏟️ El Filtro del Estadio para los Totales (Over/Under)
 def aplicar_filtro_estadio(pick_totales, confianza_base, equipo_local, df_estadios):
     if df_estadios.empty: return confianza_base
     
@@ -345,10 +385,12 @@ if not df.empty and modelo is not None:
             racha_l, descanso_l = obtener_estado_actual(local, df_hist)
             racha_v, descanso_v = obtener_estado_actual(visita, df_hist)
 
+            # 🔧 CORRECCIÓN: normalizamos el nombre antes de pasarlo al encoder
             try:
-                t_code = encoder.transform([local])[0]
-                o_code = encoder.transform([visita])[0]
+                t_code = encoder.transform([normalizar_equipo(local)])[0]
+                o_code = encoder.transform([normalizar_equipo(visita)])[0]
             except ValueError:
+                st.warning(f"⚠️ Equipo no reconocido por el encoder: {local} / {visita}")
                 continue
 
             cuota_l = df.loc[i, 'Paga Local']
@@ -381,7 +423,7 @@ if not df.empty and modelo is not None:
             # 🩺 CARGAMOS EL REPORTE MÉDICO DE HOY
             df_lesiones_hoy = cargar_lesiones_hoy()
             
-            # ⚾ CARGAMOS LOS PITCHERS DE HOY (Añade esta línea)
+            # ⚾ CARGAMOS LOS PITCHERS DE HOY
             df_pitchers_hoy = cargar_pitchers_hoy()
             df_estadios = cargar_park_factor()
             
@@ -393,7 +435,7 @@ if not df.empty and modelo is not None:
             confianza_final, p_local, p_visita = aplicar_filtro_pitchers(favorito, confianza_filtrada, local, visita, df_pitchers_hoy)
 
             # ==========================================
-            # ⚾ NUEVO MÓDULO: PREDICCIÓN DE TOTALES (O/U)
+            # ⚾ MÓDULO: PREDICCIÓN DE TOTALES (O/U)
             # ==========================================
             # Extraemos el ERA de los pitchers para sumar sus carreras esperadas
             era_l = df_pitchers_hoy.loc[df_pitchers_hoy['equipo'] == local, 'era'].values
@@ -416,7 +458,7 @@ if not df.empty and modelo is not None:
             # Filtro del Estadio
             confianza_totales_final = aplicar_filtro_estadio(pick_totales, confianza_t_cruda, local, df_estadios)
 
-            # 3. GUARDADO FINAL UNIFICADO (En tu lista original 'resultados')
+            # 3. GUARDADO FINAL UNIFICADO
             resultados.append({
                 "Partido": f"{local} vs {visita}",
                 "Abridores": f"{p_local} vs {p_visita}",
@@ -428,7 +470,12 @@ if not df.empty and modelo is not None:
             })
             
         # 3. Armamos el DataFrame de resultados ordenado por el Pick Ganador
-        df_resultados = pd.DataFrame(resultados).sort_values(by="Confianza (%)", ascending=False).reset_index(drop=True)
+        # 🔧 CORRECCIÓN: blindaje para no tronar si 'resultados' quedó vacío
+        df_resultados = pd.DataFrame(resultados)
+        if df_resultados.empty:
+            st.warning("📭 No se pudo generar ningún pick hoy. Revisa que los nombres de equipo de la BD coincidan con el encoder (ver advertencias arriba).")
+            st.stop()
+        df_resultados = df_resultados.sort_values(by="Confianza (%)", ascending=False).reset_index(drop=True)
         
         # 4. Mostramos el Pick más fuerte
         st.markdown("---")
@@ -449,7 +496,7 @@ if not df.empty and modelo is not None:
         df_filtrado = df_resultados[df_resultados['Confianza (%)'] >= filtro_hoy]
         
         if not df_filtrado.empty:
-            # ACTUALIZADO: Pintamos las barras de ambas columnas de confianza
+            # Pintamos las barras de ambas columnas de confianza
             st.dataframe(
                 df_filtrado.style
                 .bar(subset=['Confianza (%)', 'Confianza O/U (%)'], color='#4CAF50', vmin=50, vmax=100)
@@ -490,9 +537,10 @@ if not df.empty and modelo is not None:
                 racha_l, descanso_l = obtener_estado_actual(local, df_hist)
                 racha_v, descanso_v = obtener_estado_actual(visita, df_hist)
 
+                # 🔧 CORRECCIÓN: normalizamos el nombre antes de pasarlo al encoder
                 try:
-                    t_code = encoder.transform([local])[0]
-                    o_code = encoder.transform([visita])[0]
+                    t_code = encoder.transform([normalizar_equipo(local)])[0]
+                    o_code = encoder.transform([normalizar_equipo(visita)])[0]
                 except ValueError:
                     continue
 
@@ -507,7 +555,7 @@ if not df.empty and modelo is not None:
 
                 vars_escaladas = scaler.transform(fila_ia)
                 prob_local_val = modelo.predict(vars_escaladas, verbose=0)[0][0]
-                
+                prob_local = prob_local_val
                 
                 prob_visitante = 1 - prob_local
                 confianza = max(prob_local, prob_visitante) * 100
