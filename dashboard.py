@@ -2,7 +2,8 @@ import os
 import streamlit as st
 import pandas as pd
 import mysql.connector
-from tensorflow.keras.models import modelo
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Dropout, Input
 import joblib
 import warnings
 from datetime import datetime
@@ -19,12 +20,22 @@ st.markdown("Predicciones del mercado usando rachas y fatiga de la temporada 202
 @st.cache_resource
 def cargar_oraculo():
     try:
+        # Recreamos la arquitectura exacta de tu red neuronal
+        modelo = Sequential([
+            Input(shape=(102,)),
+            Dense(64, activation='relu'),
+            Dropout(0.3),
+            Dense(32, activation='relu'),
+            Dropout(0.2),
+            Dense(1, activation='sigmoid')
+        ])
+        
+        # Cargamos los pesos en lugar de .keras completo
         modelo.load_weights('pesos_mlb_v2.weights.h5')
         scaler = joblib.load('scaler_v2.pkl')
         columnas = joblib.load('columnas_entrenamiento_v2.pkl')
         return modelo, columnas, scaler
     except Exception as e:
-        # Muestra el error exacto en la app web de Streamlit para saber qué falló
         st.error(f"Error real de Python: {e}")
         return None, None, None
 
@@ -319,8 +330,6 @@ if not df.empty and modelo is not None:
     tab1, tab2 = st.tabs(["🔮 Picks de Hoy", "💰 Tracker de ROI"])
     
     with tab1:
-        # 1. Cargamos la memoria y creamos la caja vacía 'resultados'
-        df_hist = pd.read_csv('mlb_dataset_ia.csv')
         resultados = []
         
         # 2. El ciclo que recorre los partidos de hoy y le pregunta a la IA
