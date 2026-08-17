@@ -1,0 +1,60 @@
+name: 🤖 Oráculo Bot Automático
+
+on:
+  schedule:
+    # Corre todos los días a las 11:00 AM UTC (Aproximadamente 4:00 AM o 5:00 AM en Durango)
+    - cron: '0 11 * * *'
+  workflow_dispatch:
+
+jobs:
+  rutina_diaria:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Clonar el repositorio
+        uses: actions/checkout@v3
+
+      - name: 🐍 Configurar Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: 📦 Instalar librerías
+        run: |
+          pip install -r requirements.txt
+
+      - name: 🔄 Ejecutar actualización de marcadores y memoria (Fuente 1)
+        env:
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASS: ${{ secrets.DB_PASS }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+        run: python actualizar_marcadores.py
+
+      - name: 🕵️‍♂️ Ejecutar scraper de cuotas y juegos nuevos
+        env:
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASS: ${{ secrets.DB_PASS }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+        run: python scraper.py
+
+      - name: 🏥 Ejecutar escáner médico de CBS (Fuente 8)
+        env:
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASS: ${{ secrets.DB_PASS }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+        run: python escaner_lesiones.py
+
+      - name: ⚾ Ejecutar escáner de pitchers abridores (Fuente 9)
+        env:
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASS: ${{ secrets.DB_PASS }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+        run: python escaner_pitchers.py
