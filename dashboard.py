@@ -19,7 +19,7 @@ st.markdown("Predicciones del mercado usando rachas y fatiga de la temporada 202
 @st.cache_resource
 def cargar_oraculo():
     try:
-        modelo = load_model('pesos_mlb_v2.h5')
+        modelo.load_weights('pesos_mlb_v2.weights.h5')
         scaler = joblib.load('scaler_v2.pkl')
         columnas = joblib.load('columnas_entrenamiento_v2.pkl')
         return modelo, columnas, scaler
