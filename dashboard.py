@@ -282,7 +282,7 @@ def aplicar_filtro_estadio(pick_totales, confianza_base, equipo_local, df_estadi
     ventaja_ofensiva = factor - 100
     
     # Dividimos entre 2 para que el máximo bono sea +-7% (para no romper la matemática)
-    ajuste = ventaja_ofensiva / 2.0
+    ajuste = ventaja_ofensiva / 1.2
     
     # Verificamos si la IA eligió "Over" (Altas) o "Under" (Bajas)
     pick_upper = str(pick_totales).upper()
@@ -464,10 +464,10 @@ if not df.empty and modelo is not None:
             
             if carreras_esperadas > linea_promedio:
                 pick_totales = "OVER (Altas)"
-                confianza_t_cruda = 50.0 + ((carreras_esperadas - linea_promedio) * 5)
+                confianza_t_cruda = 50.0 + ((carreras_esperadas - linea_promedio) * 8.5)
             else:
                 pick_totales = "UNDER (Bajas)"
-                confianza_t_cruda = 50.0 + ((linea_promedio - carreras_esperadas) * 5)
+                confianza_t_cruda = 50.0 + ((linea_promedio - carreras_esperadas) * 8.5)
                 
             if confianza_t_cruda > 95.0: confianza_t_cruda = 95.0
                 
