@@ -2,7 +2,7 @@ name: 🤖 Oráculo Bot Automático
 
 on:
   schedule:
-    # Corre todos los días a las 11:00 AM UTC (Aproximadamente 4:00 AM o 5:00 AM en Durango)
+    # Corre todos los días a las 11:00 AM UTC
     - cron: '0 11 * * *'
   workflow_dispatch:
 
@@ -23,38 +23,23 @@ jobs:
         run: |
           pip install -r requirements.txt
 
-      - name: 🔄 Ejecutar actualización de marcadores y memoria (Fuente 1)
-        env:
-          DB_HOST: ${{ secrets.DB_HOST }}
-          DB_PORT: ${{ secrets.DB_PORT }}
-          DB_USER: ${{ secrets.DB_USER }}
-          DB_PASS: ${{ secrets.DB_PASS }}
-          DB_NAME: ${{ secrets.DB_NAME }}
+      - name: 🔐 Crear archivo de secretos para Streamlit
+        run: |
+          mkdir -p .streamlit
+          echo 'host = "${{ secrets.DB_HOST }}"' > .streamlit/secrets.toml
+          echo 'port = ${{ secrets.DB_PORT }}' >> .streamlit/secrets.toml
+          echo 'user = "${{ secrets.DB_USER }}"' >> .streamlit/secrets.toml
+          echo 'password = "${{ secrets.DB_PASS }}"' >> .streamlit/secrets.toml
+          echo 'database = "${{ secrets.DB_NAME }}"' >> .streamlit/secrets.toml
+
+      - name: 🔄 Ejecutar actualización de marcadores y memoria
         run: python actualizar_marcadores.py
 
       - name: 🕵️‍♂️ Ejecutar scraper de cuotas y juegos nuevos
-        env:
-          DB_HOST: ${{ secrets.DB_HOST }}
-          DB_PORT: ${{ secrets.DB_PORT }}
-          DB_USER: ${{ secrets.DB_USER }}
-          DB_PASS: ${{ secrets.DB_PASS }}
-          DB_NAME: ${{ secrets.DB_NAME }}
         run: python scraper.py
 
-      - name: 🏥 Ejecutar escáner médico de CBS (Fuente 8)
-        env:
-          DB_HOST: ${{ secrets.DB_HOST }}
-          DB_PORT: ${{ secrets.DB_PORT }}
-          DB_USER: ${{ secrets.DB_USER }}
-          DB_PASS: ${{ secrets.DB_PASS }}
-          DB_NAME: ${{ secrets.DB_NAME }}
+      - name: 🏥 Ejecutar escáner médico de CBS
         run: python escaner_lesiones.py
 
-      - name: ⚾ Ejecutar escáner de pitchers abridores (Fuente 9)
-        env:
-          DB_HOST: ${{ secrets.DB_HOST }}
-          DB_PORT: ${{ secrets.DB_PORT }}
-          DB_USER: ${{ secrets.DB_USER }}
-          DB_PASS: ${{ secrets.DB_PASS }}
-          DB_NAME: ${{ secrets.DB_NAME }}
+      - name: ⚾ Ejecutar escáner de pitchers abridores
         run: python escaner_pitchers.py
