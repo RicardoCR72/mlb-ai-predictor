@@ -66,7 +66,7 @@ model.fit(X_train_scaled, y_train, epochs=50, batch_size=32, validation_data=(X_
 
 print("💾 4. Guardando el cerebro y los procesadores...")
 # Guardamos todo con nombres nuevos para no borrar tu versión 1.0 que ya funciona
-model.save('modelo_mlb_v2.keras')
+model.save('pesos_mlb_v2.h5')
 joblib.dump(scaler, 'scaler_v2.pkl')
 joblib.dump(encoder, 'encoder_equipos.pkl')
 

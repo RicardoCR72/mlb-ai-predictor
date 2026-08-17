@@ -7,8 +7,6 @@ import joblib
 import warnings
 from datetime import datetime
 
-st.write("Archivos encontrados en el servidor:")
-st.write(os.listdir('.'))
 
 warnings.filterwarnings('ignore')
 
@@ -21,7 +19,7 @@ st.markdown("Predicciones del mercado usando rachas y fatiga de la temporada 202
 @st.cache_resource
 def cargar_oraculo():
     try:
-        modelo = load_model('cerebro_mlb_v2.keras')
+        modelo = load_model('pesos_mlb_v2.h5')
         scaler = joblib.load('scaler_v2.pkl')
         columnas = joblib.load('columnas_entrenamiento_v2.pkl')
         return modelo, columnas, scaler
