@@ -1,6 +1,6 @@
 .streamlit/secrets.toml
-cerebro_mlb_v2.keras
-scaler_v2.pkl
-columnas_entrenamiento_v2.pkl
+#cerebro_mlb_v2.keras
+#scaler_v2.pkl
+#columnas_entrenamiento_v2.pkl
 __pycache__/
 venv/
