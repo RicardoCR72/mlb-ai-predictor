@@ -26,6 +26,8 @@ def cargar_oraculo():
         columnas = joblib.load('columnas_entrenamiento_v2.pkl')
         return modelo, columnas, scaler
     except Exception as e:
+        # Muestra el error exacto en la app web de Streamlit para saber qué falló
+        st.error(f"Error real de Python: {e}")
         return None, None, None
 
 def conectar_bd():
