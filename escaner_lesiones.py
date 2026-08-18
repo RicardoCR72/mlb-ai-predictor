@@ -1,3 +1,5 @@
+from zoneinfo import ZoneInfo
+
 import streamlit as st
 
 import pandas as pd
@@ -21,6 +23,9 @@ try:
 except Exception as e:
     print(f"❌ Error conectando a BD: {e}")
     exit()
+
+ZONA_MX = ZoneInfo("America/Mazatlan")
+hoy = datetime.now(ZONA_MX).strftime('%Y-%m-%d')
 
 # Diccionario de traducción de nombres
 traductor_equipos = {

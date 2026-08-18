@@ -2,6 +2,7 @@ import streamlit as st
 import requests
 import mysql.connector
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 print("📊 Iniciando Escáner de Splits y Bullpen (7 días)...")
 
@@ -15,7 +16,8 @@ except Exception as e:
     print(f"❌ Error conectando a BD: {e}")
     exit()
 
-hoy = datetime.now()
+ZONA_MX = ZoneInfo("America/Mazatlan")
+hoy = datetime.now(ZONA_MX).strftime('%Y-%m-%d')
 hace_7_dias = (hoy - timedelta(days=7)).strftime('%Y-%m-%d')
 hoy_str = hoy.strftime('%Y-%m-%d')
 año_actual = hoy.strftime('%Y')
