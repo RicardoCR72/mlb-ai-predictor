@@ -170,8 +170,8 @@ def cargar_metricas_avanzadas():
 def cargar_lesiones_hoy():
     try:
         conexion = conectar_bd()
-        hoy = hoy_mx().strftime('%Y-%m-%d')
-        query = f"SELECT equipo, impacto_total FROM factor_lesiones WHERE fecha = '{hoy}'"
+        # 🛡️ BLINDAJE: Busca la fecha máxima (la más reciente) en lugar de una fecha estática
+        query = "SELECT equipo, impacto_total FROM factor_lesiones WHERE fecha = (SELECT MAX(fecha) FROM factor_lesiones)"
         df_les = pd.read_sql(query, conexion)
         conexion.close()
         return df_les
@@ -192,9 +192,8 @@ def aplicar_filtro_medico(equipo_elegido, confianza_base, equipo_local, equipo_v
 def cargar_pitchers_hoy():
     try:
         conexion = conectar_bd()
-        hoy = hoy_mx().strftime('%Y-%m-%d')
-        # Extraemos también el ERA de las últimas 3 aperturas (V4)
-        query = f"SELECT equipo, nombre_pitcher, era, era_ultimas_3 FROM abridores WHERE fecha = '{hoy}'"
+        # 🛡️ BLINDAJE: Toma los pitchers más recientes guardados por el bot
+        query = "SELECT equipo, nombre_pitcher, era, era_ultimas_3 FROM abridores WHERE fecha = (SELECT MAX(fecha) FROM abridores)"
         df_pitchers = pd.read_sql(query, conexion)
         conexion.close()
         return df_pitchers
