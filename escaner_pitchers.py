@@ -2,6 +2,7 @@ import streamlit as st
 import requests
 import mysql.connector
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 print("⚾ Iniciando Escáner de Pitchers Abridores V3 (ERA Acumulado + ERA Últimas 3)...")
 
@@ -15,7 +16,8 @@ except Exception as e:
     print(f"❌ Error conectando a BD: {e}")
     exit()
 
-hoy = datetime.now().strftime('%Y-%m-%d')
+ZONA_MX = ZoneInfo("America/Mazatlan")
+hoy = datetime.now(ZONA_MX).strftime('%Y-%m-%d')
 url = f"https://statsapi.mlb.com/api/v1/schedule?sportId=1&date={hoy}&hydrate=probablePitcher(stats)"
 
 try:
