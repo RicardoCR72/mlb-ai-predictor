@@ -7,3 +7,4 @@ joblib
 requests
 beautifulsoup4
 tzdata
+lxml
