@@ -92,6 +92,37 @@ def cargar_datos_hoy():
 
 modelo, scaler, columnas_v3 = cargar_oraculo()
 
+# 🌍 Diccionario de Zonas Horarias de la MLB (Diferencia respecto a UTC)
+ZONAS_HORARIAS = {
+    'ARI': -7, 'ATL': -5, 'BAL': -5, 'BOS': -5,
+    'CHC': -6, 'CWS': -6, 'CIN': -5, 'CLE': -5,
+    'COL': -7, 'DET': -5, 'HOU': -6, 'KC': -6,
+    'LAA': -8, 'LAD': -8, 'MIA': -5, 'MIL': -6,
+    'MIN': -6, 'NYM': -5, 'NYY': -5, 'OAK': -8,
+    'PHI': -5, 'PIT': -5, 'SD': -8, 'SF': -8,
+    'SEA': -8, 'STL': -6, 'TB': -5, 'TEX': -6,
+    'TOR': -5, 'WSH': -5
+}
+
+def calcular_desgaste_viaje(equipo, fecha_actual, df_hist):
+    """Calcula cuántas horas de huso horario cruzó el equipo en su juego más reciente."""
+    df_equipo = df_hist[
+        (df_hist['equipo_local'] == equipo) | (df_hist['equipo_visitante'] == equipo)
+    ].sort_values('fecha', ascending=False)
+    
+    if df_equipo.empty:
+        return 0 # Sin jetlag si no hay registro previo
+        
+    ultimo_juego = df_equipo.iloc[0]
+    # Identificamos en qué estadio fue el juego anterior
+    estadio_anterior = ultimo_juego['equipo_local']
+    
+    zona_anterior = ZONAS_HORARIAS.get(estadio_anterior, -5)
+    zona_actual = ZONAS_HORARIAS.get(equipo, -5)
+    
+    # La diferencia absoluta de horas entre el viaje
+    return abs(zona_actual - zona_anterior)
+
 # ==========================================================
 # 4. MOTOR MATEMÁTICO V3: Diferencial, Win% y Fatiga
 # ==========================================================

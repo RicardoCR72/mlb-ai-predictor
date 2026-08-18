@@ -43,3 +43,6 @@ jobs:
 
       - name: ⚾ Ejecutar escáner de pitchers abridores
         run: python escaner_pitchers.py
+      
+      - name: Ejecutar bateo zurdos/derechos
+        run: python escaner_equipos.py
