@@ -16,11 +16,16 @@ except Exception as e:
     print(f"❌ Error conectando a BD: {e}")
     exit()
 
+# 1. Definimos la zona horaria
 ZONA_MX = ZoneInfo("America/Mazatlan")
-hoy = datetime.now(ZONA_MX).strftime('%Y-%m-%d')
-hace_7_dias = (hoy - timedelta(days=7)).strftime('%Y-%m-%d')
-hoy_str = hoy.strftime('%Y-%m-%d')
-año_actual = hoy.strftime('%Y')
+
+# 2. Creamos un objeto de tiempo real (para poder hacer restas matemáticas)
+fecha_actual = datetime.now(ZONA_MX)
+
+# 3. Formateamos a texto para las búsquedas y la base de datos
+hoy = fecha_actual.strftime('%Y-%m-%d')
+hace_7_dias = (fecha_actual - timedelta(days=7)).strftime('%Y-%m-%d')
+año_actual = fecha_actual.strftime('%Y')
 
 # IDs de la MLB para extraer información
 EQUIPOS_ID = {
