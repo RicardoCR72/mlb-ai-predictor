@@ -1,0 +1,43 @@
+name: ⚡ Escáner Flash (Pitchers y Lesiones)
+
+on:
+  schedule:
+    # 18:00 UTC = 12:00 PM (Mediodía)
+    # 21:00 UTC = 03:00 PM 
+    # 23:00 UTC = 05:00 PM
+    - cron: '0 18,21,23 * * *'
+  
+  # Este botón te permite correrlo manualmente desde GitHub cuando quieras
+  workflow_dispatch:
+
+jobs:
+  actualizar_datos_urgentes:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar el repositorio
+        uses: actions/checkout@v3
+
+      - name: Configurar Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Instalar Dependencias
+        run: |
+          pip install pandas requests mysql-connector-python lxml streamlit
+
+      - name: Crear archivo de secretos para conectar a Aiven
+        run: |
+          mkdir -p .streamlit
+          echo "host = '${{ secrets.DB_HOST }}'" > .streamlit/secrets.toml
+          echo "port = ${{ secrets.DB_PORT }}" >> .streamlit/secrets.toml
+          echo "user = '${{ secrets.DB_USER }}'" >> .streamlit/secrets.toml
+          echo "password = '${{ secrets.DB_PASSWORD }}'" >> .streamlit/secrets.toml
+          echo "database = '${{ secrets.DB_NAME }}'" >> .streamlit/secrets.toml
+
+      - name: ⚾ Escanear Pitchers Confirmados
+        run: python escaner_pitchers.py
+
+      - name: 🚑 Escanear Lesiones de Última Hora
+        run: python escaner_lesiones.py
