@@ -23,7 +23,8 @@ ZONA_MX = ZoneInfo("America/Mazatlan")
 fecha_actual = datetime.now(ZONA_MX)
 
 # 3. Formateamos a texto para las búsquedas y la base de datos
-hoy = fecha_actual.strftime('%Y-%m-%d')
+hoy_str = fecha_actual.strftime('%Y-%m-%d')
+hoy = hoy_str
 hace_7_dias = (fecha_actual - timedelta(days=7)).strftime('%Y-%m-%d')
 año_actual = fecha_actual.strftime('%Y')
 
