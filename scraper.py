@@ -3,6 +3,9 @@ import streamlit as st
 import requests
 import mysql.connector
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
+
+from escaner_equipos import ZONA_MX
 
 def conectar_bd():
     try:
@@ -36,7 +39,8 @@ def descargar_mlb():
 
 def guardar_todo(conexion, datos):
     cursor = conexion.cursor()
-    fecha_actual = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    ZONA_MX = ZoneInfo("America/Mazatlan")
+    fecha_actual = datetime.now(ZONA_MX).strftime('%Y-%m-%d %H:%M:%S')
     contador_juegos, contador_moneyline, contador_props = 0, 0, 0
     
     print("⏳ Procesando el JSON y guardando en XAMPP...")
