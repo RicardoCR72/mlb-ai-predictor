@@ -487,29 +487,38 @@ if not df.empty and modelo is not None:
                 
                 if confianza >= filtro_confianza:
                     apuestas_realizadas += 1  
+                
+                # 🎯 SISTEMA DE GESTIÓN DINÁMICA DE BANKROLL (STAKING)
+                if confianza >= 70.0:
+                    apuesta = 300
+                elif confianza >= 65.0:
+                    apuesta = 200
+                else:
                     apuesta = 100
-                    inversion_total += apuesta
                     
-                    if ia_pick_local == gano_local_real:
-                        ganancia = (apuesta * float(cuota_favorito)) - apuesta
-                        ganancia_neta += ganancia
-                        resultado_txt = "✅ Ganada"
-                    else:
-                        ganancia = -apuesta
-                        ganancia_neta += ganancia
-                        resultado_txt = "❌ Perdida"
-                        
-                    historial_banco.append(ganancia_neta)
+                inversion_total += apuesta
+                
+                if ia_pick_local == gano_local_real:
+                    ganancia = (apuesta * float(cuota_favorito)) - apuesta
+                    ganancia_neta += ganancia
+                    resultado_txt = "✅ Ganada"
+                else:
+                    ganancia = -apuesta
+                    ganancia_neta += ganancia
+                    resultado_txt = "❌ Perdida"
                     
-                    registros_apuestas.append({
-                        "Fecha": fecha_juego,
-                        "Partido": f"{local_api} vs {visita_api}",
-                        "Pick de la IA": favorito,
-                        "Confianza (%)": round(confianza, 1),
-                        "Cuota": round(float(cuota_favorito), 2),
-                        "Resultado": resultado_txt,
-                        "Profit ($)": round(ganancia, 2)
-                    })
+                historial_banco.append(ganancia_neta)
+                
+                registros_apuestas.append({
+                    "Fecha": fecha_juego,
+                    "Partido": f"{local_api} vs {visita_api}",
+                    "Pick de la IA": favorito,
+                    "Confianza (%)": round(confianza, 1),
+                    "Stake ($)": apuesta, # 🔥 Ahora verás de cuánto fue la bala en la tabla
+                    "Cuota": round(float(cuota_favorito), 2),
+                    "Resultado": resultado_txt,
+                    "Profit ($)": round(ganancia, 2)
+                })
             
             roi = (ganancia_neta / inversion_total) * 100 if inversion_total > 0 else 0
             
