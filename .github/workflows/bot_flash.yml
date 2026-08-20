@@ -25,7 +25,7 @@ jobs:
 
       - name: Instalar Dependencias
         run: |
-          pip install pandas requests mysql-connector-python lxml streamlit
+          pip install -r requirements.txt
 
       - name: Crear archivo de secretos para conectar a Aiven
         run: |
@@ -33,7 +33,7 @@ jobs:
           echo "host = '${{ secrets.DB_HOST }}'" > .streamlit/secrets.toml
           echo "port = ${{ secrets.DB_PORT }}" >> .streamlit/secrets.toml
           echo "user = '${{ secrets.DB_USER }}'" >> .streamlit/secrets.toml
-          echo "password = '${{ secrets.DB_PASSWORD }}'" >> .streamlit/secrets.toml
+          echo "password = '${{ secrets.DB_PASS }}'" >> .streamlit/secrets.toml
           echo "database = '${{ secrets.DB_NAME }}'" >> .streamlit/secrets.toml
 
       - name: ⚾ Escanear Pitchers Confirmados
