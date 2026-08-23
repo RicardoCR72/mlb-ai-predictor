@@ -85,7 +85,7 @@ def cargar_datos_hoy():
                MAX(c.cuota_local) AS 'Paga Local', MAX(c.cuota_visitante) AS 'Paga Visitante'
         FROM juegos j
         JOIN cuotas_moneyline c ON j.id_juego = c.id_juego
-        WHERE j.marcador_local IS NULL AND DATE(j.fecha) >= %s
+        WHERE j.marcador_local IS NULL AND DATE(j.fecha) = %s
         GROUP BY j.id_juego
     """
     df = pd.read_sql(consulta, conexion, params=(hoy_mx(),))
