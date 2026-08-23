@@ -29,7 +29,7 @@ def cargar_oraculo():
     try:
         # Arquitectura V4: Recibe 18 variables continuas
         modelo = Sequential([
-            Input(shape=(18,)), 
+            Input(shape=(18,)),
             Dense(64, activation='relu'),
             Dropout(0.3),
             Dense(32, activation='relu'),
@@ -38,11 +38,11 @@ def cargar_oraculo():
             Dropout(0.2),
             Dense(1, activation='sigmoid')
         ])
-        
+
         modelo.load_weights('pesos_mlb_v4.weights.h5')
         scaler = joblib.load('scaler_v4.pkl')
         columnas_v4 = joblib.load('columnas_v4.pkl')
-        
+
         return modelo, scaler, columnas_v4
     except Exception as e:
         st.error(f"Error cargando la IA V4.0: {e}")
@@ -102,42 +102,42 @@ modelo, scaler, columnas_v4 = cargar_oraculo()
 def obtener_estado_actual(equipo, df_hist, fecha_objetivo=None):
     if fecha_objetivo is None: fecha_objetivo = hoy_mx()
     else: fecha_objetivo = pd.to_datetime(fecha_objetivo).date()
-        
+
     df_hist_copy = df_hist.copy()
     df_hist_copy['fecha_solo_dia'] = pd.to_datetime(df_hist_copy['fecha']).dt.date
-    
+
     df_equipo = df_hist_copy[
-        ((df_hist_copy['equipo_local'] == equipo) | (df_hist_copy['equipo_visitante'] == equipo)) & 
+        ((df_hist_copy['equipo_local'] == equipo) | (df_hist_copy['equipo_visitante'] == equipo)) &
         (df_hist_copy['fecha_solo_dia'] < fecha_objetivo)
     ].sort_values('fecha_solo_dia')
-    
+
     if df_equipo.empty: return 0.500, 0, 3, 0.5, equipo
-    
+
     juegos_jugados = len(df_equipo)
     victorias = 0
     carreras_anotadas = 0
     carreras_recibidas = 0
     ultimos_5 = []
-    
+
     for _, row in df_equipo.iterrows():
         es_local = row['equipo_local'] == equipo
         runs_fav = row['marcador_local'] if es_local else row['marcador_visitante']
         runs_con = row['marcador_visitante'] if es_local else row['marcador_local']
-        
+
         carreras_anotadas += runs_fav
         carreras_recibidas += runs_con
         gano = 1 if runs_fav > runs_con else 0
         victorias += gano
         ultimos_5.append(gano)
-        
+
     win_pct = victorias / juegos_jugados
     run_diff = carreras_anotadas - carreras_recibidas
     racha_5 = np.mean(ultimos_5[-5:]) if len(ultimos_5) > 0 else 0.5
-    
+
     fecha_ultimo = df_equipo.iloc[-1]['fecha_solo_dia']
     estadio_anterior = df_equipo.iloc[-1]['equipo_local']
     descanso = (fecha_objetivo - fecha_ultimo).days
-        
+
     return win_pct, run_diff, descanso, racha_5, estadio_anterior
 
 def limpiar_cuotas_v4(cuota_l_raw, cuota_v_raw):
@@ -170,7 +170,6 @@ def cargar_metricas_avanzadas():
 def cargar_lesiones_hoy():
     try:
         conexion = conectar_bd()
-        # 🛡️ BLINDAJE: Busca la fecha máxima (la más reciente) en lugar de una fecha estática
         query = "SELECT equipo, impacto_total FROM factor_lesiones WHERE fecha = (SELECT MAX(fecha) FROM factor_lesiones)"
         df_les = pd.read_sql(query, conexion)
         conexion.close()
@@ -183,7 +182,7 @@ def aplicar_filtro_medico(equipo_elegido, confianza_base, equipo_local, equipo_v
     imp_v = df_lesiones.loc[df_lesiones['equipo'] == equipo_visitante, 'impacto_total'].values
     impacto_local = imp_l[0] if len(imp_l) > 0 else 0
     impacto_visita = imp_v[0] if len(imp_v) > 0 else 0
-    
+
     ajuste = impacto_local - impacto_visita if equipo_elegido == equipo_local else impacto_visita - impacto_local
     confianza_final = confianza_base + ajuste
     return max(50.1, min(99.0, round(confianza_final, 1)))
@@ -192,7 +191,6 @@ def aplicar_filtro_medico(equipo_elegido, confianza_base, equipo_local, equipo_v
 def cargar_pitchers_hoy():
     try:
         conexion = conectar_bd()
-        # 🛡️ BLINDAJE: Toma los pitchers más recientes guardados por el bot
         query = "SELECT equipo, nombre_pitcher, era, era_ultimas_3 FROM abridores WHERE fecha = (SELECT MAX(fecha) FROM abridores)"
         df_pitchers = pd.read_sql(query, conexion)
         conexion.close()
@@ -202,7 +200,6 @@ def cargar_pitchers_hoy():
 def aplicar_filtro_pitchers(equipo_elegido, confianza_base, equipo_local, equipo_visitante, df_pitchers):
     if df_pitchers.empty: return confianza_base, "TBD", "TBD"
 
-    # Intentamos usar el ERA de las últimas 3 aperturas primero. Si no, usamos el global.
     def obtener_era_real(equipo):
         row = df_pitchers[df_pitchers['equipo'] == equipo]
         if row.empty: return 4.50
@@ -220,10 +217,10 @@ def aplicar_filtro_pitchers(equipo_elegido, confianza_base, equipo_local, equipo
 
     ventaja = era_visita - era_local if equipo_elegido == equipo_local else era_local - era_visita
     confianza_final = confianza_base + (ventaja * 2.5)
-    
+
     return max(50.1, min(99.0, round(confianza_final, 1))), f"{pitcher_local} ({era_local:.2f})", f"{pitcher_visita} ({era_visita:.2f})"
 
-@st.cache_data(ttl=86400) 
+@st.cache_data(ttl=86400)
 def cargar_park_factor():
     try:
         conexion = conectar_bd()
@@ -238,10 +235,10 @@ def aplicar_filtro_estadio(pick_totales, confianza_base, equipo_local, df_estadi
     factor_row = df_estadios.loc[df_estadios['equipo'] == equipo_local, 'factor'].values
     factor = int(factor_row[0]) if len(factor_row) > 0 else 100
     ajuste = (factor - 100) / 1.2
-    
+
     pick_upper = str(pick_totales).upper()
     if "OVER" in pick_upper or "ALTAS" in pick_upper: confianza_final = confianza_base + ajuste
-    elif "UNDER" in pick_upper or "BAJAS" in pick_upper: confianza_final = confianza_base - ajuste 
+    elif "UNDER" in pick_upper or "BAJAS" in pick_upper: confianza_final = confianza_base - ajuste
     else: confianza_final = confianza_base
 
     return max(50.1, min(99.0, round(confianza_final, 1)))
@@ -250,7 +247,7 @@ def aplicar_filtro_estadio(pick_totales, confianza_base, equipo_local, df_estadi
 def fusionar_historiales(df_csv, df_xampp):
     df_memoria = df_csv.copy()
     if df_xampp.empty: return df_memoria
-        
+
     df_xampp = df_xampp.sort_values(by='fecha').reset_index(drop=True)
     for i in range(len(df_xampp)):
         local = df_xampp.loc[i, 'Equipo Local']
@@ -258,7 +255,7 @@ def fusionar_historiales(df_csv, df_xampp):
         fecha_juego = df_xampp.loc[i, 'fecha']
         marcador_l = df_xampp.loc[i, 'marcador_local']
         marcador_v = df_xampp.loc[i, 'marcador_visitante']
-        
+
         nueva_fila = pd.DataFrame([{
             'fecha': fecha_juego, 'equipo_local': local, 'equipo_visitante': visita,
             'marcador_local': marcador_l, 'marcador_visitante': marcador_v,
@@ -275,17 +272,76 @@ def cargar_historial_xampp():
                MAX(c.cuota_local) AS 'Paga Local', MAX(c.cuota_visitante) AS 'Paga Visitante'
         FROM juegos j
         JOIN cuotas_moneyline c ON j.id_juego = c.id_juego
-        WHERE j.marcador_local IS NOT NULL AND DATE(j.fecha) < %s  
+        WHERE j.marcador_local IS NOT NULL AND DATE(j.fecha) < %s
         GROUP BY j.id_juego ORDER BY j.fecha ASC
     """
     df = pd.read_sql(consulta, conexion, params=(hoy_mx(),))
     conexion.close()
-    
+
     if not df.empty:
         df['solo_fecha'] = pd.to_datetime(df['fecha']).dt.date
         df = df.drop_duplicates(subset=['solo_fecha', 'Equipo Local', 'Equipo Visitante'], keep='last')
         df = df.drop(columns=['solo_fecha']).reset_index(drop=True)
     return df
+
+# ==========================================================
+# NUEVO: histórico completo de métricas / lesiones / abridores
+# (para que Tab 2 use los MISMOS filtros que Tab 1, con datos
+#  de la fecha real de cada juego, no valores neutros fijos)
+# ==========================================================
+@st.cache_data(ttl=3600)
+def cargar_metricas_historico():
+    try:
+        conexion = conectar_bd()
+        query = "SELECT fecha, equipo, ops_vs_zurdo, ops_vs_derecho, era_bullpen_7d FROM metricas_equipos"
+        df = pd.read_sql(query, conexion)
+        conexion.close()
+        return df
+    except Exception:
+        return pd.DataFrame()
+
+@st.cache_data(ttl=3600)
+def cargar_lesiones_historico():
+    try:
+        conexion = conectar_bd()
+        query = "SELECT fecha, equipo, impacto_total FROM factor_lesiones"
+        df = pd.read_sql(query, conexion)
+        conexion.close()
+        return df
+    except Exception:
+        return pd.DataFrame()
+
+@st.cache_data(ttl=3600)
+def cargar_pitchers_historico():
+    try:
+        conexion = conectar_bd()
+        query = "SELECT fecha, equipo, nombre_pitcher, era, era_ultimas_3 FROM abridores"
+        df = pd.read_sql(query, conexion)
+        conexion.close()
+        return df
+    except Exception:
+        return pd.DataFrame()
+
+def _fila_mas_reciente(df_hist, equipo, fecha_objetivo):
+    """Fila del equipo con la fecha más reciente <= fecha_objetivo (o None)."""
+    if df_hist.empty:
+        return None
+    fecha_objetivo = pd.to_datetime(fecha_objetivo).date()
+    d = df_hist.copy()
+    d['fecha'] = pd.to_datetime(d['fecha']).dt.date
+    filtro = d[(d['equipo'] == equipo) & (d['fecha'] <= fecha_objetivo)]
+    if filtro.empty:
+        return None
+    return filtro.sort_values('fecha').iloc[-1]
+
+def obtener_metricas_avanzadas_fecha(df_metricas_hist, equipo, fecha_objetivo):
+    fila = _fila_mas_reciente(df_metricas_hist, equipo, fecha_objetivo)
+    if fila is None:
+        return 0.700, 0.700, 4.50
+    ops_l = float(fila['ops_vs_zurdo']) if pd.notna(fila['ops_vs_zurdo']) else 0.700
+    ops_r = float(fila['ops_vs_derecho']) if pd.notna(fila['ops_vs_derecho']) else 0.700
+    era_bp = float(fila['era_bullpen_7d']) if pd.notna(fila['era_bullpen_7d']) else 4.50
+    return ops_l, ops_r, era_bp
 
 # ---------------- FLUJO PRINCIPAL ----------------
 df = cargar_datos_hoy()
@@ -293,23 +349,23 @@ if not df.empty: df = df.drop_duplicates(subset=['Equipo Local', 'Equipo Visitan
 
 if not df.empty and modelo is not None:
     st.success("✅ Oráculo V4.0 en línea. Procesando Fatiga, Splits y Bullpen...")
-    
+
     df_csv_estatico = pd.read_csv('mlb_dataset_ia.csv')
-    df_pasado = cargar_historial_xampp() 
+    df_pasado = cargar_historial_xampp()
     df_hist = fusionar_historiales(df_csv_estatico, df_pasado)
     df_metricas_adv = cargar_metricas_avanzadas()
-    
+
     tab1, tab2 = st.tabs(["🔮 Picks de Hoy", "💰 Tracker de ROI"])
-    
+
     with tab1:
         resultados = []
         for i in range(len(df)):
             local_api = df.loc[i, 'Equipo Local']
             visita_api = df.loc[i, 'Equipo Visitante']
-            
+
             local = normalizar_equipo(local_api)
             visita = normalizar_equipo(visita_api)
-            
+
             # 1. Rendimiento Básico y Estadio Anterior
             w_l, d_l, desc_l, r5_l, est_ant_l = obtener_estado_actual(local, df_hist)
             w_v, d_v, desc_v, r5_v, est_ant_v = obtener_estado_actual(visita, df_hist)
@@ -324,11 +380,11 @@ if not df.empty and modelo is not None:
             # 3. Métricas Avanzadas (Splits y Bullpen)
             met_l = df_metricas_adv[df_metricas_adv['equipo'] == local_api]
             met_v = df_metricas_adv[df_metricas_adv['equipo'] == visita_api]
-            
+
             ops_l_team = float(met_l['ops_vs_zurdo'].values[0]) if not met_l.empty else 0.700
             ops_r_team = float(met_l['ops_vs_derecho'].values[0]) if not met_l.empty else 0.700
             era_bp_team = float(met_l['era_bullpen_7d'].values[0]) if not met_l.empty else 4.50
-            
+
             ops_l_opp = float(met_v['ops_vs_zurdo'].values[0]) if not met_v.empty else 0.700
             ops_r_opp = float(met_v['ops_vs_derecho'].values[0]) if not met_v.empty else 0.700
             era_bp_opp = float(met_v['era_bullpen_7d'].values[0]) if not met_v.empty else 4.50
@@ -347,14 +403,14 @@ if not df.empty and modelo is not None:
                 'ops_l_opp': ops_l_opp, 'ops_r_opp': ops_r_opp, 'era_bullpen_opp': era_bp_opp,
                 'prob_pure_team': prob_p_l, 'prob_pure_opp': prob_p_v
             }
-            
+
             fila_ia = pd.DataFrame([fila_dic])
             fila_ia = fila_ia[columnas_v4]
-            
+
             vars_escaladas = scaler.transform(fila_ia)
             prob_local = modelo.predict(vars_escaladas, verbose=0)[0][0] * 100
             prob_visitante = 100 - prob_local
-            
+
             favorito = local_api if prob_local > 50 else visita_api
             confianza = max(prob_local, prob_visitante)
             paga = df.loc[i, 'Paga Local'] if prob_local > 50 else df.loc[i, 'Paga Visitante']
@@ -362,28 +418,27 @@ if not df.empty and modelo is not None:
             df_lesiones_hoy = cargar_lesiones_hoy()
             df_pitchers_hoy = cargar_pitchers_hoy()
             df_estadios = cargar_park_factor()
-            
+
             confianza_filtrada = aplicar_filtro_medico(favorito, confianza, local_api, visita_api, df_lesiones_hoy)
-            # 🔥 Aquí el filtro ahora usa el ERA de las últimas 3 aperturas
             confianza_final, p_local, p_visita = aplicar_filtro_pitchers(favorito, confianza_filtrada, local_api, visita_api, df_pitchers_hoy)
 
             # MÓDULO O/U
-            carreras_esperadas = 8.5 # Valor temporal, se puede ajustar con abridores + bullpen
+            carreras_esperadas = 8.5
             if not df_pitchers_hoy.empty:
                 era_l = df_pitchers_hoy.loc[df_pitchers_hoy['equipo'] == local_api, 'era'].values
                 era_v = df_pitchers_hoy.loc[df_pitchers_hoy['equipo'] == visita_api, 'era'].values
                 e_l = float(era_l[0]) if len(era_l) > 0 else 4.50
                 e_v = float(era_v[0]) if len(era_v) > 0 else 4.50
                 carreras_esperadas = e_l + e_v
-            
-            linea_promedio = 8.5 
+
+            linea_promedio = 8.5
             if carreras_esperadas > linea_promedio:
                 pick_totales = "OVER (Altas)"
                 confianza_t_cruda = 50.0 + ((carreras_esperadas - linea_promedio) * 8.5)
             else:
                 pick_totales = "UNDER (Bajas)"
                 confianza_t_cruda = 50.0 + ((linea_promedio - carreras_esperadas) * 8.5)
-                
+
             confianza_t_cruda = min(95.0, confianza_t_cruda)
             confianza_totales_final = aplicar_filtro_estadio(pick_totales, confianza_t_cruda, local_api, df_estadios)
 
@@ -396,25 +451,25 @@ if not df.empty and modelo is not None:
                 "Confianza O/U (%)": confianza_totales_final,
                 "Paga del Favorito": paga
             })
-            
+
         df_resultados = pd.DataFrame(resultados)
         if df_resultados.empty:
             st.warning("📭 No se pudo generar ningún pick hoy.")
             st.stop()
-            
+
         df_resultados = df_resultados.sort_values(by="Confianza (%)", ascending=False).reset_index(drop=True)
-        
+
         st.markdown("---")
         st.markdown("### 🔥 El Pick Más Fuerte del Día")
         mejor_pick = df_resultados.loc[0]
         st.info(f"**{mejor_pick['Pick de la IA']}** ganando su partido de **{mejor_pick['Partido']}** (Confianza: {mejor_pick['Confianza (%)']:.1f}%) | Cuota: {mejor_pick['Paga del Favorito']:.2f}")
-        
+
         st.markdown("---")
         st.markdown("### 📊 Tabla de Predicciones Generales")
-        
+
         filtro_hoy = st.slider("Ocultar partidos basura. Mostrar solo confianza mayor a:", 50.0, 90.0, 74.0, 1.0, key="slider_hoy")
         df_filtrado = df_resultados[df_resultados['Confianza (%)'] >= filtro_hoy]
-        
+
         if not df_filtrado.empty:
             st.dataframe(
                 df_filtrado.style
@@ -424,39 +479,48 @@ if not df.empty and modelo is not None:
             )
         else:
             st.warning("📉 El Oráculo ha hablado: Hoy no hay ningún partido que supere tu filtro de confianza.")
-            
+
     with tab2:
         st.markdown("### 💵 Rendimiento Histórico de la IA (V4.0)")
-        
+
         filtro_confianza = st.slider("Solo apostar si la confianza de la IA es mayor a:", 50.0, 90.0, 74.0, 1.0, key="slider_roi")
         df_pasado = cargar_historial_xampp()
-        
+
+        # NUEVO: histórico completo (no solo "hoy"), para usar los mismos
+        # filtros de Tab 1 con los datos reales de cada fecha pasada
+        df_metricas_hist = cargar_metricas_historico()
+        df_lesiones_hist = cargar_lesiones_historico()
+        df_pitchers_hist = cargar_pitchers_historico()
+
         if not df_pasado.empty:
-            apuestas_realizadas = 0   
+            apuestas_realizadas = 0
             inversion_total = 0
             ganancia_neta = 0
             historial_banco = [0]
-            registros_apuestas = []  
-            
+            registros_apuestas = []
+
             for i in range(len(df_pasado)):
                 fecha_juego = df_pasado.loc[i, 'fecha']
                 local_api = df_pasado.loc[i, 'Equipo Local']
                 visita_api = df_pasado.loc[i, 'Equipo Visitante']
                 cuota_l_raw = df_pasado.loc[i, 'Paga Local']
                 cuota_v_raw = df_pasado.loc[i, 'Paga Visitante']
-                
+
                 local = normalizar_equipo(local_api)
                 visita = normalizar_equipo(visita_api)
-                
+
                 w_l, d_l, desc_l, r5_l, est_ant_l = obtener_estado_actual(local, df_hist, fecha_objetivo=fecha_juego)
                 w_v, d_v, desc_v, r5_v, est_ant_v = obtener_estado_actual(visita, df_hist, fecha_objetivo=fecha_juego)
-                
+
                 zona_estadio_hoy = ZONAS_HORARIAS.get(local, -5)
                 zona_ant_l = ZONAS_HORARIAS.get(normalizar_equipo(est_ant_l), -5)
                 zona_ant_v = ZONAS_HORARIAS.get(normalizar_equipo(est_ant_v), -5)
-                
-                # Para la simulación histórica, usamos valores promedios neutros 
-                # para splits y bullpen (ya que no los guardamos antes de hoy)
+
+                # NUEVO: métricas avanzadas reales para la fecha del juego
+                # (antes eran fijas 0.700 / 4.50, ahora se consultan del histórico)
+                ops_l_team, ops_r_team, era_bp_team = obtener_metricas_avanzadas_fecha(df_metricas_hist, local_api, fecha_juego)
+                ops_l_opp, ops_r_opp, era_bp_opp = obtener_metricas_avanzadas_fecha(df_metricas_hist, visita_api, fecha_juego)
+
                 fila_dic = {
                     'win_pct_team': w_l, 'win_pct_opp': w_v,
                     'run_diff_team': d_l, 'run_diff_opp': d_v,
@@ -464,30 +528,43 @@ if not df.empty and modelo is not None:
                     'racha_5_team': r5_l, 'racha_5_opp': r5_v,
                     'jetlag_team': abs(zona_estadio_hoy - zona_ant_l),
                     'jetlag_opp': abs(zona_estadio_hoy - zona_ant_v),
-                    'ops_l_team': 0.700, 'ops_r_team': 0.700, 'era_bullpen_team': 4.50,
-                    'ops_l_opp': 0.700, 'ops_r_opp': 0.700, 'era_bullpen_opp': 4.50,
+                    'ops_l_team': ops_l_team, 'ops_r_team': ops_r_team, 'era_bullpen_team': era_bp_team,
+                    'ops_l_opp': ops_l_opp, 'ops_r_opp': ops_r_opp, 'era_bullpen_opp': era_bp_opp,
                     'prob_pure_team': limpiar_cuotas_v4(cuota_l_raw, cuota_v_raw)[0],
                     'prob_pure_opp': limpiar_cuotas_v4(cuota_l_raw, cuota_v_raw)[1]
                 }
-                
+
                 fila_ia = pd.DataFrame([fila_dic])
                 fila_ia = fila_ia[columnas_v4]
-                
+
                 vars_escaladas = scaler.transform(fila_ia)
                 prob_local_val = modelo.predict(vars_escaladas, verbose=0)[0][0]
-                
+
                 prob_visitante_val = 1 - prob_local_val
-                confianza = max(prob_local_val, prob_visitante_val) * 100
-                
+                confianza_base = max(prob_local_val, prob_visitante_val) * 100
+
                 ia_pick_local = prob_local_val > 0.50
                 favorito = local_api if ia_pick_local else visita_api
                 cuota_favorito = cuota_l_raw if ia_pick_local else cuota_v_raw
-                
+
+                # NUEVO: se aplican los MISMOS dos filtros que en Tab 1
+                # (médico y de abridores), usando el histórico de esa fecha.
+                fila_les_l = _fila_mas_reciente(df_lesiones_hist, local_api, fecha_juego)
+                fila_les_v = _fila_mas_reciente(df_lesiones_hist, visita_api, fecha_juego)
+                df_lesiones_fecha = pd.DataFrame([r for r in [fila_les_l, fila_les_v] if r is not None])
+
+                fila_pit_l = _fila_mas_reciente(df_pitchers_hist, local_api, fecha_juego)
+                fila_pit_v = _fila_mas_reciente(df_pitchers_hist, visita_api, fecha_juego)
+                df_pitchers_fecha = pd.DataFrame([r for r in [fila_pit_l, fila_pit_v] if r is not None])
+
+                confianza_filtrada = aplicar_filtro_medico(favorito, confianza_base, local_api, visita_api, df_lesiones_fecha)
+                confianza, _, _ = aplicar_filtro_pitchers(favorito, confianza_filtrada, local_api, visita_api, df_pitchers_fecha)
+
                 gano_local_real = df_pasado.loc[i, 'marcador_local'] > df_pasado.loc[i, 'marcador_visitante']
-                
+
                 if confianza >= filtro_confianza:
-                    apuestas_realizadas += 1  
-                
+                    apuestas_realizadas += 1
+
                     # 🎯 SISTEMA DE GESTIÓN DINÁMICA DE BANKROLL (STAKING)
                     if confianza >= 70.0:
                         apuesta = 300
@@ -495,9 +572,9 @@ if not df.empty and modelo is not None:
                         apuesta = 200
                     else:
                         apuesta = 100
-                        
+
                     inversion_total += apuesta
-                    
+
                     if ia_pick_local == gano_local_real:
                         ganancia = (apuesta * float(cuota_favorito)) - apuesta
                         ganancia_neta += ganancia
@@ -506,33 +583,33 @@ if not df.empty and modelo is not None:
                         ganancia = -apuesta
                         ganancia_neta += ganancia
                         resultado_txt = "❌ Perdida"
-                        
+
                     historial_banco.append(ganancia_neta)
-                    
+
                     registros_apuestas.append({
                         "Fecha": fecha_juego,
                         "Partido": f"{local_api} vs {visita_api}",
                         "Pick de la IA": favorito,
                         "Confianza (%)": round(confianza, 1),
-                        "Stake ($)": apuesta, # 🔥 Ahora verás de cuánto fue la bala en la tabla
+                        "Stake ($)": apuesta,
                         "Cuota": round(float(cuota_favorito), 2),
                         "Resultado": resultado_txt,
                         "Profit ($)": round(ganancia, 2)
                     })
-            
+
             roi = (ganancia_neta / inversion_total) * 100 if inversion_total > 0 else 0
-            
+
             col1, col2, col3 = st.columns(3)
-            col1.metric("Apuestas Realizadas", f"{apuestas_realizadas} de {len(df_pasado)}") 
+            col1.metric("Apuestas Realizadas", f"{apuestas_realizadas} de {len(df_pasado)}")
             col2.metric("Inversión Simulada", f"${inversion_total:,.2f}")
             col3.metric("Profit Neto", f"${ganancia_neta:,.2f}", f"ROI: {roi:.2f}%")
-            
+
             st.markdown("#### 📈 Crecimiento del Bankroll")
             if apuestas_realizadas > 0:
                 st.area_chart(historial_banco, color="#4CAF50")
             else:
                 st.warning("📉 Ningún partido histórico alcanzó esa confianza.")
-            
+
             st.markdown("---")
             st.markdown("#### 📋 Libro de Auditoría: Detalle de Apuestas Realizadas")
             if registros_apuestas:
