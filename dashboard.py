@@ -72,7 +72,8 @@ def cargar_auditoria_exacta():
         df = pd.read_sql(consulta, conexion)
         conexion.close()
         return df
-    except:
+    except Exception as e:
+        st.warning(f"⚠️ Error cargando auditoría de picks: {e}")
         return pd.DataFrame()
 
 def congelar_picks_diarios(df_resultados, fecha_hoy):
