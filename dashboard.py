@@ -198,22 +198,39 @@ def limpiar_cuotas_v4(cuota_l_raw, cuota_v_raw):
 def cargar_metricas_avanzadas():
     try:
         conexion = conectar_bd()
-        query = "SELECT equipo, ops_vs_zurdo, ops_vs_derecho, era_bullpen_7d FROM metricas_equipos WHERE fecha = (SELECT MAX(fecha) FROM metricas_equipos)"
+        query = "SELECT equipo, ops_vs_zurdo, ops_vs_derecho, era_bullpen_7d, fecha FROM metricas_equipos WHERE fecha = (SELECT MAX(fecha) FROM metricas_equipos)"
         df = pd.read_sql(query, conexion)
         conexion.close()
+ 
+        if not df.empty:
+            fecha_datos = pd.to_datetime(df['fecha'].iloc[0]).date()
+            if fecha_datos != hoy_mx():
+                st.warning(f"⚠️ Las métricas avanzadas (splits/bullpen) en la BD son del {fecha_datos}, no de hoy ({hoy_mx()}). Se usan valores neutros por defecto hoy.")
+                return pd.DataFrame()
+ 
         return df
-    except: return pd.DataFrame()
+    except Exception as e:
+        st.warning(f"⚠️ Error cargando métricas avanzadas: {e}")
+        return pd.DataFrame()
 
 @st.cache_data(ttl=300)
 def cargar_lesiones_hoy():
     try:
         conexion = conectar_bd()
-        # 🛡️ BLINDAJE: Busca la fecha máxima (la más reciente) en lugar de una fecha estática
-        query = "SELECT equipo, impacto_total FROM factor_lesiones WHERE fecha = (SELECT MAX(fecha) FROM factor_lesiones)"
+        query = "SELECT equipo, impacto_total, fecha FROM factor_lesiones WHERE fecha = (SELECT MAX(fecha) FROM factor_lesiones)"
         df_les = pd.read_sql(query, conexion)
         conexion.close()
+ 
+        if not df_les.empty:
+            fecha_datos = pd.to_datetime(df_les['fecha'].iloc[0]).date()
+            if fecha_datos != hoy_mx():
+                st.warning(f"⚠️ El reporte de lesiones en la BD es del {fecha_datos}, no de hoy ({hoy_mx()}). El scraper de lesiones probablemente no corrió — el filtro médico se omite hoy.")
+                return pd.DataFrame()
+ 
         return df_les
-    except: return pd.DataFrame()
+    except Exception as e:
+        st.warning(f"⚠️ Error cargando lesiones: {e}")
+        return pd.DataFrame()
 
 def aplicar_filtro_medico(equipo_elegido, confianza_base, equipo_local, equipo_visitante, df_lesiones):
     if df_lesiones.empty: return confianza_base
@@ -230,12 +247,25 @@ def aplicar_filtro_medico(equipo_elegido, confianza_base, equipo_local, equipo_v
 def cargar_pitchers_hoy():
     try:
         conexion = conectar_bd()
-        # 🛡️ BLINDAJE: Toma los pitchers más recientes guardados por el bot
-        query = "SELECT equipo, nombre_pitcher, era, era_ultimas_3 FROM abridores WHERE fecha = (SELECT MAX(fecha) FROM abridores)"
+        # 🔧 CORRECCIÓN: pedimos también la fecha de los datos que trae MAX(fecha)
+        query = "SELECT equipo, nombre_pitcher, era, era_ultimas_3, fecha FROM abridores WHERE fecha = (SELECT MAX(fecha) FROM abridores)"
         df_pitchers = pd.read_sql(query, conexion)
         conexion.close()
+ 
+        if not df_pitchers.empty:
+            fecha_datos = pd.to_datetime(df_pitchers['fecha'].iloc[0]).date()
+            if fecha_datos != hoy_mx():
+                # Los datos más recientes disponibles NO son de hoy -> el scraper
+                # de abridores no corrió. Avisamos y tratamos como si no hubiera
+                # datos, para que aplicar_filtro_pitchers no invente una ventaja
+                # falsa comparando al pitcher equivocado.
+                st.warning(f"⚠️ Los abridores en la BD son del {fecha_datos}, no de hoy ({hoy_mx()}). El scraper de abridores probablemente no corrió — el filtro de ERA se omite hoy.")
+                return pd.DataFrame()
+ 
         return df_pitchers
-    except: return pd.DataFrame()
+    except Exception as e:
+        st.warning(f"⚠️ Error cargando abridores: {e}")
+        return pd.DataFrame()
 
 def aplicar_filtro_pitchers(equipo_elegido, confianza_base, equipo_local, equipo_visitante, df_pitchers):
     if df_pitchers.empty: return confianza_base, "TBD", "TBD"
