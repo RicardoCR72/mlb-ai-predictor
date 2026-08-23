@@ -287,42 +287,6 @@ def cargar_historial_xampp():
         df = df.drop(columns=['solo_fecha']).reset_index(drop=True)
     return df
 
-# 🔥 NUEVAS FUNCIONES DE LA BÓVEDA DE AUDITORÍA
-def congelar_picks_diarios(df_resultados, fecha_hoy):
-    conexion = conectar_bd()
-    cursor = conexion.cursor()
-    for _, row in df_resultados.iterrows():
-        equipos = row['Partido'].split(' vs ')
-        query = """
-            INSERT IGNORE INTO registro_picks_ia 
-            (fecha, equipo_local, equipo_visitante, pick_ia, confianza, cuota)
-            VALUES (%s, %s, %s, %s, %s, %s)
-        """
-        cursor.execute(query, (fecha_hoy, equipos[0], equipos[1], row['Pick de la IA'], row['Confianza (%)'], row['Paga del Favorito']))
-    conexion.commit()
-    conexion.close()
-
-@st.cache_data(ttl=300)
-def cargar_auditoria_exacta():
-    try:
-        conexion = conectar_bd()
-        consulta = """
-            SELECT r.fecha, r.equipo_local AS 'Equipo Local', r.equipo_visitante AS 'Equipo Visitante',
-                   r.pick_ia, r.confianza, r.cuota,
-                   j.marcador_local, j.marcador_visitante
-            FROM registro_picks_ia r
-            JOIN juegos j ON r.fecha = DATE(j.fecha) 
-                 AND r.equipo_local = j.equipo_local 
-                 AND r.equipo_visitante = j.equipo_visitante
-            WHERE j.marcador_local IS NOT NULL
-            ORDER BY r.fecha ASC
-        """
-        df = pd.read_sql(consulta, conexion)
-        conexion.close()
-        return df
-    except:
-        return pd.DataFrame()
-
 # ---------------- FLUJO PRINCIPAL ----------------
 df = cargar_datos_hoy()
 if not df.empty: df = df.drop_duplicates(subset=['Equipo Local', 'Equipo Visitante']).reset_index(drop=True)
@@ -438,9 +402,6 @@ if not df.empty and modelo is not None:
             st.warning("📭 No se pudo generar ningún pick hoy.")
             st.stop()
             
-        # 🔥 EL AUTO-GUARDADO A LA BÓVEDA EXACTA
-        congelar_picks_diarios(df_resultados, hoy_mx())
-            
         df_resultados = df_resultados.sort_values(by="Confianza (%)", ascending=False).reset_index(drop=True)
         
         st.markdown("---")
@@ -465,43 +426,80 @@ if not df.empty and modelo is not None:
             st.warning("📉 El Oráculo ha hablado: Hoy no hay ningún partido que supere tu filtro de confianza.")
             
     with tab2:
-        st.markdown("### 💵 Rendimiento Histórico Exacto (V4.0)")
+        st.markdown("### 💵 Rendimiento Histórico de la IA (V4.0)")
         
         filtro_confianza = st.slider("Solo apostar si la confianza de la IA es mayor a:", 50.0, 90.0, 74.0, 1.0, key="slider_roi")
-        df_auditoria = cargar_auditoria_exacta()
+        df_pasado = cargar_historial_xampp()
         
-        if not df_auditoria.empty:
+        if not df_pasado.empty:
             apuestas_realizadas = 0   
             inversion_total = 0
             ganancia_neta = 0
             historial_banco = [0]
             registros_apuestas = []  
             
-            for i in range(len(df_auditoria)):
-                confianza = df_auditoria.loc[i, 'confianza']
+            for i in range(len(df_pasado)):
+                fecha_juego = df_pasado.loc[i, 'fecha']
+                local_api = df_pasado.loc[i, 'Equipo Local']
+                visita_api = df_pasado.loc[i, 'Equipo Visitante']
+                cuota_l_raw = df_pasado.loc[i, 'Paga Local']
+                cuota_v_raw = df_pasado.loc[i, 'Paga Visitante']
+                
+                local = normalizar_equipo(local_api)
+                visita = normalizar_equipo(visita_api)
+                
+                w_l, d_l, desc_l, r5_l, est_ant_l = obtener_estado_actual(local, df_hist, fecha_objetivo=fecha_juego)
+                w_v, d_v, desc_v, r5_v, est_ant_v = obtener_estado_actual(visita, df_hist, fecha_objetivo=fecha_juego)
+                
+                zona_estadio_hoy = ZONAS_HORARIAS.get(local, -5)
+                zona_ant_l = ZONAS_HORARIAS.get(normalizar_equipo(est_ant_l), -5)
+                zona_ant_v = ZONAS_HORARIAS.get(normalizar_equipo(est_ant_v), -5)
+                
+                # Para la simulación histórica, usamos valores promedios neutros 
+                # para splits y bullpen (ya que no los guardamos antes de hoy)
+                fila_dic = {
+                    'win_pct_team': w_l, 'win_pct_opp': w_v,
+                    'run_diff_team': d_l, 'run_diff_opp': d_v,
+                    'dias_descanso_team': desc_l, 'dias_descanso_opp': desc_v,
+                    'racha_5_team': r5_l, 'racha_5_opp': r5_v,
+                    'jetlag_team': abs(zona_estadio_hoy - zona_ant_l),
+                    'jetlag_opp': abs(zona_estadio_hoy - zona_ant_v),
+                    'ops_l_team': 0.700, 'ops_r_team': 0.700, 'era_bullpen_team': 4.50,
+                    'ops_l_opp': 0.700, 'ops_r_opp': 0.700, 'era_bullpen_opp': 4.50,
+                    'prob_pure_team': limpiar_cuotas_v4(cuota_l_raw, cuota_v_raw)[0],
+                    'prob_pure_opp': limpiar_cuotas_v4(cuota_l_raw, cuota_v_raw)[1]
+                }
+                
+                fila_ia = pd.DataFrame([fila_dic])
+                fila_ia = fila_ia[columnas_v4]
+                
+                vars_escaladas = scaler.transform(fila_ia)
+                prob_local_val = modelo.predict(vars_escaladas, verbose=0)[0][0]
+                
+                prob_visitante_val = 1 - prob_local_val
+                confianza = max(prob_local_val, prob_visitante_val) * 100
+                
+                ia_pick_local = prob_local_val > 0.50
+                favorito = local_api if ia_pick_local else visita_api
+                cuota_favorito = cuota_l_raw if ia_pick_local else cuota_v_raw
+                
+                gano_local_real = df_pasado.loc[i, 'marcador_local'] > df_pasado.loc[i, 'marcador_visitante']
                 
                 if confianza >= filtro_confianza:
-                    apuestas_realizadas += 1
-                    
-                    # 🎯 Sistema dinámico de Bankroll
-                    if confianza >= 70.0: apuesta = 300
-                    elif confianza >= 65.0: apuesta = 200
-                    else: apuesta = 100
+                    apuestas_realizadas += 1  
+                
+                    # 🎯 SISTEMA DE GESTIÓN DINÁMICA DE BANKROLL (STAKING)
+                    if confianza >= 70.0:
+                        apuesta = 300
+                    elif confianza >= 65.0:
+                        apuesta = 200
+                    else:
+                        apuesta = 100
                         
                     inversion_total += apuesta
                     
-                    pick_ia = df_auditoria.loc[i, 'pick_ia']
-                    local_api = df_auditoria.loc[i, 'Equipo Local']
-                    visita_api = df_auditoria.loc[i, 'Equipo Visitante']
-                    cuota = df_auditoria.loc[i, 'cuota']
-                    marc_l = df_auditoria.loc[i, 'marcador_local']
-                    marc_v = df_auditoria.loc[i, 'marcador_visitante']
-                    
-                    gano_local_real = marc_l > marc_v
-                    ia_pick_local = pick_ia == local_api
-                    
                     if ia_pick_local == gano_local_real:
-                        ganancia = (apuesta * float(cuota)) - apuesta
+                        ganancia = (apuesta * float(cuota_favorito)) - apuesta
                         ganancia_neta += ganancia
                         resultado_txt = "✅ Ganada"
                     else:
@@ -512,20 +510,20 @@ if not df.empty and modelo is not None:
                     historial_banco.append(ganancia_neta)
                     
                     registros_apuestas.append({
-                        "Fecha": df_auditoria.loc[i, 'fecha'],
+                        "Fecha": fecha_juego,
                         "Partido": f"{local_api} vs {visita_api}",
-                        "Pick de la IA": pick_ia,
+                        "Pick de la IA": favorito,
                         "Confianza (%)": round(confianza, 1),
-                        "Stake ($)": apuesta,
-                        "Cuota": round(float(cuota), 2),
+                        "Stake ($)": apuesta, # 🔥 Ahora verás de cuánto fue la bala en la tabla
+                        "Cuota": round(float(cuota_favorito), 2),
                         "Resultado": resultado_txt,
                         "Profit ($)": round(ganancia, 2)
                     })
-                    
+            
             roi = (ganancia_neta / inversion_total) * 100 if inversion_total > 0 else 0
             
             col1, col2, col3 = st.columns(3)
-            col1.metric("Apuestas Realizadas", f"{apuestas_realizadas} de {len(df_auditoria)}") 
+            col1.metric("Apuestas Realizadas", f"{apuestas_realizadas} de {len(df_pasado)}") 
             col2.metric("Inversión Simulada", f"${inversion_total:,.2f}")
             col3.metric("Profit Neto", f"${ganancia_neta:,.2f}", f"ROI: {roi:.2f}%")
             
@@ -534,14 +532,15 @@ if not df.empty and modelo is not None:
                 st.area_chart(historial_banco, color="#4CAF50")
             else:
                 st.warning("📉 Ningún partido histórico alcanzó esa confianza.")
-                
+            
             st.markdown("---")
             st.markdown("#### 📋 Libro de Auditoría: Detalle de Apuestas Realizadas")
             if registros_apuestas:
-                df_tabla = pd.DataFrame(registros_apuestas)
-                st.dataframe(df_tabla, use_container_width=True, hide_index=True)
+                df_tabla_apuestas = pd.DataFrame(registros_apuestas)
+                df_tabla_apuestas['Fecha'] = pd.to_datetime(df_tabla_apuestas['Fecha']).dt.date
+                st.dataframe(df_tabla_apuestas, use_container_width=True, hide_index=True)
         else:
-            st.info("⏳ La bóveda está activa. Mañana, cuando los partidos de hoy terminen y tengan marcador final, aparecerán aquí con su precisión 100% real.")
+            st.info("⏳ Aún no hay partidos terminados en la base de datos para generar el ROI histórico.")
 else:
     if df.empty:
         st.error("🚨 ERROR DE DATOS: La base de datos de XAMPP no tiene juegos nuevos registrados para hoy.")
