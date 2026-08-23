@@ -343,6 +343,60 @@ def obtener_metricas_avanzadas_fecha(df_metricas_hist, equipo, fecha_objetivo):
     era_bp = float(fila['era_bullpen_7d']) if pd.notna(fila['era_bullpen_7d']) else 4.50
     return ops_l, ops_r, era_bp
 
+# ==========================================================
+# NUEVO: registro_picks_ia — la fuente única de verdad de la
+# confianza. Tab 1 la escribe al calcular cada pick; Tab 2 la
+# LEE (no recalcula) cuando el juego ya tiene resultado.
+# ==========================================================
+def guardar_pick_ia(fecha, equipo_local, equipo_visitante, pick_ia, confianza, cuota):
+    """Guarda/actualiza el pick del día en registro_picks_ia."""
+    try:
+        conexion = conectar_bd()
+        cursor = conexion.cursor()
+        cursor.execute("""
+            INSERT INTO registro_picks_ia (fecha, equipo_local, equipo_visitante, pick_ia, confianza, cuota)
+            VALUES (%s, %s, %s, %s, %s, %s)
+            ON DUPLICATE KEY UPDATE pick_ia = VALUES(pick_ia), confianza = VALUES(confianza), cuota = VALUES(cuota)
+        """, (fecha, equipo_local, equipo_visitante, pick_ia, float(confianza), float(cuota)))
+        conexion.commit()
+        cursor.close()
+        conexion.close()
+    except Exception:
+        pass  # No tumbar el dashboard si falla el guardado del registro
+
+@st.cache_data(ttl=300)
+def cargar_registro_picks_historico():
+    """Trae todo registro_picks_ia (la confianza YA calculada por Tab 1 cada día)."""
+    try:
+        conexion = conectar_bd()
+        query = "SELECT fecha, equipo_local, equipo_visitante, pick_ia, confianza, cuota FROM registro_picks_ia"
+        df = pd.read_sql(query, conexion)
+        conexion.close()
+        return df
+    except Exception:
+        return pd.DataFrame()
+
+def obtener_confianza_registrada(df_registro, fecha_juego, equipo_local, equipo_visitante):
+    """
+    Busca en registro_picks_ia la fila exacta para ese juego.
+    Regresa (confianza, pick_ia, cuota) o (None, None, None) si no existe
+    (típicamente juegos anteriores a que se empezara a registrar).
+    """
+    if df_registro.empty:
+        return None, None, None
+    fecha_obj = pd.to_datetime(fecha_juego).date()
+    d = df_registro.copy()
+    d['fecha'] = pd.to_datetime(d['fecha']).dt.date
+    fila = d[
+        (d['fecha'] == fecha_obj) &
+        (d['equipo_local'] == equipo_local) &
+        (d['equipo_visitante'] == equipo_visitante)
+    ]
+    if fila.empty:
+        return None, None, None
+    fila = fila.iloc[0]
+    return float(fila['confianza']), fila['pick_ia'], float(fila['cuota'])
+
 # ---------------- FLUJO PRINCIPAL ----------------
 df = cargar_datos_hoy()
 if not df.empty: df = df.drop_duplicates(subset=['Equipo Local', 'Equipo Visitante']).reset_index(drop=True)
@@ -442,6 +496,11 @@ if not df.empty and modelo is not None:
             confianza_t_cruda = min(95.0, confianza_t_cruda)
             confianza_totales_final = aplicar_filtro_estadio(pick_totales, confianza_t_cruda, local_api, df_estadios)
 
+            # NUEVO: persistimos el pick de moneyline en registro_picks_ia.
+            # Esto es lo que Tab 2 va a leer más adelante cuando el juego termine,
+            # en vez de recalcularlo con otra lógica.
+            guardar_pick_ia(hoy_mx(), local_api, visita_api, favorito, confianza_final, paga)
+
             resultados.append({
                 "Partido": f"{local_api} vs {visita_api}",
                 "Abridores": f"{p_local} vs {p_visita}",
@@ -486,8 +545,12 @@ if not df.empty and modelo is not None:
         filtro_confianza = st.slider("Solo apostar si la confianza de la IA es mayor a:", 50.0, 90.0, 74.0, 1.0, key="slider_roi")
         df_pasado = cargar_historial_xampp()
 
-        # NUEVO: histórico completo (no solo "hoy"), para usar los mismos
-        # filtros de Tab 1 con los datos reales de cada fecha pasada
+        # NUEVO: registro_picks_ia = la confianza que Tab 1 ya calculó y
+        # guardó ese día. Esta es la fuente principal para Tab 2.
+        df_registro = cargar_registro_picks_historico()
+
+        # Fallback (solo para juegos ANTERIORES a que existiera el registro):
+        # histórico completo para recalcular con los mismos filtros de Tab 1.
         df_metricas_hist = cargar_metricas_historico()
         df_lesiones_hist = cargar_lesiones_historico()
         df_pitchers_hist = cargar_pitchers_historico()
@@ -509,56 +572,65 @@ if not df.empty and modelo is not None:
                 local = normalizar_equipo(local_api)
                 visita = normalizar_equipo(visita_api)
 
-                w_l, d_l, desc_l, r5_l, est_ant_l = obtener_estado_actual(local, df_hist, fecha_objetivo=fecha_juego)
-                w_v, d_v, desc_v, r5_v, est_ant_v = obtener_estado_actual(visita, df_hist, fecha_objetivo=fecha_juego)
+                # PRIMERO intentamos leer la confianza YA guardada por Tab 1 ese día.
+                confianza_registrada, pick_registrado, cuota_registrada = obtener_confianza_registrada(
+                    df_registro, fecha_juego, local_api, visita_api
+                )
 
-                zona_estadio_hoy = ZONAS_HORARIAS.get(local, -5)
-                zona_ant_l = ZONAS_HORARIAS.get(normalizar_equipo(est_ant_l), -5)
-                zona_ant_v = ZONAS_HORARIAS.get(normalizar_equipo(est_ant_v), -5)
+                if confianza_registrada is not None:
+                    # Caso normal: usamos exactamente lo que Tab 1 calculó y guardó.
+                    confianza = confianza_registrada
+                    favorito = pick_registrado
+                    ia_pick_local = (favorito == local_api)
+                    cuota_favorito = cuota_registrada if cuota_registrada else (cuota_l_raw if ia_pick_local else cuota_v_raw)
+                else:
+                    # FALLBACK: juego anterior a que existiera el registro.
+                    # Recalculamos con la misma lógica de Tab 1 (mismos 3 pasos).
+                    w_l, d_l, desc_l, r5_l, est_ant_l = obtener_estado_actual(local, df_hist, fecha_objetivo=fecha_juego)
+                    w_v, d_v, desc_v, r5_v, est_ant_v = obtener_estado_actual(visita, df_hist, fecha_objetivo=fecha_juego)
 
-                # NUEVO: métricas avanzadas reales para la fecha del juego
-                # (antes eran fijas 0.700 / 4.50, ahora se consultan del histórico)
-                ops_l_team, ops_r_team, era_bp_team = obtener_metricas_avanzadas_fecha(df_metricas_hist, local_api, fecha_juego)
-                ops_l_opp, ops_r_opp, era_bp_opp = obtener_metricas_avanzadas_fecha(df_metricas_hist, visita_api, fecha_juego)
+                    zona_estadio_hoy = ZONAS_HORARIAS.get(local, -5)
+                    zona_ant_l = ZONAS_HORARIAS.get(normalizar_equipo(est_ant_l), -5)
+                    zona_ant_v = ZONAS_HORARIAS.get(normalizar_equipo(est_ant_v), -5)
 
-                fila_dic = {
-                    'win_pct_team': w_l, 'win_pct_opp': w_v,
-                    'run_diff_team': d_l, 'run_diff_opp': d_v,
-                    'dias_descanso_team': desc_l, 'dias_descanso_opp': desc_v,
-                    'racha_5_team': r5_l, 'racha_5_opp': r5_v,
-                    'jetlag_team': abs(zona_estadio_hoy - zona_ant_l),
-                    'jetlag_opp': abs(zona_estadio_hoy - zona_ant_v),
-                    'ops_l_team': ops_l_team, 'ops_r_team': ops_r_team, 'era_bullpen_team': era_bp_team,
-                    'ops_l_opp': ops_l_opp, 'ops_r_opp': ops_r_opp, 'era_bullpen_opp': era_bp_opp,
-                    'prob_pure_team': limpiar_cuotas_v4(cuota_l_raw, cuota_v_raw)[0],
-                    'prob_pure_opp': limpiar_cuotas_v4(cuota_l_raw, cuota_v_raw)[1]
-                }
+                    ops_l_team, ops_r_team, era_bp_team = obtener_metricas_avanzadas_fecha(df_metricas_hist, local_api, fecha_juego)
+                    ops_l_opp, ops_r_opp, era_bp_opp = obtener_metricas_avanzadas_fecha(df_metricas_hist, visita_api, fecha_juego)
 
-                fila_ia = pd.DataFrame([fila_dic])
-                fila_ia = fila_ia[columnas_v4]
+                    fila_dic = {
+                        'win_pct_team': w_l, 'win_pct_opp': w_v,
+                        'run_diff_team': d_l, 'run_diff_opp': d_v,
+                        'dias_descanso_team': desc_l, 'dias_descanso_opp': desc_v,
+                        'racha_5_team': r5_l, 'racha_5_opp': r5_v,
+                        'jetlag_team': abs(zona_estadio_hoy - zona_ant_l),
+                        'jetlag_opp': abs(zona_estadio_hoy - zona_ant_v),
+                        'ops_l_team': ops_l_team, 'ops_r_team': ops_r_team, 'era_bullpen_team': era_bp_team,
+                        'ops_l_opp': ops_l_opp, 'ops_r_opp': ops_r_opp, 'era_bullpen_opp': era_bp_opp,
+                        'prob_pure_team': limpiar_cuotas_v4(cuota_l_raw, cuota_v_raw)[0],
+                        'prob_pure_opp': limpiar_cuotas_v4(cuota_l_raw, cuota_v_raw)[1]
+                    }
 
-                vars_escaladas = scaler.transform(fila_ia)
-                prob_local_val = modelo.predict(vars_escaladas, verbose=0)[0][0]
+                    fila_ia = pd.DataFrame([fila_dic])
+                    fila_ia = fila_ia[columnas_v4]
 
-                prob_visitante_val = 1 - prob_local_val
-                confianza_base = max(prob_local_val, prob_visitante_val) * 100
+                    vars_escaladas = scaler.transform(fila_ia)
+                    prob_local_val = modelo.predict(vars_escaladas, verbose=0)[0][0]
+                    prob_visitante_val = 1 - prob_local_val
+                    confianza_base = max(prob_local_val, prob_visitante_val) * 100
 
-                ia_pick_local = prob_local_val > 0.50
-                favorito = local_api if ia_pick_local else visita_api
-                cuota_favorito = cuota_l_raw if ia_pick_local else cuota_v_raw
+                    ia_pick_local = prob_local_val > 0.50
+                    favorito = local_api if ia_pick_local else visita_api
+                    cuota_favorito = cuota_l_raw if ia_pick_local else cuota_v_raw
 
-                # NUEVO: se aplican los MISMOS dos filtros que en Tab 1
-                # (médico y de abridores), usando el histórico de esa fecha.
-                fila_les_l = _fila_mas_reciente(df_lesiones_hist, local_api, fecha_juego)
-                fila_les_v = _fila_mas_reciente(df_lesiones_hist, visita_api, fecha_juego)
-                df_lesiones_fecha = pd.DataFrame([r for r in [fila_les_l, fila_les_v] if r is not None])
+                    fila_les_l = _fila_mas_reciente(df_lesiones_hist, local_api, fecha_juego)
+                    fila_les_v = _fila_mas_reciente(df_lesiones_hist, visita_api, fecha_juego)
+                    df_lesiones_fecha = pd.DataFrame([r for r in [fila_les_l, fila_les_v] if r is not None])
 
-                fila_pit_l = _fila_mas_reciente(df_pitchers_hist, local_api, fecha_juego)
-                fila_pit_v = _fila_mas_reciente(df_pitchers_hist, visita_api, fecha_juego)
-                df_pitchers_fecha = pd.DataFrame([r for r in [fila_pit_l, fila_pit_v] if r is not None])
+                    fila_pit_l = _fila_mas_reciente(df_pitchers_hist, local_api, fecha_juego)
+                    fila_pit_v = _fila_mas_reciente(df_pitchers_hist, visita_api, fecha_juego)
+                    df_pitchers_fecha = pd.DataFrame([r for r in [fila_pit_l, fila_pit_v] if r is not None])
 
-                confianza_filtrada = aplicar_filtro_medico(favorito, confianza_base, local_api, visita_api, df_lesiones_fecha)
-                confianza, _, _ = aplicar_filtro_pitchers(favorito, confianza_filtrada, local_api, visita_api, df_pitchers_fecha)
+                    confianza_filtrada = aplicar_filtro_medico(favorito, confianza_base, local_api, visita_api, df_lesiones_fecha)
+                    confianza, _, _ = aplicar_filtro_pitchers(favorito, confianza_filtrada, local_api, visita_api, df_pitchers_fecha)
 
                 gano_local_real = df_pasado.loc[i, 'marcador_local'] > df_pasado.loc[i, 'marcador_visitante']
 
