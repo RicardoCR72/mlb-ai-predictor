@@ -540,27 +540,22 @@ if not df.empty and modelo is not None:
             st.warning("📉 El Oráculo ha hablado: Hoy no hay ningún partido que supere tu filtro de confianza.")
 
     with tab2:
-        st.markdown("### 💵 Rendimiento Histórico de la IA (V4.0)")
+        st.markdown("### 💵 Rendimiento Histórico Exacto (V4.0)")
 
-        filtro_confianza = st.slider("Solo apostar si la confianza de la IA es mayor a:", 50.0, 90.0, 74.0, 1.0, key="slider_roi")
+        filtro_confianza = st.slider("Solo apostar si la confianza de la IA es mayor a:", 50.0, 95.0, 63.0, 1.0, key="slider_roi")
         df_pasado = cargar_historial_xampp()
-
-        # NUEVO: registro_picks_ia = la confianza que Tab 1 ya calculó y
-        # guardó ese día. Esta es la fuente principal para Tab 2.
+        
+        # NUEVO: registro_picks_ia = la confianza que Tab 1 ya calculó y guardó.
         df_registro = cargar_registro_picks_historico()
 
-        # Fallback (solo para juegos ANTERIORES a que existiera el registro):
-        # histórico completo para recalcular con los mismos filtros de Tab 1.
+        # Fallback (solo para juegos ANTERIORES a que existiera el registro)
         df_metricas_hist = cargar_metricas_historico()
         df_lesiones_hist = cargar_lesiones_historico()
         df_pitchers_hist = cargar_pitchers_historico()
 
         if not df_pasado.empty:
-            apuestas_realizadas = 0
-            inversion_total = 0
-            ganancia_neta = 0
-            historial_banco = [0]
-            registros_apuestas = []
+            # 1. EVALUAMOS TODOS LOS JUEGOS SIN IMPORTAR EL SLIDER
+            registros_completos = []
 
             for i in range(len(df_pasado)):
                 fecha_juego = df_pasado.loc[i, 'fecha']
@@ -572,20 +567,16 @@ if not df.empty and modelo is not None:
                 local = normalizar_equipo(local_api)
                 visita = normalizar_equipo(visita_api)
 
-                # PRIMERO intentamos leer la confianza YA guardada por Tab 1 ese día.
                 confianza_registrada, pick_registrado, cuota_registrada = obtener_confianza_registrada(
                     df_registro, fecha_juego, local_api, visita_api
                 )
 
                 if confianza_registrada is not None:
-                    # Caso normal: usamos exactamente lo que Tab 1 calculó y guardó.
                     confianza = confianza_registrada
                     favorito = pick_registrado
                     ia_pick_local = (favorito == local_api)
                     cuota_favorito = cuota_registrada if cuota_registrada else (cuota_l_raw if ia_pick_local else cuota_v_raw)
                 else:
-                    # FALLBACK: juego anterior a que existiera el registro.
-                    # Recalculamos con la misma lógica de Tab 1 (mismos 3 pasos).
                     w_l, d_l, desc_l, r5_l, est_ant_l = obtener_estado_actual(local, df_hist, fecha_objetivo=fecha_juego)
                     w_v, d_v, desc_v, r5_v, est_ant_v = obtener_estado_actual(visita, df_hist, fecha_objetivo=fecha_juego)
 
@@ -634,41 +625,56 @@ if not df.empty and modelo is not None:
 
                 gano_local_real = df_pasado.loc[i, 'marcador_local'] > df_pasado.loc[i, 'marcador_visitante']
 
-                if confianza >= filtro_confianza:
-                    apuestas_realizadas += 1
+                if confianza >= 70.0: apuesta = 300
+                elif confianza >= 65.0: apuesta = 200
+                else: apuesta = 100
 
-                    # 🎯 SISTEMA DE GESTIÓN DINÁMICA DE BANKROLL (STAKING)
-                    if confianza >= 70.0:
-                        apuesta = 300
-                    elif confianza >= 65.0:
-                        apuesta = 200
-                    else:
-                        apuesta = 100
+                if ia_pick_local == gano_local_real:
+                    ganancia = (apuesta * float(cuota_favorito)) - apuesta
+                    resultado_txt = "✅ Ganada"
+                else:
+                    ganancia = -apuesta
+                    resultado_txt = "❌ Perdida"
 
-                    inversion_total += apuesta
+                registros_completos.append({
+                    "Fecha": fecha_juego,
+                    "Partido": f"{local_api} vs {visita_api}",
+                    "Pick de la IA": favorito,
+                    "Confianza (%)": round(confianza, 1),
+                    "Stake ($)": apuesta,
+                    "Cuota": round(float(cuota_favorito), 2),
+                    "Resultado": resultado_txt,
+                    "Profit ($)": round(ganancia, 2)
+                })
 
-                    if ia_pick_local == gano_local_real:
-                        ganancia = (apuesta * float(cuota_favorito)) - apuesta
-                        ganancia_neta += ganancia
-                        resultado_txt = "✅ Ganada"
-                    else:
-                        ganancia = -apuesta
-                        ganancia_neta += ganancia
-                        resultado_txt = "❌ Perdida"
+            df_todas = pd.DataFrame(registros_completos)
 
-                    historial_banco.append(ganancia_neta)
+            # 2. 🔥 LA MAGIA: EL ESCÁNER DE ROI ÓPTIMO
+            if st.button("🔍 Escanear el Mejor ROI Automáticamente"):
+                mejores_escenarios = []
+                # Va a iterar desde el 50% al 95% de confianza probando los números
+                for t in np.arange(50.0, 95.0, 0.5):
+                    df_t = df_todas[df_todas['Confianza (%)'] >= t]
+                    if len(df_t) >= 5: # Filtro de seguridad: mínimo 5 apuestas para que el % sea real
+                        inv = df_t['Stake ($)'].sum()
+                        gan = df_t['Profit ($)'].sum()
+                        roi_t = (gan / inv) * 100 if inv > 0 else 0
+                        mejores_escenarios.append({"Confianza Mínima": t, "ROI (%)": roi_t, "Apuestas Realizadas": len(df_t)})
+                
+                if mejores_escenarios:
+                    df_optimo = pd.DataFrame(mejores_escenarios)
+                    mejor_escenario = df_optimo.loc[df_optimo['ROI (%)'].idxmax()]
+                    st.success(f"🏆 **¡Punto Dulce Encontrado!** Pon tu slider en **{mejor_escenario['Confianza Mínima']}%** para maximizar tu ganancia. Eso te da un ROI histórico brutal del **{mejor_escenario['ROI (%)']:.2f}%** en {int(mejor_escenario['Apuestas Realizadas'])} apuestas.")
+                    st.line_chart(df_optimo.set_index('Confianza Mínima')['ROI (%)'], use_container_width=True)
+            
+            st.markdown("---")
 
-                    registros_apuestas.append({
-                        "Fecha": fecha_juego,
-                        "Partido": f"{local_api} vs {visita_api}",
-                        "Pick de la IA": favorito,
-                        "Confianza (%)": round(confianza, 1),
-                        "Stake ($)": apuesta,
-                        "Cuota": round(float(cuota_favorito), 2),
-                        "Resultado": resultado_txt,
-                        "Profit ($)": round(ganancia, 2)
-                    })
+            # 3. FILTRADO FINAL Y GRÁFICAS (Usando tu Slider)
+            df_filtrado = df_todas[df_todas['Confianza (%)'] >= filtro_confianza]
 
+            apuestas_realizadas = len(df_filtrado)
+            inversion_total = df_filtrado['Stake ($)'].sum() if apuestas_realizadas > 0 else 0
+            ganancia_neta = df_filtrado['Profit ($)'].sum() if apuestas_realizadas > 0 else 0
             roi = (ganancia_neta / inversion_total) * 100 if inversion_total > 0 else 0
 
             col1, col2, col3 = st.columns(3)
@@ -678,16 +684,17 @@ if not df.empty and modelo is not None:
 
             st.markdown("#### 📈 Crecimiento del Bankroll")
             if apuestas_realizadas > 0:
+                df_filtrado = df_filtrado.sort_values(by="Fecha").reset_index(drop=True)
+                historial_banco = [0] + df_filtrado['Profit ($)'].cumsum().tolist()
                 st.area_chart(historial_banco, color="#4CAF50")
             else:
                 st.warning("📉 Ningún partido histórico alcanzó esa confianza.")
 
             st.markdown("---")
             st.markdown("#### 📋 Libro de Auditoría: Detalle de Apuestas Realizadas")
-            if registros_apuestas:
-                df_tabla_apuestas = pd.DataFrame(registros_apuestas)
-                df_tabla_apuestas['Fecha'] = pd.to_datetime(df_tabla_apuestas['Fecha']).dt.date
-                st.dataframe(df_tabla_apuestas, use_container_width=True, hide_index=True)
+            if apuestas_realizadas > 0:
+                df_filtrado['Fecha'] = pd.to_datetime(df_filtrado['Fecha']).dt.date
+                st.dataframe(df_filtrado, use_container_width=True, hide_index=True)
         else:
             st.info("⏳ Aún no hay partidos terminados en la base de datos para generar el ROI histórico.")
 else:
