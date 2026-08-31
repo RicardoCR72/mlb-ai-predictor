@@ -22,11 +22,12 @@ def pagina_inicio():
     *Sistema operando con bases de datos aisladas para máxima seguridad y rendimiento.*
     """)
 
-# 2. Registramos las páginas en el menú
+# 2. Registramos las páginas en el menú con las rutas limpias
 pg = st.navigation([
     st.Page(pagina_inicio, title="Inicio", icon="🏠", default=True),
-    st.Page("pages/1_⚾_MLB.py", title="MLB Oráculo", icon="⚾"),
-    st.Page("pages/2_🏈_NFL.py", title="NFL Oráculo", icon="🏈"),
+    st.Page("pages/mlb.py", title="MLB Oráculo", icon="⚾"),
+    st.Page("pages/nfl.py", title="NFL Oráculo", icon="🏈"),
 ])
 
-# 3. Ejecutamos la página activ
+# 3. Ejecutamos la página activa
+pg.run()
