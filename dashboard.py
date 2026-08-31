@@ -4,10 +4,20 @@ st.set_page_config(
     page_title="Oráculo AI Hub",
     page_icon="🧠",
     layout="centered"
+    
 )
+
+
 
 st.title("🧠 Bienvenido al Oráculo AI Hub")
 st.markdown("---")
+
+pg = st.navigation([
+    st.Page("pages/1_⚾_MLB.py", title="MLB Oráculo", icon="⚾"),
+    st.Page("pages/2_🏈_NFL.py", title="NFL Oráculo", icon="🏈"),
+])
+
+pg.run()
 
 st.markdown("""
 ### Selecciona tu Mercado en el Menú Lateral 👈
