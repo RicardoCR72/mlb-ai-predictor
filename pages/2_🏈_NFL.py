@@ -18,7 +18,7 @@ def cargar_calendario():
 # 2. Nueva función: Descargamos las cuotas de The Odds API (guardadas en caché por 1 hora)
 @st.cache_data(ttl=3600)
 def obtener_cuotas_nfl():
-    api_key = st.secrets["ODDS_API_KEY"]
+    api_key = st.secrets["odds_api_key"]
     sport = "americanfootball_nfl"
     regions = "us" # Mercados americanos (DraftKings, FanDuel, etc.)
     markets = "spreads,totals"
