@@ -338,3 +338,88 @@ with st.spinner("💸 Escaneando líneas terrestres en Las Vegas..."):
         st.dataframe(df_valor_rb, use_container_width=True)
     else:
         st.info("Esperando a que los casinos liberen las líneas de corredores para la Semana 1...")
+
+st.markdown("---")
+st.header("👐 Proyecciones: Yardas por Recepción (Receptores y Alas Cerradas)")
+
+# 1. Filtramos a los Receptores (WR) y Alas Cerradas (TE)
+df_wrs = df_jugadores[df_jugadores['position'].isin(['WR', 'TE'])].copy()
+
+# 2. Agrupamos por jugador calculando sus yardas de recepción
+proyecciones_wr = df_wrs.groupby('player_name').agg(
+    Partidos=('week', 'count'),
+    Promedio_Yardas=('receiving_yards', 'mean'),
+    Mediana_Yardas=('receiving_yards', 'median'),
+    Max_Yardas=('receiving_yards', 'max')
+).reset_index()
+
+# 3. Exigimos mínimo 5 partidos jugados para filtrar ruido
+proyecciones_wr = proyecciones_wr[proyecciones_wr['Partidos'] >= 5]
+
+# 4. Limpiamos los decimales
+proyecciones_wr['Promedio_Yardas'] = proyecciones_wr['Promedio_Yardas'].round(1)
+proyecciones_wr['Mediana_Yardas'] = proyecciones_wr['Mediana_Yardas'].round(1)
+
+# 5. Ordenamos a los líderes en yardas aéreas
+proyecciones_wr = proyecciones_wr.sort_values('Promedio_Yardas', ascending=False)
+
+st.dataframe(proyecciones_wr, use_container_width=True)
+
+# 6. Conexión al casino para Receptores
+@st.cache_data(ttl=3600)
+def obtener_lineas_props_wr():
+    api_key = st.secrets["odds_api_key"]
+    sport = "americanfootball_nfl"
+    regions = "us" 
+    markets = "player_receiving_yards" # <-- Mercado específico de recepciones
+    
+    url = f"https://api.the-odds-api.com/v4/sports/{sport}/odds/?apiKey={api_key}&regions={regions}&markets={markets}"
+    
+    respuesta = requests.get(url)
+    if respuesta.status_code != 200:
+        return pd.DataFrame()
+        
+    datos = respuesta.json()
+    filas = []
+    for juego in datos:
+        if not juego.get('bookmakers'):
+            continue
+        casino = juego['bookmakers'][0] 
+        mercados = casino.get('markets', [])
+        for m in mercados:
+            if m['key'] == 'player_receiving_yards':
+                for outcome in m['outcomes']:
+                    if outcome['name'] == 'Over': 
+                        filas.append({
+                            'Jugador_API': outcome['description'],
+                            'Linea_Casino': outcome['point']
+                        })
+                        
+    df_lineas = pd.DataFrame(filas)
+    if not df_lineas.empty:
+        df_lineas = df_lineas.drop_duplicates(subset=['Jugador_API'])
+    return df_lineas
+
+with st.spinner("💸 Cazando líneas aéreas en Las Vegas..."):
+    df_lineas_wr = obtener_lineas_props_wr()
+    
+    if not df_lineas_wr.empty:
+        st.subheader("🔥 Detector de Apuestas de Valor (Receptores)")
+        
+        # Traductor de nombres para la tabla de receptores
+        def traducir_nombre_wr(nombre):
+            partes = nombre.split(" ", 1)
+            return f"{partes[0][0]}.{partes[1]}" if len(partes) > 1 else nombre
+            
+        df_lineas_wr['player_name'] = df_lineas_wr['Jugador_API'].apply(traducir_nombre_wr)
+        
+        # Cruzamos las proyecciones contra la realidad del casino
+        df_valor_wr = pd.merge(proyecciones_wr, df_lineas_wr, on='player_name', how='inner')
+        df_valor_wr['Diferencia (Edge)'] = df_valor_wr['Mediana_Yardas'] - df_valor_wr['Linea_Casino']
+        
+        columnas_finales = ['player_name', 'Promedio_Yardas', 'Mediana_Yardas', 'Linea_Casino', 'Diferencia (Edge)']
+        df_valor_wr = df_valor_wr[columnas_finales].sort_values('Diferencia (Edge)', ascending=False)
+        
+        st.dataframe(df_valor_wr, use_container_width=True)
+    else:
+        st.info("Esperando a que los casinos liberen las líneas de receptores para la Semana 1...")
