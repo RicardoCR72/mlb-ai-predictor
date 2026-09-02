@@ -114,7 +114,7 @@ st.header("🏃‍♂️ Motor de Player Props: Línea Base")
 @st.cache_data
 def cargar_stats_jugadores():
     # Descargamos la data histórica reciente para perfilar la Semana 1
-    stats = nfl.import_weekly_data([2025])
+    stats = nfl.import_weekly_data([2024])
     
     # Filtramos para quedarnos solo con las posiciones clave (Fantasy/Props)
     posiciones_clave = ['QB', 'WR', 'RB', 'TE']
