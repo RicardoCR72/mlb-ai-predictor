@@ -106,3 +106,35 @@ st.markdown("---")
 st.subheader("🔥 Dashboard Maestro: Calendario + Líneas de Las Vegas")
 st.dataframe(df_final, use_container_width=True)
 st.success("¡Fusión exitosa! Ya tenemos la base de datos central.")
+
+st.markdown("---")
+st.header("🏃‍♂️ Motor de Player Props: Línea Base")
+
+# 7. Función para descargar estadísticas de jugadores
+@st.cache_data
+def cargar_stats_jugadores():
+    # Descargamos la data histórica reciente para perfilar la Semana 1
+    stats = nfl.import_weekly_data([2025])
+    
+    # Filtramos para quedarnos solo con las posiciones clave (Fantasy/Props)
+    posiciones_clave = ['QB', 'WR', 'RB', 'TE']
+    stats_limpias = stats[stats['position'].isin(posiciones_clave)].copy()
+    
+    # Seleccionamos las métricas que nos interesan para los Props
+    columnas_props = [
+        'player_name', 'position', 'recent_team', 'week', 
+        'passing_yards', 'rushing_yards', 'receiving_yards', 'fantasy_points_ppr'
+    ]
+    
+    return stats_limpias[columnas_props]
+
+with st.spinner("📊 Procesando rendimiento histórico de jugadores..."):
+    df_jugadores = cargar_stats_jugadores()
+    
+    # Creamos un pequeño buscador interactivo en el Dashboard
+    st.subheader("Buscador de Jugadores")
+    jugador_buscado = st.selectbox("Selecciona un jugador para ver su perfil:", df_jugadores['player_name'].unique())
+    
+    # Filtramos la tabla según el jugador seleccionado
+    perfil_jugador = df_jugadores[df_jugadores['player_name'] == jugador_buscado]
+    st.dataframe(perfil_jugador, use_container_width=True)
