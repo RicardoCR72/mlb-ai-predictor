@@ -8,3 +8,4 @@ requests
 beautifulsoup4
 tzdata
 lxml
+nfl_data_py
