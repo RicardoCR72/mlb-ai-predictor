@@ -166,3 +166,56 @@ proyecciones_qb = proyecciones_qb.sort_values('Promedio_Yardas', ascending=False
 # Mostramos el resultado en el Dashboard
 st.dataframe(proyecciones_qb, use_container_width=True)
 st.info("💡 Tip del Oráculo: La 'Mediana' es un mejor indicador que el Promedio para apostar Props, ya que elimina los partidos atípicos.")
+
+st.markdown("---")
+st.subheader("🎰 Líneas Reales del Casino (Player Props)")
+
+@st.cache_data(ttl=3600)
+def obtener_lineas_props_qb():
+    api_key = st.secrets["odds_api_key"]
+    sport = "americanfootball_nfl"
+    regions = "us" # Puedes cambiarlo a 'eu' o 'uk' si usas otros mercados, pero 'us' trae las líneas más sólidas
+    markets = "player_passing_yards"
+    
+    url = f"https://api.the-odds-api.com/v4/sports/{sport}/odds/?apiKey={api_key}&regions={regions}&markets={markets}"
+    
+    respuesta = requests.get(url)
+    if respuesta.status_code != 200:
+        st.warning("No hay líneas de Props de QB disponibles en este momento (los casinos suelen soltarlas más cerca del domingo).")
+        return pd.DataFrame()
+        
+    datos = respuesta.json()
+    
+    filas = []
+    for juego in datos:
+        if not juego.get('bookmakers'):
+            continue
+            
+        casino = juego['bookmakers'][0] 
+        mercados = casino.get('markets', [])
+        
+        for m in mercados:
+            if m['key'] == 'player_passing_yards':
+                for outcome in m['outcomes']:
+                    # En los props, The Odds API pone el nombre del jugador en 'description'
+                    if outcome['name'] == 'Over': 
+                        filas.append({
+                            'Jugador_API': outcome['description'],
+                            'Linea_Casino': outcome['point']
+                        })
+                        
+    df_lineas = pd.DataFrame(filas)
+    
+    # Eliminamos duplicados por si un jugador sale dos veces
+    if not df_lineas.empty:
+        df_lineas = df_lineas.drop_duplicates(subset=['Jugador_API'])
+        
+    return df_lineas
+
+with st.spinner("💸 Hackeando las líneas de Las Vegas para Quarterbacks..."):
+    df_lineas_qb = obtener_lineas_props_qb()
+    
+    if not df_lineas_qb.empty:
+        st.dataframe(df_lineas_qb, use_container_width=True)
+    else:
+        st.info("Esperando a que los casinos liberen las líneas de yardas por pase de la Semana 1...")
