@@ -219,3 +219,36 @@ with st.spinner("💸 Hackeando las líneas de Las Vegas para Quarterbacks..."):
         st.dataframe(df_lineas_qb, use_container_width=True)
     else:
         st.info("Esperando a que los casinos liberen las líneas de yardas por pase de la Semana 1...")
+
+# 6. El Motor de Valor (La trampa inteligente)
+if not df_lineas_qb.empty:
+    st.markdown("---")
+    st.subheader("🔥 Detector de Apuestas de Valor (QBs)")
+    
+    # Función rápida para convertir "Patrick Mahomes" a "P.Mahomes"
+    def traducir_nombre_jugador(nombre_completo):
+        partes = nombre_completo.split(" ", 1)
+        if len(partes) > 1:
+            return f"{partes[0][0]}.{partes[1]}"
+        return nombre_completo
+        
+    # Aplicamos la traducción a la tabla del casino
+    df_lineas_qb['player_name'] = df_lineas_qb['Jugador_API'].apply(traducir_nombre_jugador)
+    
+    # Cruzamos tus proyecciones con las líneas del casino
+    df_valor_qb = pd.merge(
+        proyecciones_qb, 
+        df_lineas_qb, 
+        on='player_name', 
+        how='inner'
+    )
+    
+    # Calculamos la diferencia matemática (Edge) usando la Mediana
+    df_valor_qb['Diferencia (Edge)'] = df_valor_qb['Mediana_Yardas'] - df_valor_qb['Linea_Casino']
+    
+    # Limpiamos y ordenamos para mostrar las mejores oportunidades
+    columnas_finales = ['player_name', 'Promedio_Yardas', 'Mediana_Yardas', 'Linea_Casino', 'Diferencia (Edge)']
+    df_valor_qb = df_valor_qb[columnas_finales].sort_values('Diferencia (Edge)', ascending=False)
+    
+    st.dataframe(df_valor_qb, use_container_width=True)
+    st.success("¡Líneas detectadas y analizadas! Busca los números más altos en el 'Edge'.")
