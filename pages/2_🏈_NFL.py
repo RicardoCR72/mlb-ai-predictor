@@ -138,3 +138,31 @@ with st.spinner("📊 Procesando rendimiento histórico de jugadores..."):
     # Filtramos la tabla según el jugador seleccionado
     perfil_jugador = df_jugadores[df_jugadores['player_name'] == jugador_buscado]
     st.dataframe(perfil_jugador, use_container_width=True)
+
+st.markdown("---")
+st.subheader("🎯 Proyecciones: Yardas por Pase (Quarterbacks)")
+
+# 1. Filtramos solo a los Quarterbacks
+df_qbs = df_jugadores[df_jugadores['position'] == 'QB'].copy()
+
+# 2. Agrupamos por jugador y calculamos las matemáticas del Oráculo
+proyecciones_qb = df_qbs.groupby('player_name').agg(
+    Partidos=('week', 'count'),
+    Promedio_Yardas=('passing_yards', 'mean'),
+    Mediana_Yardas=('passing_yards', 'median'),
+    Max_Yardas=('passing_yards', 'max')
+).reset_index()
+
+# 3. Limpiamos la data: Exigimos mínimo 5 partidos jugados para evitar suplentes
+proyecciones_qb = proyecciones_qb[proyecciones_qb['Partidos'] >= 5]
+
+# 4. Redondeamos los números para que se vean elegantes
+proyecciones_qb['Promedio_Yardas'] = proyecciones_qb['Promedio_Yardas'].round(1)
+proyecciones_qb['Mediana_Yardas'] = proyecciones_qb['Mediana_Yardas'].round(1)
+
+# 5. Ordenamos a los mejores de arriba hacia abajo
+proyecciones_qb = proyecciones_qb.sort_values('Promedio_Yardas', ascending=False)
+
+# Mostramos el resultado en el Dashboard
+st.dataframe(proyecciones_qb, use_container_width=True)
+st.info("💡 Tip del Oráculo: La 'Mediana' es un mejor indicador que el Promedio para apostar Props, ya que elimina los partidos atípicos.")
