@@ -252,3 +252,89 @@ if not df_lineas_qb.empty:
     
     st.dataframe(df_valor_qb, use_container_width=True)
     st.success("¡Líneas detectadas y analizadas! Busca los números más altos en el 'Edge'.")
+
+st.markdown("---")
+st.header("🚜 Proyecciones: Yardas Terrestres (Corredores)")
+
+# 1. Filtramos solo a los Corredores (RB)
+df_rbs = df_jugadores[df_jugadores['position'] == 'RB'].copy()
+
+# 2. Agrupamos por jugador y calculamos basándonos en 'rushing_yards'
+proyecciones_rb = df_rbs.groupby('player_name').agg(
+    Partidos=('week', 'count'),
+    Promedio_Yardas=('rushing_yards', 'mean'),
+    Mediana_Yardas=('rushing_yards', 'median'),
+    Max_Yardas=('rushing_yards', 'max')
+).reset_index()
+
+# 3. Limpiamos: Exigimos mínimo 5 partidos jugados para quedarnos con los titulares
+proyecciones_rb = proyecciones_rb[proyecciones_rb['Partidos'] >= 5]
+
+# 4. Redondeamos para mantener el formato limpio
+proyecciones_rb['Promedio_Yardas'] = proyecciones_rb['Promedio_Yardas'].round(1)
+proyecciones_rb['Mediana_Yardas'] = proyecciones_rb['Mediana_Yardas'].round(1)
+
+# 5. Ordenamos a los corredores más dominantes hasta arriba
+proyecciones_rb = proyecciones_rb.sort_values('Promedio_Yardas', ascending=False)
+
+# Mostramos el ranking base en el Dashboard
+st.dataframe(proyecciones_rb, use_container_width=True)
+
+# 6. Conexión al casino para RBs
+@st.cache_data(ttl=3600)
+def obtener_lineas_props_rb():
+    api_key = st.secrets["odds_api_key"]
+    sport = "americanfootball_nfl"
+    regions = "us" 
+    markets = "player_rushing_yards" # <-- Mercado específico de corredores
+    
+    url = f"https://api.the-odds-api.com/v4/sports/{sport}/odds/?apiKey={api_key}&regions={regions}&markets={markets}"
+    
+    respuesta = requests.get(url)
+    if respuesta.status_code != 200:
+        return pd.DataFrame()
+        
+    datos = respuesta.json()
+    filas = []
+    for juego in datos:
+        if not juego.get('bookmakers'):
+            continue
+        casino = juego['bookmakers'][0] 
+        mercados = casino.get('markets', [])
+        for m in mercados:
+            if m['key'] == 'player_rushing_yards':
+                for outcome in m['outcomes']:
+                    if outcome['name'] == 'Over': 
+                        filas.append({
+                            'Jugador_API': outcome['description'],
+                            'Linea_Casino': outcome['point']
+                        })
+                        
+    df_lineas = pd.DataFrame(filas)
+    if not df_lineas.empty:
+        df_lineas = df_lineas.drop_duplicates(subset=['Jugador_API'])
+    return df_lineas
+
+with st.spinner("💸 Escaneando líneas terrestres en Las Vegas..."):
+    df_lineas_rb = obtener_lineas_props_rb()
+    
+    if not df_lineas_rb.empty:
+        st.subheader("🔥 Detector de Apuestas de Valor (Corredores)")
+        
+        # Traductor de nombres rápido (por si la tabla de QBs está vacía)
+        def traducir_nombre_rb(nombre):
+            partes = nombre.split(" ", 1)
+            return f"{partes[0][0]}.{partes[1]}" if len(partes) > 1 else nombre
+            
+        df_lineas_rb['player_name'] = df_lineas_rb['Jugador_API'].apply(traducir_nombre_rb)
+        
+        # El cruce de datos
+        df_valor_rb = pd.merge(proyecciones_rb, df_lineas_rb, on='player_name', how='inner')
+        df_valor_rb['Diferencia (Edge)'] = df_valor_rb['Mediana_Yardas'] - df_valor_rb['Linea_Casino']
+        
+        columnas_finales = ['player_name', 'Promedio_Yardas', 'Mediana_Yardas', 'Linea_Casino', 'Diferencia (Edge)']
+        df_valor_rb = df_valor_rb[columnas_finales].sort_values('Diferencia (Edge)', ascending=False)
+        
+        st.dataframe(df_valor_rb, use_container_width=True)
+    else:
+        st.info("Esperando a que los casinos liberen las líneas de corredores para la Semana 1...")
