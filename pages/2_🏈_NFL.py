@@ -2,6 +2,7 @@ import streamlit as st
 import nfl_data_py as nfl
 import pandas as pd
 import requests
+import mysql.connector
 
 st.title("🏈 NFL Oráculo V1.0: Spreads & Props")
 st.markdown("---")
@@ -423,3 +424,51 @@ with st.spinner("💸 Cazando líneas aéreas en Las Vegas..."):
         st.dataframe(df_valor_wr, use_container_width=True)
     else:
         st.info("Esperando a que los casinos liberen las líneas de receptores para la Semana 1...")
+
+st.markdown("---")
+st.header("🗄️ Administración de Base de Datos")
+
+def sincronizar_jugadores_nfl():
+    try:
+        # 1. Tu conexión clásica de XAMPP / Aiven
+        conexion = mysql.connector.connect(
+            host=st.secrets["host"],
+            port=st.secrets["port"],
+            user=st.secrets["user"],
+            password=st.secrets["password"],
+            database=st.secrets["database"]
+        )
+        cursor = conexion.cursor()
+        
+        with st.spinner("Inyectando el roster en MySQL..."):
+            # Filtramos para tener un solo registro por jugador (el más reciente)
+            roster = df_jugadores.sort_values('week').drop_duplicates(subset=['player_name'], keep='last')
+            
+            contador = 0
+            # 2. Iteramos como en tu scraper.py
+            for index, fila in roster.iterrows():
+                query = """
+                INSERT INTO nfl_jugadores (id_jugador, nombre, posicion, equipo_actual)
+                VALUES (%s, %s, %s, %s)
+                ON DUPLICATE KEY UPDATE equipo_actual=VALUES(equipo_actual)
+                """
+                # Usamos el formato "P.Mahomes" como ID y Nombre
+                cursor.execute(query, (
+                    fila['player_name'], 
+                    fila['player_name'], 
+                    fila['position'], 
+                    fila['recent_team']
+                ))
+                contador += 1
+                
+            conexion.commit()
+            st.success(f"✅ ¡Catálogo sincronizado! {contador} jugadores listos en DBeaver.")
+            
+    except Exception as e:
+        st.error(f"🚨 Error de base de datos: {e}")
+    finally:
+        if 'cursor' in locals(): cursor.close()
+        if 'conexion' in locals(): conexion.close()
+
+if st.button("Sincronizar Catálogo de Jugadores (Roster)"):
+    sincronizar_jugadores_nfl()
