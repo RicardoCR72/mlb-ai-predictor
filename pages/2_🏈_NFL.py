@@ -472,3 +472,57 @@ def sincronizar_jugadores_nfl():
 
 if st.button("Sincronizar Catálogo de Jugadores (Roster)"):
     sincronizar_jugadores_nfl()
+
+import pandas as pd # Por si acaso, para usar pd.concat
+
+def sincronizar_proyecciones_nfl():
+    try:
+        conexion = mysql.connector.connect(
+            host=st.secrets["host"],
+            port=st.secrets["port"],
+            user=st.secrets["user"],
+            password=st.secrets["password"],
+            database=st.secrets["database"]
+        )
+        cursor = conexion.cursor()
+        
+        with st.spinner("Guardando la inteligencia del Oráculo en MySQL..."):
+            # 1. Unimos todas las posiciones en un solo DataFrame masivo
+            df_todas = pd.concat([proyecciones_qb, proyecciones_rb, proyecciones_wr])
+            
+            # Como esto es para arrancar la temporada, fijamos la semana en 1
+            semana_arranque = 1 
+            
+            # 2. Truco de seguridad: Borramos las de la Semana 1 antes de insertar 
+            # por si llegas a darle doble clic al botón, para no tener datos duplicados
+            cursor.execute("DELETE FROM nfl_proyecciones_base WHERE semana = %s", (semana_arranque,))
+            
+            contador = 0
+            # 3. Iteramos e insertamos
+            for index, fila in df_todas.iterrows():
+                query = """
+                INSERT INTO nfl_proyecciones_base 
+                (id_jugador, semana, promedio_yardas, mediana_yardas, max_yardas)
+                VALUES (%s, %s, %s, %s, %s)
+                """
+                # Convertimos a float nativo de Python para que MySQL no se queje de los tipos de Pandas
+                cursor.execute(query, (
+                    fila['player_name'],
+                    semana_arranque,
+                    float(fila['Promedio_Yardas']),
+                    float(fila['Mediana_Yardas']),
+                    float(fila['Max_Yardas'])
+                ))
+                contador += 1
+                
+            conexion.commit()
+            st.success(f"✅ ¡Proyecciones blindadas! {contador} cálculos guardados para la Semana 1.")
+            
+    except Exception as e:
+        st.error(f"🚨 Error de base de datos: {e}")
+    finally:
+        if 'cursor' in locals(): cursor.close()
+        if 'conexion' in locals(): conexion.close()
+
+if st.button("Guardar Proyecciones Base (Semana 1)"):
+    sincronizar_proyecciones_nfl()
