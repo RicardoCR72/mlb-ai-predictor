@@ -76,20 +76,40 @@ def american_a_decimal(odds):
 
 
 def actualizar_calendario():
-    if not RUTA_CALENDARIO.exists():
-        raise FileNotFoundError(
-            f"No existe el calendario: {RUTA_CALENDARIO}"
-        )
-
     print(
         f"Actualizando calendario de "
         f"{TEMPORADA_ACTUAL}..."
     )
 
-    historico = pd.read_parquet(
-        RUTA_CALENDARIO
+    RUTA_CALENDARIO.parent.mkdir(
+        parents=True,
+        exist_ok=True,
     )
 
+    if RUTA_CALENDARIO.exists():
+        print("Cargando calendario local...")
+
+        historico = pd.read_parquet(
+            RUTA_CALENDARIO
+        )
+
+    else:
+        print(
+            "No existe calendario local. "
+            "Descargando histórico 2012-2026..."
+        )
+
+        historico = nfl.load_schedules(
+            list(
+                range(
+                    2012,
+                    TEMPORADA_ACTUAL + 1
+                )
+            )
+        ).to_pandas()
+
+    # Volvemos a descargar 2026 para obtener
+    # resultados y líneas actualizadas.
     actual = nfl.load_schedules(
         [TEMPORADA_ACTUAL]
     ).to_pandas()
@@ -108,16 +128,31 @@ def actualizar_calendario():
         errors="coerce",
     )
 
-    calendario = calendario.sort_values(
-        ["season", "week", "gameday", "game_id"]
-    ).drop_duplicates(
-        subset=["game_id"],
-        keep="last",
-    ).reset_index(drop=True)
+    calendario = (
+        calendario
+        .sort_values(
+            [
+                "season",
+                "week",
+                "gameday",
+                "game_id",
+            ]
+        )
+        .drop_duplicates(
+            subset=["game_id"],
+            keep="last",
+        )
+        .reset_index(drop=True)
+    )
 
     calendario.to_parquet(
         RUTA_CALENDARIO,
         index=False,
+    )
+
+    print(
+        f"Calendario disponible: "
+        f"{len(calendario):,} partidos."
     )
 
     return calendario
