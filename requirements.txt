@@ -1,5 +1,6 @@
 streamlit
 pandas
+numpy
 mysql-connector-python
 tensorflow==2.21.0
 scikit-learn
@@ -8,4 +9,6 @@ requests
 beautifulsoup4
 tzdata
 lxml
-nfl_data_py
+nflreadpy
+polars
+pyarrow

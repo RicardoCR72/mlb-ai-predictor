@@ -4,3 +4,8 @@
 #columnas_entrenamiento_v2.pkl
 __pycache__/
 venv/
+data/nfl/
+modelos_nfl/*.joblib
+modelos_nfl/*.json
+__pycache__/
+*.pyc
