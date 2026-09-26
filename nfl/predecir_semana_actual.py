@@ -1,6 +1,8 @@
+import os
 from pathlib import Path
 
 import joblib
+import mysql.connector
 import nflreadpy as nfl
 import numpy as np
 import pandas as pd
@@ -55,6 +57,262 @@ DIRECTORIO_PREDICCIONES = (
 
 TEMPORADA_ACTUAL = 2026
 EDGE_MINIMO = 3.0
+MODELO_VERSION = "totales_v1"
+
+
+def obtener_variable_entorno(*nombres, obligatoria=False):
+    """Obtiene la primera variable de entorno disponible."""
+    for nombre in nombres:
+        valor = os.getenv(nombre)
+        if valor not in (None, ""):
+            return valor
+
+    if obligatoria:
+        raise ValueError(
+            "Falta configurar una de estas variables: "
+            + ", ".join(nombres)
+        )
+
+    return None
+
+
+def obtener_configuracion_mysql():
+    """
+    Construye la configuración de Aiven/MySQL.
+
+    Acepta tanto los nombres DB_* recomendados para GitHub Actions
+    como los nombres cortos que ya usa la aplicación Streamlit.
+    Si no hay credenciales, devuelve None y permite conservar el CSV.
+    """
+    host = obtener_variable_entorno(
+        "DB_HOST",
+        "MYSQL_HOST",
+        "host",
+    )
+    usuario = obtener_variable_entorno(
+        "DB_USER",
+        "MYSQL_USER",
+        "user",
+    )
+    password = obtener_variable_entorno(
+        "DB_PASSWORD",
+        "MYSQL_PASSWORD",
+        "password",
+    )
+    base_datos = obtener_variable_entorno(
+        "DB_NAME",
+        "MYSQL_DATABASE",
+        "database",
+    )
+
+    if not all([host, usuario, password, base_datos]):
+        return None
+
+    puerto = obtener_variable_entorno(
+        "DB_PORT",
+        "MYSQL_PORT",
+        "port",
+    ) or "3306"
+
+    configuracion = {
+        "host": host,
+        "port": int(puerto),
+        "user": usuario,
+        "password": password,
+        "database": base_datos,
+        "connection_timeout": 20,
+        "ssl_disabled": False,
+    }
+
+    ruta_ca = obtener_variable_entorno(
+        "DB_SSL_CA",
+        "MYSQL_SSL_CA",
+        "ssl_ca",
+    )
+
+    if ruta_ca:
+        configuracion["ssl_ca"] = ruta_ca
+        configuracion["ssl_verify_cert"] = True
+
+    return configuracion
+
+
+def valor_mysql(valor):
+    """Convierte tipos de pandas/numpy a valores compatibles con MySQL."""
+    if pd.isna(valor):
+        return None
+
+    if isinstance(valor, np.generic):
+        return valor.item()
+
+    if isinstance(valor, pd.Timestamp):
+        return valor.to_pydatetime()
+
+    return valor
+
+
+def guardar_predicciones_mysql(predicciones):
+    """
+    Inserta o actualiza el calendario y las predicciones de totales.
+
+    Un fallo de base de datos no elimina el CSV ni detiene el predictor.
+    """
+    configuracion = obtener_configuracion_mysql()
+
+    if configuracion is None:
+        print(
+            "ADVERTENCIA: no se configuraron las variables de MySQL. "
+            "Se conservará únicamente el archivo CSV."
+        )
+        return False
+
+    conexion = None
+    cursor = None
+
+    try:
+        conexion = mysql.connector.connect(**configuracion)
+        cursor = conexion.cursor()
+
+        sql_juego = """
+            INSERT INTO nfl_juegos (
+                id_juego,
+                temporada,
+                tipo_juego,
+                semana,
+                fecha,
+                equipo_local,
+                equipo_visitante,
+                marcador_local,
+                marcador_visitante,
+                estado
+            )
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            ON DUPLICATE KEY UPDATE
+                temporada = VALUES(temporada),
+                tipo_juego = VALUES(tipo_juego),
+                semana = VALUES(semana),
+                fecha = VALUES(fecha),
+                equipo_local = VALUES(equipo_local),
+                equipo_visitante = VALUES(equipo_visitante),
+                marcador_local = VALUES(marcador_local),
+                marcador_visitante = VALUES(marcador_visitante),
+                estado = VALUES(estado)
+        """
+
+        juegos = []
+
+        for _, fila in predicciones.iterrows():
+            terminado = (
+                pd.notna(fila.get("home_score"))
+                and pd.notna(fila.get("away_score"))
+            )
+
+            juegos.append(
+                (
+                    str(fila["game_id"]),
+                    int(fila["season"]),
+                    str(fila.get("game_type", "REG")),
+                    int(fila["week"]),
+                    valor_mysql(fila["gameday"]),
+                    str(fila["home_team"]),
+                    str(fila["away_team"]),
+                    valor_mysql(fila.get("home_score")),
+                    valor_mysql(fila.get("away_score")),
+                    "finalizado" if terminado else "programado",
+                )
+            )
+
+        cursor.executemany(sql_juego, juegos)
+
+        sql_prediccion = """
+            INSERT INTO nfl_predicciones_totales (
+                id_juego,
+                modelo_version,
+                linea_total,
+                total_proyectado,
+                total_proyectado_base,
+                edge,
+                seleccion,
+                probabilidad_pick,
+                probabilidad_over,
+                probabilidad_under,
+                cuota_pick,
+                ev_estimado,
+                estado_pick
+            )
+            VALUES (
+                %s, %s, %s, %s, %s, %s, %s,
+                %s, %s, %s, %s, %s, %s
+            )
+            ON DUPLICATE KEY UPDATE
+                linea_total = VALUES(linea_total),
+                total_proyectado = VALUES(total_proyectado),
+                total_proyectado_base = VALUES(total_proyectado_base),
+                edge = VALUES(edge),
+                seleccion = VALUES(seleccion),
+                probabilidad_pick = VALUES(probabilidad_pick),
+                probabilidad_over = VALUES(probabilidad_over),
+                probabilidad_under = VALUES(probabilidad_under),
+                cuota_pick = VALUES(cuota_pick),
+                ev_estimado = VALUES(ev_estimado),
+                estado_pick = VALUES(estado_pick)
+        """
+
+        filas_validas = predicciones[
+            predicciones["total_line"].notna()
+            & predicciones["pred_total"].notna()
+            & predicciones["edge"].notna()
+        ]
+
+        registros = []
+
+        for _, fila in filas_validas.iterrows():
+            registros.append(
+                (
+                    str(fila["game_id"]),
+                    MODELO_VERSION,
+                    valor_mysql(fila["total_line"]),
+                    valor_mysql(fila["pred_total"]),
+                    valor_mysql(fila["pred_total_base"]),
+                    valor_mysql(fila["edge"]),
+                    str(fila["pick"]),
+                    valor_mysql(fila["prob_pick"] * 100),
+                    valor_mysql(fila["prob_over"] * 100),
+                    valor_mysql(fila["prob_under"] * 100),
+                    valor_mysql(fila["odds_pick"]),
+                    valor_mysql(fila["ev"] * 100),
+                    str(fila["estado"]),
+                )
+            )
+
+        if registros:
+            cursor.executemany(sql_prediccion, registros)
+
+        conexion.commit()
+
+        print(
+            "MySQL actualizado: "
+            f"{len(juegos)} juegos y "
+            f"{len(registros)} predicciones."
+        )
+        return True
+
+    except Exception as error:
+        if conexion is not None:
+            conexion.rollback()
+
+        print(
+            "ADVERTENCIA: no fue posible actualizar MySQL. "
+            f"El CSV se conservó correctamente. Detalle: {error}"
+        )
+        return False
+
+    finally:
+        if cursor is not None:
+            cursor.close()
+
+        if conexion is not None and conexion.is_connected():
+            conexion.close()
 
 
 def american_a_decimal(odds):
@@ -567,6 +825,9 @@ def main():
         ruta_salida,
         index=False,
     )
+
+    print("Sincronizando predicciones con MySQL...")
+    guardar_predicciones_mysql(predicciones)
 
     mostrar_resultados(
         predicciones,

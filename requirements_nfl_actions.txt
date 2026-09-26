@@ -1,0 +1,7 @@
+joblib>=1.4,<2
+mysql-connector-python>=9,<10
+nflreadpy>=0.1,<1
+numpy>=2,<3
+pandas>=2.2,<3
+pyarrow>=17,<22
+scikit-learn==1.9.1

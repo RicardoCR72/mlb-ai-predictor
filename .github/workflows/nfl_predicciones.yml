@@ -1,0 +1,58 @@
+name: Actualizar predicciones NFL
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 07:00 de Ciudad de México (UTC-6).
+    - cron: "0 13 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: actualizar-predicciones-nfl
+  cancel-in-progress: false
+
+jobs:
+  actualizar-nfl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements_nfl_actions.txt
+
+      - name: Instalar dependencias NFL
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements_nfl_actions.txt
+
+      - name: Preparar certificado de Aiven
+        shell: bash
+        env:
+          NFL_DB_SSL_CA_CERT: ${{ secrets.NFL_DB_SSL_CA_CERT }}
+        run: |
+          if [ -z "$NFL_DB_SSL_CA_CERT" ]; then
+            echo "Falta el secreto NFL_DB_SSL_CA_CERT"
+            exit 1
+          fi
+          printf '%s' "$NFL_DB_SSL_CA_CERT" > "$RUNNER_TEMP/aiven-ca.pem"
+
+      - name: Generar y guardar predicciones NFL
+        env:
+          PYTHONUNBUFFERED: "1"
+          DB_HOST: ${{ secrets.NFL_DB_HOST }}
+          DB_PORT: ${{ secrets.NFL_DB_PORT }}
+          DB_USER: ${{ secrets.NFL_DB_USER }}
+          DB_PASSWORD: ${{ secrets.NFL_DB_PASSWORD }}
+          DB_NAME: ${{ secrets.NFL_DB_NAME }}
+          DB_SSL_CA: ${{ runner.temp }}/aiven-ca.pem
+        run: python nfl/predecir_semana_actual.py
+
