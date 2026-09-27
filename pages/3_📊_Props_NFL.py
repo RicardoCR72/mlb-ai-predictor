@@ -14,7 +14,7 @@ st.set_page_config(
 
 st.title("📊 Props NFL")
 st.caption(
-    "Proyecciones de recepciones y yardas de recepción · "
+    "Proyecciones de recepción, pase, carrera y anotación · "
     "líneas de mercado, edge, probabilidad y contexto de lesiones"
 )
 
@@ -52,8 +52,17 @@ st.markdown(
         padding: .22rem .65rem;
         border-radius: 999px;
     }
+    .badge-revisar {
+        display: inline-block;
+        background: #b45309;
+        color: white;
+        font-weight: 700;
+        padding: .22rem .65rem;
+        border-radius: 999px;
+    }
     .pick-over { color: #ef4444; font-weight: 750; }
     .pick-under { color: #3b82f6; font-weight: 750; }
+    .pick-anota { color: #22c55e; font-weight: 750; }
     .muted { color: #9ca3af; font-size: .88rem; }
     </style>
     """,
@@ -64,6 +73,10 @@ st.markdown(
 NOMBRES_MERCADOS = {
     "receptions": "Recepciones",
     "receiving_yards": "Yardas de recepción",
+    "passing_yards": "Yardas por pase",
+    "passing_tds": "Pases de touchdown",
+    "rushing_yards": "Yardas terrestres",
+    "anytime_td": "Anota touchdown",
 }
 
 
@@ -247,6 +260,8 @@ def mostrar_badge(estado):
         clase, texto = "badge-candidato", "CANDIDATO"
     elif estado == "SIN LINEA":
         clase, texto = "badge-sin-linea", "SIN LÍNEA"
+    elif estado == "REVISAR LESION":
+        clase, texto = "badge-revisar", "REVISAR LESIÓN"
     else:
         clase, texto = "badge-no-pick", "NO PICK"
     st.markdown(
@@ -275,12 +290,21 @@ def mostrar_prop(fila):
             mostrar_badge(fila["estado_pick"])
 
         metricas = st.columns(5)
-        decimales = 1 if fila["tipo_prop"] == "receiving_yards" else 2
-        metricas[0].metric(
-            "Proyección", formatear_numero(fila["proyeccion"], decimales)
-        )
-        metricas[1].metric("Línea", formatear_numero(fila["linea"], 1))
-        metricas[2].metric("Edge", formatear_numero(fila["edge"], 2))
+        es_anota = fila["tipo_prop"] == "anytime_td"
+        if es_anota:
+            proyeccion_texto = formatear_porcentaje(fila["proyeccion"])
+            linea_texto = "Sí/No" if pd.notna(fila["linea"]) else "N/D"
+            edge_texto = formatear_porcentaje(fila["edge"])
+        else:
+            decimales = 1 if "yards" in fila["tipo_prop"] else 2
+            proyeccion_texto = formatear_numero(
+                fila["proyeccion"], decimales
+            )
+            linea_texto = formatear_numero(fila["linea"], 1)
+            edge_texto = formatear_numero(fila["edge"], 2)
+        metricas[0].metric("Proyección", proyeccion_texto)
+        metricas[1].metric("Línea", linea_texto)
+        metricas[2].metric("Edge", edge_texto)
         metricas[3].metric(
             "Probabilidad", formatear_porcentaje(fila["probabilidad_pick"])
         )
@@ -297,6 +321,11 @@ def mostrar_prop(fila):
                 f'<div class="pick-under">Selección: UNDER {linea}</div>',
                 unsafe_allow_html=True,
             )
+        elif fila["seleccion"] == "ANOTA":
+            st.markdown(
+                '<div class="pick-anota">Selección: ANOTA TOUCHDOWN</div>',
+                unsafe_allow_html=True,
+            )
         else:
             st.info("Todavía no existe una línea para este jugador.")
 
@@ -307,12 +336,24 @@ def mostrar_prop(fila):
         detalles[1].write(
             "**Momio:** " + formatear_momio(fila["cuota_pick"])
         )
-        detalles[2].write(
-            "**P(Over):** " + formatear_porcentaje(fila["probabilidad_over"])
-        )
-        detalles[3].write(
-            "**P(Under):** " + formatear_porcentaje(fila["probabilidad_under"])
-        )
+        if es_anota:
+            detalles[2].write(
+                "**P(Anota):** "
+                + formatear_porcentaje(fila["probabilidad_over"])
+            )
+            detalles[3].write(
+                "**P(No anota):** "
+                + formatear_porcentaje(fila["probabilidad_under"])
+            )
+        else:
+            detalles[2].write(
+                "**P(Over):** "
+                + formatear_porcentaje(fila["probabilidad_over"])
+            )
+            detalles[3].write(
+                "**P(Under):** "
+                + formatear_porcentaje(fila["probabilidad_under"])
+            )
 
         estado_lesion = texto_seguro(
             fila.get("estado_lesion"), "healthy_or_unlisted"
@@ -346,7 +387,8 @@ def insertar_linea_draftea(
             """,
             (
                 id_juego, id_jugador, tipo_prop,
-                float(linea), float(cuota_over), float(cuota_under),
+                float(linea), float(cuota_over),
+                None if cuota_under is None else float(cuota_under),
             ),
         )
         conexion.commit()
@@ -392,7 +434,8 @@ st.sidebar.write(f"**Temporada:** {temporada}")
 st.sidebar.write(f"**Semana:** {semana}")
 
 estado = st.sidebar.selectbox(
-    "Estado", ["Todos", "CANDIDATO", "NO PICK", "SIN LINEA"]
+    "Estado",
+    ["Todos", "CANDIDATO", "REVISAR LESION", "NO PICK", "SIN LINEA"],
 )
 mercado = st.sidebar.selectbox(
     "Mercado", ["Todos"] + list(NOMBRES_MERCADOS.values())
@@ -431,16 +474,18 @@ else:
     filtrado = filtrado.sort_values("edge_absoluto", ascending=False)
 
 candidatos = df[df["estado_pick"] == "CANDIDATO"].copy()
+revisar_lesion = df[df["estado_pick"] == "REVISAR LESION"].copy()
 con_linea = df[df["linea"].notna()].copy()
 jugadores = df["id_jugador"].nunique()
 prob_media = candidatos["probabilidad_pick"].mean()
 
-resumen = st.columns(5)
+resumen = st.columns(6)
 resumen[0].metric("Jugadores", jugadores)
 resumen[1].metric("Props", len(df))
 resumen[2].metric("Con línea", len(con_linea))
 resumen[3].metric("Candidatos", len(candidatos))
-resumen[4].metric("Prob. media", formatear_porcentaje(prob_media))
+resumen[4].metric("Revisar lesión", len(revisar_lesion))
+resumen[5].metric("Prob. media", formatear_porcentaje(prob_media))
 
 ultima = historico["actualizado_en"].max()
 if pd.notna(ultima):
@@ -516,6 +561,13 @@ with tab_todos:
 
 with tab_lesiones:
     st.subheader("Jugadores y contexto de lesiones")
+    selecciones_revisar = df[df["estado_pick"] == "REVISAR LESION"]
+    if not selecciones_revisar.empty:
+        st.write("**Selecciones que requieren confirmación de disponibilidad**")
+        for _, fila in selecciones_revisar.iterrows():
+            mostrar_prop(fila)
+        st.divider()
+
     lesionados = df[
         ~df["estado_lesion"].fillna("healthy_or_unlisted").isin(
             ["healthy", "healthy_or_unlisted"]
@@ -608,16 +660,27 @@ with tab_draftea:
             )
 
             with st.form("captura_draftea", clear_on_submit=False):
-                c1, c2, c3 = st.columns(3)
-                linea = c1.number_input(
-                    "Línea", min_value=0.0, step=0.5, format="%.1f"
-                )
-                cuota_over = c2.number_input(
-                    "Momio Over", value=-110, step=1
-                )
-                cuota_under = c3.number_input(
-                    "Momio Under", value=-110, step=1
-                )
+                if tipo_prop == "anytime_td":
+                    linea = 0.5
+                    cuota_over = st.number_input(
+                        "Momio Anota TD", value=150, step=1
+                    )
+                    cuota_under = None
+                    st.caption(
+                        "Para este mercado solo se necesita el momio de que "
+                        "el jugador anota."
+                    )
+                else:
+                    c1, c2, c3 = st.columns(3)
+                    linea = c1.number_input(
+                        "Línea", min_value=0.0, step=0.5, format="%.1f"
+                    )
+                    cuota_over = c2.number_input(
+                        "Momio Over", value=-110, step=1
+                    )
+                    cuota_under = c3.number_input(
+                        "Momio Under", value=-110, step=1
+                    )
                 guardar = st.form_submit_button(
                     "Guardar línea de Draftea", use_container_width=True
                 )
@@ -625,7 +688,9 @@ with tab_draftea:
             if guardar:
                 if linea <= 0:
                     st.error("La línea debe ser mayor que cero.")
-                elif cuota_over == 0 or cuota_under == 0:
+                elif cuota_over == 0 or (
+                    cuota_under is not None and cuota_under == 0
+                ):
                     st.error("Los momios no pueden ser cero.")
                 else:
                     try:
@@ -651,13 +716,19 @@ with tab_metodo:
         - **Selección:** temporada 2024.
         - **Confirmación:** temporada 2025.
         - **Evaluación OOS:** temporada 2026.
-        - **Posiciones:** WR, TE y RB.
-        - **Elegibilidad:** mínimo 3 juegos previos y 3 targets promedio.
-        - **Mercados:** recepciones y yardas de recepción.
-        - **Modelos productivos:** variantes sin lesiones directas.
-        - **Lesiones:** se muestran como contexto y advertencia.
+        - **Mercados:** recepciones, yardas de recepción, yardas por pase, pases de TD, yardas terrestres y anota touchdown.
+        - **Elegibilidad recepción:** mínimo 3 juegos previos y 3 targets promedio.
+        - **Elegibilidad pase:** mínimo 3 juegos previos y 10 intentos de pase promedio.
+        - **Elegibilidad carrera:** mínimo 3 juegos previos y 2 acarreos promedio.
+        - **Anota TD:** clasificador binario para RB, FB, WR y TE con al menos 2 oportunidades promedio.
+        - **Probabilidades de yardas:** distribución empírica de errores de 2024.
+        - **Pases de TD:** calibración específica para líneas 0.5, 1.5 y 2.5.
+        - **Lesiones:** contexto, estatus individual y advertencia para jugadores cuestionables.
         - **Candidato recepciones:** edge absoluto ≥ 0.75, probabilidad ≥ 57% y EV positivo.
-        - **Candidato yardas:** edge absoluto ≥ 10, probabilidad ≥ 57% y EV positivo.
+        - **Candidato yardas recibidas/terrestres:** edge absoluto ≥ 10, probabilidad ≥ 57% y EV positivo.
+        - **Candidato yardas por pase:** edge absoluto ≥ 25, probabilidad ≥ 57% y EV positivo.
+        - **Candidato pases de TD:** edge absoluto ≥ 0.35, probabilidad ≥ 57% y EV positivo.
+        - **Candidato anota TD:** probabilidad ≥ 25%, ventaja ≥ 5 puntos porcentuales, EV positivo y momio máximo +1000.
         """
     )
     st.warning(
