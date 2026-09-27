@@ -1,0 +1,55 @@
+{
+  "version": "props_nfl_calibracion_v1",
+  "yardas": {
+    "passing_yards": {
+      "variante": "lesiones",
+      "metodo_punto": "identidad",
+      "pendiente": 1.0,
+      "intercepto": 0.0,
+      "mae_2025_sin_correccion": 57.27254724150554,
+      "mae_2025_con_correccion_lineal": 58.29239064488257,
+      "probabilidad": "cdf_empirica_error_pred_menos_real_2024",
+      "n_residuos": 586
+    },
+    "rushing_yards": {
+      "variante": "control",
+      "metodo_punto": "identidad",
+      "pendiente": 1.0,
+      "intercepto": 0.0,
+      "mae_2025_sin_correccion": 19.71715251236538,
+      "mae_2025_con_correccion_lineal": 19.778396371689524,
+      "probabilidad": "cdf_empirica_error_pred_menos_real_2024",
+      "n_residuos": 1694
+    }
+  },
+  "passing_tds": {
+    "variante": "control",
+    "lineas": {
+      "0.5": {
+        "metodo": "poisson",
+        "intercepto": -0.8519518632143094,
+        "coeficiente": 1.4601805062427438,
+        "brier_2025_logistico": 0.17042404740280298,
+        "brier_2025_poisson": 0.16515705783449056
+      },
+      "1.5": {
+        "metodo": "poisson",
+        "intercepto": -1.7684274754280929,
+        "coeficiente": 1.0814981808728223,
+        "brier_2025_logistico": 0.21947810068143359,
+        "brier_2025_poisson": 0.21899731076852405
+      },
+      "2.5": {
+        "metodo": "poisson",
+        "intercepto": -4.226780744735868,
+        "coeficiente": 1.7760721912205617,
+        "brier_2025_logistico": 0.12983697675866931,
+        "brier_2025_poisson": 0.12884226800278556
+      }
+    }
+  },
+  "anytime_td": {
+    "variante": "control",
+    "metodo": "predict_proba_sin_calibrador_adicional"
+  }
+}

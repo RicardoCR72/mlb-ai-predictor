@@ -1,8 +1,12 @@
 """Descarga props NFL de The Odds API y guarda capturas en MySQL.
 
-Mercados iniciales:
+Mercados:
 * player_receptions      -> receptions
 * player_reception_yds   -> receiving_yards
+* player_pass_yds        -> passing_yards
+* player_pass_tds        -> passing_tds
+* player_rush_yds        -> rushing_yards
+* player_anytime_td      -> anytime_td
 
 El script conserva el historial: solo evita insertar una fila nueva cuando la
 ultima captura de la misma casa tiene exactamente la misma linea y cuotas.
@@ -11,6 +15,7 @@ ultima captura de la misma casa tiene exactamente la misma linea y cuotas.
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import re
 import sys
@@ -20,6 +25,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import mysql.connector
+import pandas as pd
 import requests
 
 from predecir_semana_actual import TEMPORADA_ACTUAL, obtener_configuracion_mysql
@@ -31,7 +37,18 @@ REGION = "us"
 MARKETS = {
     "player_receptions": "receptions",
     "player_reception_yds": "receiving_yards",
+    "player_pass_yds": "passing_yards",
+    "player_pass_tds": "passing_tds",
+    "player_rush_yds": "rushing_yards",
+    "player_anytime_td": "anytime_td",
 }
+
+RAIZ_PROYECTO = Path(__file__).resolve().parents[1]
+RUTA_JUGADORES = (
+    RAIZ_PROYECTO / "data" / "nfl" / "raw"
+    / "nfl_player_stats_2012_2026.parquet"
+)
+DIRECTORIO_CACHE = RAIZ_PROYECTO / "data" / "nfl" / "cache" / "odds_props"
 
 # Casas que normalmente tienen buena cobertura de props NFL. Si ninguna de
 # estas aparece para un partido, se conserva la primera casa disponible.
@@ -165,7 +182,7 @@ def cargar_juegos_pendientes(conexion):
     return [juego for juego in juegos if int(juego["semana"]) == semana]
 
 
-def emparejar_eventos(juegos, eventos):
+def emparejar_eventos(juegos, eventos, permitir_iniciados=False):
     por_equipos = {
         (juego["equipo_visitante"], juego["equipo_local"]): juego
         for juego in juegos
@@ -180,7 +197,7 @@ def emparejar_eventos(juegos, eventos):
                     inicio_texto.replace("Z", "+00:00")
                 )
                 # Nunca guardar líneas live como si fueran prepartido.
-                if inicio <= ahora:
+                if inicio <= ahora and not permitir_iniciados:
                     continue
             except (TypeError, ValueError):
                 pass
@@ -193,6 +210,8 @@ def emparejar_eventos(juegos, eventos):
 
 
 def texto_normalizado(valor: str) -> str:
+    # Algunas casas devuelven nombres unidos: CaseKeenum, CeeDeeLamb.
+    valor = re.sub(r"(?<=[a-z])(?=[A-Z])", " ", str(valor or ""))
     valor = unicodedata.normalize("NFKD", str(valor or ""))
     valor = "".join(c for c in valor if not unicodedata.combining(c)).lower()
     valor = re.sub(r"\b(jr|sr|ii|iii|iv)\b", " ", valor)
@@ -203,22 +222,129 @@ def clave_nombre(valor: str):
     partes = texto_normalizado(valor).split()
     if not partes:
         return None
-    return partes[0][0], "".join(partes[1:] or partes)
+    # Primer inicial + ultimo apellido relaciona Alvin Kamara con A.Kamara,
+    # CJ Daniels con C.J.Daniels y Amon-Ra St. Brown con A.St. Brown.
+    return partes[0][0], partes[-1]
+
+
+def cargar_catalogo_estadisticas():
+    """Lee IDs y usa el nombre completo cuando el parquet lo incluye."""
+    columnas_disponibles = set()
+    try:
+        import pyarrow.parquet as pq
+        columnas_disponibles = set(
+            pq.ParquetFile(RUTA_JUGADORES).schema.names
+        )
+    except Exception:
+        pass
+
+    candidatos_nombre = [
+        "player_display_name", "display_name", "football_name", "player_name"
+    ]
+    nombre_fuente = next(
+        (c for c in candidatos_nombre if c in columnas_disponibles),
+        "player_name",
+    )
+    columnas = [
+        "player_id", nombre_fuente, "position", "team", "season", "week"
+    ]
+    df = pd.read_parquet(RUTA_JUGADORES, columns=list(dict.fromkeys(columnas)))
+    if nombre_fuente != "player_name":
+        df = df.rename(columns={nombre_fuente: "player_name"})
+    return df
+
+
+def sincronizar_catalogo_jugadores(conexion):
+    """Actualiza el catalogo con el registro mas reciente de cada jugador.
+
+    Incluir el historial permite relacionar jugadores activos que todavia no
+    registran estadisticas en la temporada actual (lesionados, suplentes y
+    novatos con datos de una temporada anterior).
+    """
+    if not RUTA_JUGADORES.exists():
+        print(f"ADVERTENCIA: no existe el catalogo local {RUTA_JUGADORES}")
+        return 0
+
+    df = cargar_catalogo_estadisticas()
+    df = df.copy()
+    for columna in ["player_id", "player_name", "position", "team"]:
+        df[columna] = df[columna].fillna("").astype(str).str.strip()
+    df = df[
+        df["player_id"].ne("")
+        & df["player_name"].ne("")
+        & df["position"].ne("")
+        & df["team"].ne("")
+    ]
+    df = (
+        df.sort_values(["player_id", "season", "week"])
+        .drop_duplicates("player_id", keep="last")
+    )
+    if df.empty:
+        return 0
+
+    cursor = conexion.cursor()
+    cursor.executemany(
+        """
+        INSERT INTO nfl_jugadores (id_jugador, nombre, posicion, equipo_actual)
+        VALUES (%s, %s, %s, %s)
+        ON DUPLICATE KEY UPDATE
+            nombre = VALUES(nombre),
+            posicion = VALUES(posicion),
+            equipo_actual = VALUES(equipo_actual)
+        """,
+        list(
+            df[["player_id", "player_name", "position", "team"]]
+            .itertuples(index=False, name=None)
+        ),
+    )
+    conexion.commit()
+    cursor.close()
+    return len(df)
 
 
 def cargar_jugadores_por_equipo(conexion, equipos):
-    marcas = ",".join(["%s"] * len(equipos))
+    # Se usa el ultimo registro conocido de cada ID. Esto conserva jugadores
+    # activos que aun no aparecen en las estadisticas de la temporada actual.
+    if RUTA_JUGADORES.exists():
+        df = cargar_catalogo_estadisticas()
+        df = df.copy()
+        for columna in ["player_id", "player_name", "position", "team"]:
+            df[columna] = df[columna].fillna("").astype(str).str.strip()
+        df = df[
+            df["player_id"].ne("")
+            & df["player_name"].ne("")
+            & df["position"].ne("")
+            & df["team"].ne("")
+        ]
+        df = (
+            df.sort_values(["player_id", "season", "week"])
+            .drop_duplicates("player_id", keep="last")
+            .rename(columns={
+                "player_id": "id_jugador",
+                "player_name": "nombre",
+                "position": "posicion",
+                "team": "equipo_actual",
+            })
+        )
+        return df[
+            [
+                "id_jugador", "nombre", "posicion", "equipo_actual",
+                "season", "week",
+            ]
+        ].to_dict("records")
+
     cursor = conexion.cursor(dictionary=True)
     cursor.execute(
-        f"""
+        """
         SELECT id_jugador, nombre, posicion, equipo_actual
         FROM nfl_jugadores
-        WHERE equipo_actual IN ({marcas})
-        """,
-        tuple(sorted(equipos)),
+        """
     )
     jugadores = cursor.fetchall()
     cursor.close()
+    for jugador in jugadores:
+        jugador["season"] = 0
+        jugador["week"] = 0
     return jugadores
 
 
@@ -228,11 +354,31 @@ def indice_jugadores(jugadores):
         jugador = dict(jugador)
         jugador["nombre_normalizado"] = texto_normalizado(jugador["nombre"])
         jugador["clave_nombre"] = clave_nombre(jugador["nombre"])
+        jugador["ultima_temporada"] = int(jugador.get("season") or 0)
+        jugador["ultima_semana"] = int(jugador.get("week") or 0)
         por_equipo[jugador["equipo_actual"]].append(jugador)
+        por_equipo["__todos__"].append(jugador)
     return por_equipo
 
 
 def resolver_jugador(nombre_api, equipos_juego, indice):
+    def mas_reciente(opciones):
+        if not opciones:
+            return None
+        ordenadas = sorted(
+            opciones,
+            key=lambda j: (j["ultima_temporada"], j["ultima_semana"]),
+            reverse=True,
+        )
+        mejor_fecha = (
+            ordenadas[0]["ultima_temporada"], ordenadas[0]["ultima_semana"]
+        )
+        mejores = [
+            j for j in ordenadas
+            if (j["ultima_temporada"], j["ultima_semana"]) == mejor_fecha
+        ]
+        return mejores[0] if len(mejores) == 1 else None
+
     candidatos = []
     for equipo in equipos_juego:
         candidatos.extend(indice.get(equipo, []))
@@ -246,6 +392,30 @@ def resolver_jugador(nombre_api, equipos_juego, indice):
     similares = [j for j in candidatos if j["clave_nombre"] == clave]
     if len(similares) == 1:
         return similares[0]
+    reciente = mas_reciente(similares)
+    if reciente is not None:
+        return reciente
+
+    # Un nombre completo exacto es seguro incluso si el ultimo equipo guardado
+    # ya no coincide con el roster actual.
+    exactos_globales = [
+        j for j in indice.get("__todos__", [])
+        if j["nombre_normalizado"] == normalizado
+    ]
+    if len(exactos_globales) == 1:
+        return exactos_globales[0]
+
+    # Si el equipo en el feed estadistico esta desactualizado, se permite un
+    # match global solamente cuando inicial+apellido identifica a una persona.
+    globales = [
+        j for j in indice.get("__todos__", [])
+        if j["clave_nombre"] == clave
+    ]
+    if len(globales) == 1:
+        return globales[0]
+    reciente = mas_reciente(globales)
+    if reciente is not None:
+        return reciente
 
     # Último recurso: apellido único dentro de los dos equipos del partido.
     partes = normalizado.split()
@@ -256,6 +426,39 @@ def resolver_jugador(nombre_api, equipos_juego, indice):
         and j["nombre_normalizado"].split()[-1] == apellido
     ]
     return apellido_unico[0] if len(apellido_unico) == 1 else None
+
+
+def ruta_cache_evento(evento_id):
+    return DIRECTORIO_CACHE / f"{evento_id}.json"
+
+
+def guardar_cache_evento(evento_id, respuesta):
+    DIRECTORIO_CACHE.mkdir(parents=True, exist_ok=True)
+    ruta_cache_evento(evento_id).write_text(
+        json.dumps(respuesta, ensure_ascii=False), encoding="utf-8"
+    )
+
+
+def cargar_cache_evento(evento_id):
+    ruta = ruta_cache_evento(evento_id)
+    if not ruta.exists():
+        return None
+    return json.loads(ruta.read_text(encoding="utf-8"))
+
+
+def cargar_eventos_desde_cache():
+    """Recupera eventos completos cacheados, incluso si ya comenzaron."""
+    eventos = []
+    if not DIRECTORIO_CACHE.exists():
+        return eventos
+    for ruta in DIRECTORIO_CACHE.glob("*.json"):
+        try:
+            evento = json.loads(ruta.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if isinstance(evento, dict) and evento.get("id"):
+            eventos.append(evento)
+    return eventos
 
 
 def seleccionar_casas(bookmakers):
@@ -278,7 +481,13 @@ def extraer_lineas(respuesta, juego, indice):
             for resultado in mercado.get("outcomes", []):
                 nombre = str(resultado.get("name", ""))
                 descripcion = str(resultado.get("description", ""))
-                if nombre.lower() in {"over", "under"}:
+                if tipo_prop == "anytime_td" and nombre.lower() in {"yes", "no"}:
+                    lado = "over" if nombre.lower() == "yes" else "under"
+                    nombre_jugador = descripcion
+                elif tipo_prop == "anytime_td" and descripcion.lower() in {"yes", "no"}:
+                    lado = "over" if descripcion.lower() == "yes" else "under"
+                    nombre_jugador = nombre
+                elif nombre.lower() in {"over", "under"}:
                     lado, nombre_jugador = nombre.lower(), descripcion
                 elif descripcion.lower() in {"over", "under"}:
                     lado, nombre_jugador = descripcion.lower(), nombre
@@ -291,6 +500,8 @@ def extraer_lineas(respuesta, juego, indice):
                     continue
 
                 punto = resultado.get("point")
+                if tipo_prop == "anytime_td" and punto is None:
+                    punto = 0.5
                 cuota = resultado.get("price")
                 if punto is None or cuota is None:
                     continue
@@ -314,10 +525,13 @@ def extraer_lineas(respuesta, juego, indice):
                 )
                 fila[f"cuota_{lado}"] = float(cuota)
 
-    completas = [
-        fila for fila in agrupadas.values()
-        if fila["cuota_over"] is not None and fila["cuota_under"] is not None
-    ]
+    completas = []
+    for fila in agrupadas.values():
+        if fila["tipo_prop"] == "anytime_td":
+            if fila["cuota_over"] is not None:
+                completas.append(fila)
+        elif fila["cuota_over"] is not None and fila["cuota_under"] is not None:
+            completas.append(fila)
     return completas, no_resueltos
 
 
@@ -359,10 +573,15 @@ def cargar_ultimas_lineas(conexion, ids_juegos):
 
 
 def misma_linea(anterior, nueva):
-    return all(
-        abs(float(anterior[columna]) - float(nueva[columna])) < 1e-9
-        for columna in ("linea", "cuota_over", "cuota_under")
-    )
+    for columna in ("linea", "cuota_over", "cuota_under"):
+        valor_anterior = anterior[columna]
+        valor_nuevo = nueva[columna]
+        if valor_anterior is None or valor_nuevo is None:
+            if valor_anterior is not None or valor_nuevo is not None:
+                return False
+        elif abs(float(valor_anterior) - float(valor_nuevo)) >= 1e-9:
+            return False
+    return True
 
 
 def guardar_lineas(conexion, lineas):
@@ -405,6 +624,73 @@ def guardar_lineas(conexion, lineas):
     return len(nuevas)
 
 
+def respaldar_y_limpiar_semana(conexion, juegos, temporada, semana):
+    """Respalda y elimina proyecciones/lineas respetando sus llaves foraneas."""
+    ids = sorted({str(juego["id_juego"]) for juego in juegos})
+    if not ids:
+        return {
+            "tabla_lineas": "", "tabla_proyecciones": "",
+            "lineas_respaldadas": 0, "proyecciones_respaldadas": 0,
+            "lineas_eliminadas": 0, "proyecciones_eliminadas": 0,
+        }
+    temporada = int(temporada)
+    semana = int(semana)
+    tabla_lineas = f"nfl_lineas_props_respaldo_{temporada}_s{semana}"
+    tabla_proyecciones = (
+        f"nfl_proyecciones_props_respaldo_{temporada}_s{semana}"
+    )
+    marcadores = ",".join(["%s"] * len(ids))
+    cursor = conexion.cursor()
+    cursor.execute(
+        f"CREATE TABLE IF NOT EXISTS {tabla_lineas} LIKE nfl_lineas_props"
+    )
+    cursor.execute(
+        f"""
+        INSERT IGNORE INTO {tabla_lineas}
+        SELECT * FROM nfl_lineas_props
+        WHERE id_juego IN ({marcadores})
+        """,
+        tuple(ids),
+    )
+    lineas_respaldadas = max(int(cursor.rowcount), 0)
+
+    cursor.execute(
+        f"""
+        CREATE TABLE IF NOT EXISTS {tabla_proyecciones}
+        LIKE nfl_proyecciones_props
+        """
+    )
+    cursor.execute(
+        f"""
+        INSERT IGNORE INTO {tabla_proyecciones}
+        SELECT * FROM nfl_proyecciones_props
+        WHERE id_juego IN ({marcadores})
+        """,
+        tuple(ids),
+    )
+    proyecciones_respaldadas = max(int(cursor.rowcount), 0)
+    cursor.execute(
+        f"DELETE FROM nfl_proyecciones_props WHERE id_juego IN ({marcadores})",
+        tuple(ids),
+    )
+    proyecciones_eliminadas = max(int(cursor.rowcount), 0)
+    cursor.execute(
+        f"DELETE FROM nfl_lineas_props WHERE id_juego IN ({marcadores})",
+        tuple(ids),
+    )
+    lineas_eliminadas = max(int(cursor.rowcount), 0)
+    conexion.commit()
+    cursor.close()
+    return {
+        "tabla_lineas": tabla_lineas,
+        "tabla_proyecciones": tabla_proyecciones,
+        "lineas_respaldadas": lineas_respaldadas,
+        "proyecciones_respaldadas": proyecciones_respaldadas,
+        "lineas_eliminadas": lineas_eliminadas,
+        "proyecciones_eliminadas": proyecciones_eliminadas,
+    }
+
+
 def imprimir_cuota(cuota):
     partes = []
     if cuota.get("costo") is not None:
@@ -424,11 +710,37 @@ def main():
         action="store_true",
         help="Valida partidos sin solicitar props ni consumir sus créditos.",
     )
+    parser.add_argument(
+        "--solo-catalogo",
+        action="store_true",
+        help="Sincroniza nfl_jugadores sin consultar eventos ni props.",
+    )
+    parser.add_argument(
+        "--usar-cache",
+        action="store_true",
+        help="Reprocesa la ultima respuesta guardada sin consumir creditos.",
+    )
+    parser.add_argument(
+        "--reconstruir-semana",
+        action="store_true",
+        help=(
+            "Respalda y reemplaza las lineas de la semana. "
+            "Debe utilizarse junto con --usar-cache."
+        ),
+    )
     args = parser.parse_args()
+
+    if args.reconstruir_semana and not args.usar_cache:
+        parser.error("--reconstruir-semana requiere --usar-cache")
 
     api_key = obtener_api_key()
     conexion = conectar_mysql()
     try:
+        sincronizados = sincronizar_catalogo_jugadores(conexion)
+        print(f"Catalogo NFL sincronizado: {sincronizados:,} jugadores.")
+        if args.solo_catalogo:
+            print("Catalogo actualizado. No se consulto The Odds API.")
+            return
         juegos = cargar_juegos_pendientes(conexion)
         if not juegos:
             print("No hay juegos NFL pendientes para capturar.")
@@ -436,8 +748,33 @@ def main():
 
         semana = juegos[0]["semana"]
         print(f"Juegos pendientes de la semana {semana}: {len(juegos)}")
+        if args.reconstruir_semana:
+            reconstruccion = respaldar_y_limpiar_semana(
+                conexion, juegos, TEMPORADA_ACTUAL, semana
+            )
+            print(
+                f"Respaldos: {reconstruccion['tabla_lineas']} y "
+                f"{reconstruccion['tabla_proyecciones']}"
+            )
+            print(
+                "Lineas | nuevas respaldadas: "
+                f"{reconstruccion['lineas_respaldadas']:,} | retiradas: "
+                f"{reconstruccion['lineas_eliminadas']:,}"
+            )
+            print(
+                "Proyecciones | nuevas respaldadas: "
+                f"{reconstruccion['proyecciones_respaldadas']:,} | retiradas: "
+                f"{reconstruccion['proyecciones_eliminadas']:,}"
+            )
         eventos, cuota = api_get(f"/sports/{SPORT}/events", api_key)
-        parejas = emparejar_eventos(juegos, eventos)
+        if args.usar_cache:
+            por_id = {evento.get("id"): evento for evento in eventos}
+            for evento in cargar_eventos_desde_cache():
+                por_id[evento.get("id")] = evento
+            eventos = list(por_id.values())
+        parejas = emparejar_eventos(
+            juegos, eventos, permitir_iniciados=args.usar_cache
+        )
         print(f"Partidos emparejados con The Odds API: {len(parejas)}")
         imprimir_cuota(cuota)
 
@@ -466,14 +803,23 @@ def main():
                 f"[{numero}/{len(parejas)}] {juego['equipo_visitante']} @ "
                 f"{juego['equipo_local']}..."
             )
-            respuesta, cuota = api_get(
-                f"/sports/{SPORT}/events/{evento['id']}/odds",
-                api_key,
-                regions=REGION,
-                markets=",".join(MARKETS),
-                oddsFormat="american",
-                dateFormat="iso",
-            )
+            respuesta = cargar_cache_evento(evento["id"])
+            if args.usar_cache and respuesta is None:
+                print("  Sin respuesta cacheada; se omite sin consultar la API.")
+                continue
+            if not args.usar_cache:
+                respuesta, cuota = api_get(
+                    f"/sports/{SPORT}/events/{evento['id']}/odds",
+                    api_key,
+                    regions=REGION,
+                    markets=",".join(MARKETS),
+                    oddsFormat="american",
+                    dateFormat="iso",
+                )
+                guardar_cache_evento(evento["id"], respuesta)
+            else:
+                cuota = {"usados": None, "restantes": None, "costo": 0}
+                print("  Usando respuesta cacheada.")
             lineas, sin_match = extraer_lineas(respuesta, juego, indice)
             todas.extend(lineas)
             no_resueltos.update(sin_match)
