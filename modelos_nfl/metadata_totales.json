@@ -133,13 +133,23 @@
     "total_line",
     "spread_line"
   ],
+  "injury_features_tested": [
+    "sum_injury_starting_qb_score",
+    "sum_injury_skill_score",
+    "sum_injury_ol_score",
+    "sum_injury_defense_score",
+    "sum_injury_out_count",
+    "net_injury_total_pressure"
+  ],
+  "base_model_selected": "control_sin_lesiones",
+  "market_model_selected": "control_sin_lesiones",
   "categorical_features": [
     "roof",
     "surface"
   ],
   "results": [
     {
-      "modelo": "total_sin_mercado",
+      "modelo": "total_sin_mercado_control",
       "temporada": 2024,
       "partidos": 272,
       "mae": 10.256249546533558,
@@ -153,7 +163,7 @@
       "conjunto": "seleccion_2024"
     },
     {
-      "modelo": "total_sin_mercado",
+      "modelo": "total_sin_mercado_control",
       "temporada": 2025,
       "partidos": 272,
       "mae": 11.157470355898779,
@@ -167,21 +177,21 @@
       "conjunto": "confirmacion_2025"
     },
     {
-      "modelo": "total_sin_mercado",
+      "modelo": "total_sin_mercado_control",
       "temporada": 2026,
-      "partidos": 32,
-      "mae": 13.625318716853013,
-      "rmse": 17.99261356270186,
-      "bias": 1.3839575841616463,
-      "media_real": 44.9375,
-      "media_predicha": 46.32145758416165,
-      "mae_linea_mercado": 11.1875,
-      "acierto_lado_total": 0.40625,
-      "apuestas_evaluadas": 32,
+      "partidos": 33,
+      "mae": 13.327692666436798,
+      "rmse": 17.730268924388493,
+      "bias": 1.2267570800016587,
+      "media_real": 45.06060606060606,
+      "media_predicha": 46.287363140607724,
+      "mae_linea_mercado": 11.015151515151516,
+      "acierto_lado_total": 0.42424242424242425,
+      "apuestas_evaluadas": 33,
       "conjunto": "oos_2026"
     },
     {
-      "modelo": "total_con_mercado",
+      "modelo": "total_con_mercado_control",
       "temporada": 2024,
       "partidos": 272,
       "mae": 9.997175557896025,
@@ -195,7 +205,7 @@
       "conjunto": "seleccion_2024"
     },
     {
-      "modelo": "total_con_mercado",
+      "modelo": "total_con_mercado_control",
       "temporada": 2025,
       "partidos": 272,
       "mae": 10.40002867176354,
@@ -209,17 +219,101 @@
       "conjunto": "confirmacion_2025"
     },
     {
-      "modelo": "total_con_mercado",
+      "modelo": "total_con_mercado_control",
       "temporada": 2026,
-      "partidos": 32,
-      "mae": 11.895010326915106,
-      "rmse": 15.75718815728159,
-      "bias": 1.8727256977527211,
-      "media_real": 44.9375,
-      "media_predicha": 46.81022569775272,
-      "mae_linea_mercado": 11.1875,
-      "acierto_lado_total": 0.5,
-      "apuestas_evaluadas": 32,
+      "partidos": 33,
+      "mae": 11.652816050639988,
+      "rmse": 15.531471077626424,
+      "bias": 1.6977158520682065,
+      "media_real": 45.06060606060606,
+      "media_predicha": 46.75832191267426,
+      "mae_linea_mercado": 11.015151515151516,
+      "acierto_lado_total": 0.5151515151515151,
+      "apuestas_evaluadas": 33,
+      "conjunto": "oos_2026"
+    },
+    {
+      "modelo": "total_sin_mercado_lesiones_compactas",
+      "temporada": 2024,
+      "partidos": 272,
+      "mae": 10.359405153990394,
+      "rmse": 13.257146174781008,
+      "bias": -0.6777377438437647,
+      "media_real": 45.8235294117647,
+      "media_predicha": 45.145791667920946,
+      "mae_linea_mercado": 9.729779411764707,
+      "acierto_lado_total": 0.48698884758364314,
+      "apuestas_evaluadas": 269,
+      "conjunto": "seleccion_2024"
+    },
+    {
+      "modelo": "total_sin_mercado_lesiones_compactas",
+      "temporada": 2025,
+      "partidos": 272,
+      "mae": 11.279386056390276,
+      "rmse": 14.055107777381927,
+      "bias": -0.05434711126050766,
+      "media_real": 46.025735294117645,
+      "media_predicha": 45.97138818285713,
+      "mae_linea_mercado": 10.393382352941176,
+      "acierto_lado_total": 0.4742647058823529,
+      "apuestas_evaluadas": 272,
+      "conjunto": "confirmacion_2025"
+    },
+    {
+      "modelo": "total_sin_mercado_lesiones_compactas",
+      "temporada": 2026,
+      "partidos": 33,
+      "mae": 13.681525533675996,
+      "rmse": 17.869312251099977,
+      "bias": 1.534776628010802,
+      "media_real": 45.06060606060606,
+      "media_predicha": 46.59538268861686,
+      "mae_linea_mercado": 11.015151515151516,
+      "acierto_lado_total": 0.36363636363636365,
+      "apuestas_evaluadas": 33,
+      "conjunto": "oos_2026"
+    },
+    {
+      "modelo": "total_con_mercado_lesiones_compactas",
+      "temporada": 2024,
+      "partidos": 272,
+      "mae": 10.239038157684213,
+      "rmse": 13.176838678883122,
+      "bias": -0.9763890940512158,
+      "media_real": 45.8235294117647,
+      "media_predicha": 44.84714031771349,
+      "mae_linea_mercado": 9.729779411764707,
+      "acierto_lado_total": 0.49070631970260226,
+      "apuestas_evaluadas": 269,
+      "conjunto": "seleccion_2024"
+    },
+    {
+      "modelo": "total_con_mercado_lesiones_compactas",
+      "temporada": 2025,
+      "partidos": 272,
+      "mae": 10.597824695569157,
+      "rmse": 13.421042350485244,
+      "bias": -0.6140194134967975,
+      "media_real": 46.025735294117645,
+      "media_predicha": 45.411715880620854,
+      "mae_linea_mercado": 10.393382352941176,
+      "acierto_lado_total": 0.49264705882352944,
+      "apuestas_evaluadas": 272,
+      "conjunto": "confirmacion_2025"
+    },
+    {
+      "modelo": "total_con_mercado_lesiones_compactas",
+      "temporada": 2026,
+      "partidos": 33,
+      "mae": 11.801132266511038,
+      "rmse": 15.54116313220033,
+      "bias": 0.9968346275953307,
+      "media_real": 45.06060606060606,
+      "media_predicha": 46.05744068820139,
+      "mae_linea_mercado": 11.015151515151516,
+      "acierto_lado_total": 0.5454545454545454,
+      "apuestas_evaluadas": 33,
       "conjunto": "oos_2026"
     }
   ]
