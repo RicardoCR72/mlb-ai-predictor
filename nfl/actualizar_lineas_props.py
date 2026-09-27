@@ -171,7 +171,19 @@ def emparejar_eventos(juegos, eventos):
         for juego in juegos
     }
     parejas = []
+    ahora = datetime.now(timezone.utc)
     for evento in eventos:
+        inicio_texto = evento.get("commence_time")
+        if inicio_texto:
+            try:
+                inicio = datetime.fromisoformat(
+                    inicio_texto.replace("Z", "+00:00")
+                )
+                # Nunca guardar líneas live como si fueran prepartido.
+                if inicio <= ahora:
+                    continue
+            except (TypeError, ValueError):
+                pass
         visitante = EQUIPO_API_A_SIGLA.get(evento.get("away_team"))
         local = EQUIPO_API_A_SIGLA.get(evento.get("home_team"))
         juego = por_equipos.get((visitante, local))

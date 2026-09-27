@@ -1,0 +1,89 @@
+name: Actualizar props NFL
+
+on:
+  workflow_dispatch:
+    inputs:
+      actualizar_odds:
+        description: "Consultar The Odds API (consume créditos)"
+        required: true
+        type: boolean
+        default: false
+  schedule:
+    # Domingo 11:00 de Durango/CDMX (UTC-6).
+    - cron: "0 17 * * 0"
+    # Domingo 17:00 de Durango/CDMX (UTC-6).
+    - cron: "0 23 * * 0"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: actualizar-props-nfl
+  cancel-in-progress: false
+
+jobs:
+  props-nfl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements_nfl_actions.txt
+
+      - name: Instalar dependencias NFL
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements_nfl_actions.txt
+
+      - name: Preparar certificado de Aiven
+        shell: bash
+        env:
+          NFL_DB_SSL_CA_CERT: ${{ secrets.NFL_DB_SSL_CA_CERT }}
+        run: |
+          if [ -z "$NFL_DB_SSL_CA_CERT" ]; then
+            echo "Falta el secreto NFL_DB_SSL_CA_CERT"
+            exit 1
+          fi
+          printf '%s' "$NFL_DB_SSL_CA_CERT" > "$RUNNER_TEMP/aiven-ca.pem"
+
+      - name: Evaluar props terminados
+        env:
+          PYTHONUNBUFFERED: "1"
+          DB_HOST: ${{ secrets.NFL_DB_HOST }}
+          DB_PORT: ${{ secrets.NFL_DB_PORT }}
+          DB_USER: ${{ secrets.NFL_DB_USER }}
+          DB_PASSWORD: ${{ secrets.NFL_DB_PASSWORD }}
+          DB_NAME: ${{ secrets.NFL_DB_NAME }}
+          DB_SSL_CA: ${{ runner.temp }}/aiven-ca.pem
+        run: python nfl/evaluar_resultados_props.py
+
+      - name: Descargar líneas de props
+        if: github.event_name == 'schedule' || inputs.actualizar_odds == true
+        env:
+          PYTHONUNBUFFERED: "1"
+          DB_HOST: ${{ secrets.NFL_DB_HOST }}
+          DB_PORT: ${{ secrets.NFL_DB_PORT }}
+          DB_USER: ${{ secrets.NFL_DB_USER }}
+          DB_PASSWORD: ${{ secrets.NFL_DB_PASSWORD }}
+          DB_NAME: ${{ secrets.NFL_DB_NAME }}
+          DB_SSL_CA: ${{ runner.temp }}/aiven-ca.pem
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+        run: python nfl/actualizar_lineas_props.py
+
+      - name: Generar proyecciones de props
+        env:
+          PYTHONUNBUFFERED: "1"
+          DB_HOST: ${{ secrets.NFL_DB_HOST }}
+          DB_PORT: ${{ secrets.NFL_DB_PORT }}
+          DB_USER: ${{ secrets.NFL_DB_USER }}
+          DB_PASSWORD: ${{ secrets.NFL_DB_PASSWORD }}
+          DB_NAME: ${{ secrets.NFL_DB_NAME }}
+          DB_SSL_CA: ${{ runner.temp }}/aiven-ca.pem
+        run: python nfl/predecir_props_semana_actual.py
