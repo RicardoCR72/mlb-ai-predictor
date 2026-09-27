@@ -10,7 +10,7 @@ on:
         default: false
   schedule:
     # Domingo 11:00 de Durango/CDMX (UTC-6).
-    - cron: "0 17 * * 0"
+    - cron: "0 16 * * 0"
     # Domingo 17:00 de Durango/CDMX (UTC-6).
     - cron: "0 23 * * 0"
 
