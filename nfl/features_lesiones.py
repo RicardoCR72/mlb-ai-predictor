@@ -349,3 +349,124 @@ def agregar_features_lesiones(dataset, partidos, lesiones):
     )
 
     return resultado
+
+
+def agregar_contexto_lesiones(dataset, partidos, lesiones):
+    """Agrega nombres y notas interpretables sin alterar la prediccion."""
+    df = normalizar_lesiones(lesiones)
+
+    home_qb = partidos[
+        ["season", "week", "home_team", "home_qb_id"]
+    ].rename(columns={"home_team": "team", "home_qb_id": "starter_qb_id"})
+    away_qb = partidos[
+        ["season", "week", "away_team", "away_qb_id"]
+    ].rename(columns={"away_team": "team", "away_qb_id": "starter_qb_id"})
+    titulares = pd.concat([home_qb, away_qb], ignore_index=True)
+    titulares["team"] = titulares["team"].astype(str).str.upper()
+    titulares["starter_qb_id"] = (
+        titulares["starter_qb_id"].fillna("").astype(str).str.strip()
+    )
+    titulares = titulares.drop_duplicates(["season", "week", "team"])
+    df = df.merge(
+        titulares,
+        on=["season", "week", "team"],
+        how="left",
+        validate="many_to_one",
+    )
+
+    player_id = (
+        df.get("gsis_id", pd.Series("", index=df.index))
+        .fillna("").astype(str).str.strip()
+    )
+    es_qb_titular = (
+        df["position"].eq("QB")
+        & player_id.ne("")
+        & player_id.eq(df["starter_qb_id"].fillna("").astype(str).str.strip())
+    )
+    estado_fuerte = df["report_status_norm"].isin(["out", "doubtful"])
+    skill_relevante = (
+        df["position"].isin(POSICIONES_SKILL)
+        & df["report_status_norm"].isin(["out", "doubtful", "questionable"])
+    )
+    ol_relevante = df["position"].isin(POSICIONES_OL) & estado_fuerte
+    defensa_relevante = df["position"].isin(POSICIONES_DEFENSA) & estado_fuerte
+    df = df[es_qb_titular | skill_relevante | ol_relevante | defensa_relevante].copy()
+
+    if df.empty:
+        return dataset.assign(
+            home_key_injuries="",
+            away_key_injuries="",
+            home_prop_injury_note="",
+            away_prop_injury_note="",
+        )
+
+    df["is_starter_qb"] = es_qb_titular.loc[df.index]
+    nombres = df.get("full_name", pd.Series("Jugador", index=df.index))
+    nombres = nombres.fillna("Jugador").astype(str).str.strip()
+    estado = df["report_status_norm"].str.upper()
+    df["injury_label"] = (
+        nombres + " (" + df["position"] + ", " + estado + ")"
+    )
+    df["sort_priority"] = (
+        10 * df["is_starter_qb"].astype(int)
+        + df["injury_weight"]
+    )
+
+    registros = []
+    for claves, grupo in df.groupby(["season", "week", "team"], sort=False):
+        grupo = grupo.sort_values("sort_priority", ascending=False)
+        etiquetas = grupo["injury_label"].drop_duplicates().head(8).tolist()
+        notas = []
+        if grupo["is_starter_qb"].any():
+            notas.append("QB titular afectado: revisar pases, receptores y total")
+        if grupo["position"].isin({"WR", "TE"}).any():
+            notas.append("Posible redistribución de targets y recepciones")
+        if grupo["position"].isin({"RB", "FB"}).any():
+            notas.append("Posible redistribución de acarreos y targets")
+        if grupo["position"].isin(POSICIONES_OL).any():
+            notas.append("Bajas en línea ofensiva: revisar presión y eficiencia")
+        if grupo["position"].isin(POSICIONES_DEFENSA).any():
+            notas.append("Bajas defensivas relevantes para props del rival")
+
+        registros.append(
+            {
+                "season": claves[0],
+                "week": claves[1],
+                "team": claves[2],
+                "key_injuries": "; ".join(etiquetas),
+                "prop_injury_note": "; ".join(dict.fromkeys(notas)),
+            }
+        )
+
+    contexto = pd.DataFrame(registros)
+    home = contexto.rename(
+        columns={
+            "team": "home_team",
+            "key_injuries": "home_key_injuries",
+            "prop_injury_note": "home_prop_injury_note",
+        }
+    )
+    away = contexto.rename(
+        columns={
+            "team": "away_team",
+            "key_injuries": "away_key_injuries",
+            "prop_injury_note": "away_prop_injury_note",
+        }
+    )
+    resultado = dataset.merge(
+        home,
+        on=["season", "week", "home_team"],
+        how="left",
+        validate="many_to_one",
+    ).merge(
+        away,
+        on=["season", "week", "away_team"],
+        how="left",
+        validate="many_to_one",
+    )
+    columnas = [
+        "home_key_injuries", "away_key_injuries",
+        "home_prop_injury_note", "away_prop_injury_note",
+    ]
+    resultado[columnas] = resultado[columnas].fillna("")
+    return resultado

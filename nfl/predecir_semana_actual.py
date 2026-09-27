@@ -40,6 +40,7 @@ from entrenar_totales import (
 
 from features_lesiones import (
     RUTA_LESIONES,
+    agregar_contexto_lesiones,
     agregar_features_lesiones,
     cargar_lesiones,
 )
@@ -1031,6 +1032,11 @@ def preparar_features(calendario, proxima_semana):
         f"Reportes de lesiones de la semana: {len(lesiones_semana):,}"
     )
     dataset = agregar_features_lesiones(
+        dataset,
+        base,
+        lesiones,
+    )
+    dataset = agregar_contexto_lesiones(
         dataset,
         base,
         lesiones,
