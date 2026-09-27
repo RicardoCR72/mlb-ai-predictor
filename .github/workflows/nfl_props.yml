@@ -9,10 +9,18 @@ on:
         type: boolean
         default: false
   schedule:
-    # Domingo 11:00 de Durango/CDMX (UTC-6).
+    # Jueves 16:00: captura TNF.
+    - cron: "0 22 * * 4"
+    # Viernes 08:00: liquida TNF sin consultar odds.
+    - cron: "0 14 * * 5"
+    # Domingo 10:00: captura la jornada dominical.
     - cron: "0 16 * * 0"
     # Domingo 17:00 de Durango/CDMX (UTC-6).
     - cron: "0 23 * * 0"
+    # Lunes 16:00: captura MNF.
+    - cron: "0 22 * * 1"
+    # Martes 08:00: liquida MNF y el resto de la semana sin odds.
+    - cron: "0 14 * * 2"
 
 permissions:
   contents: read
@@ -64,14 +72,33 @@ jobs:
           DB_SSL_CA: ${{ runner.temp }}/aiven-ca.pem
         run: python nfl/evaluar_resultados_props.py
 
-      - name: Descargar líneas de props
-        # La ejecución dominical de las 11:00 consulta líneas. La de las
-        # 17:00 reutiliza las líneas guardadas y solo recalcula lesiones y
-        # proyecciones. Las ejecuciones manuales consultan la API únicamente
-        # cuando actualizar_odds está activado.
+      - name: Descargar líneas programadas de props
         if: >-
-          (github.event_name == 'schedule' && github.event.schedule == '0 16 * * 0') ||
-          (github.event_name == 'workflow_dispatch' && inputs.actualizar_odds == true)
+          github.event_name == 'schedule' &&
+          (github.event.schedule == '0 22 * * 4' ||
+           github.event.schedule == '0 16 * * 0' ||
+           github.event.schedule == '0 22 * * 1')
+        env:
+          PYTHONUNBUFFERED: "1"
+          DB_HOST: ${{ secrets.NFL_DB_HOST }}
+          DB_PORT: ${{ secrets.NFL_DB_PORT }}
+          DB_USER: ${{ secrets.NFL_DB_USER }}
+          DB_PASSWORD: ${{ secrets.NFL_DB_PASSWORD }}
+          DB_NAME: ${{ secrets.NFL_DB_NAME }}
+          DB_SSL_CA: ${{ runner.temp }}/aiven-ca.pem
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+        shell: bash
+        run: |
+          if [ "${{ github.event.schedule }}" = "0 16 * * 0" ]; then
+            python nfl/actualizar_lineas_props.py --proximas-horas 14
+          else
+            python nfl/actualizar_lineas_props.py --proximas-horas 8
+          fi
+
+      - name: Descargar líneas manualmente
+        if: >-
+          github.event_name == 'workflow_dispatch' &&
+          inputs.actualizar_odds == true
         env:
           PYTHONUNBUFFERED: "1"
           DB_HOST: ${{ secrets.NFL_DB_HOST }}
@@ -84,6 +111,12 @@ jobs:
         run: python nfl/actualizar_lineas_props.py
 
       - name: Generar proyecciones de props
+        if: >-
+          github.event_name == 'workflow_dispatch' ||
+          github.event.schedule == '0 22 * * 4' ||
+          github.event.schedule == '0 16 * * 0' ||
+          github.event.schedule == '0 23 * * 0' ||
+          github.event.schedule == '0 22 * * 1'
         env:
           PYTHONUNBUFFERED: "1"
           DB_HOST: ${{ secrets.NFL_DB_HOST }}

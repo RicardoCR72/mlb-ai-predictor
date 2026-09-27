@@ -21,7 +21,7 @@ import re
 import sys
 import unicodedata
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import mysql.connector
@@ -207,6 +207,29 @@ def emparejar_eventos(juegos, eventos, permitir_iniciados=False):
         if juego:
             parejas.append((juego, evento))
     return parejas
+
+
+def filtrar_parejas_por_ventana(parejas, horas):
+    """Conserva solo eventos que comienzan dentro de las proximas horas."""
+    if horas is None:
+        return parejas
+
+    ahora = datetime.now(timezone.utc)
+    limite = ahora + timedelta(hours=float(horas))
+    filtradas = []
+    for juego, evento in parejas:
+        inicio_texto = evento.get("commence_time")
+        if not inicio_texto:
+            continue
+        try:
+            inicio = datetime.fromisoformat(
+                inicio_texto.replace("Z", "+00:00")
+            )
+        except (TypeError, ValueError):
+            continue
+        if ahora < inicio <= limite:
+            filtradas.append((juego, evento))
+    return filtradas
 
 
 def texto_normalizado(valor: str) -> str:
@@ -728,10 +751,22 @@ def main():
             "Debe utilizarse junto con --usar-cache."
         ),
     )
+    parser.add_argument(
+        "--proximas-horas",
+        type=float,
+        default=None,
+        metavar="HORAS",
+        help=(
+            "Consulta props unicamente para partidos que comiencen dentro "
+            "de esta ventana. Evita gastar creditos en toda la semana."
+        ),
+    )
     args = parser.parse_args()
 
     if args.reconstruir_semana and not args.usar_cache:
         parser.error("--reconstruir-semana requiere --usar-cache")
+    if args.proximas_horas is not None and args.proximas_horas <= 0:
+        parser.error("--proximas-horas debe ser mayor que cero")
 
     api_key = obtener_api_key()
     conexion = conectar_mysql()
@@ -772,15 +807,23 @@ def main():
             for evento in cargar_eventos_desde_cache():
                 por_id[evento.get("id")] = evento
             eventos = list(por_id.values())
-        parejas = emparejar_eventos(
+        parejas_api = emparejar_eventos(
             juegos, eventos, permitir_iniciados=args.usar_cache
         )
+        parejas = filtrar_parejas_por_ventana(
+            parejas_api, args.proximas_horas
+        )
         print(f"Partidos emparejados con The Odds API: {len(parejas)}")
+        if args.proximas_horas is not None:
+            print(
+                "Ventana de captura: proximas "
+                f"{args.proximas_horas:g} horas."
+            )
         imprimir_cuota(cuota)
 
         faltantes = {
             juego["id_juego"] for juego in juegos
-        } - {juego["id_juego"] for juego, _ in parejas}
+        } - {juego["id_juego"] for juego, _ in parejas_api}
         if faltantes:
             print("Sin evento API: " + ", ".join(sorted(faltantes)))
 
