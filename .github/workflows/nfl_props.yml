@@ -65,7 +65,13 @@ jobs:
         run: python nfl/evaluar_resultados_props.py
 
       - name: Descargar líneas de props
-        if: github.event_name == 'schedule' || inputs.actualizar_odds == true
+        # La ejecución dominical de las 11:00 consulta líneas. La de las
+        # 17:00 reutiliza las líneas guardadas y solo recalcula lesiones y
+        # proyecciones. Las ejecuciones manuales consultan la API únicamente
+        # cuando actualizar_odds está activado.
+        if: >-
+          (github.event_name == 'schedule' && github.event.schedule == '0 16 * * 0') ||
+          (github.event_name == 'workflow_dispatch' && inputs.actualizar_odds == true)
         env:
           PYTHONUNBUFFERED: "1"
           DB_HOST: ${{ secrets.NFL_DB_HOST }}

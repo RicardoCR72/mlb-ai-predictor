@@ -1,4 +1,4 @@
-"""Liquida proyecciones NFL de recepciones y yardas de recepción."""
+"""Liquida en MySQL las proyecciones de los seis mercados de props NFL."""
 
 from collections import defaultdict
 from datetime import datetime, timezone
@@ -13,6 +13,10 @@ from predecir_semana_actual import obtener_configuracion_mysql
 MERCADOS = {
     "receptions": "receptions",
     "receiving_yards": "receiving_yards",
+    "passing_yards": "passing_yards",
+    "passing_tds": "passing_tds",
+    "rushing_yards": "rushing_yards",
+    "anytime_td": "anytime_td",
 }
 
 
@@ -67,8 +71,15 @@ def cargar_pendientes(cursor):
             ON j.id_juego = p.id_juego
         WHERE p.resultado_pick = 'PENDIENTE'
           AND p.linea IS NOT NULL
-          AND p.seleccion IN ('OVER', 'UNDER')
-          AND p.tipo_prop IN ('receptions', 'receiving_yards')
+          AND p.seleccion IN ('OVER', 'UNDER', 'ANOTA')
+          AND p.tipo_prop IN (
+              'receptions',
+              'receiving_yards',
+              'passing_yards',
+              'passing_tds',
+              'rushing_yards',
+              'anytime_td'
+          )
         ORDER BY j.temporada, j.semana, p.id_juego, p.id_jugador
         """
     )
@@ -77,8 +88,12 @@ def cargar_pendientes(cursor):
 
 def resultado_seleccion(seleccion, linea, valor_real):
     seleccion = str(seleccion).upper()
-    linea = float(linea)
     valor_real = float(valor_real)
+
+    if seleccion == "ANOTA":
+        return "GANADA" if valor_real >= 1.0 else "PERDIDA"
+
+    linea = float(linea)
 
     if abs(valor_real - linea) < 1e-9:
         return "PUSH"
@@ -126,7 +141,15 @@ def cargar_resultados(temporadas):
 
     estadisticas = nfl.load_player_stats(temporadas).to_pandas()
     columnas = [
-        "game_id", "player_id", "receptions", "receiving_yards"
+        "game_id",
+        "player_id",
+        "receptions",
+        "receiving_yards",
+        "passing_yards",
+        "passing_tds",
+        "rushing_yards",
+        "rushing_tds",
+        "receiving_tds",
     ]
     faltantes = sorted(set(columnas) - set(estadisticas.columns))
     if faltantes:
@@ -137,10 +160,27 @@ def cargar_resultados(temporadas):
     estadisticas = estadisticas[columnas].copy()
     estadisticas["game_id"] = estadisticas["game_id"].astype(str)
     estadisticas["player_id"] = estadisticas["player_id"].astype(str)
-    for columna in ["receptions", "receiving_yards"]:
+    columnas_numericas = [
+        "receptions",
+        "receiving_yards",
+        "passing_yards",
+        "passing_tds",
+        "rushing_yards",
+        "rushing_tds",
+        "receiving_tds",
+    ]
+    for columna in columnas_numericas:
         estadisticas[columna] = pd.to_numeric(
             estadisticas[columna], errors="coerce"
-        )
+        ).fillna(0.0)
+
+    # Anytime TD no incluye pases de touchdown del quarterback: solamente
+    # touchdowns anotados por carrera o recepción.
+    estadisticas["anytime_td"] = (
+        estadisticas["rushing_tds"]
+        + estadisticas["receiving_tds"]
+        >= 1.0
+    ).astype(float)
     estadisticas = (
         estadisticas.drop_duplicates(
             ["game_id", "player_id"], keep="last"
