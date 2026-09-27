@@ -1,0 +1,684 @@
+import hmac
+
+import mysql.connector
+import numpy as np
+import pandas as pd
+import streamlit as st
+
+
+st.set_page_config(
+    page_title="Props NFL",
+    page_icon="📊",
+    layout="wide",
+)
+
+st.title("📊 Props NFL")
+st.caption(
+    "Proyecciones de recepciones y yardas de recepción · "
+    "líneas de mercado, edge, probabilidad y contexto de lesiones"
+)
+
+st.markdown(
+    """
+    <style>
+    .prop-card {
+        border: 1px solid #30363d;
+        border-radius: 14px;
+        padding: 1rem 1.1rem;
+        margin-bottom: 0.9rem;
+        background: rgba(17, 24, 39, 0.30);
+    }
+    .badge-candidato {
+        display: inline-block;
+        background: #0f9d58;
+        color: white;
+        font-weight: 700;
+        padding: .22rem .65rem;
+        border-radius: 999px;
+    }
+    .badge-no-pick {
+        display: inline-block;
+        background: #5f6368;
+        color: white;
+        font-weight: 700;
+        padding: .22rem .65rem;
+        border-radius: 999px;
+    }
+    .badge-sin-linea {
+        display: inline-block;
+        background: #d97706;
+        color: white;
+        font-weight: 700;
+        padding: .22rem .65rem;
+        border-radius: 999px;
+    }
+    .pick-over { color: #ef4444; font-weight: 750; }
+    .pick-under { color: #3b82f6; font-weight: 750; }
+    .muted { color: #9ca3af; font-size: .88rem; }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+
+NOMBRES_MERCADOS = {
+    "receptions": "Recepciones",
+    "receiving_yards": "Yardas de recepción",
+}
+
+
+def formatear_numero(valor, decimales=2):
+    if pd.isna(valor):
+        return "N/D"
+    return f"{float(valor):.{decimales}f}"
+
+
+def formatear_porcentaje(valor):
+    if pd.isna(valor):
+        return "N/D"
+    return f"{float(valor):.1%}"
+
+
+def formatear_momio(valor):
+    if pd.isna(valor):
+        return "N/D"
+    valor = float(valor)
+    return f"+{valor:.0f}" if valor > 0 else f"{valor:.0f}"
+
+
+def texto_seguro(valor, defecto="N/D"):
+    if valor is None or pd.isna(valor) or not str(valor).strip():
+        return defecto
+    return str(valor).strip()
+
+
+def obtener_secreto(*nombres):
+    for nombre in nombres:
+        if nombre in st.secrets:
+            return st.secrets[nombre]
+
+    if "mysql" in st.secrets:
+        seccion = st.secrets["mysql"]
+        for nombre in nombres:
+            if nombre in seccion:
+                return seccion[nombre]
+    return None
+
+
+def configuracion_mysql():
+    config = {
+        "host": obtener_secreto("host", "DB_HOST", "MYSQL_HOST"),
+        "port": obtener_secreto("port", "DB_PORT", "MYSQL_PORT"),
+        "user": obtener_secreto("user", "DB_USER", "MYSQL_USER"),
+        "password": obtener_secreto(
+            "password", "DB_PASSWORD", "MYSQL_PASSWORD"
+        ),
+        "database": obtener_secreto(
+            "database", "DB_NAME", "MYSQL_DATABASE"
+        ),
+    }
+    faltantes = [k for k, v in config.items() if v in (None, "")]
+    if faltantes:
+        raise ValueError("Faltan secretos MySQL: " + ", ".join(faltantes))
+
+    config["port"] = int(config["port"])
+    config["connection_timeout"] = 20
+    config["ssl_disabled"] = False
+    return config
+
+
+def conectar_mysql():
+    return mysql.connector.connect(**configuracion_mysql())
+
+
+@st.cache_data(ttl=180, show_spinner=False)
+def cargar_props_mysql():
+    conexion = None
+    cursor = None
+    consulta = """
+        SELECT
+            p.id_proyeccion,
+            p.id_juego,
+            p.id_jugador,
+            p.id_linea,
+            p.modelo_version,
+            j.temporada AS season,
+            j.semana AS week,
+            j.fecha AS gameday,
+            j.equipo_visitante AS away_team,
+            j.equipo_local AS home_team,
+            ju.nombre AS player_name,
+            ju.posicion AS position,
+            ju.equipo_actual AS team,
+            p.tipo_prop,
+            p.linea,
+            p.proyeccion,
+            p.edge,
+            p.seleccion,
+            p.probabilidad_pick,
+            p.probabilidad_over,
+            p.probabilidad_under,
+            p.cuota_pick,
+            p.ev_estimado,
+            p.estado_pick,
+            p.estado_lesion,
+            p.impacto_lesiones_companeros,
+            p.contexto_lesiones,
+            p.generado_en,
+            p.actualizado_en,
+            l.casa_apuestas,
+            l.cuota_over,
+            l.cuota_under,
+            l.timestamp_captura
+        FROM nfl_proyecciones_props AS p
+        INNER JOIN nfl_juegos AS j
+            ON j.id_juego = p.id_juego
+        INNER JOIN nfl_jugadores AS ju
+            ON ju.id_jugador = p.id_jugador
+        LEFT JOIN nfl_lineas_props AS l
+            ON l.id_linea = p.id_linea
+        ORDER BY
+            j.temporada DESC,
+            j.semana DESC,
+            p.actualizado_en DESC,
+            p.id_proyeccion DESC
+    """
+    try:
+        conexion = conectar_mysql()
+        cursor = conexion.cursor(dictionary=True)
+        cursor.execute(consulta)
+        registros = cursor.fetchall()
+    finally:
+        if cursor is not None:
+            cursor.close()
+        if conexion is not None and conexion.is_connected():
+            conexion.close()
+
+    if not registros:
+        return pd.DataFrame()
+
+    df = pd.DataFrame(registros)
+    fechas = [
+        "gameday", "generado_en", "actualizado_en", "timestamp_captura"
+    ]
+    for columna in fechas:
+        df[columna] = pd.to_datetime(df[columna], errors="coerce")
+
+    numericas = [
+        "season", "week", "linea", "proyeccion", "edge",
+        "probabilidad_pick", "probabilidad_over", "probabilidad_under",
+        "cuota_pick", "ev_estimado", "impacto_lesiones_companeros",
+        "cuota_over", "cuota_under",
+    ]
+    for columna in numericas:
+        df[columna] = pd.to_numeric(df[columna], errors="coerce")
+
+    # Compatibilidad tanto con fracciones (0.72) como porcentajes (72).
+    for columna in [
+        "probabilidad_pick", "probabilidad_over",
+        "probabilidad_under", "ev_estimado",
+    ]:
+        valores = df[columna].dropna().abs()
+        if not valores.empty and valores.median() > 1:
+            df[columna] = df[columna] / 100.0
+
+    df["edge_absoluto"] = df["edge"].abs()
+    df["mercado"] = df["tipo_prop"].map(NOMBRES_MERCADOS).fillna(
+        df["tipo_prop"]
+    )
+
+    # Conserva únicamente la versión más reciente de cada proyección.
+    df = (
+        df.sort_values(
+            ["actualizado_en", "id_proyeccion"],
+            ascending=[False, False],
+        )
+        .drop_duplicates(
+            ["id_juego", "id_jugador", "tipo_prop", "modelo_version"],
+            keep="first",
+        )
+        .reset_index(drop=True)
+    )
+    return df
+
+
+def mostrar_badge(estado):
+    if estado == "CANDIDATO":
+        clase, texto = "badge-candidato", "CANDIDATO"
+    elif estado == "SIN LINEA":
+        clase, texto = "badge-sin-linea", "SIN LÍNEA"
+    else:
+        clase, texto = "badge-no-pick", "NO PICK"
+    st.markdown(
+        f'<span class="{clase}">{texto}</span>',
+        unsafe_allow_html=True,
+    )
+
+
+def mostrar_prop(fila):
+    with st.container(border=True):
+        izquierda, derecha = st.columns([5, 1])
+        with izquierda:
+            st.subheader(
+                f"{fila['player_name']} · {fila['mercado']}"
+            )
+            fecha = (
+                fila["gameday"].strftime("%d/%m/%Y")
+                if pd.notna(fila["gameday"])
+                else "Fecha pendiente"
+            )
+            st.caption(
+                f"{fila['position']} · {fila['team']} · "
+                f"{fila['away_team']} @ {fila['home_team']} · {fecha}"
+            )
+        with derecha:
+            mostrar_badge(fila["estado_pick"])
+
+        metricas = st.columns(5)
+        decimales = 1 if fila["tipo_prop"] == "receiving_yards" else 2
+        metricas[0].metric(
+            "Proyección", formatear_numero(fila["proyeccion"], decimales)
+        )
+        metricas[1].metric("Línea", formatear_numero(fila["linea"], 1))
+        metricas[2].metric("Edge", formatear_numero(fila["edge"], 2))
+        metricas[3].metric(
+            "Probabilidad", formatear_porcentaje(fila["probabilidad_pick"])
+        )
+        metricas[4].metric("EV", formatear_porcentaje(fila["ev_estimado"]))
+
+        linea = formatear_numero(fila["linea"], 1)
+        if fila["seleccion"] == "OVER":
+            st.markdown(
+                f'<div class="pick-over">Selección: OVER {linea}</div>',
+                unsafe_allow_html=True,
+            )
+        elif fila["seleccion"] == "UNDER":
+            st.markdown(
+                f'<div class="pick-under">Selección: UNDER {linea}</div>',
+                unsafe_allow_html=True,
+            )
+        else:
+            st.info("Todavía no existe una línea para este jugador.")
+
+        detalles = st.columns(4)
+        detalles[0].write(
+            "**Casa:** " + texto_seguro(fila.get("casa_apuestas"))
+        )
+        detalles[1].write(
+            "**Momio:** " + formatear_momio(fila["cuota_pick"])
+        )
+        detalles[2].write(
+            "**P(Over):** " + formatear_porcentaje(fila["probabilidad_over"])
+        )
+        detalles[3].write(
+            "**P(Under):** " + formatear_porcentaje(fila["probabilidad_under"])
+        )
+
+        estado_lesion = texto_seguro(
+            fila.get("estado_lesion"), "healthy_or_unlisted"
+        )
+        if estado_lesion not in {"healthy_or_unlisted", "healthy", "N/D"}:
+            st.warning(
+                f"Estado de lesión del jugador: {estado_lesion}. "
+                "Confirma su disponibilidad antes de utilizar la selección."
+            )
+
+        contexto = texto_seguro(fila.get("contexto_lesiones"), "")
+        if contexto:
+            with st.expander("🏥 Contexto de lesiones del equipo"):
+                st.write(contexto)
+
+
+def insertar_linea_draftea(
+    id_juego, id_jugador, tipo_prop, linea, cuota_over, cuota_under
+):
+    conexion = None
+    cursor = None
+    try:
+        conexion = conectar_mysql()
+        cursor = conexion.cursor()
+        cursor.execute(
+            """
+            INSERT INTO nfl_lineas_props (
+                id_juego, id_jugador, casa_apuestas, tipo_prop,
+                linea, cuota_over, cuota_under, timestamp_captura
+            ) VALUES (%s, %s, 'Draftea', %s, %s, %s, %s, CURRENT_TIMESTAMP)
+            """,
+            (
+                id_juego, id_jugador, tipo_prop,
+                float(linea), float(cuota_over), float(cuota_under),
+            ),
+        )
+        conexion.commit()
+    finally:
+        if cursor is not None:
+            cursor.close()
+        if conexion is not None and conexion.is_connected():
+            conexion.close()
+
+
+# ---------------------------------------------------------------------------
+# Carga y filtros
+# ---------------------------------------------------------------------------
+if st.sidebar.button("🔄 Recargar desde MySQL", use_container_width=True):
+    st.cache_data.clear()
+    st.rerun()
+
+try:
+    with st.spinner("Consultando props NFL en Aiven..."):
+        historico = cargar_props_mysql()
+except Exception as error:
+    st.error("No fue posible consultar las proyecciones de props.")
+    st.code(str(error), language="text")
+    st.stop()
+
+if historico.empty:
+    st.warning(
+        "Todavía no existen proyecciones en nfl_proyecciones_props."
+    )
+    st.stop()
+
+temporada = int(historico["season"].max())
+semana = int(
+    historico.loc[historico["season"] == temporada, "week"].max()
+)
+df = historico[
+    (historico["season"] == temporada)
+    & (historico["week"] == semana)
+].copy()
+
+st.sidebar.header("Filtros")
+st.sidebar.write(f"**Temporada:** {temporada}")
+st.sidebar.write(f"**Semana:** {semana}")
+
+estado = st.sidebar.selectbox(
+    "Estado", ["Todos", "CANDIDATO", "NO PICK", "SIN LINEA"]
+)
+mercado = st.sidebar.selectbox(
+    "Mercado", ["Todos"] + list(NOMBRES_MERCADOS.values())
+)
+posicion = st.sidebar.selectbox(
+    "Posición", ["Todas"] + sorted(df["position"].dropna().unique().tolist())
+)
+equipos = sorted(df["team"].dropna().unique().tolist())
+equipo = st.sidebar.selectbox("Equipo", ["Todos"] + equipos)
+jugador = st.sidebar.text_input("Buscar jugador")
+orden = st.sidebar.selectbox(
+    "Ordenar por", ["Mayor EV", "Mayor probabilidad", "Mayor edge"]
+)
+
+filtrado = df.copy()
+if estado != "Todos":
+    filtrado = filtrado[filtrado["estado_pick"] == estado]
+if mercado != "Todos":
+    filtrado = filtrado[filtrado["mercado"] == mercado]
+if posicion != "Todas":
+    filtrado = filtrado[filtrado["position"] == posicion]
+if equipo != "Todos":
+    filtrado = filtrado[filtrado["team"] == equipo]
+if jugador.strip():
+    filtrado = filtrado[
+        filtrado["player_name"].str.contains(
+            jugador.strip(), case=False, na=False, regex=False
+        )
+    ]
+
+if orden == "Mayor EV":
+    filtrado = filtrado.sort_values("ev_estimado", ascending=False)
+elif orden == "Mayor probabilidad":
+    filtrado = filtrado.sort_values("probabilidad_pick", ascending=False)
+else:
+    filtrado = filtrado.sort_values("edge_absoluto", ascending=False)
+
+candidatos = df[df["estado_pick"] == "CANDIDATO"].copy()
+con_linea = df[df["linea"].notna()].copy()
+jugadores = df["id_jugador"].nunique()
+prob_media = candidatos["probabilidad_pick"].mean()
+
+resumen = st.columns(5)
+resumen[0].metric("Jugadores", jugadores)
+resumen[1].metric("Props", len(df))
+resumen[2].metric("Con línea", len(con_linea))
+resumen[3].metric("Candidatos", len(candidatos))
+resumen[4].metric("Prob. media", formatear_porcentaje(prob_media))
+
+ultima = historico["actualizado_en"].max()
+if pd.notna(ultima):
+    st.caption("Última actualización: " + ultima.strftime("%d/%m/%Y %H:%M"))
+
+
+# ---------------------------------------------------------------------------
+# Pestañas
+# ---------------------------------------------------------------------------
+tab_candidatos, tab_todos, tab_lesiones, tab_draftea, tab_metodo = st.tabs(
+    [
+        "🔥 Candidatos",
+        "📋 Todas las proyecciones",
+        "🏥 Lesiones",
+        "✍️ Capturar Draftea",
+        "🧠 Metodología",
+    ]
+)
+
+with tab_candidatos:
+    st.subheader(f"Semana {semana}: oportunidades detectadas")
+    st.warning(
+        "Son candidatos cuantitativos, no picks oficiales. "
+        "Confirma lesión, participación y línea antes de utilizarlos."
+    )
+    candidatos_mostrar = filtrado[
+        filtrado["estado_pick"] == "CANDIDATO"
+    ]
+    if candidatos_mostrar.empty:
+        st.info("No hay candidatos con los filtros seleccionados.")
+    else:
+        for _, fila in candidatos_mostrar.iterrows():
+            mostrar_prop(fila)
+
+with tab_todos:
+    st.subheader("Proyecciones disponibles")
+    st.caption(f"Mostrando {len(filtrado)} de {len(df)} props.")
+    tabla = filtrado[
+        [
+            "player_name", "position", "team", "mercado", "proyeccion",
+            "linea", "edge", "seleccion", "probabilidad_pick",
+            "ev_estimado", "casa_apuestas", "estado_pick", "estado_lesion",
+        ]
+    ].rename(
+        columns={
+            "player_name": "Jugador",
+            "position": "Pos.",
+            "team": "Equipo",
+            "mercado": "Mercado",
+            "proyeccion": "Proyección",
+            "linea": "Línea",
+            "edge": "Edge",
+            "seleccion": "Selección",
+            "probabilidad_pick": "Probabilidad",
+            "ev_estimado": "EV",
+            "casa_apuestas": "Casa",
+            "estado_pick": "Estado",
+            "estado_lesion": "Lesión",
+        }
+    )
+    st.dataframe(
+        tabla,
+        use_container_width=True,
+        hide_index=True,
+        column_config={
+            "Probabilidad": st.column_config.NumberColumn(format="percent"),
+            "EV": st.column_config.NumberColumn(format="percent"),
+            "Proyección": st.column_config.NumberColumn(format="%.2f"),
+            "Línea": st.column_config.NumberColumn(format="%.1f"),
+            "Edge": st.column_config.NumberColumn(format="%+.2f"),
+        },
+    )
+
+with tab_lesiones:
+    st.subheader("Jugadores y contexto de lesiones")
+    lesionados = df[
+        ~df["estado_lesion"].fillna("healthy_or_unlisted").isin(
+            ["healthy", "healthy_or_unlisted"]
+        )
+    ].copy()
+    lesionados = lesionados.drop_duplicates("id_jugador")
+    if lesionados.empty:
+        st.info("No hay jugadores elegibles con estatus de lesión activo.")
+    else:
+        for _, fila in lesionados.sort_values(["team", "player_name"]).iterrows():
+            st.warning(
+                f"{fila['player_name']} · {fila['team']} · "
+                f"{texto_seguro(fila['estado_lesion'])}"
+            )
+
+    st.divider()
+    st.write("**Contexto ofensivo por equipo**")
+    contextos = (
+        df[["team", "contexto_lesiones"]]
+        .dropna()
+        .drop_duplicates()
+        .sort_values("team")
+    )
+    for _, fila in contextos.iterrows():
+        if str(fila["contexto_lesiones"]).strip():
+            with st.expander(f"{fila['team']} · lesiones relevantes"):
+                st.write(fila["contexto_lesiones"])
+
+with tab_draftea:
+    st.subheader("Capturar una línea de Draftea")
+    st.caption(
+        "La captura se guarda como una nueva observación histórica. "
+        "Después debe ejecutarse el predictor para recalcular edge y EV."
+    )
+
+    password_configurado = obtener_secreto(
+        "NFL_ADMIN_PASSWORD", "nfl_admin_password"
+    )
+    if not password_configurado:
+        st.info(
+            "Para habilitar este formulario agrega NFL_ADMIN_PASSWORD "
+            "a los Secrets de Streamlit."
+        )
+    else:
+        password = st.text_input(
+            "Contraseña administrativa", type="password", key="props_admin"
+        )
+        autorizado = bool(password) and hmac.compare_digest(
+            str(password), str(password_configurado)
+        )
+        if password and not autorizado:
+            st.error("Contraseña incorrecta.")
+
+        if autorizado:
+            juegos = (
+                df[["id_juego", "away_team", "home_team", "gameday"]]
+                .drop_duplicates("id_juego")
+                .sort_values(["gameday", "away_team"])
+            )
+            etiquetas_juegos = {
+                f"{fila.away_team} @ {fila.home_team}": fila.id_juego
+                for fila in juegos.itertuples(index=False)
+            }
+            etiqueta_juego = st.selectbox(
+                "Partido", list(etiquetas_juegos.keys())
+            )
+            id_juego = etiquetas_juegos[etiqueta_juego]
+
+            disponibles = (
+                df[df["id_juego"] == id_juego][
+                    ["id_jugador", "player_name", "position", "team"]
+                ]
+                .drop_duplicates("id_jugador")
+                .sort_values("player_name")
+            )
+            etiquetas_jugadores = {
+                f"{fila.player_name} · {fila.position} · {fila.team}": fila.id_jugador
+                for fila in disponibles.itertuples(index=False)
+            }
+            etiqueta_jugador = st.selectbox(
+                "Jugador", list(etiquetas_jugadores.keys())
+            )
+            id_jugador = etiquetas_jugadores[etiqueta_jugador]
+            nombre_prop = st.selectbox(
+                "Mercado", list(NOMBRES_MERCADOS.values())
+            )
+            tipo_prop = next(
+                clave for clave, valor in NOMBRES_MERCADOS.items()
+                if valor == nombre_prop
+            )
+
+            with st.form("captura_draftea", clear_on_submit=False):
+                c1, c2, c3 = st.columns(3)
+                linea = c1.number_input(
+                    "Línea", min_value=0.0, step=0.5, format="%.1f"
+                )
+                cuota_over = c2.number_input(
+                    "Momio Over", value=-110, step=1
+                )
+                cuota_under = c3.number_input(
+                    "Momio Under", value=-110, step=1
+                )
+                guardar = st.form_submit_button(
+                    "Guardar línea de Draftea", use_container_width=True
+                )
+
+            if guardar:
+                if linea <= 0:
+                    st.error("La línea debe ser mayor que cero.")
+                elif cuota_over == 0 or cuota_under == 0:
+                    st.error("Los momios no pueden ser cero.")
+                else:
+                    try:
+                        insertar_linea_draftea(
+                            id_juego, id_jugador, tipo_prop,
+                            linea, cuota_over, cuota_under,
+                        )
+                        st.cache_data.clear()
+                        st.success(
+                            "Línea guardada. Ejecuta "
+                            "python nfl/predecir_props_semana_actual.py "
+                            "para recalcular la selección."
+                        )
+                    except Exception as error:
+                        st.error("No se pudo guardar la línea.")
+                        st.code(str(error), language="text")
+
+with tab_metodo:
+    st.subheader("Configuración del modelo")
+    st.markdown(
+        """
+        - **Entrenamiento:** temporadas 2012–2023.
+        - **Selección:** temporada 2024.
+        - **Confirmación:** temporada 2025.
+        - **Evaluación OOS:** temporada 2026.
+        - **Posiciones:** WR, TE y RB.
+        - **Elegibilidad:** mínimo 3 juegos previos y 3 targets promedio.
+        - **Mercados:** recepciones y yardas de recepción.
+        - **Modelos productivos:** variantes sin lesiones directas.
+        - **Lesiones:** se muestran como contexto y advertencia.
+        - **Candidato recepciones:** edge absoluto ≥ 0.75, probabilidad ≥ 57% y EV positivo.
+        - **Candidato yardas:** edge absoluto ≥ 10, probabilidad ≥ 57% y EV positivo.
+        """
+    )
+    st.warning(
+        "Las probabilidades son estimaciones, no garantías. "
+        "CANDIDATO no significa pick oficialmente validado."
+    )
+
+
+st.divider()
+columnas_csv = [
+    "id_juego", "id_jugador", "season", "week", "gameday",
+    "away_team", "home_team", "player_name", "position", "team",
+    "tipo_prop", "proyeccion", "linea", "edge", "seleccion",
+    "probabilidad_pick", "probabilidad_over", "probabilidad_under",
+    "cuota_pick", "ev_estimado", "casa_apuestas", "estado_pick",
+    "estado_lesion", "contexto_lesiones", "actualizado_en",
+]
+csv = df[columnas_csv].to_csv(index=False).encode("utf-8")
+st.download_button(
+    "⬇️ Descargar props CSV",
+    data=csv,
+    file_name=f"nfl_props_{temporada}_semana_{semana}.csv",
+    mime="text/csv",
+)
