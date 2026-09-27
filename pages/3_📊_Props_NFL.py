@@ -177,6 +177,10 @@ def cargar_props_mysql():
             p.estado_lesion,
             p.impacto_lesiones_companeros,
             p.contexto_lesiones,
+            p.valor_real,
+            p.resultado_pick,
+            p.beneficio_unidades,
+            p.evaluado_en,
             p.generado_en,
             p.actualizado_en,
             l.casa_apuestas,
@@ -212,7 +216,8 @@ def cargar_props_mysql():
 
     df = pd.DataFrame(registros)
     fechas = [
-        "gameday", "generado_en", "actualizado_en", "timestamp_captura"
+        "gameday", "evaluado_en", "generado_en", "actualizado_en",
+        "timestamp_captura",
     ]
     for columna in fechas:
         df[columna] = pd.to_datetime(df[columna], errors="coerce")
@@ -221,7 +226,8 @@ def cargar_props_mysql():
         "season", "week", "linea", "proyeccion", "edge",
         "probabilidad_pick", "probabilidad_over", "probabilidad_under",
         "cuota_pick", "ev_estimado", "impacto_lesiones_companeros",
-        "cuota_over", "cuota_under",
+        "cuota_over", "cuota_under", "valor_real",
+        "beneficio_unidades",
     ]
     for columna in numericas:
         df[columna] = pd.to_numeric(df[columna], errors="coerce")
@@ -495,10 +501,18 @@ if pd.notna(ultima):
 # ---------------------------------------------------------------------------
 # Pestañas
 # ---------------------------------------------------------------------------
-tab_candidatos, tab_todos, tab_lesiones, tab_draftea, tab_metodo = st.tabs(
+(
+    tab_candidatos,
+    tab_todos,
+    tab_rendimiento,
+    tab_lesiones,
+    tab_draftea,
+    tab_metodo,
+) = st.tabs(
     [
         "🔥 Candidatos",
         "📋 Todas las proyecciones",
+        "📈 Rendimiento",
         "🏥 Lesiones",
         "✍️ Capturar Draftea",
         "🧠 Metodología",
@@ -558,6 +572,208 @@ with tab_todos:
             "Edge": st.column_config.NumberColumn(format="%+.2f"),
         },
     )
+
+with tab_rendimiento:
+    st.subheader("Rendimiento de picks oficiales")
+    st.caption(
+        "Solo incluye selecciones que fueron marcadas como CANDIDATO y "
+        "que ya tienen resultado oficial. Una unidad se arriesga por pick."
+    )
+
+    resultados = historico[
+        (historico["estado_pick"] == "CANDIDATO")
+        & historico["resultado_pick"].isin(
+            ["GANADA", "PERDIDA", "PUSH"]
+        )
+    ].copy()
+    resultados = (
+        resultados.sort_values(
+            ["evaluado_en", "actualizado_en", "id_proyeccion"],
+            ascending=[False, False, False],
+        )
+        .drop_duplicates(
+            ["id_juego", "id_jugador", "tipo_prop"], keep="first"
+        )
+        .reset_index(drop=True)
+    )
+
+    if resultados.empty:
+        st.info(
+            "Todavía no hay candidatos evaluados. Esta sección se "
+            "llenará después de ejecutar evaluar_resultados_props.py "
+            "cuando existan estadísticas oficiales."
+        )
+    else:
+        resultados["es_ganada"] = (
+            resultados["resultado_pick"] == "GANADA"
+        ).astype(int)
+        resultados["es_perdida"] = (
+            resultados["resultado_pick"] == "PERDIDA"
+        ).astype(int)
+        resultados["es_push"] = (
+            resultados["resultado_pick"] == "PUSH"
+        ).astype(int)
+        resultados["tiene_unidad"] = (
+            resultados["beneficio_unidades"].notna()
+        ).astype(int)
+
+        ganadas = int(resultados["es_ganada"].sum())
+        perdidas = int(resultados["es_perdida"].sum())
+        pushes = int(resultados["es_push"].sum())
+        decididas = ganadas + perdidas
+        apuestas_roi = int(resultados["tiene_unidad"].sum())
+        unidades = float(
+            resultados["beneficio_unidades"].fillna(0.0).sum()
+        )
+        acierto = ganadas / decididas if decididas else np.nan
+        roi = unidades / apuestas_roi if apuestas_roi else np.nan
+
+        metricas_roi = st.columns(6)
+        metricas_roi[0].metric("Picks evaluados", len(resultados))
+        metricas_roi[1].metric("Ganadas", ganadas)
+        metricas_roi[2].metric("Perdidas", perdidas)
+        metricas_roi[3].metric("Pushes", pushes)
+        metricas_roi[4].metric(
+            "Unidades", f"{unidades:+.2f} u"
+        )
+        metricas_roi[5].metric("ROI", formatear_porcentaje(roi))
+        st.caption(
+            "Acierto sobre picks decididos: "
+            + formatear_porcentaje(acierto)
+        )
+
+        st.write("**Resultados por mercado**")
+        por_mercado = (
+            resultados.groupby("mercado", as_index=False)
+            .agg(
+                Picks=("id_proyeccion", "size"),
+                Ganadas=("es_ganada", "sum"),
+                Perdidas=("es_perdida", "sum"),
+                Pushes=("es_push", "sum"),
+                Apuestas_ROI=("tiene_unidad", "sum"),
+                Unidades=("beneficio_unidades", "sum"),
+            )
+        )
+        decididas_mercado = (
+            por_mercado["Ganadas"] + por_mercado["Perdidas"]
+        )
+        por_mercado["Acierto"] = np.where(
+            decididas_mercado > 0,
+            por_mercado["Ganadas"] / decididas_mercado,
+            np.nan,
+        )
+        por_mercado["ROI"] = np.where(
+            por_mercado["Apuestas_ROI"] > 0,
+            por_mercado["Unidades"] / por_mercado["Apuestas_ROI"],
+            np.nan,
+        )
+        por_mercado = por_mercado.rename(
+            columns={"mercado": "Mercado"}
+        )[
+            [
+                "Mercado", "Picks", "Ganadas", "Perdidas", "Pushes",
+                "Acierto", "Unidades", "ROI",
+            ]
+        ].sort_values("ROI", ascending=False)
+        st.dataframe(
+            por_mercado,
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "Acierto": st.column_config.NumberColumn(format="percent"),
+                "ROI": st.column_config.NumberColumn(format="percent"),
+                "Unidades": st.column_config.NumberColumn(format="%+.2f"),
+            },
+        )
+
+        st.write("**Evolución por semana**")
+        por_semana = (
+            resultados.groupby(["season", "week"], as_index=False)
+            .agg(
+                Picks=("id_proyeccion", "size"),
+                Ganadas=("es_ganada", "sum"),
+                Perdidas=("es_perdida", "sum"),
+                Pushes=("es_push", "sum"),
+                Apuestas_ROI=("tiene_unidad", "sum"),
+                Unidades=("beneficio_unidades", "sum"),
+            )
+            .sort_values(["season", "week"])
+        )
+        por_semana["Semana"] = (
+            por_semana["season"].astype(int).astype(str)
+            + "-S"
+            + por_semana["week"].astype(int).astype(str)
+        )
+        por_semana["ROI"] = np.where(
+            por_semana["Apuestas_ROI"] > 0,
+            por_semana["Unidades"] / por_semana["Apuestas_ROI"],
+            np.nan,
+        )
+        por_semana["Unidades acumuladas"] = (
+            por_semana["Unidades"].fillna(0.0).cumsum()
+        )
+        st.line_chart(
+            por_semana.set_index("Semana")[["Unidades acumuladas"]],
+            use_container_width=True,
+        )
+        st.dataframe(
+            por_semana[
+                [
+                    "Semana", "Picks", "Ganadas", "Perdidas", "Pushes",
+                    "Unidades", "ROI", "Unidades acumuladas",
+                ]
+            ].sort_values("Semana", ascending=False),
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "ROI": st.column_config.NumberColumn(format="percent"),
+                "Unidades": st.column_config.NumberColumn(format="%+.2f"),
+                "Unidades acumuladas": st.column_config.NumberColumn(
+                    format="%+.2f"
+                ),
+            },
+        )
+
+        st.write("**Historial de picks evaluados**")
+        historial_resultados = resultados.assign(
+            Partido=(
+                resultados["away_team"].astype(str)
+                + " @ "
+                + resultados["home_team"].astype(str)
+            )
+        )[
+            [
+                "gameday", "Partido", "player_name", "mercado",
+                "seleccion", "linea", "valor_real", "cuota_pick",
+                "resultado_pick", "beneficio_unidades",
+            ]
+        ].rename(
+            columns={
+                "gameday": "Fecha",
+                "player_name": "Jugador",
+                "mercado": "Mercado",
+                "seleccion": "Selección",
+                "linea": "Línea",
+                "valor_real": "Resultado real",
+                "cuota_pick": "Momio",
+                "resultado_pick": "Resultado",
+                "beneficio_unidades": "Unidades",
+            }
+        )
+        st.dataframe(
+            historial_resultados,
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "Fecha": st.column_config.DateColumn(format="DD/MM/YYYY"),
+                "Línea": st.column_config.NumberColumn(format="%.1f"),
+                "Resultado real": st.column_config.NumberColumn(
+                    format="%.1f"
+                ),
+                "Momio": st.column_config.NumberColumn(format="%+.0f"),
+                "Unidades": st.column_config.NumberColumn(format="%+.2f"),
+            },
+        )
 
 with tab_lesiones:
     st.subheader("Jugadores y contexto de lesiones")
@@ -744,7 +960,9 @@ columnas_csv = [
     "tipo_prop", "proyeccion", "linea", "edge", "seleccion",
     "probabilidad_pick", "probabilidad_over", "probabilidad_under",
     "cuota_pick", "ev_estimado", "casa_apuestas", "estado_pick",
-    "estado_lesion", "contexto_lesiones", "actualizado_en",
+    "estado_lesion", "contexto_lesiones", "valor_real",
+    "resultado_pick", "beneficio_unidades", "evaluado_en",
+    "actualizado_en",
 ]
 csv = df[columnas_csv].to_csv(index=False).encode("utf-8")
 st.download_button(
