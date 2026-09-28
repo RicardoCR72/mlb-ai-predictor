@@ -90,6 +90,20 @@ st.markdown(
         border-color: #b7ff3c !important;
         box-shadow: 0 0 0 2px rgba(183,255,60,.18) !important;
     }
+    [data-testid="stMain"] [data-testid="stNumberInput"] input {
+        background: #111720;
+        color: #eef3f8;
+    }
+    [data-testid="stMain"] [data-testid="stNumberInput"]
+    [data-baseweb="input"] {
+        border-color: #b7ff3c !important;
+        background: #111720;
+        box-shadow: 0 0 0 1px rgba(183,255,60,.08) !important;
+    }
+    [data-testid="stMain"] [data-testid="stNumberInput"]
+    [data-baseweb="input"]:focus-within {
+        box-shadow: 0 0 0 2px rgba(183,255,60,.18) !important;
+    }
     .oracle-topbar {
         display: flex;
         align-items: center;
@@ -1147,6 +1161,43 @@ if seccion_props == "📈 Rendimiento":
         st.caption(
             "Acierto sobre picks decididos: "
             + formatear_porcentaje(acierto)
+        )
+
+        st.write("**Equivalencia monetaria**")
+        control_unidad, resumen_apostado, resumen_ganancia = st.columns(
+            [1.15, 1, 1], gap="medium"
+        )
+        with control_unidad:
+            valor_unidad = st.number_input(
+                "Valor de 1 unidad (MXN)",
+                min_value=1.0,
+                max_value=1_000_000.0,
+                value=50.0,
+                step=10.0,
+                format="%.2f",
+                key="props_valor_unidad_mxn",
+                help=(
+                    "Cada pick oficial arriesga una unidad. Este valor "
+                    "solo convierte el rendimiento histórico a pesos."
+                ),
+            )
+        capital_apostado = apuestas_roi * float(valor_unidad)
+        ganancia_pesos = unidades * float(valor_unidad)
+        with resumen_apostado:
+            st.metric(
+                "Capital apostado",
+                f"${capital_apostado:,.2f} MXN",
+                f"{apuestas_roi} apuestas de 1 u",
+            )
+        with resumen_ganancia:
+            st.metric(
+                "Ganancia neta",
+                f"${ganancia_pesos:,.2f} MXN",
+                f"{unidades:+.2f} u",
+            )
+        st.caption(
+            "La conversión es ilustrativa y no modifica las cuotas, "
+            "los resultados ni la información guardada en MySQL."
         )
 
         st.write("**Resultados por mercado**")
