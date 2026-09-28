@@ -1260,14 +1260,100 @@ if seccion_props == "📈 Rendimiento":
                     )
 
         st.write("**Historial de picks evaluados**")
-        filas_resultados = list(resultados.iterrows())
-        for inicio in range(0, len(filas_resultados), 2):
-            columnas = st.columns(2, gap="medium")
-            for columna, (_, fila) in zip(
-                columnas, filas_resultados[inicio:inicio + 2]
-            ):
-                with columna:
-                    mostrar_resultado_prop(fila)
+
+        historial_filtrado = resultados.copy()
+        semanas_disponibles = (
+            resultados[["season", "week"]]
+            .drop_duplicates()
+            .sort_values(["season", "week"], ascending=False)
+        )
+        mapa_semanas = {"Todas las semanas": None}
+        for _, fila_semana in semanas_disponibles.iterrows():
+            etiqueta = (
+                f"{int(fila_semana['season'])} · "
+                f"Semana {int(fila_semana['week'])}"
+            )
+            mapa_semanas[etiqueta] = (
+                int(fila_semana["season"]),
+                int(fila_semana["week"]),
+            )
+
+        mercados_disponibles = sorted(
+            resultados["mercado"].dropna().astype(str).unique()
+        )
+        resultados_disponibles = ["GANADA", "PERDIDA", "PUSH"]
+
+        filtro_semana, filtro_mercado, filtro_resultado, filtro_cantidad = (
+            st.columns([1.25, 1.25, 1, 0.85], gap="medium")
+        )
+        with filtro_semana:
+            semana_historial = st.selectbox(
+                "Semana",
+                list(mapa_semanas.keys()),
+                key="props_historial_semana",
+            )
+        with filtro_mercado:
+            mercado_historial = st.selectbox(
+                "Mercado",
+                ["Todos los mercados"] + mercados_disponibles,
+                key="props_historial_mercado",
+            )
+        with filtro_resultado:
+            resultado_historial = st.selectbox(
+                "Resultado",
+                ["Todos"] + resultados_disponibles,
+                key="props_historial_resultado",
+            )
+        with filtro_cantidad:
+            cantidad_historial = st.selectbox(
+                "Mostrar",
+                ["20", "50", "100", "Todos"],
+                index=1,
+                key="props_historial_cantidad",
+            )
+
+        llave_semana = mapa_semanas[semana_historial]
+        if llave_semana is not None:
+            temporada_filtro, semana_filtro = llave_semana
+            historial_filtrado = historial_filtrado[
+                (historial_filtrado["season"] == temporada_filtro)
+                & (historial_filtrado["week"] == semana_filtro)
+            ]
+        if mercado_historial != "Todos los mercados":
+            historial_filtrado = historial_filtrado[
+                historial_filtrado["mercado"] == mercado_historial
+            ]
+        if resultado_historial != "Todos":
+            historial_filtrado = historial_filtrado[
+                historial_filtrado["resultado_pick"] == resultado_historial
+            ]
+
+        total_filtrado = len(historial_filtrado)
+        if cantidad_historial != "Todos":
+            historial_filtrado = historial_filtrado.head(
+                int(cantidad_historial)
+            )
+
+        st.caption(
+            f"Mostrando {len(historial_filtrado)} de "
+            f"{total_filtrado} picks que coinciden con los filtros."
+        )
+
+        if historial_filtrado.empty:
+            st.markdown(
+                '<div class="empty-state">No existen picks evaluados '
+                'que coincidan con esos filtros.</div>',
+                unsafe_allow_html=True,
+            )
+        else:
+            filas_resultados = list(historial_filtrado.iterrows())
+            for inicio in range(0, len(filas_resultados), 2):
+                columnas = st.columns(2, gap="medium")
+                for columna, (_, fila) in zip(
+                    columnas, filas_resultados[inicio:inicio + 2]
+                ):
+                    with columna:
+                        mostrar_resultado_prop(fila)
 
 if seccion_props == "🏥 Lesiones":
     st.subheader("Lesiones y disponibilidad")
