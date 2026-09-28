@@ -1,9 +1,32 @@
 import html
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 import mysql.connector
 import numpy as np
 import pandas as pd
 import streamlit as st
+
+
+ZONA_MEXICO = ZoneInfo("America/Mexico_City")
+
+
+def filtrar_partidos_pendientes(datos):
+    """Conserva juegos de hoy o posteriores que todavía no tienen resultado."""
+    if datos.empty:
+        return datos.copy()
+
+    hoy_mexico = pd.Timestamp(datetime.now(ZONA_MEXICO).date())
+    fechas = pd.to_datetime(datos["gameday"], errors="coerce").dt.normalize()
+    resultados = (
+        datos["resultado_pick"]
+        .fillna("PENDIENTE")
+        .astype(str)
+        .str.strip()
+        .str.upper()
+    )
+    sin_resultado = ~resultados.isin(["GANADA", "PERDIDA", "PUSH"])
+    return datos[(fechas >= hoy_mexico) & sin_resultado].copy()
 
 
 st.markdown(
@@ -601,7 +624,10 @@ filtrado = df.sort_values(
     na_position="last",
 ).copy()
 
-picks = df[df["estado"] == "PICK"].copy()
+# La tarjeta de oportunidades solo muestra encuentros que aún no se juegan.
+# Los picks anteriores permanecen disponibles en Rendimiento.
+pendientes = filtrar_partidos_pendientes(df)
+picks = pendientes[pendientes["estado"] == "PICK"].copy()
 probabilidad_media = (
     picks["prob_pick"].mean()
     if not picks.empty
@@ -667,13 +693,14 @@ if seccion_totales == "🔥 Picks filtrados":
     with zona_picks:
         st.subheader(f"Oportunidades · Semana {semana}")
         st.caption(
-            "Picks que superan conjuntamente los filtros de edge y valor "
-            "esperado. Confirma la línea antes de utilizarlos."
+            "Solo partidos pendientes de hoy en adelante que superan los "
+            "filtros de edge y valor esperado. Confirma la línea antes de "
+            "utilizarlos."
         )
         if picks.empty:
             st.markdown(
-                '<div class="total-empty-state">No existen picks que '
-                'superen los filtros de edge y valor esperado.</div>',
+                '<div class="total-empty-state">No quedan picks pendientes '
+                'para la semana actual.</div>',
                 unsafe_allow_html=True,
             )
         else:

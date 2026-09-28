@@ -1,10 +1,33 @@
 import hmac
 import html
+from datetime import datetime
+from zoneinfo import ZoneInfo
 
 import mysql.connector
 import numpy as np
 import pandas as pd
 import streamlit as st
+
+
+ZONA_MEXICO = ZoneInfo("America/Mexico_City")
+
+
+def filtrar_partidos_pendientes(datos):
+    """Conserva props de hoy o posteriores que todavía no tienen resultado."""
+    if datos.empty:
+        return datos.copy()
+
+    hoy_mexico = pd.Timestamp(datetime.now(ZONA_MEXICO).date())
+    fechas = pd.to_datetime(datos["gameday"], errors="coerce").dt.normalize()
+    resultados = (
+        datos["resultado_pick"]
+        .fillna("PENDIENTE")
+        .astype(str)
+        .str.strip()
+        .str.upper()
+    )
+    sin_resultado = ~resultados.isin(["GANADA", "PERDIDA", "PUSH"])
+    return datos[(fechas >= hoy_mexico) & sin_resultado].copy()
 
 
 st.markdown(
@@ -938,8 +961,15 @@ filtrado = df.sort_values(
     na_position="last",
 ).copy()
 
-candidatos = df[df["estado_pick"] == "CANDIDATO"].copy()
-revisar_lesion = df[df["estado_pick"] == "REVISAR LESION"].copy()
+# Las oportunidades activas excluyen partidos de días anteriores. El
+# histórico completo se conserva para calcular resultados, unidades y ROI.
+pendientes = filtrar_partidos_pendientes(df)
+candidatos = pendientes[
+    pendientes["estado_pick"] == "CANDIDATO"
+].copy()
+revisar_lesion = pendientes[
+    pendientes["estado_pick"] == "REVISAR LESION"
+].copy()
 con_linea = df[df["linea"].notna()].copy()
 jugadores = df["id_jugador"].nunique()
 prob_media = candidatos["probabilidad_pick"].mean()
@@ -1021,9 +1051,13 @@ seccion_props = st.radio(
 )
 
 if seccion_props == "🔥 Candidatos":
-    candidatos_mostrar = filtrado[
-        filtrado["estado_pick"] == "CANDIDATO"
-    ]
+    candidatos_mostrar = pendientes[
+        pendientes["estado_pick"] == "CANDIDATO"
+    ].sort_values(
+        ["ev_estimado", "probabilidad_pick"],
+        ascending=[False, False],
+        na_position="last",
+    )
     zona_picks, zona_pulso = st.columns([3.25, 1], gap="large")
     with zona_picks:
         encabezado_picks, selector_mercado = st.columns(
@@ -1032,8 +1066,9 @@ if seccion_props == "🔥 Candidatos":
         with encabezado_picks:
             st.subheader(f"Oportunidades · Semana {semana}")
             st.caption(
-                "Candidatos cuantitativos. Confirma participación, "
-                "lesión y movimiento de la línea antes de utilizarlos."
+                "Solo partidos pendientes de hoy en adelante. Confirma "
+                "participación, lesión y movimiento de la línea antes de "
+                "utilizarlos."
             )
         with selector_mercado:
             mercado_candidatos = st.selectbox(
@@ -1050,8 +1085,8 @@ if seccion_props == "🔥 Candidatos":
 
         if candidatos_mostrar.empty:
             st.markdown(
-                '<div class="empty-state">No hay candidatos para ese '
-                'mercado en la semana actual.</div>',
+                '<div class="empty-state">No quedan candidatos pendientes '
+                'para ese mercado en la semana actual.</div>',
                 unsafe_allow_html=True,
             )
         else:
