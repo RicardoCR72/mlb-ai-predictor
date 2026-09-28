@@ -1260,7 +1260,7 @@ if seccion_props == "📈 Rendimiento":
                     )
 
         st.write("**Historial de picks evaluados**")
-        filas_resultados = list(resultados.head(20).iterrows())
+        filas_resultados = list(resultados.iterrows())
         for inicio in range(0, len(filas_resultados), 2):
             columnas = st.columns(2, gap="medium")
             for columna, (_, fila) in zip(
