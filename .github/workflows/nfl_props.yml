@@ -53,22 +53,43 @@ jobs:
       - name: Preparar certificado de Aiven
         shell: bash
         env:
-          NFL_DB_SSL_CA_CERT: ${{ secrets.NFL_DB_SSL_CA_CERT }}
+          NFL_DB_SSL_CA_CERT: ${{ secrets.NFL_DB_SSL_CA_CERT || secrets.DB_SSL_CA_CERT }}
         run: |
           if [ -z "$NFL_DB_SSL_CA_CERT" ]; then
-            echo "Falta el secreto NFL_DB_SSL_CA_CERT"
+            echo "Falta NFL_DB_SSL_CA_CERT o DB_SSL_CA_CERT"
             exit 1
           fi
           printf '%s' "$NFL_DB_SSL_CA_CERT" > "$RUNNER_TEMP/aiven-ca.pem"
 
+      - name: Validar secretos de MySQL
+        shell: bash
+        env:
+          DB_HOST: ${{ secrets.NFL_DB_HOST || secrets.DB_HOST }}
+          DB_PORT: ${{ secrets.NFL_DB_PORT || secrets.DB_PORT }}
+          DB_USER: ${{ secrets.NFL_DB_USER || secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.NFL_DB_PASSWORD || secrets.DB_PASSWORD }}
+          DB_NAME: ${{ secrets.NFL_DB_NAME || secrets.DB_NAME }}
+        run: |
+          faltantes=0
+          for variable in DB_HOST DB_PORT DB_USER DB_PASSWORD DB_NAME; do
+            if [ -z "${!variable}" ]; then
+              echo "Falta el secreto NFL_${variable} o ${variable}"
+              faltantes=1
+            fi
+          done
+          if [ "$faltantes" -ne 0 ]; then
+            exit 1
+          fi
+          echo "Secretos de MySQL disponibles."
+
       - name: Evaluar props terminados
         env:
           PYTHONUNBUFFERED: "1"
-          DB_HOST: ${{ secrets.NFL_DB_HOST }}
-          DB_PORT: ${{ secrets.NFL_DB_PORT }}
-          DB_USER: ${{ secrets.NFL_DB_USER }}
-          DB_PASSWORD: ${{ secrets.NFL_DB_PASSWORD }}
-          DB_NAME: ${{ secrets.NFL_DB_NAME }}
+          DB_HOST: ${{ secrets.NFL_DB_HOST || secrets.DB_HOST }}
+          DB_PORT: ${{ secrets.NFL_DB_PORT || secrets.DB_PORT }}
+          DB_USER: ${{ secrets.NFL_DB_USER || secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.NFL_DB_PASSWORD || secrets.DB_PASSWORD }}
+          DB_NAME: ${{ secrets.NFL_DB_NAME || secrets.DB_NAME }}
           DB_SSL_CA: ${{ runner.temp }}/aiven-ca.pem
         run: python nfl/evaluar_resultados_props.py
 
@@ -80,11 +101,11 @@ jobs:
            github.event.schedule == '0 22 * * 1')
         env:
           PYTHONUNBUFFERED: "1"
-          DB_HOST: ${{ secrets.NFL_DB_HOST }}
-          DB_PORT: ${{ secrets.NFL_DB_PORT }}
-          DB_USER: ${{ secrets.NFL_DB_USER }}
-          DB_PASSWORD: ${{ secrets.NFL_DB_PASSWORD }}
-          DB_NAME: ${{ secrets.NFL_DB_NAME }}
+          DB_HOST: ${{ secrets.NFL_DB_HOST || secrets.DB_HOST }}
+          DB_PORT: ${{ secrets.NFL_DB_PORT || secrets.DB_PORT }}
+          DB_USER: ${{ secrets.NFL_DB_USER || secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.NFL_DB_PASSWORD || secrets.DB_PASSWORD }}
+          DB_NAME: ${{ secrets.NFL_DB_NAME || secrets.DB_NAME }}
           DB_SSL_CA: ${{ runner.temp }}/aiven-ca.pem
           ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
         shell: bash
@@ -101,11 +122,11 @@ jobs:
           inputs.actualizar_odds == true
         env:
           PYTHONUNBUFFERED: "1"
-          DB_HOST: ${{ secrets.NFL_DB_HOST }}
-          DB_PORT: ${{ secrets.NFL_DB_PORT }}
-          DB_USER: ${{ secrets.NFL_DB_USER }}
-          DB_PASSWORD: ${{ secrets.NFL_DB_PASSWORD }}
-          DB_NAME: ${{ secrets.NFL_DB_NAME }}
+          DB_HOST: ${{ secrets.NFL_DB_HOST || secrets.DB_HOST }}
+          DB_PORT: ${{ secrets.NFL_DB_PORT || secrets.DB_PORT }}
+          DB_USER: ${{ secrets.NFL_DB_USER || secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.NFL_DB_PASSWORD || secrets.DB_PASSWORD }}
+          DB_NAME: ${{ secrets.NFL_DB_NAME || secrets.DB_NAME }}
           DB_SSL_CA: ${{ runner.temp }}/aiven-ca.pem
           ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
         run: python nfl/actualizar_lineas_props.py
@@ -119,10 +140,10 @@ jobs:
           github.event.schedule == '0 22 * * 1'
         env:
           PYTHONUNBUFFERED: "1"
-          DB_HOST: ${{ secrets.NFL_DB_HOST }}
-          DB_PORT: ${{ secrets.NFL_DB_PORT }}
-          DB_USER: ${{ secrets.NFL_DB_USER }}
-          DB_PASSWORD: ${{ secrets.NFL_DB_PASSWORD }}
-          DB_NAME: ${{ secrets.NFL_DB_NAME }}
+          DB_HOST: ${{ secrets.NFL_DB_HOST || secrets.DB_HOST }}
+          DB_PORT: ${{ secrets.NFL_DB_PORT || secrets.DB_PORT }}
+          DB_USER: ${{ secrets.NFL_DB_USER || secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.NFL_DB_PASSWORD || secrets.DB_PASSWORD }}
+          DB_NAME: ${{ secrets.NFL_DB_NAME || secrets.DB_NAME }}
           DB_SSL_CA: ${{ runner.temp }}/aiven-ca.pem
         run: python nfl/predecir_props_semana_actual.py
