@@ -1,5 +1,6 @@
-"""Genera proyecciones semanales NFL de recepciones y yardas recibidas."""
+"""Genera proyecciones semanales para los principales props NFL."""
 
+import json
 from pathlib import Path
 
 import joblib
@@ -7,6 +8,7 @@ import mysql.connector
 import nflreadpy as nfl
 import numpy as np
 import pandas as pd
+from scipy.stats import poisson
 
 from construir_dataset_props_recepcion import (
     METRICAS_JUGADOR,
@@ -19,6 +21,25 @@ from construir_dataset_props_recepcion import (
     cargar_datos,
 )
 from features_lesiones import agregar_contexto_lesiones, cargar_lesiones
+from construir_dataset_props_pase_carrera import (
+    METRICAS_CARRERA,
+    METRICAS_PASE,
+    POSICIONES_CARRERA,
+    agregar_lesiones as agregar_lesiones_pc,
+    cargar_datos as cargar_datos_pc,
+    construir_dataset_carrera,
+    construir_dataset_pase,
+    normalizar_columnas_estadisticas,
+)
+from construir_dataset_prop_touchdown import (
+    METRICAS as METRICAS_TOUCHDOWN,
+    POSICIONES as POSICIONES_TOUCHDOWN,
+    agregar_contexto_equipo as agregar_contexto_equipo_td,
+    agregar_defensa_rival as agregar_defensa_rival_td,
+    agregar_forma_jugador as agregar_forma_jugador_td,
+    agregar_participacion as agregar_participacion_td,
+    preparar_base as preparar_base_td,
+)
 from predecir_semana_actual import (
     TEMPORADA_ACTUAL,
     actualizar_calendario,
@@ -36,8 +57,14 @@ DIRECTORIO_SALIDA = RAIZ_PROYECTO / "data" / "nfl" / "predictions"
 RUTA_MODELO_RECEPCIONES = DIRECTORIO_MODELOS / "props_receptions.joblib"
 RUTA_MODELO_YARDAS = DIRECTORIO_MODELOS / "props_receiving_yards.joblib"
 RUTA_VALIDACION = DIRECTORIO_MODELOS / "predicciones_validacion_recepcion.csv"
+RUTA_MODELO_PASS_YDS = DIRECTORIO_MODELOS / "props_passing_yards.joblib"
+RUTA_MODELO_PASS_TDS = DIRECTORIO_MODELOS / "props_passing_tds.joblib"
+RUTA_MODELO_RUSH_YDS = DIRECTORIO_MODELOS / "props_rushing_yards.joblib"
+RUTA_MODELO_ANYTIME_TD = DIRECTORIO_MODELOS / "props_anytime_td.joblib"
+RUTA_CALIBRACION_PC = DIRECTORIO_MODELOS / "calibracion_props_pase_carrera.json"
+RUTA_RESIDUOS_PC = DIRECTORIO_MODELOS / "residuos_props_pase_carrera.npz"
 
-MODELO_VERSION = "props_recepcion_v1"
+MODELO_VERSION = "props_nfl_v2"
 POSICIONES_ELEGIBLES = ["WR", "TE", "RB"]
 TARGETS_PROMEDIO_MINIMO = 3.0
 
@@ -45,7 +72,31 @@ TARGETS_PROMEDIO_MINIMO = 3.0
 def actualizar_estadisticas_jugadores():
     print(f"Actualizando estadísticas de jugadores {TEMPORADA_ACTUAL}...")
     if not RUTA_JUGADORES.exists():
-        raise FileNotFoundError(f"No se encontró: {RUTA_JUGADORES}")
+        print(
+            "No existe histórico local. Descargando estadísticas "
+            f"2012-{TEMPORADA_ACTUAL}..."
+        )
+        RUTA_JUGADORES.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            jugadores = nfl.load_player_stats(
+                list(range(2012, TEMPORADA_ACTUAL + 1))
+            ).to_pandas()
+        except Exception as error:
+            raise RuntimeError(
+                "No se pudo descargar el histórico de estadísticas de jugadores."
+            ) from error
+
+        if jugadores.empty:
+            raise RuntimeError(
+                "La descarga del histórico de jugadores no devolvió registros."
+            )
+
+        jugadores = jugadores.drop_duplicates(
+            ["player_id", "game_id"], keep="last"
+        )
+        jugadores.to_parquet(RUTA_JUGADORES, index=False)
+        print(f"Estadísticas disponibles: {len(jugadores):,} registros.")
+        return jugadores
 
     historico = pd.read_parquet(RUTA_JUGADORES)
     try:
@@ -108,12 +159,14 @@ def crear_filas_futuras(raw, proximos):
 
 
 def agregar_contexto_partido(df, calendario):
+    columnas = [
+        "game_id", "gameday", "home_team", "away_team",
+        "home_qb_id", "away_qb_id", "home_rest", "away_rest",
+        "roof", "surface", "temp", "wind", "spread_line", "total_line",
+        "home_moneyline", "away_moneyline", "div_game",
+    ]
     contexto = calendario[
-        [
-            "game_id", "gameday", "home_team", "away_team",
-            "home_qb_id", "away_qb_id", "home_rest", "away_rest",
-            "roof", "surface", "temp", "wind",
-        ]
+        [columna for columna in columnas if columna in calendario.columns]
     ].drop_duplicates("game_id")
     columnas_contexto_existentes = [
         columna for columna in contexto.columns
@@ -137,6 +190,10 @@ def agregar_contexto_partido(df, calendario):
         resultado["home_qb_id"],
         resultado["away_qb_id"],
     )
+    resultado["is_starting_qb"] = (
+        resultado["player_id"].astype(str)
+        == pd.Series(resultado["starting_qb_id"]).fillna("").astype(str)
+    ).astype(int)
     return resultado
 
 
@@ -194,6 +251,126 @@ def preparar_features(calendario, semana):
     return futuros, proximos
 
 
+def crear_filas_futuras_generales(raw, proximos):
+    """Crea filas futuras para pase, carrera y anota TD sin fuga de datos."""
+    jugadores = normalizar_columnas_estadisticas(raw)
+    posiciones = sorted(set(
+        POSICIONES_CARRERA + POSICIONES_TOUCHDOWN + ["QB"]
+    ))
+    actuales = jugadores[
+        (jugadores["season"] == TEMPORADA_ACTUAL)
+        & jugadores["position"].isin(posiciones)
+    ].copy()
+    roster = (
+        actuales.sort_values(["player_id", "week", "game_id"])
+        .drop_duplicates("player_id", keep="last")
+    )
+
+    equipos = pd.concat(
+        [
+            proximos[["game_id", "season", "week", "home_team", "away_team"]]
+            .rename(columns={"home_team": "team", "away_team": "opponent_team"}),
+            proximos[["game_id", "season", "week", "home_team", "away_team"]]
+            .rename(columns={"away_team": "team", "home_team": "opponent_team"}),
+        ],
+        ignore_index=True,
+    )
+    filas = roster.merge(equipos, on="team", how="inner", suffixes=("", "_next"))
+    filas["game_id"] = filas["game_id_next"]
+    filas["season"] = filas["season_next"]
+    filas["week"] = filas["week_next"]
+    filas["opponent_team"] = filas["opponent_team_next"]
+    filas = filas.drop(columns=[c for c in filas if c.endswith("_next")])
+    filas = agregar_contexto_partido(filas, proximos)
+
+    metricas = set(METRICAS_PASE + METRICAS_CARRERA + METRICAS_TOUCHDOWN)
+    for metrica in metricas:
+        if metrica not in filas.columns:
+            filas[metrica] = np.nan
+        else:
+            filas[metrica] = np.nan
+    return filas
+
+
+def agregar_notas_lesiones(df, proximos):
+    contexto = agregar_contexto_lesiones(
+        proximos.copy(), proximos, cargar_lesiones()
+    )[
+        [
+            "game_id", "home_key_injuries", "away_key_injuries",
+            "home_prop_injury_note", "away_prop_injury_note",
+        ]
+    ].drop_duplicates("game_id")
+    resultado = df.merge(contexto, on="game_id", how="left", validate="many_to_one")
+    resultado["contexto_lesiones"] = np.where(
+        resultado["is_home"].eq(1),
+        resultado["home_key_injuries"],
+        resultado["away_key_injuries"],
+    )
+    return resultado
+
+
+def preparar_features_adicionales(calendario, semana):
+    proximos = calendario[
+        (calendario["season"] == TEMPORADA_ACTUAL)
+        & (calendario["week"] == semana)
+        & (calendario["game_type"] == "REG")
+        & (calendario["home_score"].isna() | calendario["away_score"].isna())
+    ].copy()
+    historico, lesiones = cargar_datos_pc()
+    raw = pd.read_parquet(RUTA_JUGADORES)
+    futuras = crear_filas_futuras_generales(raw, proximos)
+    combinadas = pd.concat([historico, futuras], ignore_index=True, sort=False)
+    ids_futuros = set(proximos["game_id"])
+
+    print("Calculando features de pase...")
+    pase = construir_dataset_pase(combinadas, lesiones)
+    pase = pase[pase["game_id"].isin(ids_futuros)].copy()
+    pase = pase[
+        (pase["player_games_before"] >= 3)
+        & (pase["player_passing_attempts_avg_5"] >= 10.0)
+        & ~pase["player_injury_status"].isin(["out", "doubtful"])
+    ].copy()
+    # Un solo QB por equipo. El mayor volumen reciente resulta mas robusto
+    # que el identificador preliminar del calendario cuando hay una lesion o
+    # cambio de titular durante la semana.
+    if not pase.empty:
+        titulares = pase.groupby(["game_id", "team"])[
+            "player_passing_attempts_avg_5"
+        ].idxmax()
+        pase["is_starting_qb"] = 0
+        pase.loc[titulares, "is_starting_qb"] = 1
+        pase = pase.loc[titulares].copy()
+
+    print("Calculando features de carrera...")
+    carrera = construir_dataset_carrera(combinadas, lesiones)
+    carrera = carrera[carrera["game_id"].isin(ids_futuros)].copy()
+    carrera = carrera[
+        (carrera["player_games_before"] >= 3)
+        & (carrera["player_carries_avg_5"] >= 2.0)
+        & ~carrera["player_injury_status"].isin(["out", "doubtful"])
+    ].copy()
+
+    print("Calculando features de anota touchdown...")
+    touchdown = agregar_forma_jugador_td(preparar_base_td(combinadas))
+    touchdown = agregar_contexto_equipo_td(touchdown)
+    touchdown = agregar_defensa_rival_td(touchdown)
+    touchdown = agregar_participacion_td(touchdown)
+    touchdown = agregar_lesiones_pc(touchdown, lesiones)
+    touchdown = touchdown[touchdown["game_id"].isin(ids_futuros)].copy()
+    touchdown = touchdown[
+        (touchdown["player_games_before"] >= 3)
+        & (touchdown["player_opportunities_avg_5"] >= 2.0)
+        & ~touchdown["player_injury_status"].isin(["out", "doubtful"])
+    ].copy()
+
+    return (
+        agregar_notas_lesiones(pase, proximos),
+        agregar_notas_lesiones(carrera, proximos),
+        agregar_notas_lesiones(touchdown, proximos),
+    )
+
+
 def predecir_modelo(modelo, df):
     columnas = list(modelo.feature_names_in_)
     faltantes = sorted(set(columnas) - set(df.columns))
@@ -202,29 +379,90 @@ def predecir_modelo(modelo, df):
     return np.maximum(modelo.predict(df[columnas]), 0)
 
 
-def construir_proyecciones(features):
+def base_proyeccion(features):
+    columnas = [
+        "game_id", "season", "week", "gameday", "player_id",
+        "player_name", "position", "team", "opponent_team",
+        "player_injury_status", "contexto_lesiones",
+    ]
+    base = features[[c for c in columnas if c in features.columns]].copy()
+    if "player_injury_status" not in base:
+        base["player_injury_status"] = "healthy_or_unlisted"
+    if "contexto_lesiones" not in base:
+        base["contexto_lesiones"] = ""
+    if "teammate_skill_injury_score" in features:
+        base["teammate_skill_injury_score"] = features[
+            "teammate_skill_injury_score"
+        ].to_numpy()
+    elif "team_skill_injury_score" in features:
+        base["teammate_skill_injury_score"] = features[
+            "team_skill_injury_score"
+        ].to_numpy()
+    else:
+        base["teammate_skill_injury_score"] = 0.0
+    return base
+
+
+def construir_proyecciones(features, pase, carrera, touchdown):
     for ruta in [RUTA_MODELO_RECEPCIONES, RUTA_MODELO_YARDAS, RUTA_VALIDACION]:
+        if not ruta.exists():
+            raise FileNotFoundError(f"No se encontró: {ruta}")
+    requeridos = [
+        RUTA_MODELO_PASS_YDS, RUTA_MODELO_PASS_TDS, RUTA_MODELO_RUSH_YDS,
+        RUTA_MODELO_ANYTIME_TD, RUTA_CALIBRACION_PC, RUTA_RESIDUOS_PC,
+    ]
+    for ruta in requeridos:
         if not ruta.exists():
             raise FileNotFoundError(f"No se encontró: {ruta}")
     modelo_recepciones = joblib.load(RUTA_MODELO_RECEPCIONES)
     modelo_yardas = joblib.load(RUTA_MODELO_YARDAS)
 
-    base = features[
-        [
-            "game_id", "season", "week", "gameday", "player_id",
-            "player_name", "position", "team", "opponent_team",
-            "player_targets_avg_5", "player_receptions_avg_5",
-            "player_receiving_yards_avg_5", "player_injury_status",
-            "teammate_skill_injury_score", "contexto_lesiones",
-        ]
-    ].copy()
+    base = base_proyeccion(features)
     recepciones = base.copy()
     recepciones["tipo_prop"] = "receptions"
     recepciones["proyeccion"] = predecir_modelo(modelo_recepciones, features)
     yardas = base.copy()
     yardas["tipo_prop"] = "receiving_yards"
     yardas["proyeccion"] = predecir_modelo(modelo_yardas, features)
-    return pd.concat([recepciones, yardas], ignore_index=True)
+
+    config = json.loads(RUTA_CALIBRACION_PC.read_text(encoding="utf-8"))
+    adicionales = []
+    modelos = [
+        ("passing_yards", RUTA_MODELO_PASS_YDS, pase),
+        ("passing_tds", RUTA_MODELO_PASS_TDS, pase),
+        ("rushing_yards", RUTA_MODELO_RUSH_YDS, carrera),
+    ]
+    for objetivo, ruta, conjunto in modelos:
+        modelo = joblib.load(ruta)
+        bloque = base_proyeccion(conjunto)
+        bloque["tipo_prop"] = objetivo
+        prediccion = predecir_modelo(modelo, conjunto)
+        if objetivo in config.get("yardas", {}):
+            ajuste = config["yardas"][objetivo]
+            prediccion = np.maximum(
+                ajuste.get("intercepto", 0.0)
+                + ajuste.get("pendiente", 1.0) * prediccion,
+                0.0,
+            )
+        bloque["proyeccion"] = prediccion
+        adicionales.append(bloque)
+
+    modelo_td = joblib.load(RUTA_MODELO_ANYTIME_TD)
+    columnas_td = list(modelo_td.feature_names_in_)
+    faltantes = sorted(set(columnas_td) - set(touchdown.columns))
+    if faltantes:
+        raise KeyError("Faltan features de anytime TD: " + ", ".join(faltantes))
+    bloque_td = base_proyeccion(touchdown)
+    bloque_td["tipo_prop"] = "anytime_td"
+    bloque_td["proyeccion"] = modelo_td.predict_proba(
+        touchdown[columnas_td]
+    )[:, 1]
+    adicionales.append(bloque_td)
+
+    return pd.concat(
+        [recepciones, yardas] + adicionales,
+        ignore_index=True,
+    )
 
 
 def obtener_conexion():
@@ -298,13 +536,90 @@ def cargar_lineas(conexion, game_ids):
     if lineas.empty:
         return lineas
     lineas["timestamp_captura"] = pd.to_datetime(lineas["timestamp_captura"])
-    return (
+    # MySQL devuelve las columnas DECIMAL como decimal.Decimal. Convertirlas
+    # aquí evita operaciones incompatibles con las predicciones float de
+    # numpy/pandas al calcular edge, cuotas decimales y EV.
+    for columna in ["linea", "cuota_over", "cuota_under"]:
+        lineas[columna] = pd.to_numeric(lineas[columna], errors="coerce").astype(float)
+    claves_prop = ["id_juego", "id_jugador", "tipo_prop"]
+    # Conserva la captura mas reciente de cada linea alternativa por casa.
+    lineas = (
         lineas.sort_values("timestamp_captura")
         .drop_duplicates(
-            ["id_juego", "id_jugador", "tipo_prop", "casa_apuestas"],
-            keep="last",
+            claves_prop + ["casa_apuestas", "linea"], keep="last"
         )
-        .rename(columns={"id_juego": "game_id", "id_jugador": "player_id"})
+    )
+
+    # Descarta puntos incompatibles con el tipo de mercado. Es una defensa
+    # adicional ante feeds que mezclan variantes o datos defectuosos.
+    limites = {
+        "receptions": (0.5, 15.5),
+        "receiving_yards": (4.5, 175.5),
+        "passing_yards": (100.5, 425.5),
+        "passing_tds": (0.5, 4.5),
+        "rushing_yards": (0.5, 175.5),
+        "anytime_td": (0.5, 0.5),
+    }
+    valida = pd.Series(False, index=lineas.index)
+    for tipo, (minimo, maximo) in limites.items():
+        valida |= (
+            lineas["tipo_prop"].eq(tipo)
+            & lineas["linea"].between(minimo, maximo)
+        )
+    lineas = lineas[valida].copy()
+
+    def probabilidad_implicita(serie):
+        serie = pd.to_numeric(serie, errors="coerce")
+        return np.where(
+            serie > 0,
+            100 / (serie + 100),
+            (-serie) / ((-serie) + 100),
+        )
+
+    p_over = probabilidad_implicita(lineas["cuota_over"])
+    p_under = probabilidad_implicita(lineas["cuota_under"])
+    # La linea principal suele tener precios cercanos entre si. Las lineas
+    # alternativas muy altas/bajas reciben una penalizacion grande.
+    lineas["_balance_linea"] = np.abs(p_over - p_under)
+    lineas.loc[lineas["tipo_prop"].eq("anytime_td"), "_balance_linea"] = 0.0
+    lineas["_balance_linea"] = lineas["_balance_linea"].fillna(99.0)
+    lineas = (
+        lineas.sort_values(
+            claves_prop + ["casa_apuestas", "_balance_linea", "timestamp_captura"],
+            ascending=[True, True, True, True, True, False],
+        )
+        .drop_duplicates(claves_prop + ["casa_apuestas"], keep="first")
+    )
+
+    # nfl_proyecciones_props conserva una sola linea por jugador/mercado.
+    # Draftea tiene prioridad cuando se captura manualmente; después usamos
+    # casas con cobertura estable en The Odds API.
+    prioridad_casas = {
+        "draftea": 0,
+        "draftkings": 1,
+        "fanduel": 2,
+        "betmgm": 3,
+        "caesars": 4,
+        "william hill": 4,
+        "espn bet": 5,
+    }
+    lineas["_prioridad_casa"] = (
+        lineas["casa_apuestas"]
+        .astype(str)
+        .str.lower()
+        .map(prioridad_casas)
+        .fillna(99)
+    )
+    lineas = (
+        lineas.sort_values(
+            claves_prop + ["_prioridad_casa", "timestamp_captura"],
+            ascending=[True, True, True, True, False],
+        )
+        .drop_duplicates(claves_prop, keep="first")
+        .drop(columns=["_prioridad_casa", "_balance_linea"])
+    )
+    return lineas.rename(
+        columns={"id_juego": "game_id", "id_jugador": "player_id"}
     )
 
 
@@ -333,31 +648,80 @@ def agregar_lineas_y_probabilidades(proyecciones, lineas):
     resultado.loc[resultado["linea"].isna(), "seleccion"] = None
 
     validacion = pd.read_csv(RUTA_VALIDACION)
-    calibracion = validacion[validacion["season"] == 2024].copy()
+    calibracion_recepcion = validacion[validacion["season"] == 2024].copy()
+    config = json.loads(RUTA_CALIBRACION_PC.read_text(encoding="utf-8"))
+    archivo_residuos = np.load(RUTA_RESIDUOS_PC)
+    residuos_pc = {nombre: archivo_residuos[nombre] for nombre in archivo_residuos.files}
+
     probabilidades_over = []
+    edges = []
+    selecciones = []
     for fila in resultado.itertuples(index=False):
         if pd.isna(fila.linea):
             probabilidades_over.append(np.nan)
+            edges.append(np.nan)
+            selecciones.append(None)
             continue
-        residuos = calibracion[
-            (calibracion["objetivo"] == fila.tipo_prop)
-            & (calibracion["position"] == fila.position)
-        ]["error"].dropna()
-        if len(residuos) < 100:
-            residuos = calibracion[
-                calibracion["objetivo"] == fila.tipo_prop
-            ]["error"].dropna()
-        probabilidades_over.append(float((residuos < fila.edge).mean()))
 
+        edge_punto = float(fila.proyeccion - fila.linea)
+        if fila.tipo_prop in {"receptions", "receiving_yards"}:
+            residuos = calibracion_recepcion[
+                (calibracion_recepcion["objetivo"] == fila.tipo_prop)
+                & (calibracion_recepcion["position"] == fila.position)
+            ]["error"].dropna()
+            if len(residuos) < 100:
+                residuos = calibracion_recepcion[
+                    calibracion_recepcion["objetivo"] == fila.tipo_prop
+                ]["error"].dropna()
+            probabilidad = float((residuos < edge_punto).mean())
+            seleccion = "OVER" if edge_punto >= 0 else "UNDER"
+            edge = edge_punto
+        elif fila.tipo_prop in {"passing_yards", "rushing_yards"}:
+            residuos = np.asarray(residuos_pc[fila.tipo_prop], dtype=float)
+            probabilidad = float(np.mean(residuos < edge_punto))
+            seleccion = "OVER" if edge_punto >= 0 else "UNDER"
+            edge = edge_punto
+        elif fila.tipo_prop == "passing_tds":
+            clave = str(float(fila.linea))
+            calibrador = config.get("passing_tds", {}).get("lineas", {}).get(clave)
+            if calibrador and calibrador.get("metodo") == "logistico":
+                z = (
+                    float(calibrador["intercepto"])
+                    + float(calibrador["coeficiente"]) * float(fila.proyeccion)
+                )
+                probabilidad = float(1 / (1 + np.exp(-np.clip(z, -35, 35))))
+            else:
+                probabilidad = float(
+                    1 - poisson.cdf(np.floor(float(fila.linea)), max(float(fila.proyeccion), 1e-6))
+                )
+            seleccion = "OVER" if probabilidad >= 0.5 else "UNDER"
+            edge = edge_punto
+        elif fila.tipo_prop == "anytime_td":
+            probabilidad = float(np.clip(fila.proyeccion, 0, 1))
+            seleccion = "ANOTA"
+            decimal_over = american_a_decimal(fila.cuota_over)
+            implicita = 1 / decimal_over if pd.notna(decimal_over) else np.nan
+            edge = probabilidad - implicita if pd.notna(implicita) else np.nan
+        else:
+            probabilidad = np.nan
+            seleccion = None
+            edge = np.nan
+
+        probabilidades_over.append(probabilidad)
+        edges.append(edge)
+        selecciones.append(seleccion)
+
+    resultado["edge"] = edges
+    resultado["seleccion"] = selecciones
     resultado["probabilidad_over"] = probabilidades_over
     resultado["probabilidad_under"] = 1 - resultado["probabilidad_over"]
     resultado["probabilidad_pick"] = np.where(
-        resultado["seleccion"].eq("OVER"),
+        resultado["seleccion"].isin(["OVER", "ANOTA"]),
         resultado["probabilidad_over"],
         resultado["probabilidad_under"],
     )
     resultado["cuota_pick"] = np.where(
-        resultado["seleccion"].eq("OVER"),
+        resultado["seleccion"].isin(["OVER", "ANOTA"]),
         resultado["cuota_over"],
         resultado["cuota_under"],
     )
@@ -365,16 +729,36 @@ def agregar_lineas_y_probabilidades(proyecciones, lineas):
     resultado["ev_estimado"] = (
         resultado["probabilidad_pick"] * decimal - 1
     )
-    umbral_edge = np.where(resultado["tipo_prop"].eq("receptions"), 0.75, 10.0)
     resultado["estado_pick"] = "NO PICK"
     resultado.loc[resultado["linea"].isna(), "estado_pick"] = "SIN LINEA"
+    umbrales_edge = {
+        "receptions": 0.75,
+        "receiving_yards": 10.0,
+        "passing_yards": 25.0,
+        "passing_tds": 0.35,
+        "rushing_yards": 10.0,
+        "anytime_td": 0.05,
+    }
+    umbral = resultado["tipo_prop"].map(umbrales_edge).fillna(np.inf)
+    umbral_probabilidad = np.where(
+        resultado["tipo_prop"].eq("anytime_td"), 0.25, 0.57
+    )
+    cuota_maxima = np.where(
+        resultado["tipo_prop"].eq("anytime_td"), 1000, 2500
+    )
     candidato = (
         resultado["linea"].notna()
-        & (resultado["edge"].abs() >= umbral_edge)
-        & (resultado["probabilidad_pick"] >= 0.57)
+        & (resultado["edge"].abs() >= umbral)
+        & (resultado["probabilidad_pick"] >= umbral_probabilidad)
         & (resultado["ev_estimado"] > 0)
+        & (resultado["cuota_pick"].abs() >= 100)
+        & (resultado["cuota_pick"].abs() <= cuota_maxima)
     )
     resultado.loc[candidato, "estado_pick"] = "CANDIDATO"
+    revisar_lesion = candidato & resultado["player_injury_status"].eq(
+        "questionable"
+    )
+    resultado.loc[revisar_lesion, "estado_pick"] = "REVISAR LESION"
     return resultado
 
 
@@ -382,6 +766,19 @@ def guardar_proyecciones(conexion, df):
     if conexion is None:
         print("Sin credenciales MySQL: se guardará únicamente CSV.")
         return
+    cursor = conexion.cursor()
+    ids_juegos = sorted(df["game_id"].dropna().astype(str).unique())
+    if ids_juegos:
+        marcadores = ",".join(["%s"] * len(ids_juegos))
+        cursor.execute(
+            f"""
+            DELETE FROM nfl_proyecciones_props
+            WHERE modelo_version = %s
+              AND id_juego IN ({marcadores})
+            """,
+            tuple([MODELO_VERSION] + ids_juegos),
+        )
+
     sql = """
         INSERT INTO nfl_proyecciones_props (
             id_juego, id_jugador, id_linea, modelo_version, tipo_prop,
@@ -394,7 +791,9 @@ def guardar_proyecciones(conexion, df):
             %s, %s, %s, %s, %s, %s, %s, %s
         )
         ON DUPLICATE KEY UPDATE
-            id_linea = VALUES(id_linea), linea = VALUES(linea),
+            id_linea = VALUES(id_linea),
+            modelo_version = VALUES(modelo_version),
+            linea = VALUES(linea),
             proyeccion = VALUES(proyeccion), edge = VALUES(edge),
             seleccion = VALUES(seleccion),
             probabilidad_pick = VALUES(probabilidad_pick),
@@ -425,7 +824,6 @@ def guardar_proyecciones(conexion, df):
                 ]
             )
         )
-    cursor = conexion.cursor()
     cursor.executemany(sql, datos)
     conexion.commit()
     cursor.close()
@@ -441,13 +839,28 @@ def main():
     print(f"Semana detectada: {semana}")
 
     features, juegos = preparar_features(calendario, semana)
-    print(f"Jugadores elegibles: {len(features):,}")
-    proyecciones = construir_proyecciones(features)
+    pase, carrera, touchdown = preparar_features_adicionales(calendario, semana)
+    print(
+        "Jugadores elegibles | "
+        f"recepcion: {len(features):,} | pase: {len(pase):,} | "
+        f"carrera: {len(carrera):,} | anota TD: {len(touchdown):,}"
+    )
+    proyecciones = construir_proyecciones(
+        features, pase, carrera, touchdown
+    )
+
+    catalogo = pd.concat(
+        [
+            conjunto[["player_id", "player_name", "position", "team"]]
+            for conjunto in [features, pase, carrera, touchdown]
+        ],
+        ignore_index=True,
+    ).drop_duplicates("player_id")
 
     conexion = obtener_conexion()
     try:
         if conexion is not None:
-            sincronizar_catalogos(conexion, features, juegos)
+            sincronizar_catalogos(conexion, catalogo, juegos)
         lineas = cargar_lineas(conexion, juegos["game_id"].tolist())
         resultado = agregar_lineas_y_probabilidades(proyecciones, lineas)
         guardar_proyecciones(conexion, resultado)
@@ -456,7 +869,7 @@ def main():
             conexion.close()
 
     ruta = DIRECTORIO_SALIDA / (
-        f"nfl_props_recepcion_{TEMPORADA_ACTUAL}_semana_{semana}.csv"
+        f"nfl_props_{TEMPORADA_ACTUAL}_semana_{semana}.csv"
     )
     resultado.to_csv(ruta, index=False)
 
