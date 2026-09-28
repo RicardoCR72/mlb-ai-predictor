@@ -1,1411 +1,287 @@
-import subprocess
-
-import sys
-
 from pathlib import Path
-
-
-
-import numpy as np
-
-import pandas as pd
+import runpy
 
 import streamlit as st
 
 
-
-
-
-RAIZ_PROYECTO = Path(__file__).resolve().parents[1]
-
-
-
-DIRECTORIO_PREDICCIONES = (
-
-    RAIZ_PROYECTO
-
-    / "data"
-
-    / "nfl"
-
-    / "predictions"
-
-)
-
-
-
-SCRIPT_ACTUALIZACION = (
-
-    RAIZ_PROYECTO
-
-    / "nfl"
-
-    / "predecir_semana_actual.py"
-
-)
-
-
-
-
-
 st.set_page_config(
-
     page_title="NFL Oráculo",
-
     page_icon="🏈",
-
     layout="wide",
-
 )
-
-
-
-st.title("🏈 NFL Oráculo")
-
-st.caption(
-
-    "Modelo de totales Over/Under · "
-
-    "Edge cuantitativo + probabilidad calibrada"
-
-)
-
-
-
-
 
 st.markdown(
-
     """
-
     <style>
-
-    .pick-badge {
-
-        display: inline-block;
-
-        background-color: #0f9d58;
-
-        color: white;
-
-        font-weight: 700;
-
-        padding: 0.25rem 0.65rem;
-
-        border-radius: 999px;
-
+    [data-testid="stAppViewContainer"] {
+        background:
+            radial-gradient(circle at 85% 0%, rgba(183,255,60,.055), transparent 28rem),
+            #080c13;
+        color: #eef3f8;
     }
-
-
-
-    .no-pick-badge {
-
-        display: inline-block;
-
-        background-color: #5f6368;
-
-        color: white;
-
-        font-weight: 700;
-
-        padding: 0.25rem 0.65rem;
-
-        border-radius: 999px;
-
+    [data-testid="stHeader"] { background: transparent; }
+    .block-container {
+        max-width: 1480px;
+        padding-top: 1.15rem;
+        padding-bottom: 2.5rem;
     }
-
-
-
-    .no-line-badge {
-
-        display: inline-block;
-
-        background-color: #d97706;
-
-        color: white;
-
-        font-weight: 700;
-
-        padding: 0.25rem 0.65rem;
-
-        border-radius: 999px;
-
+    [data-testid="stSidebar"] {
+        background: #0d131d;
+        border-right: 1px solid #202938;
     }
-
-
-
-    .over-text {
-
-        color: #ef4444;
-
-        font-weight: 700;
-
+    .nfl-shell {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: .78rem .95rem;
+        border: 1px solid #202938;
+        border-radius: 13px;
+        background: #111720;
+        margin-bottom: .75rem;
     }
-
-
-
-    .under-text {
-
-        color: #3b82f6;
-
-        font-weight: 700;
-
+    .nfl-brand {
+        display: flex;
+        align-items: center;
+        gap: .65rem;
+        font-weight: 800;
+        letter-spacing: .02em;
     }
-
-
-
-    .small-note {
-
-        color: #9ca3af;
-
-        font-size: 0.85rem;
-
+    .nfl-logo {
+        width: 34px;
+        height: 34px;
+        display: inline-grid;
+        place-items: center;
+        border-radius: 10px;
+        background: #b7ff3c;
+        color: #071006;
+        font-weight: 900;
     }
-
+    .nfl-accent { color: #b7ff3c; }
+    .nfl-status { color: #8e99a9; font-size: .78rem; }
+    div[role="radiogroup"] {
+        display: flex;
+        gap: .4rem;
+        padding: .35rem;
+        margin-bottom: .9rem;
+        border: 1px solid #202938;
+        border-radius: 11px;
+        background: #0d131d;
+    }
+    div[role="radiogroup"] label {
+        flex: 1;
+        justify-content: center;
+        padding: .42rem .7rem;
+        border-radius: 8px;
+    }
+    div[role="radiogroup"] label:has(input:checked) {
+        background: #b7ff3c;
+        color: #071006;
+        font-weight: 800;
+    }
+    .nfl-view-hero {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        gap: 1rem;
+        margin: .9rem 0 1rem;
+    }
+    .nfl-eyebrow {
+        color: #b7ff3c;
+        font-size: .72rem;
+        font-weight: 800;
+        letter-spacing: .12em;
+    }
+    .nfl-view-hero h1 {
+        margin: .22rem 0 .15rem;
+        color: #f5f8fb;
+        font-size: clamp(1.75rem, 3vw, 2.45rem);
+    }
+    .nfl-subtitle { color: #8994a5; font-size: .88rem; }
+    div[data-testid="stMetric"] {
+        background: #111720;
+        border: 1px solid #202938;
+        border-radius: 11px;
+        padding: .78rem .9rem;
+    }
+    div[data-testid="stMetric"] label { color: #8994a5; }
+    div[data-testid="stMetricValue"] { color: #f4f7fb; }
+    div[data-baseweb="tab-list"] {
+        gap: .3rem;
+        border-bottom: 1px solid #202938;
+    }
+    button[data-baseweb="tab"] {
+        color: #8994a5;
+        border-radius: 8px 8px 0 0;
+        padding-left: .85rem;
+        padding-right: .85rem;
+    }
+    button[data-baseweb="tab"][aria-selected="true"] {
+        color: #071006;
+        background: #b7ff3c;
+        font-weight: 800;
+    }
+    button[data-baseweb="tab"][aria-selected="true"] p { color: #071006; }
+    .stTabs [data-baseweb="tab-list"] {
+        width: fit-content;
+        padding: .32rem;
+        border: 1px solid #202938;
+        border-radius: 11px;
+        background: #111720;
+    }
+    .stTabs [data-baseweb="tab"] {
+        min-height: 2.55rem;
+        border-radius: 8px;
+        border: 0 !important;
+    }
+    .stTabs [data-baseweb="tab"][aria-selected="true"] {
+        background: #b7ff3c !important;
+        color: #071006 !important;
+    }
+    .stTabs button[role="tab"][aria-selected="true"] {
+        background: #b7ff3c !important;
+        color: #071006 !important;
+        box-shadow: none !important;
+    }
+    .stTabs [data-baseweb="tab-highlight"] {
+        background-color: transparent !important;
+    }
+    div[data-testid="stTabs"] div[role="tablist"],
+    div[data-testid="stTabs"] [data-baseweb="tab-list"] {
+        display: flex !important;
+        width: fit-content !important;
+        gap: .4rem !important;
+        padding: .35rem !important;
+        margin-bottom: .8rem !important;
+        border: 1px solid #263143 !important;
+        border-radius: 11px !important;
+        background: #111720 !important;
+        box-shadow: none !important;
+    }
+    div[data-testid="stTabs"] button[role="tab"],
+    div[data-testid="stTabs"] [data-baseweb="tab"] {
+        min-height: 2.55rem !important;
+        padding: .42rem .8rem !important;
+        border: 0 !important;
+        border-radius: 8px !important;
+        background: transparent !important;
+        color: #d9e1eb !important;
+        box-shadow: none !important;
+    }
+    div[data-testid="stTabs"] button[role="tab"] p,
+    div[data-testid="stTabs"] [data-baseweb="tab"] p {
+        color: inherit !important;
+    }
+    div[data-testid="stTabs"] button[role="tab"][aria-selected="true"],
+    div[data-testid="stTabs"] [data-baseweb="tab"][aria-selected="true"] {
+        background: #b7ff3c !important;
+        color: #071006 !important;
+        font-weight: 850 !important;
+    }
+    div[data-testid="stTabs"] [data-baseweb="tab-highlight"],
+    div[data-testid="stTabs"] [data-baseweb="tab-border"],
+    div[data-testid="stTabs"] div[role="tablist"]::after {
+        display: none !important;
+        background: transparent !important;
+    }
+    div[data-testid="stTabs"] button[role="tab"]::after {
+        display: none !important;
+        content: none !important;
+    }
+    div[data-testid="stSelectbox"] div[data-baseweb="select"] > div,
+    div[data-baseweb="select"] > div {
+        min-height: 3rem !important;
+        border: 1px solid #b7ff3c !important;
+        border-radius: 10px !important;
+        background: #111720 !important;
+        color: #eef3f8 !important;
+        box-shadow: 0 0 0 1px rgba(183,255,60,.08) !important;
+    }
+    div[data-testid="stSelectbox"] div[data-baseweb="select"] > div:hover,
+    div[data-testid="stSelectbox"] div[data-baseweb="select"] > div:focus-within,
+    div[data-baseweb="select"] > div:hover,
+    div[data-baseweb="select"] > div:focus-within {
+        border-color: #b7ff3c !important;
+        box-shadow: 0 0 0 2px rgba(183,255,60,.18) !important;
+    }
+    div[data-baseweb="select"] svg { fill: #b7ff3c !important; }
+    div[data-baseweb="popover"] ul,
+    ul[role="listbox"] {
+        padding: .35rem !important;
+        border: 1px solid #b7ff3c !important;
+        border-radius: 10px !important;
+        background: #111720 !important;
+        box-shadow: 0 12px 30px rgba(0,0,0,.35) !important;
+    }
+    [role="option"] {
+        margin: .12rem 0 !important;
+        border-radius: 7px !important;
+        color: #dce4ee !important;
+        background: transparent !important;
+    }
+    [role="option"]:hover,
+    [role="option"][aria-selected="true"],
+    [data-baseweb="option"]:hover,
+    [data-baseweb="option"][aria-selected="true"] {
+        color: #071006 !important;
+        background: #b7ff3c !important;
+        font-weight: 800 !important;
+    }
+    [data-testid="stDataFrame"] {
+        border: 1px solid #202938;
+        border-radius: 12px;
+        overflow: hidden;
+    }
+    .stDownloadButton button, .stFormSubmitButton button {
+        border-color: #b7ff3c;
+        color: #b7ff3c;
+        background: #101720;
+    }
+    @media (max-width: 700px) {
+        .nfl-status { display: none; }
+        .nfl-view-hero { align-items: flex-start; flex-direction: column; }
+    }
     </style>
-
+    <div class="nfl-shell">
+        <div class="nfl-brand">
+            <span class="nfl-logo">O</span>
+            <span>ORACLE <span class="nfl-accent">NFL</span></span>
+        </div>
+        <div class="nfl-status">TOTALES · PROPS · LESIONES · RENDIMIENTO</div>
+    </div>
     """,
-
     unsafe_allow_html=True,
-
 )
 
-
-
-
-
-def formatear_numero(valor, decimales=2):
-
-    if pd.isna(valor):
-
-        return "N/D"
-
-
-
-    return f"{float(valor):.{decimales}f}"
-
-
-
-
-
-def formatear_porcentaje(valor):
-
-    if pd.isna(valor):
-
-        return "N/D"
-
-
-
-    return f"{float(valor) * 100:.2f}%"
-
-
-
-
-
-def formatear_momio(valor):
-
-    if pd.isna(valor):
-
-        return "N/D"
-
-
-
-    valor = float(valor)
-
-
-
-    if valor > 0:
-
-        return f"+{valor:.0f}"
-
-
-
-    return f"{valor:.0f}"
-
-
-
-
-
-def obtener_archivo_mas_reciente():
-
-    archivos = list(
-
-        DIRECTORIO_PREDICCIONES.glob(
-
-            "nfl_totales_*.csv"
-
-        )
-
-    )
-
-
-
-    if not archivos:
-
-        return None
-
-
-
-    return max(
-
-        archivos,
-
-        key=lambda ruta: ruta.stat().st_mtime,
-
-    )
-
-
-
-
-
-@st.cache_data(ttl=60)
-
-def cargar_predicciones(ruta_archivo):
-
-    df = pd.read_csv(ruta_archivo)
-
-
-
-    df["gameday"] = pd.to_datetime(
-
-        df["gameday"],
-
-        errors="coerce",
-
-    )
-
-
-
-    numericas = [
-
-        "season",
-
-        "week",
-
-        "total_line",
-
-        "pred_total",
-
-        "pred_total_base",
-
-        "edge",
-
-        "edge_absoluto",
-
-        "prob_pick",
-
-        "prob_over",
-
-        "prob_under",
-
-        "odds_pick",
-
-        "ev",
-
-    ]
-
-
-
-    for columna in numericas:
-
-        if columna in df.columns:
-
-            df[columna] = pd.to_numeric(
-
-                df[columna],
-
-                errors="coerce",
-
-            )
-
-
-
-    return df
-
-
-
-
-
-def ejecutar_actualizacion():
-
-    if not SCRIPT_ACTUALIZACION.exists():
-
-        st.error(
-
-            "No se encontró "
-
-            "nfl/predecir_semana_actual.py"
-
-        )
-
-        return
-
-
-
-    with st.spinner(
-
-        "Actualizando calendario, líneas y predicciones..."
-
-    ):
-
-        try:
-
-            resultado = subprocess.run(
-
-                [
-
-                    sys.executable,
-
-                    str(SCRIPT_ACTUALIZACION),
-
-                ],
-
-                cwd=str(RAIZ_PROYECTO),
-
-                capture_output=True,
-
-                text=True,
-
-                timeout=300,
-
-            )
-
-
-
-            if resultado.returncode != 0:
-
-                st.error(
-
-                    "No fue posible actualizar "
-
-                    "las predicciones."
-
-                )
-
-
-
-                st.code(
-
-                    resultado.stderr,
-
-                    language="text",
-
-                )
-
-
-
-                return
-
-
-
-            st.success(
-
-                "Predicciones actualizadas correctamente."
-
-            )
-
-
-
-            with st.expander(
-
-                "Ver resultado de la actualización"
-
-            ):
-
-                st.code(
-
-                    resultado.stdout,
-
-                    language="text",
-
-                )
-
-
-
-            st.cache_data.clear()
-
-            st.rerun()
-
-
-
-        except subprocess.TimeoutExpired:
-
-            st.error(
-
-                "La actualización excedió "
-
-                "los cinco minutos."
-
-            )
-
-
-
-        except Exception as error:
-
-            st.error(
-
-                f"Error actualizando: {error}"
-
-            )
-
-
-
-
-
-def mostrar_badge(estado):
-
-    if estado == "PICK":
-
-        st.markdown(
-
-            '<span class="pick-badge">PICK</span>',
-
-            unsafe_allow_html=True,
-
-        )
-
-
-
-    elif estado == "SIN LÍNEA":
-
-        st.markdown(
-
-            '<span class="no-line-badge">'
-
-            'SIN LÍNEA</span>',
-
-            unsafe_allow_html=True,
-
-        )
-
-
-
-    else:
-
-        st.markdown(
-
-            '<span class="no-pick-badge">'
-
-            'NO PICK</span>',
-
-            unsafe_allow_html=True,
-
-        )
-
-
-
-
-
-def texto_seguro(valor):
-
-    if valor is None or pd.isna(valor):
-
-        return ""
-
-    return str(valor).strip()
-
-
-
-def mostrar_partido(fila):
-
-    with st.container(border=True):
-
-        encabezado, estado_col = st.columns(
-
-            [5, 1]
-
-        )
-
-
-
-        with encabezado:
-
-            fecha = fila["gameday"]
-
-
-
-            if pd.notna(fecha):
-
-                texto_fecha = fecha.strftime(
-
-                    "%d/%m/%Y"
-
-                )
-
-            else:
-
-                texto_fecha = "Fecha pendiente"
-
-
-
-            st.subheader(
-
-                f"{fila['away_team']} @ "
-
-                f"{fila['home_team']}"
-
-            )
-
-
-
-            st.caption(
-
-                f"{texto_fecha} · "
-
-                f"Semana {int(fila['week'])}"
-
-            )
-
-
-
-        with estado_col:
-
-            mostrar_badge(fila["estado"])
-
-
-
-        (
-
-            columna_linea,
-
-            columna_proyeccion,
-
-            columna_edge,
-
-            columna_ev,
-
-        ) = st.columns(4)
-
-
-
-        columna_linea.metric(
-
-            "Línea O/U",
-
-            formatear_numero(
-
-                fila["total_line"],
-
-                1,
-
-            ),
-
-        )
-
-
-
-        proyeccion = (
-
-            fila["pred_total"]
-
-            if pd.notna(fila["pred_total"])
-
-            else fila["pred_total_base"]
-
-        )
-
-
-
-        columna_proyeccion.metric(
-
-            "Total proyectado",
-
-            formatear_numero(
-
-                proyeccion,
-
-                1,
-
-            ),
-
-        )
-
-
-
-        columna_edge.metric(
-
-            "Edge",
-
-            formatear_numero(
-
-                fila["edge"],
-
-                2,
-
-            ),
-
-        )
-
-
-
-        columna_ev.metric(
-
-            "EV estimado",
-
-            formatear_porcentaje(
-
-                fila["ev"]
-
-            ),
-
-        )
-
-
-
-        if fila["pick"] == "OVER":
-
-            st.markdown(
-
-                f"""
-
-                <div class="over-text">
-
-                    Selección: OVER {
-
-                        formatear_numero(
-
-                            fila["total_line"],
-
-                            1
-
-                        )
-
-                    }
-
-                </div>
-
-                """,
-
-                unsafe_allow_html=True,
-
-            )
-
-
-
-        elif fila["pick"] == "UNDER":
-
-            st.markdown(
-
-                f"""
-
-                <div class="under-text">
-
-                    Selección: UNDER {
-
-                        formatear_numero(
-
-                            fila["total_line"],
-
-                            1
-
-                        )
-
-                    }
-
-                </div>
-
-                """,
-
-                unsafe_allow_html=True,
-
-            )
-
-
-
-        else:
-
-            st.info(
-
-                "La línea todavía no está disponible."
-
-            )
-
-
-
-        if pd.notna(fila["prob_pick"]):
-
-            probabilidad = float(
-
-                fila["prob_pick"]
-
-            )
-
-
-
-            st.progress(
-
-                min(max(probabilidad, 0), 1),
-
-                text=(
-
-                    "Probabilidad calibrada del pick: "
-
-                    f"{probabilidad:.2%}"
-
-                ),
-
-            )
-
-
-
-        detalles = st.columns(4)
-
-
-
-        detalles[0].write(
-
-            "**P(Over):** "
-
-            + formatear_porcentaje(
-
-                fila["prob_over"]
-
-            )
-
-        )
-
-
-
-        detalles[1].write(
-
-            "**P(Under):** "
-
-            + formatear_porcentaje(
-
-                fila["prob_under"]
-
-            )
-
-        )
-
-
-
-        detalles[2].write(
-
-            "**Momio:** "
-
-            + formatear_momio(
-
-                fila["odds_pick"]
-
-            )
-
-        )
-
-
-
-        detalles[3].write(
-
-            "**Modelo base:** "
-
-            + formatear_numero(
-
-                fila["pred_total_base"],
-
-                1,
-
-            )
-
-        )
-
-
-
-        lesiones_visitante = texto_seguro(
-
-            fila.get("away_key_injuries", "")
-
-        )
-
-        lesiones_local = texto_seguro(
-
-            fila.get("home_key_injuries", "")
-
-        )
-
-        nota_visitante = texto_seguro(
-
-            fila.get("away_prop_injury_note", "")
-
-        )
-
-        nota_local = texto_seguro(
-
-            fila.get("home_prop_injury_note", "")
-
-        )
-
-
-
-        if lesiones_visitante or lesiones_local:
-
-            with st.expander(
-
-                "🏥 Lesiones relevantes y contexto para props"
-
-            ):
-
-                if lesiones_visitante:
-
-                    st.markdown(
-
-                        f"**{fila['away_team']} (visitante):** "
-
-                        f"{lesiones_visitante}"
-
-                    )
-
-                    if nota_visitante:
-
-                        st.caption(nota_visitante)
-
-
-
-                if lesiones_local:
-
-                    st.markdown(
-
-                        f"**{fila['home_team']} (local):** "
-
-                        f"{lesiones_local}"
-
-                    )
-
-                    if nota_local:
-
-                        st.caption(nota_local)
-
-
-
-                st.info(
-
-                    "Estas alertas aportan contexto y todavía no modifican "
-
-                    "automáticamente la predicción del total."
-
-                )
-
-
-
-        if fila["estado"] == "PICK":
-
-            st.success(
-
-                "Supera el edge mínimo de 3 puntos "
-
-                "y presenta EV estimado positivo."
-
-            )
-
-
-
-        elif fila["estado"] == "NO PICK":
-
-            st.caption(
-
-                "No supera conjuntamente los filtros "
-
-                "de edge y valor esperado."
-
-            )
-
-
-
-
-
-# ==========================================================
-
-# BARRA LATERAL
-
-# ==========================================================
-
-st.sidebar.header("Configuración")
-
-
-
-if st.sidebar.button(
-
-    "🔄 Actualizar predicciones",
-
-    use_container_width=True,
-
-):
-
-    ejecutar_actualizacion()
-
-
-
-
-
-ruta_archivo = obtener_archivo_mas_reciente()
-
-
-
-if ruta_archivo is None:
-
-    st.warning(
-
-        "Todavía no existen predicciones. "
-
-        "Presiona «Actualizar predicciones»."
-
-    )
-
-    st.stop()
-
-
-
-
-
-df = cargar_predicciones(
-
-    str(ruta_archivo)
-
+vista = st.radio(
+    "Sección NFL",
+    ["🏈 Totales", "📊 Props de jugadores"],
+    horizontal=True,
+    label_visibility="collapsed",
+    key="nfl_vista_principal",
 )
 
+raiz = Path(__file__).resolve().parents[1]
 
-
-temporada = int(df["season"].max())
-
-semana = int(df["week"].max())
-
-
-
-st.sidebar.write(
-
-    f"**Temporada:** {temporada}"
-
-)
-
-
-
-st.sidebar.write(
-
-    f"**Semana:** {semana}"
-
-)
-
-
-
-estados_disponibles = [
-
-    "Todos",
-
-    "PICK",
-
-    "NO PICK",
-
-    "SIN LÍNEA",
-
-]
-
-
-
-filtro_estado = st.sidebar.selectbox(
-
-    "Estado",
-
-    estados_disponibles,
-
-)
-
-
-
-equipos = sorted(
-
-    set(df["away_team"].dropna())
-
-    | set(df["home_team"].dropna())
-
-)
-
-
-
-filtro_equipo = st.sidebar.selectbox(
-
-    "Equipo",
-
-    ["Todos"] + equipos,
-
-)
-
-
-
-orden = st.sidebar.selectbox(
-
-    "Ordenar por",
-
-    [
-
-        "Mayor EV",
-
-        "Mayor edge",
-
-        "Fecha",
-
-    ],
-
-)
-
-
-
-
-
-# ==========================================================
-
-# FILTROS
-
-# ==========================================================
-
-filtrado = df.copy()
-
-
-
-if filtro_estado != "Todos":
-
-    filtrado = filtrado[
-
-        filtrado["estado"] == filtro_estado
-
-    ]
-
-
-
-if filtro_equipo != "Todos":
-
-    filtrado = filtrado[
-
-        (filtrado["away_team"] == filtro_equipo)
-
-        | (filtrado["home_team"] == filtro_equipo)
-
-    ]
-
-
-
-if orden == "Mayor EV":
-
-    filtrado = filtrado.sort_values(
-
-        "ev",
-
-        ascending=False,
-
-        na_position="last",
-
-    )
-
-
-
-elif orden == "Mayor edge":
-
-    filtrado = filtrado.sort_values(
-
-        "edge_absoluto",
-
-        ascending=False,
-
-        na_position="last",
-
-    )
-
-
-
-else:
-
-    filtrado = filtrado.sort_values(
-
-        ["gameday", "away_team"],
-
-        ascending=True,
-
-    )
-
-
-
-
-
-# ==========================================================
-
-# RESUMEN
-
-# ==========================================================
-
-cantidad_partidos = len(df)
-
-
-
-picks = df[
-
-    df["estado"] == "PICK"
-
-].copy()
-
-
-
-probabilidad_media = (
-
-    picks["prob_pick"].mean()
-
-    if not picks.empty
-
-    else np.nan
-
-)
-
-
-
-ev_medio = (
-
-    picks["ev"].mean()
-
-    if not picks.empty
-
-    else np.nan
-
-)
-
-
-
-mayor_edge = (
-
-    picks["edge_absoluto"].max()
-
-    if not picks.empty
-
-    else np.nan
-
-)
-
-
-
-resumen = st.columns(4)
-
-
-
-resumen[0].metric(
-
-    "Partidos",
-
-    cantidad_partidos,
-
-)
-
-
-
-resumen[1].metric(
-
-    "Picks",
-
-    len(picks),
-
-)
-
-
-
-resumen[2].metric(
-
-    "Probabilidad media",
-
-    formatear_porcentaje(
-
-        probabilidad_media
-
-    ),
-
-)
-
-
-
-resumen[3].metric(
-
-    "Mayor edge",
-
-    formatear_numero(
-
-        mayor_edge,
-
-        2,
-
-    ),
-
-)
-
-
-
-
-
-# ==========================================================
-
-# PESTAÑAS
-
-# ==========================================================
-
-tab_picks, tab_todos, tab_metodo = st.tabs(
-
-    [
-
-        "🔥 Picks filtrados",
-
-        "📋 Todos los partidos",
-
-        "🧠 Metodología",
-
-    ]
-
-)
-
-
-
-
-
-with tab_picks:
-
-    st.subheader(
-
-        f"Semana {semana}: oportunidades detectadas"
-
-    )
-
-
-
-    if picks.empty:
-
-        st.info(
-
-            "No existen picks que superen "
-
-            "los filtros actuales."
-
-        )
-
-
-
-    else:
-
-        picks_ordenados = picks.sort_values(
-
-            "ev",
-
-            ascending=False,
-
-        )
-
-
-
-        for _, fila in picks_ordenados.iterrows():
-
-            mostrar_partido(fila)
-
-
-
-
-
-with tab_todos:
-
-    st.subheader("Calendario analizado")
-
-
-
-    st.caption(
-
-        f"Mostrando {len(filtrado)} partidos."
-
-    )
-
-
-
-    for _, fila in filtrado.iterrows():
-
-        mostrar_partido(fila)
-
-
-
-
-
-with tab_metodo:
-
-    st.subheader("Configuración congelada")
-
-
-
+if vista == "🏈 Totales":
     st.markdown(
-
         """
-
-        - **Entrenamiento:** temporadas 2012–2023.
-
-        - **Calibración:** temporada 2024.
-
-        - **Confirmación:** temporada 2025.
-
-        - **Evaluación OOS:** temporada 2026.
-
-        - **Modelo:** HistGradientBoostingRegressor.
-
-        - **Mercado:** total de puntos Over/Under.
-
-        - **Edge mínimo:** 3 puntos.
-
-        - **Filtro adicional:** EV estimado positivo.
-
-        """
-
+        <div class="nfl-view-hero">
+            <div>
+                <div class="nfl-eyebrow">MODELO DE PARTIDO</div>
+                <h1>Totales NFL</h1>
+                <div class="nfl-subtitle">Over/Under, probabilidad calibrada, edge y valor esperado.</div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
-
-
-
-    st.warning(
-
-        "Las probabilidades son estimaciones, no garantías. "
-
-        "Las lesiones se muestran como contexto para props, pero no "
-
-        "modifican automáticamente el total porque no mejoraron la "
-
-        "validación histórica. Esta versión todavía no incorpora "
-
-        "EPA play-by-play ni confirmación de alineaciones."
-
+    runpy.run_path(
+        str(raiz / "nfl" / "ui_totales.py"),
+        run_name="nfl_totales_ui",
     )
-
-
-
-    st.write(
-
-        f"Archivo utilizado: `{ruta_archivo.name}`"
-
+else:
+    runpy.run_path(
+        str(raiz / "nfl" / "ui_props.py"),
+        run_name="nfl_props_ui",
     )
-
-
-
-
-
-# ==========================================================
-
-# DESCARGA
-
-# ==========================================================
-
-st.divider()
-
-
-
-csv_descarga = df.to_csv(
-
-    index=False
-
-).encode("utf-8")
-
-
-
-st.download_button(
-
-    "⬇️ Descargar predicciones CSV",
-
-    data=csv_descarga,
-
-    file_name=ruta_archivo.name,
-
-    mime="text/csv",
-
-)

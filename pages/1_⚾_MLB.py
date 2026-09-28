@@ -1,4 +1,5 @@
 import os
+import html
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -17,9 +18,381 @@ ZONA_MX = ZoneInfo("America/Mazatlan")
 def hoy_mx():
     return datetime.now(ZONA_MX).date()
 
-st.set_page_config(page_title="MLB AI Dashboard V4.0", page_icon="🤖", layout="wide")
-st.title("🤖 MLB Oráculo V4.0: Deep Analytics")
-st.markdown("Edge Matemático + Fatiga de Viaje + Splits vs Zurdos/Derechos + Estado del Bullpen.")
+st.set_page_config(page_title="MLB Oráculo", page_icon="⚾", layout="wide")
+
+st.markdown(
+    """
+    <style>
+    [data-testid="stAppViewContainer"] {
+        background:
+            radial-gradient(circle at 85% 0%, rgba(183,255,60,.055), transparent 28rem),
+            #080c13;
+        color: #eef3f8;
+    }
+    [data-testid="stHeader"] { background: transparent; }
+    .block-container {
+        max-width: 1480px;
+        padding-top: 1.15rem;
+        padding-bottom: 2.5rem;
+    }
+    [data-testid="stSidebar"] {
+        background: #0d131d;
+        border-right: 1px solid #202938;
+    }
+    .mlb-shell {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: .78rem .95rem;
+        border: 1px solid #202938;
+        border-radius: 13px;
+        background: #111720;
+        margin-bottom: .75rem;
+    }
+    .mlb-brand {
+        display: flex;
+        align-items: center;
+        gap: .65rem;
+        font-weight: 800;
+        letter-spacing: .02em;
+    }
+    .mlb-logo {
+        width: 34px;
+        height: 34px;
+        display: inline-grid;
+        place-items: center;
+        border-radius: 10px;
+        background: #b7ff3c;
+        color: #071006;
+        font-weight: 900;
+    }
+    .mlb-accent { color: #b7ff3c; }
+    .mlb-status { color: #8e99a9; font-size: .78rem; }
+    .mlb-hero {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        gap: 1rem;
+        margin: 1.1rem 0 1.25rem;
+    }
+    .mlb-eyebrow {
+        color: #b7ff3c;
+        font-size: .72rem;
+        font-weight: 850;
+        letter-spacing: .12em;
+    }
+    .mlb-hero h1 {
+        margin: .22rem 0 .2rem;
+        color: #f5f8fb;
+        font-size: clamp(1.9rem, 3.2vw, 2.65rem);
+    }
+    .mlb-subtitle { color: #8994a5; font-size: .9rem; }
+    .mlb-live {
+        display: inline-flex;
+        align-items: center;
+        gap: .45rem;
+        padding: .42rem .7rem;
+        border: 1px solid #263143;
+        border-radius: 999px;
+        background: #111720;
+        color: #b8c2cf;
+        font-size: .75rem;
+        white-space: nowrap;
+    }
+    .mlb-live-dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #b7ff3c;
+        box-shadow: 0 0 0 4px rgba(183,255,60,.1);
+    }
+    div[role="radiogroup"] {
+        display: flex;
+        gap: .4rem;
+        width: fit-content;
+        max-width: 100%;
+        padding: .35rem;
+        margin-bottom: 1rem;
+        border: 1px solid #202938;
+        border-radius: 11px;
+        background: #0d131d;
+    }
+    div[role="radiogroup"] label {
+        flex: 1;
+        justify-content: center;
+        padding: .42rem .8rem;
+        border-radius: 8px;
+    }
+    div[role="radiogroup"] label:has(input:checked) {
+        background: #b7ff3c;
+        color: #071006;
+        font-weight: 850;
+    }
+    div[data-testid="stMetric"] {
+        background: #111720;
+        border: 1px solid #202938;
+        border-radius: 11px;
+        padding: .78rem .9rem;
+    }
+    div[data-testid="stMetric"] label { color: #8994a5; }
+    div[data-testid="stMetricValue"] { color: #f4f7fb; }
+    .mlb-pick-card, .mlb-best-card, .mlb-roi-card {
+        position: relative;
+        overflow: hidden;
+        min-height: 100%;
+        padding: 1rem;
+        border: 1px solid #263143;
+        border-radius: 12px;
+        background: linear-gradient(145deg, #121a25, #0e141e);
+        box-shadow: 0 12px 28px rgba(0,0,0,.13);
+    }
+    .mlb-pick-card::before, .mlb-best-card::before, .mlb-roi-card::before {
+        content: "";
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 4px;
+        background: #b7ff3c;
+    }
+    .mlb-card-kicker {
+        color: #b7ff3c;
+        font-size: .64rem;
+        font-weight: 850;
+        letter-spacing: .1em;
+    }
+    .mlb-card-title {
+        margin-top: .25rem;
+        color: #f5f8fb;
+        font-size: 1.08rem;
+        font-weight: 850;
+    }
+    .mlb-card-meta { margin-top: .22rem; color: #8e99a9; font-size: .76rem; }
+    .mlb-pick-line {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: .7rem;
+        margin: .9rem 0;
+    }
+    .mlb-pick-name { color: #fff; font-size: 1.12rem; font-weight: 900; }
+    .mlb-odds {
+        padding: .27rem .48rem;
+        border-radius: 7px;
+        background: #1b2431;
+        color: #b7ff3c;
+        font-size: .75rem;
+        font-weight: 850;
+    }
+    .mlb-card-values {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: .55rem;
+        padding-top: .75rem;
+        border-top: 1px solid #263143;
+    }
+    .mlb-value-label {
+        display: block;
+        color: #748095;
+        font-size: .59rem;
+        font-weight: 800;
+        letter-spacing: .07em;
+    }
+    .mlb-value {
+        display: block;
+        margin-top: .18rem;
+        color: #eef3f8;
+        font-size: .84rem;
+        font-weight: 750;
+    }
+    .mlb-confidence {
+        height: 5px;
+        overflow: hidden;
+        margin-top: .8rem;
+        border-radius: 999px;
+        background: #253040;
+    }
+    .mlb-confidence span { display: block; height: 100%; background: #b7ff3c; }
+    .mlb-audit-card {
+        position: relative;
+        overflow: hidden;
+        min-height: 100%;
+        padding: .9rem 1rem;
+        border: 1px solid #263143;
+        border-radius: 12px;
+        background: #111720;
+    }
+    .mlb-audit-card::before {
+        content: "";
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 4px;
+        background: #b7ff3c;
+    }
+    .mlb-audit-card.lost::before { background: #ff5d68; }
+    .mlb-audit-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: .7rem;
+    }
+    .mlb-audit-date { color: #8994a5; font-size: .7rem; font-weight: 750; }
+    .mlb-result-badge {
+        padding: .22rem .5rem;
+        border-radius: 999px;
+        background: #183825;
+        color: #b7ff3c;
+        font-size: .65rem;
+        font-weight: 850;
+    }
+    .mlb-result-badge.lost { background: #3b1d25; color: #ff7881; }
+    .mlb-audit-match {
+        margin-top: .55rem;
+        color: #f2f6fa;
+        font-size: .9rem;
+        font-weight: 800;
+    }
+    .mlb-audit-pick { margin-top: .18rem; color: #a7b2c2; font-size: .76rem; }
+    .mlb-audit-values {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: .45rem;
+        margin-top: .7rem;
+        padding-top: .65rem;
+        border-top: 1px solid #263143;
+    }
+    .mlb-profit-positive { color: #b7ff3c; }
+    .mlb-profit-negative { color: #ff7881; }
+    .mlb-empty {
+        padding: 1.25rem;
+        border: 1px dashed #334054;
+        border-radius: 12px;
+        background: #0f151e;
+        color: #8994a5;
+        text-align: center;
+    }
+    [data-testid="stDataFrame"] {
+        overflow: hidden;
+        border: 1px solid #263143;
+        border-radius: 12px;
+    }
+    .stButton button, .stDownloadButton button, .stFormSubmitButton button {
+        border: 1px solid #b7ff3c !important;
+        border-radius: 9px !important;
+        background: #111720 !important;
+        color: #b7ff3c !important;
+        font-weight: 800 !important;
+    }
+    .stButton button:hover, .stDownloadButton button:hover,
+    .stFormSubmitButton button:hover {
+        background: #b7ff3c !important;
+        color: #071006 !important;
+    }
+    [data-testid="stSlider"] [role="slider"] {
+        border-color: #b7ff3c !important;
+        background: #b7ff3c !important;
+    }
+    [data-testid="stSlider"] [data-baseweb="slider"] > div > div {
+        background-color: #b7ff3c !important;
+    }
+    div[data-testid="stSelectbox"] div[data-baseweb="select"] > div,
+    div[data-baseweb="select"] > div {
+        border: 1px solid #b7ff3c !important;
+        border-radius: 10px !important;
+        background: #111720 !important;
+        color: #eef3f8 !important;
+        box-shadow: 0 0 0 1px rgba(183,255,60,.08) !important;
+    }
+    div[data-baseweb="select"] svg { fill: #b7ff3c !important; }
+    [role="option"]:hover, [role="option"][aria-selected="true"] {
+        background: #b7ff3c !important;
+        color: #071006 !important;
+        font-weight: 800 !important;
+    }
+    @media (max-width: 760px) {
+        .mlb-status { display: none; }
+        .mlb-hero { align-items: flex-start; flex-direction: column; }
+        .mlb-card-values { grid-template-columns: 1fr 1fr; }
+    }
+    </style>
+    <div class="mlb-shell">
+        <div class="mlb-brand">
+            <span class="mlb-logo">O</span>
+            <span>ORACLE <span class="mlb-accent">MLB</span></span>
+        </div>
+        <div class="mlb-status">MONEYLINE · TOTALES · ABRIDORES · RENDIMIENTO</div>
+    </div>
+    <div class="mlb-hero">
+        <div>
+            <div class="mlb-eyebrow">MODELO + MERCADO + CONTEXTO</div>
+            <h1>MLB Oráculo</h1>
+            <div class="mlb-subtitle">Edge matemático, fatiga de viaje, splits, abridores y bullpen.</div>
+        </div>
+        <div class="mlb-live"><span class="mlb-live-dot"></span>Modelo V4.0 operativo</div>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
+
+def html_seguro(valor):
+    return html.escape(str(valor))
+
+
+def mostrar_pick_mlb(fila):
+    confianza = float(fila["Confianza (%)"])
+    confianza_total = float(fila["Confianza O/U (%)"])
+    cuota = float(fila["Paga del Favorito"])
+    st.markdown(
+        f"""
+        <div class="mlb-pick-card">
+            <div class="mlb-card-kicker">PRONÓSTICO MLB</div>
+            <div class="mlb-card-title">{html_seguro(fila['Partido'])}</div>
+            <div class="mlb-card-meta">Abridores: {html_seguro(fila['Abridores'])}</div>
+            <div class="mlb-pick-line">
+                <span class="mlb-pick-name">{html_seguro(fila['Pick de la IA'])}</span>
+                <span class="mlb-odds">{cuota:.2f}</span>
+            </div>
+            <div class="mlb-card-values">
+                <div><span class="mlb-value-label">CONFIANZA</span><span class="mlb-value">{confianza:.1f}%</span></div>
+                <div><span class="mlb-value-label">TOTAL</span><span class="mlb-value">{html_seguro(fila['Pick Totales'])}</span></div>
+                <div><span class="mlb-value-label">CONFIANZA O/U</span><span class="mlb-value">{confianza_total:.1f}%</span></div>
+            </div>
+            <div class="mlb-confidence"><span style="width:{min(max(confianza, 0), 100):.1f}%"></span></div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def mostrar_registro_auditoria(fila):
+    resultado = str(fila["Resultado"])
+    ganada = "Ganada" in resultado
+    clase = "won" if ganada else "lost"
+    etiqueta = "GANADA" if ganada else "PERDIDA"
+    profit = float(fila["Profit ($)"])
+    clase_profit = (
+        "mlb-profit-positive" if profit >= 0 else "mlb-profit-negative"
+    )
+    fecha = pd.to_datetime(fila["Fecha"]).strftime("%d/%m/%Y")
+    st.markdown(
+        f"""
+        <div class="mlb-audit-card {clase}">
+            <div class="mlb-audit-head">
+                <span class="mlb-audit-date">{fecha}</span>
+                <span class="mlb-result-badge {clase}">{etiqueta}</span>
+            </div>
+            <div class="mlb-audit-match">{html_seguro(fila['Partido'])}</div>
+            <div class="mlb-audit-pick">Pick: {html_seguro(fila['Pick de la IA'])}</div>
+            <div class="mlb-audit-values">
+                <div><span class="mlb-value-label">CONFIANZA</span><span class="mlb-value">{float(fila['Confianza (%)']):.1f}%</span></div>
+                <div><span class="mlb-value-label">STAKE</span><span class="mlb-value">${float(fila['Stake ($)']):,.0f}</span></div>
+                <div><span class="mlb-value-label">CUOTA</span><span class="mlb-value">{float(fila['Cuota']):.2f}</span></div>
+                <div><span class="mlb-value-label">PROFIT</span><span class="mlb-value {clase_profit}">${profit:+,.0f}</span></div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 # ==========================================================
 # 1. CARGAR LA INTELIGENCIA ARTIFICIAL V4.0
@@ -402,16 +775,20 @@ df = cargar_datos_hoy()
 if not df.empty: df = df.drop_duplicates(subset=['Equipo Local', 'Equipo Visitante']).reset_index(drop=True)
 
 if not df.empty and modelo is not None:
-    st.success("✅ Oráculo V4.0 en línea. Procesando Fatiga, Splits y Bullpen...")
-
     df_csv_estatico = pd.read_csv('mlb_dataset_ia.csv')
     df_pasado = cargar_historial_xampp()
     df_hist = fusionar_historiales(df_csv_estatico, df_pasado)
     df_metricas_adv = cargar_metricas_avanzadas()
 
-    tab1, tab2 = st.tabs(["🔮 Picks de Hoy", "💰 Tracker de ROI"])
+    vista_mlb = st.radio(
+        "Sección MLB",
+        ["⚾ Picks de hoy", "📈 Rendimiento"],
+        horizontal=True,
+        label_visibility="collapsed",
+        key="mlb_vista_principal",
+    )
 
-    with tab1:
+    if vista_mlb == "⚾ Picks de hoy":
         resultados = []
         for i in range(len(df)):
             local_api = df.loc[i, 'Equipo Local']
@@ -518,31 +895,86 @@ if not df.empty and modelo is not None:
 
         df_resultados = df_resultados.sort_values(by="Confianza (%)", ascending=False).reset_index(drop=True)
 
-        st.markdown("---")
-        st.markdown("### 🔥 El Pick Más Fuerte del Día")
         mejor_pick = df_resultados.loc[0]
-        st.info(f"**{mejor_pick['Pick de la IA']}** ganando su partido de **{mejor_pick['Partido']}** (Confianza: {mejor_pick['Confianza (%)']:.1f}%) | Cuota: {mejor_pick['Paga del Favorito']:.2f}")
+        metricas_hoy = st.columns(4)
+        metricas_hoy[0].metric("Partidos", len(df_resultados))
+        metricas_hoy[1].metric(
+            "Mejor pick", str(mejor_pick["Pick de la IA"])
+        )
+        metricas_hoy[2].metric(
+            "Confianza máxima", f"{mejor_pick['Confianza (%)']:.1f}%"
+        )
+        metricas_hoy[3].metric(
+            "Cuota", f"{float(mejor_pick['Paga del Favorito']):.2f}"
+        )
 
-        st.markdown("---")
-        st.markdown("### 📊 Tabla de Predicciones Generales")
+        st.subheader("🔥 Pick más fuerte del día")
+        st.markdown(
+            f"""
+            <div class="mlb-best-card">
+                <div class="mlb-card-kicker">SELECCIÓN PRINCIPAL</div>
+                <div class="mlb-card-title">{html_seguro(mejor_pick['Pick de la IA'])}</div>
+                <div class="mlb-card-meta">{html_seguro(mejor_pick['Partido'])} · Confianza {float(mejor_pick['Confianza (%)']):.1f}% · Cuota {float(mejor_pick['Paga del Favorito']):.2f}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
-        filtro_hoy = st.slider("Ocultar partidos basura. Mostrar solo confianza mayor a:", 50.0, 90.0, 74.0, 1.0, key="slider_hoy")
+        st.subheader("Pronósticos del día")
+
+        columna_filtro, columna_ayuda = st.columns([1, 3], gap="medium")
+        with columna_filtro:
+            filtro_hoy = st.selectbox(
+                "Confianza mínima",
+                options=list(range(50, 91)),
+                index=24,
+                format_func=lambda valor: f"{valor}%",
+                key="filtro_confianza_hoy",
+            )
+        with columna_ayuda:
+            st.caption(
+                "Aumenta el porcentaje para mostrar solamente los "
+                "pronósticos de mayor confianza."
+            )
         df_filtrado = df_resultados[df_resultados['Confianza (%)'] >= filtro_hoy]
 
         if not df_filtrado.empty:
-            st.dataframe(
-                df_filtrado.style
-                .bar(subset=['Confianza (%)', 'Confianza O/U (%)'], color='#4CAF50', vmin=50, vmax=100)
-                .format({"Confianza (%)": "{:.1f}%", "Confianza O/U (%)": "{:.1f}%", "Paga del Favorito": "{:.2f}"}),
-                use_container_width=True, hide_index=True
-            )
+            filas_picks = list(df_filtrado.iterrows())
+            for inicio in range(0, len(filas_picks), 2):
+                columnas_picks = st.columns(2, gap="medium")
+                for columna, (_, fila) in zip(
+                    columnas_picks, filas_picks[inicio:inicio + 2]
+                ):
+                    with columna:
+                        mostrar_pick_mlb(fila)
         else:
-            st.warning("📉 El Oráculo ha hablado: Hoy no hay ningún partido que supere tu filtro de confianza.")
+            st.markdown(
+                '<div class="mlb-empty">No hay pronósticos que superen '
+                'el filtro de confianza seleccionado.</div>',
+                unsafe_allow_html=True,
+            )
 
-    with tab2:
-        st.markdown("### 💵 Rendimiento Histórico Exacto (V4.0)")
+    if vista_mlb == "📈 Rendimiento":
+        st.subheader("Rendimiento histórico")
+        st.caption(
+            "Simulación basada en los picks y cuotas registrados antes "
+            "de cada partido."
+        )
 
-        filtro_confianza = st.slider("Solo apostar si la confianza de la IA es mayor a:", 50.0, 95.0, 63.0, 1.0, key="slider_roi")
+        columna_filtro, columna_ayuda = st.columns([1, 3], gap="medium")
+        with columna_filtro:
+            filtro_confianza = st.selectbox(
+                "Confianza mínima para evaluar",
+                options=list(range(50, 96)),
+                index=13,
+                format_func=lambda valor: f"{valor}%",
+                key="filtro_confianza_roi",
+            )
+        with columna_ayuda:
+            st.caption(
+                "El ROI, el profit y el bankroll se recalculan con el "
+                "umbral seleccionado."
+            )
         df_pasado = cargar_historial_xampp()
         
         # NUEVO: registro_picks_ia = la confianza que Tab 1 ya calculó y guardó.
@@ -650,7 +1082,7 @@ if not df.empty and modelo is not None:
             df_todas = pd.DataFrame(registros_completos)
 
             # 2. 🔥 LA MAGIA: EL ESCÁNER DE ROI ÓPTIMO
-            if st.button("🔍 Escanear el Mejor ROI Automáticamente"):
+            if st.button("🔍 Encontrar mejor umbral de ROI"):
                 mejores_escenarios = []
                 # Va a iterar desde el 50% al 95% de confianza probando los números
                 for t in np.arange(50.0, 95.0, 0.5):
@@ -664,10 +1096,17 @@ if not df.empty and modelo is not None:
                 if mejores_escenarios:
                     df_optimo = pd.DataFrame(mejores_escenarios)
                     mejor_escenario = df_optimo.loc[df_optimo['ROI (%)'].idxmax()]
-                    st.success(f"🏆 **¡Punto Dulce Encontrado!** Pon tu slider en **{mejor_escenario['Confianza Mínima']}%** para maximizar tu ganancia. Eso te da un ROI histórico brutal del **{mejor_escenario['ROI (%)']:.2f}%** en {int(mejor_escenario['Apuestas Realizadas'])} apuestas.")
+                    st.markdown(
+                        f"""
+                        <div class="mlb-roi-card">
+                            <div class="mlb-card-kicker">MEJOR UMBRAL HISTÓRICO</div>
+                            <div class="mlb-card-title">Confianza mínima: {float(mejor_escenario['Confianza Mínima']):.1f}%</div>
+                            <div class="mlb-card-meta">ROI {float(mejor_escenario['ROI (%)']):.2f}% en {int(mejor_escenario['Apuestas Realizadas'])} apuestas simuladas.</div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
                     st.line_chart(df_optimo.set_index('Confianza Mínima')['ROI (%)'], use_container_width=True)
-            
-            st.markdown("---")
 
             # 3. FILTRADO FINAL Y GRÁFICAS (Usando tu Slider)
             df_filtrado = df_todas[df_todas['Confianza (%)'] >= filtro_confianza]
@@ -677,24 +1116,128 @@ if not df.empty and modelo is not None:
             ganancia_neta = df_filtrado['Profit ($)'].sum() if apuestas_realizadas > 0 else 0
             roi = (ganancia_neta / inversion_total) * 100 if inversion_total > 0 else 0
 
-            col1, col2, col3 = st.columns(3)
+            col1, col2, col3, col4 = st.columns(4)
             col1.metric("Apuestas Realizadas", f"{apuestas_realizadas} de {len(df_pasado)}")
             col2.metric("Inversión Simulada", f"${inversion_total:,.2f}")
-            col3.metric("Profit Neto", f"${ganancia_neta:,.2f}", f"ROI: {roi:.2f}%")
+            col3.metric("Profit Neto", f"${ganancia_neta:,.2f}")
+            col4.metric("ROI", f"{roi:.2f}%")
 
-            st.markdown("#### 📈 Crecimiento del Bankroll")
+            st.subheader("Crecimiento del bankroll")
             if apuestas_realizadas > 0:
                 df_filtrado = df_filtrado.sort_values(by="Fecha").reset_index(drop=True)
                 historial_banco = [0] + df_filtrado['Profit ($)'].cumsum().tolist()
-                st.area_chart(historial_banco, color="#4CAF50")
+                st.area_chart(historial_banco, color="#b7ff3c")
             else:
-                st.warning("📉 Ningún partido histórico alcanzó esa confianza.")
+                st.markdown(
+                    '<div class="mlb-empty">Ningún partido histórico '
+                    'alcanzó esa confianza.</div>',
+                    unsafe_allow_html=True,
+                )
 
-            st.markdown("---")
-            st.markdown("#### 📋 Libro de Auditoría: Detalle de Apuestas Realizadas")
-            if apuestas_realizadas > 0:
-                df_filtrado['Fecha'] = pd.to_datetime(df_filtrado['Fecha']).dt.date
-                st.dataframe(df_filtrado, use_container_width=True, hide_index=True)
+            st.subheader("Libro de auditoría")
+            st.caption("Detalle de las apuestas incluidas en el cálculo.")
+            if not df_todas.empty:
+                auditoria_base = df_todas.copy()
+                auditoria_base['Fecha'] = pd.to_datetime(
+                    auditoria_base['Fecha']
+                )
+                auditoria_base = auditoria_base.sort_values(
+                    "Fecha", ascending=False
+                ).reset_index(drop=True)
+
+                fechas_disponibles = sorted(
+                    auditoria_base["Fecha"].dt.date.unique(),
+                    reverse=True,
+                )
+                controles_auditoria = st.columns(
+                    [1.25, 1.25, 1, 1.65], gap="medium"
+                )
+                with controles_auditoria[0]:
+                    fecha_auditoria = st.selectbox(
+                        "Fecha",
+                        ["Todas las fechas"] + fechas_disponibles,
+                        format_func=lambda valor: (
+                            valor
+                            if isinstance(valor, str)
+                            else valor.strftime("%d/%m/%Y")
+                        ),
+                        key="fecha_auditoria_mlb",
+                    )
+                with controles_auditoria[1]:
+                    confianza_auditoria = st.selectbox(
+                        "Confianza mínima",
+                        ["Umbral del ROI"] + list(range(50, 100)),
+                        format_func=lambda valor: (
+                            valor
+                            if isinstance(valor, str)
+                            else f"{valor}%"
+                        ),
+                        key="confianza_auditoria_mlb",
+                    )
+                with controles_auditoria[2]:
+                    limite_auditoria = st.selectbox(
+                        "Registros a mostrar",
+                        [10, 20, 50, "Todos"],
+                        index=1,
+                        key="limite_auditoria_mlb",
+                    )
+                auditoria_filtrada = auditoria_base.copy()
+                if fecha_auditoria != "Todas las fechas":
+                    auditoria_filtrada = auditoria_filtrada[
+                        auditoria_filtrada["Fecha"].dt.date
+                        == fecha_auditoria
+                    ]
+
+                umbral_auditoria = (
+                    float(filtro_confianza)
+                    if confianza_auditoria == "Umbral del ROI"
+                    else float(confianza_auditoria)
+                )
+                auditoria_filtrada = auditoria_filtrada[
+                    auditoria_filtrada["Confianza (%)"]
+                    >= umbral_auditoria
+                ].reset_index(drop=True)
+
+                with controles_auditoria[3]:
+                    csv_auditoria = auditoria_filtrada.assign(
+                        Fecha=auditoria_filtrada["Fecha"].dt.date
+                    ).to_csv(index=False).encode("utf-8")
+                    st.download_button(
+                        "⬇️ Descargar resultados filtrados",
+                        data=csv_auditoria,
+                        file_name="auditoria_picks_mlb_filtrada.csv",
+                        mime="text/csv",
+                        disabled=auditoria_filtrada.empty,
+                    )
+
+                st.caption(
+                    f"{len(auditoria_filtrada)} registros encontrados "
+                    f"con confianza mínima de {umbral_auditoria:.0f}%."
+                )
+
+                if limite_auditoria == "Todos":
+                    auditoria_visible = auditoria_filtrada
+                else:
+                    auditoria_visible = auditoria_filtrada.head(
+                        int(limite_auditoria)
+                    )
+
+                filas_auditoria = list(auditoria_visible.iterrows())
+                if not filas_auditoria:
+                    st.markdown(
+                        '<div class="mlb-empty">No existen partidos que '
+                        'coincidan con los filtros seleccionados.</div>',
+                        unsafe_allow_html=True,
+                    )
+                else:
+                    for inicio in range(0, len(filas_auditoria), 2):
+                        columnas_auditoria = st.columns(2, gap="medium")
+                        for columna, (_, fila) in zip(
+                            columnas_auditoria,
+                            filas_auditoria[inicio:inicio + 2],
+                        ):
+                            with columna:
+                                mostrar_registro_auditoria(fila)
         else:
             st.info("⏳ Aún no hay partidos terminados en la base de datos para generar el ROI histórico.")
 else:
