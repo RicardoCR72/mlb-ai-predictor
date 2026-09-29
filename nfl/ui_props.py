@@ -498,6 +498,31 @@ def texto_seguro(valor, defecto="N/D"):
     return str(valor).strip()
 
 
+def calcular_beneficio_unidades(fila):
+    """Calcula una unidad arriesgada cuando MySQL no guardó el beneficio."""
+    beneficio = pd.to_numeric(
+        pd.Series([fila.get("beneficio_unidades")]), errors="coerce"
+    ).iloc[0]
+    if pd.notna(beneficio):
+        return float(beneficio)
+
+    resultado = texto_seguro(fila.get("resultado_pick")).upper()
+    if resultado == "PERDIDA":
+        return -1.0
+    if resultado == "PUSH":
+        return 0.0
+    if resultado != "GANADA":
+        return np.nan
+
+    cuota = pd.to_numeric(
+        pd.Series([fila.get("cuota_pick")]), errors="coerce"
+    ).iloc[0]
+    if pd.isna(cuota) or float(cuota) == 0:
+        return np.nan
+    cuota = float(cuota)
+    return cuota / 100.0 if cuota > 0 else 100.0 / abs(cuota)
+
+
 def html_seguro(valor, defecto="N/D"):
     return html.escape(texto_seguro(valor, defecto))
 
@@ -637,6 +662,18 @@ def cargar_props_mysql():
         valores = df[columna].dropna().abs()
         if not valores.empty and valores.median() > 1:
             df[columna] = df[columna] / 100.0
+
+    # Las proyecciones antiguas con alerta de lesión pueden tener resultado
+    # oficial y beneficio NULL. Se reconstruye desde el momio americano para
+    # que las tarjetas, las unidades acumuladas y el ROI sean consistentes.
+    faltan_unidades = (
+        df["beneficio_unidades"].isna()
+        & df["resultado_pick"].isin(["GANADA", "PERDIDA", "PUSH"])
+    )
+    if faltan_unidades.any():
+        df.loc[faltan_unidades, "beneficio_unidades"] = df.loc[
+            faltan_unidades
+        ].apply(calcular_beneficio_unidades, axis=1)
 
     df["edge_absoluto"] = df["edge"].abs()
     df["mercado"] = df["tipo_prop"].map(NOMBRES_MERCADOS).fillna(
