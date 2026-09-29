@@ -249,11 +249,20 @@ st.markdown(
         padding-top: .6rem;
         border-top: 1px solid #222d3e;
     }
+    .total-history-values {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: .45rem;
+        margin-top: .7rem;
+        padding-top: .6rem;
+        border-top: 1px solid #222d3e;
+    }
     .total-result-label { color: #798596; font-size: .58rem; }
     .total-result-value { display: block; color: #eef3f8; font-weight: 800; margin-top: .12rem; }
     @media (max-width: 850px) {
         .total-pick-card { min-height: auto; }
         .total-values { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .total-history-values { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
     </style>
     """,
@@ -547,6 +556,7 @@ def mostrar_resultado_total(fila):
         f"{fila.get('pick', 'N/D')} "
         f"{formatear_numero(fila.get('total_line'), 1)}"
     )
+    confianza_texto = formatear_porcentaje(fila.get("prob_pick"))
     st.markdown(
         f"""
         <div class="total-result-card{clase}">
@@ -557,9 +567,10 @@ def mostrar_resultado_total(fila):
                 </div>
                 <span class="total-result-badge{clase}">{html_seguro(resultado)}</span>
             </div>
-            <div class="total-result-values">
+            <div class="total-history-values">
                 <div><span class="total-result-label">SELECCIÓN</span><span class="total-result-value">{html_seguro(seleccion)}</span></div>
                 <div><span class="total-result-label">TOTAL REAL</span><span class="total-result-value">{html_seguro(formatear_numero(fila.get('total_real'), 1))}</span></div>
+                <div><span class="total-result-label">CONFIANZA</span><span class="total-result-value">{html_seguro(confianza_texto)}</span></div>
                 <div><span class="total-result-label">UNIDADES</span><span class="total-result-value">{html_seguro(unidades_texto)}</span></div>
             </div>
         </div>

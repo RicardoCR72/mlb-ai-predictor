@@ -406,7 +406,15 @@ st.markdown(
     }
     .result-badge.lost { background: #3b1d25; color: #ff7881; }
     .result-badge.push, .injury-badge { background: #3a2d16; color: #f6c761; }
-    .result-values, .market-result-values {
+    .result-values {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: .45rem;
+        margin-top: .7rem;
+        padding-top: .6rem;
+        border-top: 1px solid #222d3e;
+    }
+    .market-result-values {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: .45rem;
@@ -442,6 +450,7 @@ st.markdown(
         .oracle-nav { display: none; }
         .oracle-hero { align-items: flex-start; flex-direction: column; }
         .sports-pick { min-height: auto; }
+        .result-values { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
     </style>
     """,
@@ -846,6 +855,7 @@ def mostrar_resultado_prop(fila):
     unidades_texto = (
         "N/D" if pd.isna(unidades) else f"{float(unidades):+.2f} u"
     )
+    confianza_texto = formatear_porcentaje(fila.get("probabilidad_pick"))
     st.markdown(
         f"""
         <div class="result-card{clase}">
@@ -859,6 +869,7 @@ def mostrar_resultado_prop(fila):
             <div class="result-values">
                 <div><span class="result-label">SELECCIÓN</span><span class="result-value">{html_seguro(seleccion)}</span></div>
                 <div><span class="result-label">RESULTADO REAL</span><span class="result-value">{html_seguro(formatear_numero(fila.get('valor_real'), 1))}</span></div>
+                <div><span class="result-label">CONFIANZA</span><span class="result-value">{html_seguro(confianza_texto)}</span></div>
                 <div><span class="result-label">UNIDADES</span><span class="result-value">{html_seguro(unidades_texto)}</span></div>
             </div>
         </div>
