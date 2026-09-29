@@ -467,6 +467,11 @@ NOMBRES_MERCADOS = {
     "anytime_td": "Anota touchdown",
 }
 
+# Ambos estados representan selecciones publicadas por el modelo. Las que
+# requieren revisar una lesión se conservan en el historial con esa alerta,
+# para no eliminar retrospectivamente ni sus victorias ni sus derrotas.
+ESTADOS_APUESTA_EVALUABLE = ["CANDIDATO", "REVISAR LESION"]
+
 
 def formatear_numero(valor, decimales=2):
     if pd.isna(valor):
@@ -856,13 +861,18 @@ def mostrar_resultado_prop(fila):
         "N/D" if pd.isna(unidades) else f"{float(unidades):+.2f} u"
     )
     confianza_texto = formatear_porcentaje(fila.get("probabilidad_pick"))
+    origen_pick = (
+        "Alerta de lesión"
+        if texto_seguro(fila.get("estado_pick")) == "REVISAR LESION"
+        else "Pick oficial"
+    )
     st.markdown(
         f"""
         <div class="result-card{clase}">
             <div class="result-head">
                 <div>
                     <div class="result-title">{html_seguro(fila['player_name'])}</div>
-                    <div class="result-meta">{html_seguro(fila['mercado'])} · {html_seguro(fila['away_team'])} @ {html_seguro(fila['home_team'])} · {fecha}</div>
+                    <div class="result-meta">{html_seguro(fila['mercado'])} · {html_seguro(fila['away_team'])} @ {html_seguro(fila['home_team'])} · {fecha} · {html_seguro(origen_pick)}</div>
                 </div>
                 <span class="result-badge{clase}">{html_seguro(resultado)}</span>
             </div>
@@ -987,7 +997,7 @@ prob_media = candidatos["probabilidad_pick"].mean()
 
 # Resumen histórico para las tarjetas y el pulso de rendimiento.
 resultados_resumen = historico[
-    (historico["estado_pick"] == "CANDIDATO")
+    historico["estado_pick"].isin(ESTADOS_APUESTA_EVALUABLE)
     & historico["resultado_pick"].isin(["GANADA", "PERDIDA", "PUSH"])
 ].copy()
 resultados_resumen = (
@@ -1140,14 +1150,14 @@ if seccion_props == "🔥 Candidatos":
         )
 
 if seccion_props == "📈 Rendimiento":
-    st.subheader("Rendimiento de picks oficiales")
+    st.subheader("Rendimiento de picks publicados")
     st.caption(
-        "Solo incluye selecciones que fueron marcadas como CANDIDATO y "
+        "Incluye candidatos y selecciones publicadas con alerta de lesión "
         "que ya tienen resultado oficial. Una unidad se arriesga por pick."
     )
 
     resultados = historico[
-        (historico["estado_pick"] == "CANDIDATO")
+        historico["estado_pick"].isin(ESTADOS_APUESTA_EVALUABLE)
         & historico["resultado_pick"].isin(
             ["GANADA", "PERDIDA", "PUSH"]
         )
