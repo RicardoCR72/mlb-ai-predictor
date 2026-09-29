@@ -351,6 +351,20 @@ def preparar_features_adicionales(calendario, semana):
         & ~carrera["player_injury_status"].isin(["out", "doubtful"])
     ].copy()
 
+    # Identifica al corredor principal activo de cada equipo. Conservamos las
+    # proyecciones de todos los jugadores para análisis, pero únicamente un RB
+    # con volumen estable podrá convertirse posteriormente en candidato.
+    carrera["is_primary_rusher"] = 0
+    principales_elegibles = carrera[
+        carrera["position"].eq("RB")
+        & (carrera["player_carries_avg_5"] >= 10.0)
+    ]
+    if not principales_elegibles.empty:
+        indices_principales = principales_elegibles.groupby(
+            ["game_id", "team"]
+        )["player_carries_avg_5"].idxmax()
+        carrera.loc[indices_principales, "is_primary_rusher"] = 1
+
     print("Calculando features de anota touchdown...")
     touchdown = agregar_forma_jugador_td(preparar_base_td(combinadas))
     touchdown = agregar_contexto_equipo_td(touchdown)
@@ -384,6 +398,7 @@ def base_proyeccion(features):
         "game_id", "season", "week", "gameday", "player_id",
         "player_name", "position", "team", "opponent_team",
         "player_injury_status", "contexto_lesiones",
+        "player_carries_avg_5", "is_primary_rusher",
     ]
     base = features[[c for c in columnas if c in features.columns]].copy()
     if "player_injury_status" not in base:
@@ -736,13 +751,17 @@ def agregar_lineas_y_probabilidades(proyecciones, lineas):
         "receiving_yards": 10.0,
         "passing_yards": 25.0,
         "passing_tds": 0.35,
-        "rushing_yards": 10.0,
+        "rushing_yards": 20.0,
         "anytime_td": 0.05,
     }
     umbral = resultado["tipo_prop"].map(umbrales_edge).fillna(np.inf)
-    umbral_probabilidad = np.where(
-        resultado["tipo_prop"].eq("anytime_td"), 0.25, 0.57
+    es_rushing = resultado["tipo_prop"].eq("rushing_yards")
+    umbral_probabilidad = np.select(
+        [resultado["tipo_prop"].eq("anytime_td"), es_rushing],
+        [0.25, 0.62],
+        default=0.57,
     )
+    umbral_ev = np.where(es_rushing, 0.05, 0.0)
     cuota_maxima = np.where(
         resultado["tipo_prop"].eq("anytime_td"), 1000, 2500
     )
@@ -750,10 +769,39 @@ def agregar_lineas_y_probabilidades(proyecciones, lineas):
         resultado["linea"].notna()
         & (resultado["edge"].abs() >= umbral)
         & (resultado["probabilidad_pick"] >= umbral_probabilidad)
-        & (resultado["ev_estimado"] > 0)
+        & (resultado["ev_estimado"] > umbral_ev)
         & (resultado["cuota_pick"].abs() >= 100)
         & (resultado["cuota_pick"].abs() <= cuota_maxima)
     )
+
+    # Yardas terrestres: solamente el RB principal, con volumen reciente
+    # suficiente. Esto limita naturalmente a uno por equipo y dos por juego.
+    carries_promedio = pd.to_numeric(
+        resultado.get("player_carries_avg_5"), errors="coerce"
+    ).fillna(0.0)
+    principal = pd.to_numeric(
+        resultado.get("is_primary_rusher"), errors="coerce"
+    ).fillna(0).eq(1)
+    rushing_valido = (
+        resultado["position"].eq("RB")
+        & (carries_promedio >= 10.0)
+        & principal
+    )
+    candidato &= ~es_rushing | rushing_valido
+
+    # Candado adicional: aun con datos duplicados nunca publicar más de dos
+    # candidatos terrestres por partido.
+    indices_rushing = (
+        resultado.loc[candidato & es_rushing]
+        .sort_values(
+            ["game_id", "ev_estimado", "probabilidad_pick"],
+            ascending=[True, False, False],
+        )
+        .groupby("game_id", sort=False)
+        .head(2)
+        .index
+    )
+    candidato &= ~es_rushing | resultado.index.isin(indices_rushing)
     resultado.loc[candidato, "estado_pick"] = "CANDIDATO"
     revisar_lesion = candidato & resultado["player_injury_status"].eq(
         "questionable"
