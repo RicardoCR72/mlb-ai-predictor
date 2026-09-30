@@ -9,6 +9,8 @@ from mlb_totales.mercado import calendar,match,MX
 from mlb_totales.predecir_pitcheo import predict
 from mlb_totales.portable import load
 from mlb_totales import registro
+from mlb_totales.casa_base import only_base
+from mlb_totales.tarjetas_totales import render_cards
 
 ROOT=Path(__file__).resolve().parent/'modelos_pitcheo'
 
@@ -45,7 +47,7 @@ def render_picks(connect):
     if col3.button('Actualizar calendario y líneas',key='mlb_totales_refresh'):
         cached_calendar.clear();cached_predict.clear();st.rerun()
     st.caption('Selecciona otra fecha para consultar los partidos de mañana. '
-               'El EV utiliza la línea y ambas cuotas de una misma casa.')
+               'Casa base: DraftKings. El EV utiliza su línea y sus cuotas OVER/UNDER.')
     connection=None
     try:
         connection=connect()
@@ -53,18 +55,14 @@ def render_picks(connect):
             games=cached_calendar(str(day))
             if games.empty:
                 st.info('No hay partidos pendientes para esta fecha.');return
-            quotes=registro.quote_rows(connection,day)
+            quotes=only_base(registro.quote_rows(connection,day))
             zone=str(st.secrets.get('mlb_odds_capture_timezone','America/Mazatlan'))
             aligned=match(games,quotes,max_age_minutes=int(max_age),quote_timezone=zone)
             if aligned.empty:
                 st.info('Los partidos de esta fecha ya comenzaron.');return
-            houses=sorted(aligned.casa_apuestas.dropna().unique()) if 'casa_apuestas' in aligned else []
-            house=st.selectbox('Casa de apuestas',houses,key='mlb_totales_casa') if houses else None
-            if house is not None:
-                aligned=aligned[(aligned.get('casa_apuestas')==house)|aligned.casa_apuestas.isna()].copy()
-            ready=aligned[aligned.estado_mercado=='OK'].reset_index(drop=True)
+            ready=only_base(aligned[aligned.estado_mercado=='OK']).reset_index(drop=True)
             if ready.empty:
-                st.info('No hay líneas recientes y verificadas. Actualiza la captura de cuotas de MLB.')
+                st.info('No hay líneas recientes y verificadas de DraftKings. Actualiza la captura de cuotas de MLB.')
                 diagnostics(aligned);return
             with st.spinner('Calculando probabilidades con los abridores anunciados…'):
                 pred=cached_predict(ready.to_csv(index=False),stamp())
@@ -99,21 +97,7 @@ def render_picks(connect):
                 display['ev_seleccion']=np.where(display.seleccion=='OVER',display.ev_over,display.ev_under)
                 display=display.sort_values('ev_seleccion',ascending=False)
                 st.caption('Modelo en evaluación. El EV es una estimación; playoffs tiene una muestra histórica pequeña.')
-                for _,r in display.iterrows():
-                    with st.container(border=True):
-                        st.subheader(f'{r.visitante} @ {r.local}')
-                        st.caption(f'Abridores: {r.abridor_visitante} · {r.abridor_local} | {r.casa_apuestas}')
-                        cols=st.columns(4)
-                        cols[0].metric('Selección',f'{r.seleccion} {float(r.linea):g}')
-                        cols[1].metric('Probabilidad',f'{r.prob_seleccion*100:.1f}%')
-                        odds=r.cuota_over if r.seleccion=='OVER' else r.cuota_under
-                        cols[2].metric('Cuota decimal',f'{odds:.3f}')
-                        cols[3].metric('EV estimado',f'{r.ev_seleccion*100:+.1f}%')
-                        st.write(f'Total proyectado: **{r.total_proyectado:.2f}** · '
-                                 f'OVER {r.p_over*100:.1f}% · UNDER {r.p_under*100:.1f}% · '
-                                 f'Push {r.p_push*100:.1f}%')
-                        state='Playoffs: en evaluación' if r.game_type!='R' else 'En evaluación'
-                        st.caption(f'{state} · {r.estado_valor} · Cuota capturada hace {max(r.age_minutes,0):.0f} min')
+                render_cards(display)
                 st.download_button('Descargar predicciones actuales',display.to_csv(index=False),
                     'mlb_totales_actuales.csv','text/csv',key='mlb_totales_csv')
             issues=pd.concat([aligned[aligned.estado_mercado!='OK'],pred[~good]],ignore_index=True)
@@ -127,7 +111,7 @@ def render_picks(connect):
 
 
 def render_performance(connect):
-    st.caption('Seguimiento desde la primera predicción registrada por partido, casa y modelo. '
+    st.caption('DraftKings · Seguimiento desde la primera predicción registrada por partido y modelo. '
                'La probabilidad y cuota originales se conservan. Simulación de 1 unidad por pronóstico.')
     connection=None
     try:
@@ -137,16 +121,13 @@ def render_performance(connect):
         if st.button('Actualizar resultados oficiales',key='mlb_totales_resultados_refresh'):
             with st.spinner('Consultando resultados oficiales…'):
                 registro.refresh_results(connection)
-        frame=registro.settle(registro.history(connection))
+        frame=registro.settle(only_base(registro.history(connection)))
         if frame.empty:
-            st.info('Aún no hay predicciones previas al juego registradas. Abre Totales V2 antes de los partidos.');return
-        cols=st.columns(3)
-        houses=['Todas']+sorted(frame.casa_apuestas.unique())
-        house=cols[0].selectbox('Casa',houses,key='mlb_totales_perf_casa')
-        confidence=cols[1].slider('Probabilidad registrada mínima (%)',0,95,0,key='mlb_totales_perf_conf')
-        candidates=cols[2].checkbox('Solo candidatos originales con EV positivo',value=True,key='mlb_totales_perf_ev')
+            st.info('Aún no hay predicciones de DraftKings registradas. Actions o Totales V2 las guardan antes de los partidos.');return
+        cols=st.columns(2)
+        confidence=cols[0].slider('Probabilidad registrada mínima (%)',0,95,0,key='mlb_totales_perf_conf')
+        candidates=cols[1].checkbox('Solo candidatos originales con EV positivo',value=True,key='mlb_totales_perf_ev')
         frame=frame[frame.confianza_pct>=confidence]
-        if house!='Todas':frame=frame[frame.casa_apuestas==house]
         if candidates:frame=frame[frame.candidato==1]
         summary=registro.summary(frame)
         cols=st.columns(4)
@@ -155,17 +136,10 @@ def render_performance(connect):
         cols[2].metric('ROI simulado',f"{summary['roi']:+.1f}%")
         cols[3].metric('Acierto sin push',f"{summary['acierto']:.1f}%")
         st.caption(f"Ganadas {summary['ganadas']} · Perdidas {summary['perdidas']} · Push {summary['push']}. "
-                   'Cada combinación partido/casa cuenta como un pronóstico; no son necesariamente juegos independientes.')
-        for _,r in frame.iterrows():
-            with st.container(border=True):
-                st.write(f'**{r.equipo_visitante} @ {r.equipo_local} — {r.resultado}**')
-                cols=st.columns(4)
-                cols[0].metric('Selección original',f'{r.seleccion} {float(r.linea):g}')
-                cols[1].metric('Probabilidad original',f'{r.confianza_pct:.1f}%')
-                cols[2].metric('Cuota original',f'{r.cuota_seleccion:.3f}')
-                cols[3].metric('Unidades',f'{r.unidades:+.2f} u' if pd.notna(r.unidades) else 'Pendiente')
-                st.caption(f'{r.fecha_oficial} · {r.casa_apuestas} · EV original {r.ev*100:+.1f}% · '
-                           f'Registrado {r.recorded_utc} UTC')
+                   'Cuotas, probabilidades y EV originales de DraftKings.')
+        render_cards(frame,performance=True)
+        if frame.empty:
+            st.info('No hay registros de DraftKings que cumplan los filtros seleccionados.')
         if not frame.empty:
             st.download_button('Descargar rendimiento',frame.to_csv(index=False),'mlb_totales_rendimiento.csv',
                                'text/csv',key='mlb_totales_performance_csv')

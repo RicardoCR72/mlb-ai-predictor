@@ -74,6 +74,7 @@ def update_history(root=ROOT, now=None):
 
 
 def predict_today(connection, root=ROOT, now=None):
+    from mlb_totales.casa_base import BASE_BOOK,only_base
     from mlb_totales import registro
     from mlb_totales.mercado import calendar, match
     from mlb_totales.predecir_pitcheo import predict
@@ -83,15 +84,15 @@ def predict_today(connection, root=ROOT, now=None):
     games = calendar(str(day))
     if games.empty:
         print(f'{day}: no hay partidos pendientes.'); return 0
-    quotes = registro.quote_rows(connection, day)
+    quotes = only_base(registro.quote_rows(connection, day))
     aligned = match(games, quotes, now=now, max_age_minutes=180,
                     quote_timezone=os.environ.get('MLB_ODDS_CAPTURE_TIMEZONE','America/Mazatlan'))
     if aligned.empty:
         print('Todos los partidos consultados ya comenzaron.'); return 0
-    print('Mercado:', json.dumps(aligned.estado_mercado.value_counts().to_dict()))
-    ready = aligned[aligned.estado_mercado=='OK'].reset_index(drop=True)
+    print(f'Mercado {BASE_BOOK}:', json.dumps(aligned.estado_mercado.value_counts().to_dict()))
+    ready = only_base(aligned[aligned.estado_mercado=='OK']).reset_index(drop=True)
     if ready.empty:
-        raise RuntimeError('Hay partidos pendientes pero ninguna cuota reciente y válida. Revisa el scraper.')
+        raise RuntimeError('Hay partidos pendientes pero ninguna cuota reciente y válida de DraftKings. Revisa el scraper.')
     predictions = predict(ready, root, portable=True)
     for key in ('casa_apuestas','odds_game_id','start_utc','captured_utc','estado_mercado'):
         predictions[key] = ready[key].to_numpy()

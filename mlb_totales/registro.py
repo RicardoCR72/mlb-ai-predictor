@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 from mlb_totales.mercado import utc
 from mlb_totales.descargar_pitcheo import fetch_json,TYPES
+from mlb_totales.casa_base import BASE_BOOK,is_base,only_base
 
 DDL=["""
 CREATE TABLE IF NOT EXISTS mlb_totales_predicciones (
@@ -37,6 +38,7 @@ LATEST_QUOTES="""
         p.casa_apuestas,p.linea,p.cuota_over,p.cuota_under,p.timestamp_captura
  FROM juegos j JOIN lineas_props p ON p.id_juego=j.id_juego
  WHERE p.tipo_prop='totales_carreras' AND j.fecha>=%s AND j.fecha<%s
+ AND LOWER(TRIM(p.casa_apuestas))='draftkings'
 """
 
 
@@ -69,11 +71,13 @@ def tables_ready(connection):
 def quote_rows(connection,day):
     date=pd.Timestamp(day).normalize()
     # El matching posterior verifica equipo/hora; jamás une solo por fecha y pareja.
-    return read_rows(connection,LATEST_QUOTES,
-        ((date-pd.Timedelta(days=1)).to_pydatetime(),(date+pd.Timedelta(days=2)).to_pydatetime()))
+    return only_base(read_rows(connection,LATEST_QUOTES,
+        ((date-pd.Timedelta(days=1)).to_pydatetime(),(date+pd.Timedelta(days=2)).to_pydatetime())))
 
 
 def snapshot_values(row,model_id,now=None):
+    if not is_base(row.get('casa_apuestas')):
+        return None
     now=utc(now if now is not None else datetime.now(timezone.utc))
     if (utc(row['start_utc'])<=now or row.get('estado_mercado')!='OK'
         or row.get('estado') in ('ABRIDOR_PENDIENTE','ACTUALIZAR_HISTORIAL')
@@ -87,7 +91,7 @@ def snapshot_values(row,model_id,now=None):
     if not math.isfinite(odds) or odds<=1 or not math.isfinite(ev):return None
     return (int(row['game_id']),str(row['odds_game_id']),model_id,str(row['modelo']),
         pd.Timestamp(row['fecha']).date(),utc(row['start_utc']).tz_localize(None).to_pydatetime(),
-        str(row['local']),str(row['visitante']),str(row['game_type']),str(row['casa_apuestas']),
+        str(row['local']),str(row['visitante']),str(row['game_type']),BASE_BOOK,
         float(row['linea']),float(row['cuota_over']),float(row['cuota_under']),pick,
         float(row['total_proyectado']),*p,confidence,odds,ev,float(row['edge_carreras']),
         int(row['home_pitcher_id']),int(row['away_pitcher_id']),
@@ -152,6 +156,7 @@ def refresh_results(connection,max_days=15):
       SELECT DISTINCT p.fecha_oficial FROM mlb_totales_predicciones p
       LEFT JOIN mlb_totales_resultados r ON r.game_pk=p.game_pk
       WHERE (r.game_pk IS NULL OR p.fecha_oficial>=UTC_DATE()-INTERVAL 2 DAY)
+      AND LOWER(TRIM(p.casa_apuestas))='draftkings'
       ORDER BY p.fecha_oficial DESC LIMIT %s
     """,(max_days,))
     if pending.empty:return 0
@@ -171,12 +176,13 @@ def refresh_results(connection,max_days=15):
 
 
 def history(connection):
-    return read_rows(connection,"""
+    return only_base(read_rows(connection,"""
       SELECT p.*,r.home_runs,r.away_runs,r.innings_final,r.revision_reglas
       FROM mlb_totales_predicciones p
       LEFT JOIN mlb_totales_resultados r ON r.game_pk=p.game_pk
+      WHERE LOWER(TRIM(p.casa_apuestas))='draftkings'
       ORDER BY p.fecha_oficial DESC,p.id DESC
-    """)
+    """))
 
 
 def settle(frame):

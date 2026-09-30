@@ -41,7 +41,7 @@ class TestIntegration(unittest.TestCase):
     def snapshot(self):
         return dict(game_id=1,odds_game_id='odds_1',modelo='pitcheo_ridge',fecha='2026-09-30',
             start_utc='2026-09-30T19:00:00Z',local='NYY',visitante='BOS',game_type='R',
-            casa_apuestas='Casa A',linea=8.5,cuota_over=1.91,cuota_under=1.95,seleccion='OVER',
+            casa_apuestas='DraftKings',linea=8.5,cuota_over=1.91,cuota_under=1.95,seleccion='OVER',
             total_proyectado=9.5,p_over=.6,p_under=.4,p_push=0,ev_over=.146,ev_under=-.22,
             edge_carreras=1,home_pitcher_id=1,away_pitcher_id=2,captured_utc='2026-09-30T17:50:00Z',
             estado='EXPERIMENTAL',estado_mercado='OK')

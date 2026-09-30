@@ -46,7 +46,7 @@ class TestActions(unittest.TestCase):
     def predictions(self,state='EXPERIMENTAL'):
         rows=pd.DataFrame([dict(game_id=1,casa_apuestas=house,odds_game_id='x',
             start_utc='2026-09-30T20:00:00Z',captured_utc='2026-09-30T17:00:00Z',
-            estado_mercado='OK',estado=state,p_over=.60) for house in ['A','B']])
+            estado_mercado='OK',estado=state,p_over=.60) for house in ['DraftKings','FanDuel']])
         return rows
 
     def run_prediction(self,rows):
@@ -54,18 +54,18 @@ class TestActions(unittest.TestCase):
         with ExitStack() as stack:
             for target,value in [('mlb_totales.mercado.calendar',rows),
                 ('mlb_totales.registro.quote_rows',rows),('mlb_totales.mercado.match',rows),
-                ('mlb_totales.predecir_pitcheo.predict',rows.copy()),
+                ('mlb_totales.predecir_pitcheo.predict',rows[rows.casa_apuestas=='DraftKings'].copy()),
                 ('mlb_totales.portable.load',{'model_id':'a'*64})]:
                 stack.enter_context(patch(target,return_value=value))
-            save=stack.enter_context(patch('mlb_totales.registro.save_snapshots',return_value=2))
+            save=stack.enter_context(patch('mlb_totales.registro.save_snapshots',return_value=1))
             if (rows.estado=='ACTUALIZAR_HISTORIAL').any():
                 with self.assertRaises(RuntimeError):a.predict_today(object())
                 save.assert_not_called()
             else:
-                self.assertEqual(a.predict_today(object()),2)
-                self.assertEqual(save.call_args.args[1].casa_apuestas.tolist(),['A','B'])
+                self.assertEqual(a.predict_today(object()),1)
+                self.assertEqual(save.call_args.args[1].casa_apuestas.tolist(),['DraftKings'])
 
-    def test_registra_todas_las_casas(self):self.run_prediction(self.predictions())
+    def test_registra_solo_draftkings(self):self.run_prediction(self.predictions())
     def test_historial_atrasado_no_guarda(self):self.run_prediction(self.predictions('ACTUALIZAR_HISTORIAL'))
 
     def test_sin_cuotas_no_reporta_exito(self):
