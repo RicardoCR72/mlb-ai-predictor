@@ -327,7 +327,7 @@ st.markdown(
             <h1>MLB Oráculo</h1>
             <div class="mlb-subtitle">Edge matemático, fatiga de viaje, splits, abridores y bullpen.</div>
         </div>
-        <div class="mlb-live"><span class="mlb-live-dot"></span>Modelo V4.0 operativo</div>
+        <div class="mlb-live"><span class="mlb-live-dot"></span>Moneyline V4 · Totales V2</div>
     </div>
     """,
     unsafe_allow_html=True,
@@ -340,7 +340,6 @@ def html_seguro(valor):
 
 def mostrar_pick_mlb(fila):
     confianza = float(fila["Confianza (%)"])
-    confianza_total = float(fila["Confianza O/U (%)"])
     cuota = float(fila["Paga del Favorito"])
     st.markdown(
         f"""
@@ -354,8 +353,6 @@ def mostrar_pick_mlb(fila):
             </div>
             <div class="mlb-card-values">
                 <div><span class="mlb-value-label">CONFIANZA</span><span class="mlb-value">{confianza:.1f}%</span></div>
-                <div><span class="mlb-value-label">TOTAL</span><span class="mlb-value">{html_seguro(fila['Pick Totales'])}</span></div>
-                <div><span class="mlb-value-label">CONFIANZA O/U</span><span class="mlb-value">{confianza_total:.1f}%</span></div>
             </div>
             <div class="mlb-confidence"><span style="width:{min(max(confianza, 0), 100):.1f}%"></span></div>
         </div>
@@ -467,7 +464,6 @@ def cargar_datos_hoy():
         df = df.drop_duplicates(subset=['Equipo Local', 'Equipo Visitante'], keep='last').reset_index(drop=True)
     return df
 
-modelo, scaler, columnas_v4 = cargar_oraculo()
 
 # ==========================================================
 # 2. MOTORES DE EXTRACCIÓN Y LIMPIEZA
@@ -592,29 +588,6 @@ def aplicar_filtro_pitchers(equipo_elegido, confianza_base, equipo_local, equipo
     confianza_final = confianza_base + (ventaja * 2.5)
 
     return max(50.1, min(99.0, round(confianza_final, 1))), f"{pitcher_local} ({era_local:.2f})", f"{pitcher_visita} ({era_visita:.2f})"
-
-@st.cache_data(ttl=86400)
-def cargar_park_factor():
-    try:
-        conexion = conectar_bd()
-        query = "SELECT equipo, factor FROM park_factor"
-        df_estadios = pd.read_sql(query, conexion)
-        conexion.close()
-        return df_estadios
-    except: return pd.DataFrame()
-
-def aplicar_filtro_estadio(pick_totales, confianza_base, equipo_local, df_estadios):
-    if df_estadios.empty: return confianza_base
-    factor_row = df_estadios.loc[df_estadios['equipo'] == equipo_local, 'factor'].values
-    factor = int(factor_row[0]) if len(factor_row) > 0 else 100
-    ajuste = (factor - 100) / 1.2
-
-    pick_upper = str(pick_totales).upper()
-    if "OVER" in pick_upper or "ALTAS" in pick_upper: confianza_final = confianza_base + ajuste
-    elif "UNDER" in pick_upper or "BAJAS" in pick_upper: confianza_final = confianza_base - ajuste
-    else: confianza_final = confianza_base
-
-    return max(50.1, min(99.0, round(confianza_final, 1)))
 
 @st.cache_data(ttl=300)
 def fusionar_historiales(df_csv, df_xampp):
@@ -771,6 +744,20 @@ def obtener_confianza_registrada(df_registro, fecha_juego, equipo_local, equipo_
     return float(fila['confianza']), fila['pick_ia'], float(fila['cuota'])
 
 # ---------------- FLUJO PRINCIPAL ----------------
+vista_mlb = st.radio(
+    "Sección MLB",
+    ["⚾ Picks de hoy", "📈 Rendimiento", "⚾ Totales V2", "📊 Rendimiento Totales"],
+    horizontal=True, label_visibility="collapsed", key="mlb_vista_principal",
+)
+if vista_mlb in ("⚾ Totales V2", "📊 Rendimiento Totales"):
+    from mlb_totales.ui_totales_mlb import render_picks, render_performance
+    if vista_mlb == "⚾ Totales V2":
+        render_picks(conectar_bd)
+    else:
+        render_performance(conectar_bd)
+    st.stop()
+
+modelo, scaler, columnas_v4 = cargar_oraculo()
 df = cargar_datos_hoy()
 if not df.empty: df = df.drop_duplicates(subset=['Equipo Local', 'Equipo Visitante']).reset_index(drop=True)
 
@@ -779,14 +766,6 @@ if not df.empty and modelo is not None:
     df_pasado = cargar_historial_xampp()
     df_hist = fusionar_historiales(df_csv_estatico, df_pasado)
     df_metricas_adv = cargar_metricas_avanzadas()
-
-    vista_mlb = st.radio(
-        "Sección MLB",
-        ["⚾ Picks de hoy", "📈 Rendimiento"],
-        horizontal=True,
-        label_visibility="collapsed",
-        key="mlb_vista_principal",
-    )
 
     if vista_mlb == "⚾ Picks de hoy":
         resultados = []
@@ -848,30 +827,9 @@ if not df.empty and modelo is not None:
 
             df_lesiones_hoy = cargar_lesiones_hoy()
             df_pitchers_hoy = cargar_pitchers_hoy()
-            df_estadios = cargar_park_factor()
 
             confianza_filtrada = aplicar_filtro_medico(favorito, confianza, local_api, visita_api, df_lesiones_hoy)
             confianza_final, p_local, p_visita = aplicar_filtro_pitchers(favorito, confianza_filtrada, local_api, visita_api, df_pitchers_hoy)
-
-            # MÓDULO O/U
-            carreras_esperadas = 8.5
-            if not df_pitchers_hoy.empty:
-                era_l = df_pitchers_hoy.loc[df_pitchers_hoy['equipo'] == local_api, 'era'].values
-                era_v = df_pitchers_hoy.loc[df_pitchers_hoy['equipo'] == visita_api, 'era'].values
-                e_l = float(era_l[0]) if len(era_l) > 0 else 4.50
-                e_v = float(era_v[0]) if len(era_v) > 0 else 4.50
-                carreras_esperadas = e_l + e_v
-
-            linea_promedio = 8.5
-            if carreras_esperadas > linea_promedio:
-                pick_totales = "OVER (Altas)"
-                confianza_t_cruda = 50.0 + ((carreras_esperadas - linea_promedio) * 8.5)
-            else:
-                pick_totales = "UNDER (Bajas)"
-                confianza_t_cruda = 50.0 + ((linea_promedio - carreras_esperadas) * 8.5)
-
-            confianza_t_cruda = min(95.0, confianza_t_cruda)
-            confianza_totales_final = aplicar_filtro_estadio(pick_totales, confianza_t_cruda, local_api, df_estadios)
 
             # NUEVO: persistimos el pick de moneyline en registro_picks_ia.
             # Esto es lo que Tab 2 va a leer más adelante cuando el juego termine,
@@ -883,8 +841,6 @@ if not df.empty and modelo is not None:
                 "Abridores": f"{p_local} vs {p_visita}",
                 "Pick de la IA": favorito,
                 "Confianza (%)": confianza_final,
-                "Pick Totales": pick_totales,
-                "Confianza O/U (%)": confianza_totales_final,
                 "Paga del Favorito": paga
             })
 
