@@ -21,6 +21,7 @@ def predict(fixtures,directory='mlb_totales/modelos_pitcheo',portable=False):
         if bundle['metadata']['sklearn_version']!=sklearn.__version__:
             raise RuntimeError('Instala requirements_mlb_totales.txt en el entorno separado; versión sklearn incompatible.')
     hist=pd.read_csv(root/'historial_modelo.csv.gz')
+    hist['fecha']=pd.to_datetime(hist.fecha,format='ISO8601',errors='raise').dt.strftime('%Y-%m-%d')
     pitches=pd.read_csv(root/'historial_pitcheo.csv.gz')
     rows=fixtures.copy().reset_index(drop=True)
     required={'fecha','local','visitante','linea','home_pitcher_id','away_pitcher_id'}
@@ -28,7 +29,7 @@ def predict(fixtures,directory='mlb_totales/modelos_pitcheo',portable=False):
         raise ValueError('Faltan columnas: '+', '.join(sorted(required-set(rows))))
     if rows.empty:
         raise ValueError('No hay partidos.')
-    rows['fecha']=pd.to_datetime(rows.fecha,errors='raise').dt.normalize()
+    rows['fecha']=pd.to_datetime(rows.fecha,format='ISO8601',errors='raise').dt.normalize()
     if (rows.fecha.dt.year<2024).any():
         raise ValueError('Modelo entrenado hasta 2023; predice desde 2024.')
     rows['linea']=pd.to_numeric(rows.linea,errors='raise')

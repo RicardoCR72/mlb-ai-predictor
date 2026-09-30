@@ -20,7 +20,10 @@ def update(hasta,modelos,directory):
     if len(errors)/max(len(g),1)>.005:
         raise ValueError('Demasiadas incidencias de cobertura; no se modifica el historial del modelo.')
     excluded=set(errors.game_id)
-    g=g[~g.game_id.isin(excluded)];p=p[~p.game_id.isin(excluded)]
+    g=g[~g.game_id.isin(excluded)].copy();p=p[~p.game_id.isin(excluded)].copy()
+    # Normalizar antes de concatenar strings antiguos y Timestamps descargados.
+    for frame in (history,pitching,g,p):
+        frame['fecha']=pd.to_datetime(frame.fecha,format='ISO8601',errors='raise').dt.strftime('%Y-%m-%d')
     history=pd.concat([history,g],ignore_index=True).drop_duplicates('game_id',keep='last').sort_values(['fecha','game_id'])
     pitching=pd.concat([pitching,p],ignore_index=True).drop_duplicates(['game_id','team_id','pitcher_id'],keep='last')
     # Archivos completos antes de sustituir; coverage es lo último que se actualiza.

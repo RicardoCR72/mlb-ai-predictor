@@ -84,8 +84,15 @@ def audit(history,pitches):
 
 
 def pitching_features(history,pitches,fixtures=None):
+    # El CSV antiguo usa YYYY-MM-DD; actualizaciones previas añadían medianoche.
+    # ISO8601 admite ambos y mantiene los errores para fechas inválidas.
+    history = history.copy()
+    history['fecha'] = pd.to_datetime(history.fecha,format='ISO8601',errors='raise').dt.normalize()
+    if fixtures is not None:
+        fixtures = fixtures.copy()
+        fixtures['fecha'] = pd.to_datetime(fixtures.fecha,format='ISO8601',errors='raise').dt.normalize()
     pitches = pitches.copy()
-    pitches['fecha'] = pd.to_datetime(pitches.fecha).dt.normalize()
+    pitches['fecha'] = pd.to_datetime(pitches.fecha,format='ISO8601',errors='raise').dt.normalize()
     if pitches.duplicated(['game_id','team_id','pitcher_id']).any():
         raise ValueError('Apariciones duplicadas: no se puede construir el historial.')
     pitchers = defaultdict(list)
