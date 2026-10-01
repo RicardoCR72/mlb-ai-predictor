@@ -144,12 +144,12 @@ def conectar_mysql():
 
 def api_get(ruta: str, api_key: str, **parametros):
     params = {"apiKey": api_key, **parametros}
-    respuesta = requests.get(f"{API_BASE}{ruta}", params=params, timeout=30)
+    try:
+        respuesta = requests.get(f"{API_BASE}{ruta}", params=params, timeout=30)
+    except requests.RequestException:
+        raise RuntimeError("No se pudo conectar a The Odds API.") from None
     if respuesta.status_code != 200:
-        detalle = respuesta.text[:500]
-        raise RuntimeError(
-            f"The Odds API respondio {respuesta.status_code}: {detalle}"
-        )
+        raise RuntimeError(f"The Odds API respondio HTTP {respuesta.status_code}.")
     cuota = {
         "usados": respuesta.headers.get("x-requests-used"),
         "restantes": respuesta.headers.get("x-requests-remaining"),
@@ -726,6 +726,23 @@ def imprimir_cuota(cuota):
         print("Créditos API | " + " | ".join(partes))
 
 
+def juegos_con_captura(conexion, parejas):
+    """No volver a pagar por un partido que ya tiene props guardadas."""
+    ids = [juego["id_juego"] for juego, _ in parejas]
+    if not ids:
+        return set()
+    cursor = conexion.cursor()
+    try:
+        markers = ",".join(["%s"] * len(ids))
+        cursor.execute(
+            "SELECT DISTINCT id_juego FROM nfl_lineas_props "
+            f"WHERE id_juego IN ({markers})", tuple(ids)
+        )
+        return {row[0] for row in cursor.fetchall()}
+    finally:
+        cursor.close()
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -761,12 +778,20 @@ def main():
             "de esta ventana. Evita gastar creditos en toda la semana."
         ),
     )
+    parser.add_argument("--una-captura", action="store_true",
+                        help="Omite partidos con props previamente guardadas.")
+    parser.add_argument("--solo-draftkings", action="store_true",
+                        help="Solicita cuotas solo de DraftKings.")
+    parser.add_argument("--reserva-creditos", type=int, default=0,
+                        help="Detiene nuevas cuotas antes de bajar de este saldo.")
     args = parser.parse_args()
 
     if args.reconstruir_semana and not args.usar_cache:
         parser.error("--reconstruir-semana requiere --usar-cache")
     if args.proximas_horas is not None and args.proximas_horas <= 0:
         parser.error("--proximas-horas debe ser mayor que cero")
+    if args.reserva_creditos < 0:
+        parser.error("--reserva-creditos no puede ser negativa")
 
     api_key = obtener_api_key()
     conexion = conectar_mysql()
@@ -813,6 +838,11 @@ def main():
         parejas = filtrar_parejas_por_ventana(
             parejas_api, args.proximas_horas
         )
+        if args.una_captura and not args.usar_cache:
+            anteriores = juegos_con_captura(conexion, parejas)
+            parejas = [(juego, evento) for juego, evento in parejas
+                       if juego["id_juego"] not in anteriores]
+            print(f"Partidos con captura previa omitidos: {len(anteriores)}")
         print(f"Partidos emparejados con The Odds API: {len(parejas)}")
         if args.proximas_horas is not None:
             print(
@@ -830,6 +860,10 @@ def main():
         if args.solo_eventos:
             print("Validacion terminada. No se solicitaron ni guardaron props.")
             return
+
+        if args.reserva_creditos and cuota.get("restantes") is None:
+            raise RuntimeError("No se recibió saldo de The Odds API; no se consultan props.")
+        restantes = int(cuota["restantes"]) if cuota.get("restantes") is not None else None
 
         equipos = {
             equipo
@@ -851,14 +885,22 @@ def main():
                 print("  Sin respuesta cacheada; se omite sin consultar la API.")
                 continue
             if not args.usar_cache:
+                if (restantes is not None and args.reserva_creditos
+                        and restantes < args.reserva_creditos + len(MARKETS)):
+                    print("  Reserva mensual alcanzada; se omiten las cuotas restantes.")
+                    break
+                parametros = {"markets": ",".join(MARKETS),
+                              "oddsFormat": "american", "dateFormat": "iso"}
+                if args.solo_draftkings:
+                    parametros["bookmakers"] = "draftkings"
+                else:
+                    parametros["regions"] = REGION
                 respuesta, cuota = api_get(
                     f"/sports/{SPORT}/events/{evento['id']}/odds",
-                    api_key,
-                    regions=REGION,
-                    markets=",".join(MARKETS),
-                    oddsFormat="american",
-                    dateFormat="iso",
+                    api_key, **parametros,
                 )
+                if cuota.get("restantes") is not None:
+                    restantes = int(cuota["restantes"])
                 guardar_cache_evento(evento["id"], respuesta)
             else:
                 cuota = {"usados": None, "restantes": None, "costo": 0}

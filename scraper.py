@@ -21,21 +21,26 @@ def conectar_bd():
         return None
 
 def descargar_mlb():
-    print("📡 Descargando Béisbol MLB (Moneyline y Over/Under Totales)...")
-    API_KEY = "d0230dfdf8f783bc76cf780dca47e21d" 
-    
-    # Cambiamos pitcher_strikeouts por totals (Over/Under de carreras)
-    url = f"https://api.the-odds-api.com/v4/sports/baseball_mlb/odds/?apiKey={API_KEY}&regions=us&markets=h2h,totals"
-    
+    """Una captura de h2h y totals para DraftKings; máximo dos créditos."""
+    import os
+
+    api_key = os.environ.get("ODDS_API_KEY") or os.environ.get("THE_ODDS_API_KEY")
+    if not api_key:
+        raise RuntimeError("Falta ODDS_API_KEY en los secretos de GitHub Actions.")
+    print("📡 Descargando MLB (DraftKings: Moneyline y Totales)...")
     try:
-        respuesta = requests.get(url)
-        if respuesta.status_code == 200:
-            return respuesta.json()
-        else:
-            print(f"❌ Error API: {respuesta.json()}")
-    except Exception as e:
-        print(f"❌ Error de red: {e}")
-    return []
+        respuesta = requests.get(
+            "https://api.the-odds-api.com/v4/sports/baseball_mlb/odds/",
+            params={"apiKey": api_key, "bookmakers": "draftkings", "markets": "h2h,totals"},
+            timeout=35,
+        )
+        respuesta.raise_for_status()
+        print("Créditos de esta captura:", respuesta.headers.get("x-requests-last", "N/D"))
+        return respuesta.json()
+    except requests.RequestException as error:
+        codigo = getattr(error.response, "status_code", None)
+        raise RuntimeError(f"Error al consultar cuotas MLB (HTTP {codigo or 'red'}).") from None
+
 
 def guardar_todo(conexion, datos):
     cursor = conexion.cursor()

@@ -1,4 +1,4 @@
-name: Flash MLB V2 - cuotas, pitchers y predicciones
+name: Flash MLB V2 - pitchers y lesiones
 
 on:
   schedule:
@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 # Ambos bots comparten grupo: nunca actualizan el historial simultáneamente.
 concurrency:
@@ -49,28 +49,6 @@ jobs:
           DB_PASS: ${{ secrets.DB_PASS }}
           DB_NAME: ${{ secrets.DB_NAME }}
         run: python -m mlb_totales.automatizar secretos
-
-      - name: Actualizar resultados de Totales V2
-        if: ${{ !cancelled() && steps.secretos.outcome == 'success' }}
-        run: python -m mlb_totales.automatizar resultados
-
-      - name: Actualizar historial hasta ayer completo
-        id: historial
-        if: ${{ !cancelled() && steps.secretos.outcome == 'success' }}
-        run: python -m mlb_totales.automatizar historial
-
-      - name: Guardar históricos para Streamlit y el siguiente bot
-        if: ${{ !cancelled() && steps.historial.outcome == 'success' }}
-        run: python -m mlb_totales.automatizar guardar-historial
-
-      - name: Capturar cuotas y partidos
-        id: cuotas
-        if: ${{ !cancelled() && steps.secretos.outcome == 'success' }}
-        run: python scraper.py
-
-      - name: Generar y registrar Totales V2 antes del juego
-        if: ${{ !cancelled() && steps.historial.outcome == 'success' && steps.cuotas.outcome == 'success' }}
-        run: python -m mlb_totales.automatizar predecir
 
       - name: Escanear pitchers confirmados
         if: ${{ !cancelled() && steps.secretos.outcome == 'success' }}

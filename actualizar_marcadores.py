@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 import requests
 import mysql.connector
@@ -18,17 +19,22 @@ def hoy_mx():
 
 
 def notificar_telegram(mensaje):
-    # Pega aquí los datos que obtuviste en los pasos 1 y 2
-    token = "8530510635:AAF1IH7GKYBUVgVnp3-p6UyEuxYOA1E6axE"
-    chat_id = "5339277237"
-    
-    url = f"https://api.telegram.org/bot{token}/sendMessage"
-    datos = {'chat_id': chat_id, 'text': mensaje}
-    
+    # El reporte diario envía un único mensaje con los tres deportes y la cuota.
+    if os.environ.get("TELEGRAM_REPORTE_UNIFICADO") == "1":
+        return
+    token = os.environ.get("TELEGRAM_BOT_TOKEN")
+    chat_id = os.environ.get("TELEGRAM_CHAT_ID")
+    if not token or not chat_id:
+        print("Telegram sin configurar: define TELEGRAM_BOT_TOKEN y TELEGRAM_CHAT_ID.")
+        return
     try:
-        requests.post(url, data=datos)
-    except Exception as e:
-        print("No se pudo enviar el mensaje a Telegram:", e)
+        respuesta = requests.post(
+            f"https://api.telegram.org/bot{token}/sendMessage",
+            data={"chat_id": chat_id, "text": mensaje}, timeout=15,
+        )
+        respuesta.raise_for_status()
+    except requests.RequestException as error:
+        print("No se pudo enviar el mensaje a Telegram:", type(error).__name__)
 
 print("⚾ Iniciando actualización de marcadores de la MLB...")
 
