@@ -1,0 +1,2 @@
+fecha,local,visitante,linea,cuota_over,cuota_under,total_proyectado,edge_carreras,p_over,p_under,p_push,ev_over,ev_under,p_over_sin_push,p_under_sin_push,seleccion,estado,prob_seleccion,modelo_experimental,validacion_mercado,historial_hasta,dias_desde_historial
+2026-04-03,Los Angeles Angels,Seattle Mariners,8.5,1.9090909090909092,1.9090909090909092,8.899562894794403,0.39956289479440343,0.48650509012196863,0.5134949098780314,0.0,-0.0712175552216962,-0.019691535687394623,0.48650509012196863,0.5134949098780314,UNDER,SIN_VALOR,0.5134949098780314,False,PENDIENTE,2026-09-28,0

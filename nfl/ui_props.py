@@ -30,6 +30,29 @@ def filtrar_partidos_pendientes(datos):
     return datos[(fechas >= hoy_mexico) & sin_resultado].copy()
 
 
+def opciones_partidos(datos):
+    """Construye etiquetas legibles y conserva el ID único para filtrar."""
+    opciones = {"Todos los partidos": None}
+    if datos.empty:
+        return opciones
+
+    juegos = (
+        datos.sort_values("gameday", ascending=False, na_position="last")
+        .drop_duplicates("id_juego")
+    )
+    for _, juego in juegos.iterrows():
+        fecha = (
+            juego["gameday"].strftime("%d/%m/%Y")
+            if pd.notna(juego["gameday"]) else "Sin fecha"
+        )
+        etiqueta = (
+            f"{juego['away_team']} @ {juego['home_team']} · {fecha}"
+            f" · {int(juego['season'])} S{int(juego['week'])}"
+        )
+        opciones[etiqueta] = juego["id_juego"]
+    return opciones
+
+
 st.markdown(
     """
     <style>
@@ -1118,15 +1141,19 @@ if seccion_props == "🔥 Candidatos":
     )
     zona_picks, zona_pulso = st.columns([3.25, 1], gap="large")
     with zona_picks:
-        encabezado_picks, selector_mercado = st.columns(
-            [2.15, 1], gap="medium"
+        st.subheader(f"Oportunidades · Semana {semana}")
+        st.caption(
+            "Solo partidos pendientes de hoy en adelante. Confirma "
+            "participación, lesión y movimiento de la línea antes de "
+            "utilizarlos."
         )
-        with encabezado_picks:
-            st.subheader(f"Oportunidades · Semana {semana}")
-            st.caption(
-                "Solo partidos pendientes de hoy en adelante. Confirma "
-                "participación, lesión y movimiento de la línea antes de "
-                "utilizarlos."
+        selector_partido, selector_mercado = st.columns(2, gap="medium")
+        with selector_partido:
+            partidos_candidatos = opciones_partidos(candidatos_mostrar)
+            partido_candidato = st.selectbox(
+                "Partido",
+                list(partidos_candidatos),
+                key="props_partido_candidatos",
             )
         with selector_mercado:
             mercado_candidatos = st.selectbox(
@@ -1136,6 +1163,10 @@ if seccion_props == "🔥 Candidatos":
                 key="props_mercado_candidatos",
             )
 
+        if partidos_candidatos[partido_candidato] is not None:
+            candidatos_mostrar = candidatos_mostrar[
+                candidatos_mostrar["id_juego"] == partidos_candidatos[partido_candidato]
+            ]
         if mercado_candidatos != "Todos los mercados":
             candidatos_mostrar = candidatos_mostrar[
                 candidatos_mostrar["mercado"] == mercado_candidatos
@@ -1144,7 +1175,7 @@ if seccion_props == "🔥 Candidatos":
         if candidatos_mostrar.empty:
             st.markdown(
                 '<div class="empty-state">No quedan candidatos pendientes '
-                'para ese mercado en la semana actual.</div>',
+                'para ese partido y mercado en la semana actual.</div>',
                 unsafe_allow_html=True,
             )
         else:
@@ -1426,15 +1457,22 @@ if seccion_props == "📈 Rendimiento":
             resultados["mercado"].dropna().astype(str).unique()
         )
         resultados_disponibles = ["GANADA", "PERDIDA", "PUSH"]
+        partidos_historial = opciones_partidos(resultados)
 
-        filtro_semana, filtro_mercado, filtro_resultado, filtro_cantidad = (
-            st.columns([1.25, 1.25, 1, 0.85], gap="medium")
+        filtro_semana, filtro_partido, filtro_mercado, filtro_resultado, filtro_cantidad = (
+            st.columns([1.15, 1.9, 1.15, 0.95, 0.75], gap="medium")
         )
         with filtro_semana:
             semana_historial = st.selectbox(
                 "Semana",
                 list(mapa_semanas.keys()),
                 key="props_historial_semana",
+            )
+        with filtro_partido:
+            partido_historial = st.selectbox(
+                "Partido",
+                list(partidos_historial),
+                key="props_historial_partido",
             )
         with filtro_mercado:
             mercado_historial = st.selectbox(
@@ -1462,6 +1500,10 @@ if seccion_props == "📈 Rendimiento":
             historial_filtrado = historial_filtrado[
                 (historial_filtrado["season"] == temporada_filtro)
                 & (historial_filtrado["week"] == semana_filtro)
+            ]
+        if partidos_historial[partido_historial] is not None:
+            historial_filtrado = historial_filtrado[
+                historial_filtrado["id_juego"] == partidos_historial[partido_historial]
             ]
         if mercado_historial != "Todos los mercados":
             historial_filtrado = historial_filtrado[

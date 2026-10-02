@@ -1,0 +1,10 @@
+season,found,regular,apertura,clausura,completa,skipped,future_excluded,source
+2018-19,True,306,153.0,153.0,True,28,0.0,https://raw.githubusercontent.com/openfootball/football.json/master/2018-19/mx.1.json
+2019-20,True,261,171.0,90.0,False,77,0.0,https://raw.githubusercontent.com/openfootball/football.json/master/2019-20/mx.1.json
+2020-21,True,305,153.0,152.0,True,37,0.0,https://raw.githubusercontent.com/SrChucho/mexico/master/2020-21/mx.1.csv
+2021-22,True,305,153.0,152.0,True,37,0.0,https://raw.githubusercontent.com/SrChucho/mexico/master/2021-22/mx.1.csv
+2022-23,True,306,153.0,153.0,True,36,0.0,https://raw.githubusercontent.com/SrChucho/mexico/master/2022-23/mx.1.csv
+2023-24,True,306,153.0,153.0,True,34,0.0,https://raw.githubusercontent.com/SrChucho/mexico/master/2023-24/mx.1.csv
+2024-25,True,306,153.0,153.0,True,34,0.0,https://raw.githubusercontent.com/openfootball/football.json/master/2024-25/mx.1.json
+2025-26,False,0,,,,0,,404
+2026-27,False,0,,,,0,,404

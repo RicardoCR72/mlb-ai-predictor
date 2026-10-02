@@ -29,6 +29,29 @@ def filtrar_partidos_pendientes(datos):
     return datos[(fechas >= hoy_mexico) & sin_resultado].copy()
 
 
+def opciones_partidos(datos):
+    """Construye etiquetas legibles y conserva el ID único para filtrar."""
+    opciones = {"Todos los partidos": None}
+    if datos.empty:
+        return opciones
+
+    juegos = (
+        datos.sort_values("gameday", ascending=False, na_position="last")
+        .drop_duplicates("id_juego")
+    )
+    for _, juego in juegos.iterrows():
+        fecha = (
+            juego["gameday"].strftime("%d/%m/%Y")
+            if pd.notna(juego["gameday"]) else "Sin fecha"
+        )
+        etiqueta = (
+            f"{juego['away_team']} @ {juego['home_team']} · {fecha}"
+            f" · {int(juego['season'])} S{int(juego['week'])}"
+        )
+        opciones[etiqueta] = juego["id_juego"]
+    return opciones
+
+
 st.markdown(
     """
     <style>
@@ -708,15 +731,26 @@ if seccion_totales == "🔥 Picks filtrados":
             "filtros de edge y valor esperado. Confirma la línea antes de "
             "utilizarlos."
         )
-        if picks.empty:
+        partidos_candidatos = opciones_partidos(picks)
+        partido_candidato = st.selectbox(
+            "Partido",
+            list(partidos_candidatos),
+            key="totales_partido_candidatos",
+        )
+        picks_mostrar = picks
+        if partidos_candidatos[partido_candidato] is not None:
+            picks_mostrar = picks_mostrar[
+                picks_mostrar["id_juego"] == partidos_candidatos[partido_candidato]
+            ]
+        if picks_mostrar.empty:
             st.markdown(
                 '<div class="total-empty-state">No quedan picks pendientes '
-                'para la semana actual.</div>',
+                'para ese partido en la semana actual.</div>',
                 unsafe_allow_html=True,
             )
         else:
             filas_picks = list(
-                picks.sort_values("ev", ascending=False).iterrows()
+                picks_mostrar.sort_values("ev", ascending=False).iterrows()
             )
             for inicio in range(0, len(filas_picks), 2):
                 columnas = st.columns(2, gap="medium")
@@ -777,6 +811,16 @@ if seccion_totales == "📈 Rendimiento":
             ["GANADA", "PERDIDA", "PUSH"]
         )
     ].copy()
+    partidos_rendimiento = opciones_partidos(liquidados)
+    partido_rendimiento = st.selectbox(
+        "Partido",
+        list(partidos_rendimiento),
+        key="totales_partido_rendimiento",
+    )
+    if partidos_rendimiento[partido_rendimiento] is not None:
+        liquidados = liquidados[
+            liquidados["id_juego"] == partidos_rendimiento[partido_rendimiento]
+        ]
 
     if liquidados.empty:
         st.markdown(

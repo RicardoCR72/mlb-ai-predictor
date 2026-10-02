@@ -1,0 +1,271 @@
+{
+  "version": 2,
+  "winner": "pitcheo_ridge",
+  "best_pitcheo": "pitcheo_ridge",
+  "best_control": "control_ridge",
+  "selection_2024_last40": {
+    "control_ridge": {
+      "mae": 3.394474354324331,
+      "rmse": 4.251604214440439,
+      "bias": 0.04659950412661734,
+      "n_games": 978,
+      "logloss_grid": 0.6309695005072619,
+      "brier_grid": 0.22021521015624423,
+      "alpha": 0.12740112429464406
+    },
+    "control_histgb": {
+      "mae": 3.4184602317308213,
+      "rmse": 4.2689534180657605,
+      "bias": 0.09078210130645077,
+      "n_games": 978,
+      "logloss_grid": 0.633679079106699,
+      "brier_grid": 0.22152512462225735,
+      "alpha": 0.12458238150720642
+    },
+    "pitcheo_ridge": {
+      "mae": 3.4025107461160977,
+      "rmse": 4.252683589381957,
+      "bias": 0.08637215458058631,
+      "n_games": 978,
+      "logloss_grid": 0.6295621964417725,
+      "brier_grid": 0.21964560731320612,
+      "alpha": 0.12512920075518671
+    },
+    "pitcheo_histgb": {
+      "mae": 3.4194012071009596,
+      "rmse": 4.278012831758416,
+      "bias": 0.11875998111873748,
+      "n_games": 978,
+      "logloss_grid": 0.632993578555917,
+      "brier_grid": 0.22118319958697752,
+      "alpha": 0.12334630869645541
+    }
+  },
+  "train_games": 27812,
+  "train_playoff_games": 454,
+  "calibration_games": 1448,
+  "calibration_until_exclusive": "2024-07-19",
+  "sklearn_version": "1.8.0",
+  "grid_lines": [
+    6.5,
+    7.5,
+    8.5,
+    9.5,
+    10.5,
+    11.5
+  ],
+  "data_until": "2026-09-27",
+  "features": [
+    "league_runs",
+    "venue_total_prior",
+    "month",
+    "home_games",
+    "home_rest",
+    "home_scored_season",
+    "home_scored_7",
+    "home_scored_30",
+    "home_allowed_season",
+    "home_allowed_7",
+    "home_allowed_30",
+    "away_games",
+    "away_rest",
+    "away_scored_season",
+    "away_scored_7",
+    "away_scored_30",
+    "away_allowed_season",
+    "away_allowed_7",
+    "away_allowed_30",
+    "home_sp_era_365",
+    "home_sp_whip_365",
+    "home_sp_k9_365",
+    "home_sp_bb9_365",
+    "home_sp_hr9_365",
+    "home_sp_era_last5",
+    "home_sp_whip_last5",
+    "home_sp_ip_last5",
+    "home_sp_pitches_last5",
+    "home_sp_starts_365",
+    "home_sp_rest_days",
+    "home_sp_ip_365",
+    "home_sp_missing",
+    "home_bp_era_14d",
+    "home_bp_whip_14d",
+    "home_bp_k9_14d",
+    "home_bp_era_season",
+    "home_bp_pitches_1d",
+    "home_bp_pitches_3d",
+    "home_bp_ip_3d",
+    "home_bp_appearances_3d",
+    "home_bp_ip_14d",
+    "away_sp_era_365",
+    "away_sp_whip_365",
+    "away_sp_k9_365",
+    "away_sp_bb9_365",
+    "away_sp_hr9_365",
+    "away_sp_era_last5",
+    "away_sp_whip_last5",
+    "away_sp_ip_last5",
+    "away_sp_pitches_last5",
+    "away_sp_starts_365",
+    "away_sp_rest_days",
+    "away_sp_ip_365",
+    "away_sp_missing",
+    "away_bp_era_14d",
+    "away_bp_whip_14d",
+    "away_bp_k9_14d",
+    "away_bp_era_season",
+    "away_bp_pitches_1d",
+    "away_bp_pitches_3d",
+    "away_bp_ip_3d",
+    "away_bp_appearances_3d",
+    "away_bp_ip_14d",
+    "pitching_expected_runs",
+    "is_playoff"
+  ],
+  "audit_errors": 3,
+  "quarantined_game_ids": [
+    563375,
+    635899,
+    635929
+  ],
+  "regular": {
+    "2025": {
+      "control_ridge": {
+        "mae": 3.6045448260568365,
+        "rmse": 4.564289873306704,
+        "bias": -0.05055395921532759,
+        "n_games": 2426,
+        "logloss_grid": 0.6434409118203079,
+        "brier_grid": 0.22596019797018133
+      },
+      "control_histgb": {
+        "mae": 3.6063679992870874,
+        "rmse": 4.565781284304928,
+        "bias": -0.033217311089653256,
+        "n_games": 2426,
+        "logloss_grid": 0.6439190063067496,
+        "brier_grid": 0.22618169741953464
+      },
+      "pitcheo_ridge": {
+        "mae": 3.604067931406501,
+        "rmse": 4.5550842127254105,
+        "bias": 0.009332006027139567,
+        "n_games": 2426,
+        "logloss_grid": 0.6432286575355782,
+        "brier_grid": 0.225856959147285
+      },
+      "pitcheo_histgb": {
+        "mae": 3.601193917083233,
+        "rmse": 4.555382624572273,
+        "bias": 0.0023892467764026434,
+        "n_games": 2426,
+        "logloss_grid": 0.6428276985436711,
+        "brier_grid": 0.22569946025752374
+      }
+    },
+    "2026": {
+      "control_ridge": {
+        "mae": 3.5636085375480278,
+        "rmse": 4.481345540061904,
+        "bias": -0.027648869283804816,
+        "n_games": 2428,
+        "logloss_grid": 0.6432240236320784,
+        "brier_grid": 0.22584962320703908
+      },
+      "control_histgb": {
+        "mae": 3.570027690698579,
+        "rmse": 4.481630084070681,
+        "bias": 0.05337815028742413,
+        "n_games": 2428,
+        "logloss_grid": 0.6431277940859278,
+        "brier_grid": 0.22581479563479212
+      },
+      "pitcheo_ridge": {
+        "mae": 3.5512626816179944,
+        "rmse": 4.465336820194797,
+        "bias": 0.006364967519271769,
+        "n_games": 2428,
+        "logloss_grid": 0.6400206931400584,
+        "brier_grid": 0.22442902551803567
+      },
+      "pitcheo_histgb": {
+        "mae": 3.558861554484006,
+        "rmse": 4.465865062494115,
+        "bias": 0.06481212700245137,
+        "n_games": 2428,
+        "logloss_grid": 0.6405830594789678,
+        "brier_grid": 0.2246795499278921
+      }
+    }
+  },
+  "playoffs": {
+    "2025": {
+      "control_ridge": {
+        "mae": 3.238595289058989,
+        "rmse": 3.96836936532954,
+        "bias": 0.12129783004155831,
+        "n_games": 47,
+        "logloss_grid": 0.6083518799877029,
+        "brier_grid": 0.21031984452844102
+      },
+      "control_histgb": {
+        "mae": 3.3090690837547183,
+        "rmse": 3.992017526162035,
+        "bias": 0.2988366421205654,
+        "n_games": 47,
+        "logloss_grid": 0.6155456541087673,
+        "brier_grid": 0.21345333099347866
+      },
+      "pitcheo_ridge": {
+        "mae": 3.197196771067006,
+        "rmse": 3.935581279177626,
+        "bias": 0.21046563481307268,
+        "n_games": 47,
+        "logloss_grid": 0.6028661748406653,
+        "brier_grid": 0.20772646668668793
+      },
+      "pitcheo_histgb": {
+        "mae": 3.2934066186532616,
+        "rmse": 4.010762231234264,
+        "bias": 0.3194876420704184,
+        "n_games": 47,
+        "logloss_grid": 0.6179983502030765,
+        "brier_grid": 0.2141693883591221
+      }
+    }
+  },
+  "v1_comparison": {
+    "2025": {
+      "v1": {
+        "mae": 3.6040676727055505,
+        "logloss_grid": 0.6434227612290542,
+        "brier_grid": 0.22595198921045592,
+        "n_games": 2426
+      },
+      "v2": {
+        "mae": 3.604067931406501,
+        "logloss_grid": 0.6432286575355782,
+        "brier_grid": 0.225856959147285,
+        "n_games": 2426
+      }
+    },
+    "2026": {
+      "v1": {
+        "mae": 3.5627470302536164,
+        "logloss_grid": 0.6431614706314593,
+        "brier_grid": 0.2258240918138782,
+        "n_games": 2428
+      },
+      "v2": {
+        "mae": 3.5512626816179944,
+        "logloss_grid": 0.6400206931400584,
+        "brier_grid": 0.22442902551803567,
+        "n_games": 2428
+      }
+    }
+  },
+  "note": "Sin cuotas hist\u00f3ricas: no mide ROI. Abridor real conocido como supuesto retrospectivo. 2025/2026 ya se observaron en v1: se requiere evaluaci\u00f3n futura para confirmar.",
+  "experimental": true,
+  "playoffs_experimental": true,
+  "pitcheo_selected": true
+}
