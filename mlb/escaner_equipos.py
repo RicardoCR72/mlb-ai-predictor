@@ -1,44 +1,31 @@
-import streamlit as st
-import requests
-import mysql.connector
+import sys
 from datetime import datetime, timedelta
-from zoneinfo import ZoneInfo
+from pathlib import Path
+import requests
+
+RAIZ = Path(__file__).resolve().parents[1]
+if str(RAIZ) not in sys.path:
+    sys.path.insert(0, str(RAIZ))
+
+from core.constants import ZONA_MX, MLB_TEAMS_IDS
+from core.db import get_db_connection
 
 print("📊 Iniciando Escáner de Splits y Bullpen (7 días)...")
 
 try:
-    conexion = mysql.connector.connect(
-        host=st.secrets["host"], port=st.secrets["port"],
-        user=st.secrets["user"], password=st.secrets["password"], database=st.secrets["database"]
-    )
+    conexion = get_db_connection()
     cursor = conexion.cursor()
 except Exception as e:
     print(f"❌ Error conectando a BD: {e}")
-    exit()
+    exit(1)
 
-# 1. Definimos la zona horaria
-ZONA_MX = ZoneInfo("America/Mazatlan")
-
-# 2. Creamos un objeto de tiempo real (para poder hacer restas matemáticas)
 fecha_actual = datetime.now(ZONA_MX)
-
-# 3. Formateamos a texto para las búsquedas y la base de datos
 hoy_str = fecha_actual.strftime('%Y-%m-%d')
 hoy = hoy_str
 hace_7_dias = (fecha_actual - timedelta(days=7)).strftime('%Y-%m-%d')
 año_actual = fecha_actual.strftime('%Y')
 
-# IDs de la MLB para extraer información
-EQUIPOS_ID = {
-    'Arizona Diamondbacks': 109, 'Atlanta Braves': 144, 'Baltimore Orioles': 110, 'Boston Red Sox': 111,
-    'Chicago Cubs': 112, 'Chicago White Sox': 145, 'Cincinnati Reds': 113, 'Cleveland Guardians': 114,
-    'Colorado Rockies': 115, 'Detroit Tigers': 116, 'Houston Astros': 117, 'Kansas City Royals': 118,
-    'Los Angeles Angels': 108, 'Los Angeles Dodgers': 119, 'Miami Marlins': 146, 'Milwaukee Brewers': 158,
-    'Minnesota Twins': 142, 'New York Mets': 121, 'New York Yankees': 147, 'Athletics': 133,
-    'Philadelphia Phillies': 143, 'Pittsburgh Pirates': 134, 'San Diego Padres': 135, 'San Francisco Giants': 137,
-    'Seattle Mariners': 136, 'St. Louis Cardinals': 138, 'Tampa Bay Rays': 139, 'Texas Rangers': 140,
-    'Toronto Blue Jays': 141, 'Washington Nationals': 120
-}
+EQUIPOS_ID = MLB_TEAMS_IDS
 
 for equipo, team_id in EQUIPOS_ID.items():
     ops_zurdo = 0.700

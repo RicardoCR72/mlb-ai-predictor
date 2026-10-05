@@ -1,18 +1,22 @@
 import pandas as pd
+from pathlib import Path
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Dropout
 import tensorflow as tf
 
+RAIZ = Path(__file__).resolve().parents[1]
+RUTA_DATA = RAIZ / "data" / "mlb"
+
 print("⚾ Cargando 10 años de historia de la MLB...")
 
 # 1. Cargar el dataset
 try:
-    df = pd.read_csv('mlb_historico.csv')
+    df = pd.read_csv(RUTA_DATA / 'mlb_historico.csv')
     print(f"✅ ¡Archivo cargado! Encontramos {len(df)} partidos históricos.")
 except FileNotFoundError:
-    print("❌ No se encontró el archivo. Asegúrate de que se llame 'mlb_historico.csv'.")
+    print(f"❌ No se encontró el archivo en {RUTA_DATA / 'mlb_historico.csv'}.")
     exit()
 
 # ⚠️ ¡ATENCIÓN RICH! ⚠️

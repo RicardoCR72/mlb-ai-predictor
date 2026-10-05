@@ -1,22 +1,23 @@
-import streamlit as st
-import requests
-import mysql.connector
+import sys
 from datetime import datetime
-from zoneinfo import ZoneInfo
+from pathlib import Path
+import requests
+
+RAIZ = Path(__file__).resolve().parents[1]
+if str(RAIZ) not in sys.path:
+    sys.path.insert(0, str(RAIZ))
+
+from core.constants import ZONA_MX
+from core.db import get_db_connection
 
 print("⚾ Iniciando Escáner de Pitchers Abridores V3 (ERA Acumulado + ERA Últimas 3)...")
 
 try:
-    conexion = mysql.connector.connect(
-        host=st.secrets["host"], port=st.secrets["port"],
-        user=st.secrets["user"], password=st.secrets["password"], database=st.secrets["database"]
-    )
+    conexion = get_db_connection()
     cursor = conexion.cursor()
 except Exception as e:
     print(f"❌ Error conectando a BD: {e}")
-    exit()
-
-ZONA_MX = ZoneInfo("America/Mazatlan")
+    exit(1)
 hoy = datetime.now(ZONA_MX).strftime('%Y-%m-%d')
 url = f"https://statsapi.mlb.com/api/v1/schedule?sportId=1&date={hoy}&hydrate=probablePitcher(stats)"
 

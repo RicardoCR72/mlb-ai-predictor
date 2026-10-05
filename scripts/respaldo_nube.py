@@ -33,7 +33,7 @@ if not os.path.exists(ruta_nube):
 shutil.copy(archivo_sql, ruta_nube)
 
 # Subimos también tu valioso CSV histórico y el archivo del modelo
-shutil.copy(os.path.join(ruta_proyecto, "mlb_dataset_ia.csv"), ruta_nube)
+shutil.copy(os.path.join(ruta_proyecto, "data", "mlb", "mlb_dataset_ia.csv"), ruta_nube)
 shutil.copy(os.path.join(ruta_proyecto, "cerebro_mlb_v2.keras"), ruta_nube)
 
 # 5. Limpieza local (Opcional: borra el .sql de tu escritorio para no llenar espacio)

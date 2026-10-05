@@ -34,11 +34,11 @@ jobs:
           python-version: '3.12'
           cache: pip
           cache-dependency-path: |
-            requirements_mlb_actions.txt
-            requirements_mlb_v2_actions.txt
+            requirements/requirements_mlb_actions.txt
+            requirements/requirements_mlb_v2_actions.txt
 
       - name: Instalar dependencias MLB
-        run: python -m pip install -r requirements_mlb_v2_actions.txt
+        run: python -m pip install -r requirements/requirements_mlb_v2_actions.txt
 
       - name: Preparar secretos existentes
         id: secretos
@@ -52,11 +52,18 @@ jobs:
 
       - name: Escanear pitchers confirmados
         if: ${{ !cancelled() && steps.secretos.outcome == 'success' }}
-        run: python escaner_pitchers.py
+        run: python mlb/escaner_pitchers.py
 
       - name: Escanear lesiones
         if: ${{ !cancelled() && steps.secretos.outcome == 'success' }}
-        run: python escaner_lesiones.py
+        run: python mlb/escaner_lesiones.py
+
+      - name: Notificar fallo a Telegram si algún paso falló
+        if: ${{ failure() }}
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python scripts/notificar_fallo.py --job "Flash MLB V2"
 
       - name: Eliminar archivo temporal de secretos
         if: ${{ always() }}

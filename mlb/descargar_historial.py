@@ -1,5 +1,9 @@
 import requests
 import pandas as pd
+from pathlib import Path
+
+RAIZ = Path(__file__).resolve().parents[1]
+RUTA_DATA = RAIZ / "data" / "mlb"
 
 print("⚾ Iniciando la extracción masiva de la MLB (2022 - 2026)...")
 
@@ -50,7 +54,7 @@ for inicio, fin in temporadas:
 df_nuevo = pd.DataFrame(todos_los_juegos)
 
 # Guardar el resultado
-nombre_archivo = "mlb_historial_22_26.csv"
+nombre_archivo = RUTA_DATA / "mlb_historial_22_26.csv"
 df_nuevo.to_csv(nombre_archivo, index=False)
 
 print(f"✅ ¡Listo, Rich! Se guardaron {len(df_nuevo)} partidos oficiales en '{nombre_archivo}'.")

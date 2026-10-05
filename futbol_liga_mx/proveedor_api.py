@@ -16,6 +16,49 @@ import unicodedata
 import pandas as pd
 from .datos import COLUMNS, audit, complete, regular_counts
 
+
+def obtener_api_key_football() -> str:
+    """Lee API_FOOTBALL_KEY desde variables de entorno o .streamlit/secrets.toml."""
+    # 1. Variable de entorno
+    for nombre in ('API_FOOTBALL_KEY', 'api_football_key'):
+        valor = os.environ.get(nombre)
+        if valor:
+            return valor.strip()
+
+    # 2. .streamlit/secrets.toml (para uso local y compatibilidad con Streamlit)
+    raiz = Path(__file__).resolve().parents[1]
+    rutas_secrets = [
+        raiz / '.streamlit' / 'secrets.toml',
+        Path.cwd() / '.streamlit' / 'secrets.toml',
+    ]
+    try:
+        import tomllib
+    except ImportError:
+        tomllib = None  # Python < 3.11 sin tomllib instalado
+
+    if tomllib:
+        for ruta in rutas_secrets:
+            if ruta.exists():
+                try:
+                    with ruta.open('rb') as f:
+                        secretos = tomllib.load(f)
+                    for nombre in ('API_FOOTBALL_KEY', 'api_football_key'):
+                        valor = secretos.get(nombre)
+                        if valor:
+                            return str(valor).strip()
+                except Exception:
+                    pass
+
+    raise ValueError(
+        'Falta API_FOOTBALL_KEY.\n'
+        'Opciones para configurarla:\n'
+        '  1. Variable de entorno: set API_FOOTBALL_KEY=tu_key\n'
+        '  2. En .streamlit/secrets.toml: agrega la línea\n'
+        '     API_FOOTBALL_KEY = "tu_key"\n'
+        'Regístrate gratis en https://dashboard.api-football.com/register'
+    )
+
+
 BASE='https://v3.football.api-sports.io'
 MX=ZoneInfo('America/Mexico_City')
 RESULT_COLUMNS=COLUMNS+['fixture_id']
@@ -153,8 +196,7 @@ def merge_results(existing,new):
 
 def run(key=None,partidos='futbol_liga_mx/data/partidos.csv',
         proximos='futbol_liga_mx/data/proximos.csv',cutoff=None,get=get_json):
-    key=key or os.environ.get('API_FOOTBALL_KEY')
-    if not key:raise ValueError('Falta API_FOOTBALL_KEY en el entorno.')
+    key = key or obtener_api_key_football()
     cutoff=cutoff or datetime.now(MX).date()-timedelta(days=1)
     path=Path(partidos)
     if not path.exists():raise ValueError(f'Primero ejecuta futbol_liga_mx.datos: falta {path}')

@@ -1,9 +1,13 @@
 import pandas as pd
+from pathlib import Path
+
+RAIZ = Path(__file__).resolve().parents[1]
+RUTA_DATA = RAIZ / "data" / "mlb"
 
 print("🧠 Calculando rachas y fatiga de los equipos...")
 
 # 1. Cargar los datos y ordenarlos por fecha (muy importante para viajar en el tiempo)
-df = pd.read_csv('mlb_historial_22_26.csv')
+df = pd.read_csv(RUTA_DATA / 'mlb_historial_22_26.csv')
 df['fecha'] = pd.to_datetime(df['fecha'])
 df = df.sort_values('fecha').reset_index(drop=True)
 
@@ -67,5 +71,5 @@ df['descanso_visitante'] = descanso_visitante
 df['resultado_final'] = (df['marcador_local'] > df['marcador_visitante']).astype(int)
 
 # Guardar el dataset maestro
-df.to_csv('mlb_dataset_ia.csv', index=False)
-print("✅ ¡Listo! Se creó 'mlb_dataset_ia.csv' con el cálculo matemático completado.")
+df.to_csv(RUTA_DATA / 'mlb_dataset_ia.csv', index=False)
+print("✅ ¡Listo! Se creó 'mlb_dataset_ia.csv' en data/mlb/ con el cálculo matemático completado.")

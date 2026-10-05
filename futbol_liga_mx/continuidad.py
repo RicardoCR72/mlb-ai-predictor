@@ -107,8 +107,8 @@ def quote_for_fixture(fixture,quotes):
     return None if matches.empty else matches.iloc[0]
 
 
-def predict(games,fixtures,params,metrics,quotes=None,now=None,output='futbol_liga_mx/predictions/hoy.csv'):
-    now=now or datetime.now(timezone.utc)
+def upcoming_ready(games,fixtures,metrics,now):
+    """Comprueba cobertura y calendario antes de solicitar momios."""
     if now.tzinfo is None:raise ValueError('now requiere zona horaria.')
     if not complete(games[games.season=='2025-26']):
         raise ValueError('2025-26 incompleta: predicción suspendida hasta validar la temporada.')
@@ -122,33 +122,51 @@ def predict(games,fixtures,params,metrics,quotes=None,now=None,output='futbol_li
         raise ValueError('Faltan varios resultados en jornadas anteriores del Apertura 2026.')
     if metrics['seasons']['confirmacion']!='2024-25':raise ValueError('No es el modelo congelado.')
     fixtures=fixtures[fixtures.season=='2026-27']
+    fechas=pd.to_datetime(fixtures.inicio_utc,utc=True,errors='coerce')
+    if fechas.isna().any():raise ValueError('Calendario con inicio_utc inválido.')
+    return fixtures[(fechas>now)&(fechas<=now+timedelta(days=7))].copy()
+
+
+def predict(games,fixtures,params,metrics,quotes=None,now=None,
+            output='futbol_liga_mx/predictions/hoy.csv',quote_loader=None):
+    now=now or datetime.now(timezone.utc)
+    fixtures=upcoming_ready(games,fixtures,metrics,now)
     results=[]
     for fixture in fixtures.to_dict('records'):
-        kickoff=datetime.fromisoformat(fixture['inicio_utc'])
-        if not now<kickoff<=now+timedelta(days=7):continue
         history=games[games.fecha.lt(fixture['fecha'])]
         features=upcoming_features(history,fixture)
         p=float(portable_probability(features,params)[0])
         result={**fixture,'p_over25':p,'p_under25':1-p,'estado':'OBSERVACION',
                 'capturada_utc':now.isoformat()}
+        results.append(result)
+    # Una ejecución bloqueada o sin partidos futuros jamás consulta The Odds API.
+    if results and quote_loader is not None:
+        if quotes is not None:raise ValueError('Usa quotes o quote_loader, no ambos.')
+        quotes=quote_loader()
+    for result in results:
+        fixture=result
         quote=quote_for_fixture(fixture,quotes) if quotes is not None else None
         if quote is not None:
+            p=result['p_over25']
             po,pu=float(quote['precio_over']),float(quote['precio_under'])
             if min(po,pu)<=1:raise ValueError('Momios decimales inválidos.')
             result.update(casa='draftkings',linea=2.5,cuota_over=po,cuota_under=pu,
                           ev_over=p*po-1,ev_under=(1-p)*pu-1,
                           odds_event_id=quote['odds_event_id'])
-        results.append(result)
     if fixtures.empty:print('API-Football no informó próximos partidos de temporada regular.')
     out=Path(output);out.parent.mkdir(parents=True,exist_ok=True)
-    pd.DataFrame(results).to_csv(out,index=False)
+    result_frame=pd.DataFrame(results)
+    if result_frame.empty:
+        result_frame=pd.DataFrame(columns=list(fixtures.columns)+
+                                  ['p_over25','p_under25','estado','capturada_utc'])
+    result_frame.to_csv(out,index=False)
     print(f'Probabilidades futuras: {len(results)}; guardadas en {out}')
-    return pd.DataFrame(results)
+    return result_frame
 
 
 if __name__=='__main__':
     ap=argparse.ArgumentParser()
-    ap.add_argument('accion',choices=['evaluar','predecir'])
+    ap.add_argument('accion',choices=['evaluar','estado','predecir'])
     ap.add_argument('--partidos',default='futbol_liga_mx/data/partidos.csv')
     ap.add_argument('--proximos',default='futbol_liga_mx/data/proximos.csv')
     ap.add_argument('--modelos',default='futbol_liga_mx/modelos')
@@ -159,9 +177,23 @@ if __name__=='__main__':
     if args.accion=='evaluar':
         evaluate_2025(games,params,metrics,'futbol_liga_mx/modelos/confirmacion_2025_26.json')
     else:
-        quotes=None
-        if not args.sin_momios:
-            key=os.environ.get('ODDS_API_KEY') or os.environ.get('THE_ODDS_API_KEY')
-            if not key:raise ValueError('Falta ODDS_API_KEY; configura tu clave o usa --sin-momios.')
-            quotes=fetch_draftkings(key)
-        predict(games,pd.read_csv(args.proximos),params,metrics,quotes)
+        if not Path(args.proximos).exists():
+            raise ValueError(f'Falta {args.proximos}; ejecuta primero futbol_liga_mx.proveedor_api.')
+        fixtures=pd.read_csv(args.proximos)
+        if args.accion=='estado':
+            print(f'Cobertura 2025-26: {len(games[games.season=="2025-26"])} juegos.')
+            try:
+                ready=upcoming_ready(games,fixtures,metrics,datetime.now(timezone.utc))
+            except ValueError as exc:
+                print(f'Estado: BLOQUEADO. {exc}')
+                print('Consulta de momios: 0 créditos.')
+                raise SystemExit(1) from None
+            print('Estado: LISTO para generar probabilidades con el modelo congelado.')
+            print(f'Partidos próximos siete días: {len(ready)}. Consulta de momios: 0 créditos.')
+        else:
+            loader=None
+            if not args.sin_momios:
+                key=os.environ.get('ODDS_API_KEY') or os.environ.get('THE_ODDS_API_KEY')
+                if not key:raise ValueError('Falta ODDS_API_KEY; configura tu clave o usa --sin-momios.')
+                loader=lambda:fetch_draftkings(key)
+            predict(games,fixtures,params,metrics,quote_loader=loader)

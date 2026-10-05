@@ -1,9 +1,13 @@
 import pandas as pd
+from pathlib import Path
+
+RAIZ = Path(__file__).resolve().parents[1]
+RUTA_DATA = RAIZ / "data" / "mlb"
 
 print("🧹 Limpiando y recalculando mlb_dataset_ia.csv desde la fuente cruda...")
 
 # --- 1. CARGAR LA FUENTE CRUDA (box scores sin racha/descanso calculados) ---
-df = pd.read_csv('mlb_historial_22_26.csv')
+df = pd.read_csv(RUTA_DATA / 'mlb_historial_22_26.csv')
 df['fecha'] = pd.to_datetime(df['fecha'])
 print(f"📄 Filas crudas cargadas: {len(df)}")
 
@@ -99,6 +103,6 @@ columnas_finales = [
 ]
 df = df[columnas_finales]
 
-df.to_csv('mlb_dataset_ia_limpio.csv', index=False)
-print(f"💾 Guardado: mlb_dataset_ia_limpio.csv ({len(df)} filas)")
-print("✅ Listo. Revisa el archivo y, si todo se ve bien, reemplaza tu mlb_dataset_ia.csv con este.")
+df.to_csv(RUTA_DATA / 'mlb_dataset_ia_limpio.csv', index=False)
+print(f"💾 Guardado: data/mlb/mlb_dataset_ia_limpio.csv ({len(df)} filas)")
+print("✅ Listo. Revisa el archivo y, si todo se ve bien, reemplaza tu data/mlb/mlb_dataset_ia.csv con este.")

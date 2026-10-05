@@ -43,12 +43,12 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-          cache-dependency-path: requirements_nfl_actions.txt
+          cache-dependency-path: requirements/requirements_nfl_actions.txt
 
       - name: Instalar dependencias NFL
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements_nfl_actions.txt
+          pip install -r requirements/requirements_nfl_actions.txt
 
       - name: Preparar certificado de Aiven
         shell: bash
@@ -93,12 +93,11 @@ jobs:
           DB_SSL_CA: ${{ runner.temp }}/aiven-ca.pem
         run: python nfl/evaluar_resultados_props.py
 
-      - name: Descargar líneas programadas de props
-        if: >-
-          github.event_name == 'schedule' &&
-          (github.event.schedule == '0 22 * * 4' ||
-           github.event.schedule == '0 16 * * 0' ||
-           github.event.schedule == '0 22 * * 1')
+      # NOTA: La descarga automática de líneas se hace via bot_nfl_props.yml
+      # (con --una-captura --solo-draftkings --reserva-creditos 120).
+      # Este step solo corre manualmente para no duplicar créditos.
+      - name: Descargar líneas (solo manual)
+        if: github.event_name == 'workflow_dispatch'
         env:
           PYTHONUNBUFFERED: "1"
           DB_HOST: ${{ secrets.NFL_DB_HOST || secrets.DB_HOST }}
@@ -109,12 +108,7 @@ jobs:
           DB_SSL_CA: ${{ runner.temp }}/aiven-ca.pem
           ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
         shell: bash
-        run: |
-          if [ "${{ github.event.schedule }}" = "0 16 * * 0" ]; then
-            python nfl/actualizar_lineas_props.py --proximas-horas 14
-          else
-            python nfl/actualizar_lineas_props.py --proximas-horas 8
-          fi
+        run: python nfl/actualizar_lineas_props.py --proximas-horas 14
 
       - name: Descargar líneas manualmente
         if: >-
@@ -131,13 +125,10 @@ jobs:
           ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
         run: python nfl/actualizar_lineas_props.py
 
-      - name: Generar proyecciones de props
-        if: >-
-          github.event_name == 'workflow_dispatch' ||
-          github.event.schedule == '0 22 * * 4' ||
-          github.event.schedule == '0 16 * * 0' ||
-          github.event.schedule == '0 23 * * 0' ||
-          github.event.schedule == '0 22 * * 1'
+      # NOTA: Las proyecciones se generan tras cada captura de bot_nfl_props.yml.
+      # Aquí solo se regeneran cuando se corre manualmente.
+      - name: Generar proyecciones de props (solo manual)
+        if: github.event_name == 'workflow_dispatch'
         env:
           PYTHONUNBUFFERED: "1"
           DB_HOST: ${{ secrets.NFL_DB_HOST || secrets.DB_HOST }}

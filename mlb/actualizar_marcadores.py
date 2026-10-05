@@ -1,51 +1,32 @@
 import os
+import sys
 import pandas as pd
 import requests
-import mysql.connector
-import streamlit as st
 from datetime import datetime, timedelta
-from zoneinfo import ZoneInfo
+from pathlib import Path
 
-# 🔧 CORRECCIÓN: la línea original era "from turtle import st", que importaba
-# la función showturtle() del módulo de gráficos turtle en vez de Streamlit.
-# Eso hacía que st.secrets fallara. Ya corregido arriba con "import streamlit as st".
+RAIZ = Path(__file__).resolve().parents[1]
+if str(RAIZ) not in sys.path:
+    sys.path.insert(0, str(RAIZ))
 
-# 🔧 CORRECCIÓN: mismo ajuste de zona horaria que en el dashboard, para que
-# las fechas siempre se calculen con la hora de México y no con la del servidor (UTC).
-ZONA_MX = ZoneInfo("America/Mazatlan")
+from core.constants import ZONA_MX
+from core.db import get_db_connection
+from core.alerts import enviar_telegram
+
 
 def hoy_mx():
     return datetime.now(ZONA_MX).date()
 
 
 def notificar_telegram(mensaje):
-    # El reporte diario envía un único mensaje con los tres deportes y la cuota.
     if os.environ.get("TELEGRAM_REPORTE_UNIFICADO") == "1":
         return
-    token = os.environ.get("TELEGRAM_BOT_TOKEN")
-    chat_id = os.environ.get("TELEGRAM_CHAT_ID")
-    if not token or not chat_id:
-        print("Telegram sin configurar: define TELEGRAM_BOT_TOKEN y TELEGRAM_CHAT_ID.")
-        return
-    try:
-        respuesta = requests.post(
-            f"https://api.telegram.org/bot{token}/sendMessage",
-            data={"chat_id": chat_id, "text": mensaje}, timeout=15,
-        )
-        respuesta.raise_for_status()
-    except requests.RequestException as error:
-        print("No se pudo enviar el mensaje a Telegram:", type(error).__name__)
+    enviar_telegram(mensaje)
 
 print("⚾ Iniciando actualización de marcadores de la MLB...")
 
 # 1. CONEXIÓN A TU BD
-conexion = mysql.connector.connect(
-        host=st.secrets["host"],
-        port=st.secrets["port"],
-        user=st.secrets["user"],
-        password=st.secrets["password"],
-        database=st.secrets["database"]
-    )
+conexion = get_db_connection()
 cursor = conexion.cursor()
 
 # 2. FECHAS A REVISAR: HOY y AYER
@@ -114,7 +95,7 @@ notificar_telegram(mensaje_exito)
 
 print("🧠 Iniciando actualización de la memoria de la IA...")
 
-archivo_csv = 'mlb_dataset_ia.csv'
+archivo_csv = RAIZ / "data" / "mlb" / "mlb_dataset_ia.csv"
 
 try:
     # 1. Cargar el historial actual

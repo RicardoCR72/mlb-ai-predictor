@@ -1,30 +1,26 @@
-from zoneinfo import ZoneInfo
-
-import streamlit as st
-
+import sys
+from datetime import datetime
+from pathlib import Path
 import pandas as pd
 import requests
 from bs4 import BeautifulSoup
-import mysql.connector
-from datetime import datetime
+
+RAIZ = Path(__file__).resolve().parents[1]
+if str(RAIZ) not in sys.path:
+    sys.path.insert(0, str(RAIZ))
+
+from core.constants import ZONA_MX
+from core.db import get_db_connection
 
 print("🏥 Iniciando Escáner Médico de la MLB...")
 
-# 1. CONEXIÓN A XAMPP
 try:
-    conexion = mysql.connector.connect(
-        host=st.secrets["host"],
-        port=st.secrets["port"],
-        user=st.secrets["user"],
-        password=st.secrets["password"],
-        database=st.secrets["database"]
-    )
+    conexion = get_db_connection()
     cursor = conexion.cursor()
 except Exception as e:
     print(f"❌ Error conectando a BD: {e}")
-    exit()
+    exit(1)
 
-ZONA_MX = ZoneInfo("America/Mazatlan")
 hoy = datetime.now(ZONA_MX).strftime('%Y-%m-%d')
 
 # Diccionario de traducción de nombres

@@ -1,11 +1,26 @@
-name: Props NFL con límite de créditos
+name: Props NFL con limite de creditos
 
 on:
   schedule:
-    # 16:00 UTC; ventana de 24 horas hasta el comienzo del partido.
-    - cron: '0 16 * 9-12 *'
-    - cron: '0 16 * 1-2 *'
+    # Jueves 22:00 UTC (16:00 CDMX): captura SOLO el TNF (~10h antes del kickoff).
+    - cron: '0 22 * 9-2 4'
+    # Viernes 14:00 UTC (08:00 CDMX): liquida el TNF, regenera proyecciones sin odds.
+    - cron: '0 14 * 9-2 5'
+    # Domingo 16:00 UTC (10:00 CDMX): captura la jornada dominical (partidos en ~8-16h).
+    - cron: '0 16 * 9-2 0'
+    # Domingo 22:00 UTC (16:00 CDMX): segunda captura dominical (SNF, ~3h antes).
+    - cron: '0 22 * 9-2 0'
+    # Lunes 22:00 UTC (16:00 CDMX): captura SOLO el MNF (~10h antes del kickoff).
+    - cron: '0 22 * 9-2 1'
+    # Martes 14:00 UTC (08:00 CDMX): liquida MNF, regenera proyecciones sin odds.
+    - cron: '0 14 * 9-2 2'
   workflow_dispatch:
+    inputs:
+      proximas_horas:
+        description: 'Ventana de captura en horas (0 = sin limite)'
+        required: false
+        default: '14'
+        type: string
 
 permissions:
   contents: read
@@ -31,29 +46,80 @@ jobs:
         with:
           python-version: '3.12'
           cache: pip
-          cache-dependency-path: requirements_nfl_actions.txt
-      - run: python -m pip install -r requirements_nfl_actions.txt
+          cache-dependency-path: requirements/requirements_nfl_actions.txt
+      - run: python -m pip install -r requirements/requirements_nfl_actions.txt
 
-      - name: Semana del catálogo
+      - name: Semana del catalogo
         id: week
         run: echo "key=$(date -u +%G-%V)" >> "$GITHUB_OUTPUT"
 
-      - name: Cache del catálogo de jugadores NFL
+      - name: Cache del catalogo de jugadores NFL
         uses: actions/cache@v4
         with:
           path: data/nfl/raw
           key: nfl-players-2026-${{ steps.week.outputs.key }}
 
-      - name: Preparar catálogo cuando todavía no existe
+      - name: Preparar catalogo cuando todavia no existe
         run: |
           if [ ! -f data/nfl/raw/nfl_player_stats_2012_2026.parquet ]; then
             python nfl/descargar_datos.py
           fi
 
-      - name: Capturar una vez por partido, solo DraftKings
+      # ── Evaluar resultados de props ya terminados (SIN creditos) ─────────
+      - name: Evaluar resultados props terminados
+        env:
+          DB_SSL_CA: ${{ runner.temp }}/aiven-ca.pem
         run: |
+          # Preparar certificado Aiven
+          if [ -n "${{ secrets.DB_SSL_CA_CERT || secrets.NFL_DB_SSL_CA_CERT }}" ]; then
+            printf '%s' "${{ secrets.DB_SSL_CA_CERT || secrets.NFL_DB_SSL_CA_CERT }}" > "$RUNNER_TEMP/aiven-ca.pem"
+            python nfl/evaluar_resultados_props.py || true
+          fi
+
+      # ── Decidir ventana de horas segun dia de la semana ──────────────────
+      # Jueves/Lunes: solo el partido de esa noche (~10h)
+      # Domingo 16h UTC: jornada completa (~16h hasta el SNF)
+      # Domingo 22h UTC: solo SNF (~4h)
+      # Viernes/Martes: sin odds, solo liquidar (se salta la captura)
+      # workflow_dispatch: usa el input del usuario
+      - name: Calcular ventana de captura
+        id: ventana
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            HORAS="${{ inputs.proximas_horas }}"
+          else
+            DOW=$(date -u +%u)   # 1=Lun 2=Mar 4=Jue 5=Vie 6=Sab 7=Dom
+            HORA_UTC=$(date -u +%H)
+            case "$DOW" in
+              4) HORAS=10 ;;   # Jueves → solo TNF
+              1) HORAS=10 ;;   # Lunes  → solo MNF
+              7)
+                if [ "$HORA_UTC" = "16" ]; then
+                  HORAS=16   # Domingo 10AM CDMX → jornada completa
+                else
+                  HORAS=5    # Domingo 16:00 CDMX → solo SNF
+                fi
+                ;;
+              5|2) HORAS=0 ;; # Viernes/Martes → no descargar odds
+              *)   HORAS=14 ;;
+            esac
+          fi
+          echo "horas=$HORAS" >> "$GITHUB_OUTPUT"
+          echo "Ventana de captura: $HORAS horas"
+
+      # ── Captura de odds (solo si HORAS > 0) ──────────────────────────────
+      - name: Capturar odds del partido de hoy
+        if: steps.ventana.outputs.horas != '0'
+        shell: bash
+        run: |
+          HORAS="${{ steps.ventana.outputs.horas }}"
           python nfl/actualizar_lineas_props.py \
-            --proximas-horas 24 \
+            --proximas-horas "$HORAS" \
             --una-captura \
             --solo-draftkings \
             --reserva-creditos 120
+
+      # ── Regenerar proyecciones despues de captura ─────────────────────────
+      - name: Generar proyecciones
+        run: python nfl/predecir_props_semana_actual.py

@@ -1,45 +1,42 @@
-import streamlit as st
-
-import requests
-import mysql.connector
-from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
+import os
+import sys
+from datetime import datetime, timedelta
+from pathlib import Path
 
-from escaner_equipos import ZONA_MX
+RAIZ = Path(__file__).resolve().parents[1]
+if str(RAIZ) not in sys.path:
+    sys.path.insert(0, str(RAIZ))
+
+from core.constants import ZONA_MX
+from core.db import get_db_connection
+from core.cache import cached_get_json
+
 
 def conectar_bd():
     try:
-        return mysql.connector.connect(
-        host=st.secrets["host"],
-        port=st.secrets["port"],
-        user=st.secrets["user"],
-        password=st.secrets["password"],
-        database=st.secrets["database"]
-    )
-    except mysql.connector.Error as err:
+        return get_db_connection()
+    except Exception as err:
         print(f"❌ Error DB: {err}")
         return None
 
-def descargar_mlb():
-    """Una captura de h2h y totals para DraftKings; máximo dos créditos."""
-    import os
 
+def descargar_mlb():
+    """Una captura de h2h y totals para DraftKings; con caché inteligente para ahorrar créditos."""
     api_key = os.environ.get("ODDS_API_KEY") or os.environ.get("THE_ODDS_API_KEY")
     if not api_key:
-        raise RuntimeError("Falta ODDS_API_KEY en los secretos de GitHub Actions.")
+        raise RuntimeError("Falta ODDS_API_KEY en los secretos o entorno.")
     print("📡 Descargando MLB (DraftKings: Moneyline y Totales)...")
     try:
-        respuesta = requests.get(
+        datos, headers = cached_get_json(
             "https://api.the-odds-api.com/v4/sports/baseball_mlb/odds/",
             params={"apiKey": api_key, "bookmakers": "draftkings", "markets": "h2h,totals"},
-            timeout=35,
+            ttl_minutes=20,
         )
-        respuesta.raise_for_status()
-        print("Créditos de esta captura:", respuesta.headers.get("x-requests-last", "N/D"))
-        return respuesta.json()
-    except requests.RequestException as error:
-        codigo = getattr(error.response, "status_code", None)
-        raise RuntimeError(f"Error al consultar cuotas MLB (HTTP {codigo or 'red'}).") from None
+        print("Créditos restantes The Odds API:", headers.get("x-requests-remaining", "N/D"))
+        return datos
+    except Exception as error:
+        raise RuntimeError(f"Error al consultar cuotas MLB: {error}") from None
 
 
 def guardar_todo(conexion, datos):

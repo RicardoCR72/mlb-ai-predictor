@@ -2094,3 +2094,91 @@ season,fecha,local,visitante,goles_local,goles_visitante,ronda,source_file
 2024-25,2025-04-20,Club León,CF Monterrey,0,2,"Clausura, Matchday 17",2024-25/mx.1.json
 2024-25,2025-04-20,FC Juárez,Gallos Blancos,0,2,"Clausura, Matchday 17",2024-25/mx.1.json
 2024-25,2025-04-20,Santos Laguna,Club Tijuana,0,4,"Clausura, Matchday 17",2024-25/mx.1.json
+2026-27,2026-07-16,Club Necaxa,Atlante,2,1,"Apertura, Matchday 1",ESPN /scoreboard
+2026-27,2026-07-16,Club Tijuana,UANL Tigres,3,1,"Apertura, Matchday 1",ESPN /scoreboard
+2026-27,2026-07-17,Atletico San Luis,Cruz Azul,2,3,"Apertura, Matchday 1",ESPN /scoreboard
+2026-27,2026-07-17,Club Leon,Atlas Guadalajara,2,3,"Apertura, Matchday 1",ESPN /scoreboard
+2026-27,2026-07-17,FC Juarez,Puebla FC,0,1,"Apertura, Matchday 1",ESPN /scoreboard
+2026-27,2026-07-18,CF Monterrey,Santos Laguna,3,2,"Apertura, Matchday 1",ESPN /scoreboard
+2026-27,2026-07-18,Deportivo Guadalajara,Deportivo Toluca,0,2,"Apertura, Matchday 1",ESPN /scoreboard
+2026-27,2026-07-18,Gallos Blancos,CF America,0,1,"Apertura, Matchday 1",ESPN /scoreboard
+2026-27,2026-07-18,Pumas UNAM,CF Pachuca,0,3,"Apertura, Matchday 1",ESPN /scoreboard
+2026-27,2026-07-21,Cruz Azul,Puebla FC,2,1,"Apertura, Matchday 2",ESPN /scoreboard
+2026-27,2026-07-21,Deportivo Toluca,Pumas UNAM,1,2,"Apertura, Matchday 2",ESPN /scoreboard
+2026-27,2026-07-24,Atlante,CF America,1,1,"Apertura, Matchday 3",ESPN /scoreboard
+2026-27,2026-07-24,Club Tijuana,Club Leon,1,0,"Apertura, Matchday 3",ESPN /scoreboard
+2026-27,2026-07-25,Deportivo Guadalajara,FC Juarez,1,0,"Apertura, Matchday 3",ESPN /scoreboard
+2026-27,2026-07-25,Santos Laguna,Atlas Guadalajara,0,1,"Apertura, Matchday 3",ESPN /scoreboard
+2026-27,2026-07-25,UANL Tigres,Atletico San Luis,2,2,"Apertura, Matchday 3",ESPN /scoreboard
+2026-27,2026-07-26,CF Pachuca,Gallos Blancos,1,2,"Apertura, Matchday 3",ESPN /scoreboard
+2026-27,2026-07-26,Club Necaxa,CF Monterrey,2,1,"Apertura, Matchday 3",ESPN /scoreboard
+2026-27,2026-07-31,Atletico San Luis,Club Tijuana,0,0,"Apertura, Matchday 4",ESPN /scoreboard
+2026-27,2026-07-31,FC Juarez,Pumas UNAM,1,5,"Apertura, Matchday 4",ESPN /scoreboard
+2026-27,2026-07-31,Puebla FC,Deportivo Guadalajara,1,1,"Apertura, Matchday 4",ESPN /scoreboard
+2026-27,2026-08-01,Atlas Guadalajara,CF Monterrey,0,2,"Apertura, Matchday 4",ESPN /scoreboard
+2026-27,2026-08-01,Club Leon,CF Pachuca,1,0,"Apertura, Matchday 4",ESPN /scoreboard
+2026-27,2026-08-01,Cruz Azul,Atlante,2,3,"Apertura, Matchday 4",ESPN /scoreboard
+2026-27,2026-08-01,Gallos Blancos,UANL Tigres,3,2,"Apertura, Matchday 4",ESPN /scoreboard
+2026-27,2026-08-02,CF America,Santos Laguna,3,0,"Apertura, Matchday 4",ESPN /scoreboard
+2026-27,2026-08-02,Deportivo Toluca,Club Necaxa,3,1,"Apertura, Matchday 4",ESPN /scoreboard
+2026-27,2026-08-15,Atlante,Deportivo Toluca,0,0,"Apertura, Matchday 5",ESPN /scoreboard
+2026-27,2026-08-15,Atlas Guadalajara,UANL Tigres,2,1,"Apertura, Matchday 5",ESPN /scoreboard
+2026-27,2026-08-15,CF Monterrey,FC Juarez,6,1,"Apertura, Matchday 5",ESPN /scoreboard
+2026-27,2026-08-16,CF America,Atletico San Luis,3,0,"Apertura, Matchday 5",ESPN /scoreboard
+2026-27,2026-08-16,Club Tijuana,Cruz Azul,2,1,"Apertura, Matchday 5",ESPN /scoreboard
+2026-27,2026-08-16,Pumas UNAM,Gallos Blancos,0,0,"Apertura, Matchday 5",ESPN /scoreboard
+2026-27,2026-08-16,Santos Laguna,Deportivo Guadalajara,0,1,"Apertura, Matchday 5",ESPN /scoreboard
+2026-27,2026-08-17,CF Pachuca,Puebla FC,2,3,"Apertura, Matchday 5",ESPN /scoreboard
+2026-27,2026-08-17,Club Necaxa,Club Leon,1,2,"Apertura, Matchday 5",ESPN /scoreboard
+2026-27,2026-08-21,Club Leon,CF Monterrey,2,0,"Apertura, Matchday 6",ESPN /scoreboard
+2026-27,2026-08-21,FC Juarez,CF America,1,2,"Apertura, Matchday 6",ESPN /scoreboard
+2026-27,2026-08-21,Gallos Blancos,Deportivo Toluca,1,2,"Apertura, Matchday 6",ESPN /scoreboard
+2026-27,2026-08-21,UANL Tigres,Atlante,2,0,"Apertura, Matchday 6",ESPN /scoreboard
+2026-27,2026-08-22,Cruz Azul,Atlas Guadalajara,0,2,"Apertura, Matchday 6",ESPN /scoreboard
+2026-27,2026-08-22,Deportivo Guadalajara,Club Tijuana,5,2,"Apertura, Matchday 6",ESPN /scoreboard
+2026-27,2026-08-22,Puebla FC,Santos Laguna,3,2,"Apertura, Matchday 6",ESPN /scoreboard
+2026-27,2026-08-23,Atletico San Luis,CF Pachuca,1,1,"Apertura, Matchday 6",ESPN /scoreboard
+2026-27,2026-08-23,Pumas UNAM,Club Necaxa,1,1,"Apertura, Matchday 6",ESPN /scoreboard
+2026-27,2026-08-28,Atlante,Club Leon,1,1,"Apertura, Matchday 7",ESPN /scoreboard
+2026-27,2026-08-28,Club Necaxa,Cruz Azul,1,3,"Apertura, Matchday 7",ESPN /scoreboard
+2026-27,2026-08-28,Club Tijuana,Pumas UNAM,2,0,"Apertura, Matchday 7",ESPN /scoreboard
+2026-27,2026-08-29,Atlas Guadalajara,Gallos Blancos,1,3,"Apertura, Matchday 7",ESPN /scoreboard
+2026-27,2026-08-29,CF America,Puebla FC,2,0,"Apertura, Matchday 7",ESPN /scoreboard
+2026-27,2026-08-29,CF Pachuca,Deportivo Guadalajara,1,1,"Apertura, Matchday 7",ESPN /scoreboard
+2026-27,2026-08-29,Santos Laguna,UANL Tigres,0,0,"Apertura, Matchday 7",ESPN /scoreboard
+2026-27,2026-08-30,CF Monterrey,Atletico San Luis,1,3,"Apertura, Matchday 7",ESPN /scoreboard
+2026-27,2026-08-30,Deportivo Toluca,FC Juarez,4,0,"Apertura, Matchday 7",ESPN /scoreboard
+2026-27,2026-09-04,FC Juarez,CF Pachuca,0,2,"Apertura, Matchday 8",ESPN /scoreboard
+2026-27,2026-09-05,Atlas Guadalajara,Atlante,1,1,"Apertura, Matchday 8",ESPN /scoreboard
+2026-27,2026-09-05,Atletico San Luis,Deportivo Guadalajara,0,3,"Apertura, Matchday 8",ESPN /scoreboard
+2026-27,2026-09-05,UANL Tigres,Club Necaxa,1,1,"Apertura, Matchday 8",ESPN /scoreboard
+2026-27,2026-09-06,Cruz Azul,Santos Laguna,1,0,"Apertura, Matchday 8",ESPN /scoreboard
+2026-27,2026-09-10,Pumas UNAM,Club Leon,3,1,"Apertura, Matchday 9",ESPN /scoreboard
+2026-27,2026-09-11,Atlante,CF Pachuca,0,3,"Apertura, Matchday 9",ESPN /scoreboard
+2026-27,2026-09-11,Club Necaxa,Puebla FC,0,1,"Apertura, Matchday 9",ESPN /scoreboard
+2026-27,2026-09-11,Club Tijuana,Gallos Blancos,0,1,"Apertura, Matchday 9",ESPN /scoreboard
+2026-27,2026-09-12,CF Monterrey,UANL Tigres,0,0,"Apertura, Matchday 9",ESPN /scoreboard
+2026-27,2026-09-12,Cruz Azul,CF America,4,3,"Apertura, Matchday 9",ESPN /scoreboard
+2026-27,2026-09-12,Deportivo Toluca,Atlas Guadalajara,5,2,"Apertura, Matchday 9",ESPN /scoreboard
+2026-27,2026-09-13,Deportivo Guadalajara,Pumas UNAM,3,0,"Apertura, Matchday 10",ESPN /scoreboard
+2026-27,2026-09-13,Santos Laguna,FC Juarez,2,1,"Apertura, Matchday 10",ESPN /scoreboard
+2026-27,2026-09-14,Club Leon,Atletico San Luis,2,0,"Apertura, Matchday 10",ESPN /scoreboard
+2026-27,2026-09-15,Puebla FC,Deportivo Toluca,0,1,"Apertura, Matchday 10",ESPN /scoreboard
+2026-27,2026-09-18,FC Juarez,UANL Tigres,2,0,"Apertura, Matchday 11",ESPN /scoreboard
+2026-27,2026-09-18,Puebla FC,Atlante,1,1,"Apertura, Matchday 11",ESPN /scoreboard
+2026-27,2026-09-19,Atlas Guadalajara,Pumas UNAM,1,1,"Apertura, Matchday 11",ESPN /scoreboard
+2026-27,2026-09-19,Atletico San Luis,Club Necaxa,3,1,"Apertura, Matchday 11",ESPN /scoreboard
+2026-27,2026-09-19,CF America,Deportivo Guadalajara,2,2,"Apertura, Matchday 11",ESPN /scoreboard
+2026-27,2026-09-19,CF Monterrey,Cruz Azul,1,0,"Apertura, Matchday 11",ESPN /scoreboard
+2026-27,2026-09-20,CF Pachuca,Club Tijuana,2,2,"Apertura, Matchday 11",ESPN /scoreboard
+2026-27,2026-09-20,Deportivo Toluca,Santos Laguna,2,3,"Apertura, Matchday 11",ESPN /scoreboard
+2026-27,2026-09-20,Gallos Blancos,Club Leon,1,1,"Apertura, Matchday 11",ESPN /scoreboard
+2026-27,2026-09-25,Atlante,CF Monterrey,4,2,"Apertura, Matchday 12",ESPN /scoreboard
+2026-27,2026-09-25,Club Tijuana,Atlas Guadalajara,2,3,"Apertura, Matchday 12",ESPN /scoreboard
+2026-27,2026-09-26,Cruz Azul,Deportivo Toluca,3,3,"Apertura, Matchday 12",ESPN /scoreboard
+2026-27,2026-09-26,Deportivo Guadalajara,Gallos Blancos,0,2,"Apertura, Matchday 12",ESPN /scoreboard
+2026-27,2026-09-26,Santos Laguna,CF Pachuca,1,0,"Apertura, Matchday 12",ESPN /scoreboard
+2026-27,2026-09-26,UANL Tigres,Puebla FC,1,0,"Apertura, Matchday 12",ESPN /scoreboard
+2026-27,2026-09-27,Club Leon,FC Juarez,2,1,"Apertura, Matchday 12",ESPN /scoreboard
+2026-27,2026-09-27,Club Necaxa,CF America,2,4,"Apertura, Matchday 12",ESPN /scoreboard
+2026-27,2026-09-27,Pumas UNAM,Atletico San Luis,2,3,"Apertura, Matchday 12",ESPN /scoreboard

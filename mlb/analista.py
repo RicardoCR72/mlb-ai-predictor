@@ -1,17 +1,18 @@
-import streamlit as st
+import sys
+from pathlib import Path
 
-import mysql.connector
+RAIZ = Path(__file__).resolve().parents[1]
+if str(RAIZ) not in sys.path:
+    sys.path.insert(0, str(RAIZ))
+
+from core.db import get_db_connection
+from core.alerts import notificar_oportunidad_valor
+
 
 def conectar_bd():
     try:
-        return mysql.connector.connect(
-        host=st.secrets["host"],
-        port=st.secrets["port"],
-        user=st.secrets["user"],
-        password=st.secrets["password"],
-        database=st.secrets["database"]
-    )
-    except mysql.connector.Error as err:
+        return get_db_connection()
+    except Exception as err:
         print(f"❌ Error DB: {err}")
         return None
 

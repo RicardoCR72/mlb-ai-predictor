@@ -11,13 +11,16 @@ from datetime import datetime, timedelta, timezone
 from urllib.parse import urlencode
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
+import sys
+from pathlib import Path
 from zoneinfo import ZoneInfo
 
-import mysql.connector
+RAIZ = Path(__file__).resolve().parents[1]
+if str(RAIZ) not in sys.path:
+    sys.path.insert(0, str(RAIZ))
 
-
-MX = ZoneInfo("America/Mexico_City")
-MAZATLAN = ZoneInfo("America/Mazatlan")
+from core.constants import ZONA_CDMX as MX, ZONA_MX as MAZATLAN
+from core.db import get_db_connection
 
 
 def get_json(url, *, headers=None, opener=urlopen):
@@ -82,15 +85,7 @@ def liga_mx_resultados(fecha, api_key, getter=get_json):
 
 
 def db_connection():
-    settings = {
-        "host": os.environ["DB_HOST"],
-        "port": int(os.environ.get("DB_PORT") or 3306),
-        "user": os.environ["DB_USER"],
-        "password": os.environ.get("DB_PASS") or os.environ["DB_PASSWORD"],
-        "database": os.environ["DB_NAME"],
-        "connection_timeout": 20,
-    }
-    return mysql.connector.connect(**settings)
+    return get_db_connection()
 
 
 def resultados_db(connection, table, fecha):

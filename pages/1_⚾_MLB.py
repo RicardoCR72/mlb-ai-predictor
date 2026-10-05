@@ -9,11 +9,21 @@ from tensorflow.keras.layers import Dense, Dropout, Input
 import joblib
 import warnings
 from datetime import datetime
+from pathlib import Path
 from zoneinfo import ZoneInfo
 
+import sys
 warnings.filterwarnings('ignore')
 
-ZONA_MX = ZoneInfo("America/Mazatlan")
+RAIZ = Path(__file__).resolve().parents[1]
+if str(RAIZ) not in sys.path:
+    sys.path.insert(0, str(RAIZ))
+
+RUTA_MODELOS_MLB = RAIZ / "modelos_mlb"
+RUTA_DATA_MLB = RAIZ / "data" / "mlb"
+
+from core.constants import ZONA_MX, MLB_TEAMS_ABBR, MLB_STADIUM_TIMEZONES
+from core.db import get_db_connection
 
 def hoy_mx():
     return datetime.now(ZONA_MX).date()
@@ -409,9 +419,9 @@ def cargar_oraculo():
             Dense(1, activation='sigmoid')
         ])
 
-        modelo.load_weights('pesos_mlb_v4.weights.h5')
-        scaler = joblib.load('scaler_v4.pkl')
-        columnas_v4 = joblib.load('columnas_v4.pkl')
+        modelo.load_weights(str(RUTA_MODELOS_MLB / 'pesos_mlb_v4.weights.h5'))
+        scaler = joblib.load(RUTA_MODELOS_MLB / 'scaler_v4.pkl')
+        columnas_v4 = joblib.load(RUTA_MODELOS_MLB / 'columnas_v4.pkl')
 
         return modelo, scaler, columnas_v4
     except Exception as e:
@@ -419,30 +429,10 @@ def cargar_oraculo():
         return None, None, None
 
 def conectar_bd():
-    return mysql.connector.connect(
-        host=st.secrets["host"], port=st.secrets["port"],
-        user=st.secrets["user"], password=st.secrets["password"], database=st.secrets["database"]
-    )
+    return get_db_connection()
 
-MAPEO_EQUIPOS = {
-    'Arizona Diamondbacks': 'ARI', 'Athletics': 'OAK', 'Atlanta Braves': 'ATL',
-    'Baltimore Orioles': 'BAL', 'Boston Red Sox': 'BOS', 'Chicago Cubs': 'CHC',
-    'Chicago White Sox': 'CWS', 'Cincinnati Reds': 'CIN', 'Cleveland Guardians': 'CLE',
-    'Colorado Rockies': 'COL', 'Detroit Tigers': 'DET', 'Houston Astros': 'HOU',
-    'Kansas City Royals': 'KC', 'Los Angeles Angels': 'LAA', 'Los Angeles Dodgers': 'LAD',
-    'Miami Marlins': 'MIA', 'Milwaukee Brewers': 'MIL', 'Minnesota Twins': 'MIN',
-    'New York Mets': 'NYM', 'New York Yankees': 'NYY', 'Philadelphia Phillies': 'PHI',
-    'Pittsburgh Pirates': 'PIT', 'San Diego Padres': 'SD', 'San Francisco Giants': 'SF',
-    'Seattle Mariners': 'SEA', 'St. Louis Cardinals': 'STL', 'Tampa Bay Rays': 'TB',
-    'Texas Rangers': 'TEX', 'Toronto Blue Jays': 'TOR', 'Washington Nationals': 'WSH',
-}
-
-ZONAS_HORARIAS = {
-    'ARI': -7, 'ATL': -5, 'BAL': -5, 'BOS': -5, 'CHC': -6, 'CWS': -6, 'CIN': -5, 'CLE': -5,
-    'COL': -7, 'DET': -5, 'HOU': -6, 'KC': -6, 'LAA': -8, 'LAD': -8, 'MIA': -5, 'MIL': -6,
-    'MIN': -6, 'NYM': -5, 'NYY': -5, 'OAK': -8, 'PHI': -5, 'PIT': -5, 'SD': -8, 'SF': -8,
-    'SEA': -8, 'STL': -6, 'TB': -5, 'TEX': -6, 'TOR': -5, 'WSH': -5
-}
+MAPEO_EQUIPOS = MLB_TEAMS_ABBR
+ZONAS_HORARIAS = MLB_STADIUM_TIMEZONES
 
 def normalizar_equipo(nombre):
     return MAPEO_EQUIPOS.get(nombre, nombre)
@@ -762,7 +752,7 @@ df = cargar_datos_hoy()
 if not df.empty: df = df.drop_duplicates(subset=['Equipo Local', 'Equipo Visitante']).reset_index(drop=True)
 
 if not df.empty and modelo is not None:
-    df_csv_estatico = pd.read_csv('mlb_dataset_ia.csv')
+    df_csv_estatico = pd.read_csv(RUTA_DATA_MLB / 'mlb_dataset_ia.csv')
     df_pasado = cargar_historial_xampp()
     df_hist = fusionar_historiales(df_csv_estatico, df_pasado)
     df_metricas_adv = cargar_metricas_avanzadas()

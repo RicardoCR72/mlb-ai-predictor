@@ -290,12 +290,13 @@ st.markdown(
         </div>
         <div class="hub-signal">
             <div class="hub-signal-label">COBERTURA ACTIVA</div>
-            <div class="hub-signal-value"><span>MLB</span> · Totales</div>
+            <div class="hub-signal-value"><span>MLB</span> · Totales + Moneyline</div>
             <div class="hub-signal-value"><span>NFL</span> · Totales + Props</div>
+            <div class="hub-signal-value"><span>LIGA MX</span> · Totales 2.5</div>
         </div>
     </section>
     <div class="hub-grid">
-        <div class="hub-kpi"><div class="hub-kpi-label">Deportes</div><div class="hub-kpi-value">MLB + NFL</div><div class="hub-kpi-note">Modelos en producción</div></div>
+        <div class="hub-kpi"><div class="hub-kpi-label">Deportes</div><div class="hub-kpi-value">MLB + NFL + LIGA MX</div><div class="hub-kpi-note">3 deportes en producción</div></div>
         <div class="hub-kpi"><div class="hub-kpi-label">Mercados NFL</div><div class="hub-kpi-value">Totales + 6 props</div><div class="hub-kpi-note">Seguimiento por selección</div></div>
         <div class="hub-kpi"><div class="hub-kpi-label">Persistencia</div><div class="hub-kpi-value">MySQL · Aiven</div><div class="hub-kpi-note">Histórico centralizado</div></div>
         <div class="hub-kpi"><div class="hub-kpi-label">Operación</div><div class="hub-kpi-value">Automatizada</div><div class="hub-kpi-note">GitHub Actions activo</div></div>
@@ -307,7 +308,7 @@ st.markdown(
 st.markdown('<div class="hub-section-title">Selecciona tu centro de análisis</div>', unsafe_allow_html=True)
 st.markdown('<div class="hub-section-note">Cada módulo mantiene su propio modelo, controles y seguimiento de rendimiento.</div>', unsafe_allow_html=True)
 
-mlb_col, nfl_col = st.columns(2, gap="large")
+mlb_col, nfl_col, ligamx_col = st.columns(3, gap="medium")
 
 with mlb_col:
     st.markdown(
@@ -356,6 +357,31 @@ with nfl_col:
         "pages/2_🏈_NFL.py",
         label="ABRIR CENTRO NFL",
         icon="🏈",
+        use_container_width=True,
+    )
+
+with ligamx_col:
+    st.markdown(
+        """
+        <div class="sport-card">
+            <div class="sport-head">
+                <div><div class="sport-code">SOCCER ENGINE</div><div class="sport-title">⚽ LIGA MX</div></div>
+                <span class="sport-badge">PRODUCCIÓN</span>
+            </div>
+            <div class="sport-copy">Modelos Poisson y regresión logística calibrada para el mercado de Over/Under 2.5 goles.</div>
+            <div class="sport-list">
+                <div class="sport-list-item">Proyección de goles esperados (xG)</div>
+                <div class="sport-list-item">Probabilidad calibrada 2.5 goles</div>
+                <div class="sport-list-item">Auditoría con Brier Score real</div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.page_link(
+        "pages/3_⚽_Liga_MX.py",
+        label="ABRIR LIGA MX",
+        icon="⚽",
         use_container_width=True,
     )
 

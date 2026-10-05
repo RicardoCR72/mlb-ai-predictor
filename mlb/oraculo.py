@@ -1,5 +1,6 @@
-from turtle import st
-
+import os
+from pathlib import Path
+import streamlit as st
 import pandas as pd
 import numpy as np
 import mysql.connector
@@ -10,10 +11,13 @@ import warnings
 # Apagar advertencias molestas de Pandas
 warnings.filterwarnings('ignore')
 
+RAIZ = Path(__file__).resolve().parents[1]
+RUTA_DATA = RAIZ / "data" / "mlb"
+
 print("🧠 Despertando a la IA y preparando la memoria...")
 
 # 1. RECUPERAR EL MOLDE (Para que la matriz coincida con las 62 variables)
-df_hist = pd.read_csv('mlb_historico.csv')
+df_hist = pd.read_csv(RUTA_DATA / 'mlb_historico.csv')
 df_hist = df_hist.dropna(subset=['team', 'opponent', 'moneyLine', 'oppMoneyLine', 'runs', 'oppRuns'])
 equipos_encoded_hist = pd.get_dummies(df_hist[['team', 'opponent']])
 columnas_entrenamiento = equipos_encoded_hist.columns 
