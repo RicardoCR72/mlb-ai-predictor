@@ -1,4 +1,4 @@
-﻿name: Actualizar Liga MX (ESPN)
+name: Actualizar Liga MX (ESPN)
 
 on:
   schedule:
@@ -54,6 +54,9 @@ jobs:
           restore-keys: |
             liga-mx-espn-
 
+      - name: Recuperar temporada faltante sin reentrenar
+        run: python -m futbol_liga_mx.recuperar_historial
+
       - name: Actualizar partidos y proximos desde ESPN
         run: |
           ARGS=""
@@ -76,3 +79,4 @@ jobs:
             git commit -m "chore(liga-mx): actualizar datos ESPN $(date -u +%Y-%m-%d)"
             git push
           fi
+

@@ -4,6 +4,10 @@ from datetime import datetime
 import pandas as pd
 import numpy as np
 import streamlit as st
+import uuid
+from zoneinfo import ZoneInfo
+from core import bankroll as bank
+from core.db import get_db_connection
 
 st.set_page_config(
     page_title="Gestión de Banca y Kelly",
@@ -12,7 +16,6 @@ st.set_page_config(
 )
 
 RAIZ = Path(__file__).resolve().parents[1]
-RUTA_BANKROLL = RAIZ / "data" / "bankroll_ledger.csv"
 
 st.markdown(
     """
@@ -108,193 +111,136 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-tab1, tab2, tab3 = st.tabs(["🧮 Calculadora Kelly & EV", "📈 Métricas de Portafolio", "📝 Registrar / Gestionar Apuesta"])
-
-# Helper para cargar libro de apuestas
-def cargar_ledger() -> pd.DataFrame:
-    if RUTA_BANKROLL.exists():
-        df = pd.read_csv(RUTA_BANKROLL)
-        df['fecha'] = pd.to_datetime(df['fecha'])
-        return df
-    cols = ['fecha', 'deporte', 'partido', 'seleccion', 'casa', 'cuota', 'monto', 'estado', 'ganancia_neta']
-    # Datos demostrativos iniciales
-    df_init = pd.DataFrame([
-        {'fecha': '2026-09-28', 'deporte': 'MLB', 'partido': 'LAD vs SF', 'seleccion': 'LAD ML', 'casa': 'DraftKings', 'cuota': 1.80, 'monto': 100.0, 'estado': 'Ganada', 'ganancia_neta': 80.0},
-        {'fecha': '2026-09-29', 'deporte': 'NFL', 'partido': 'KC vs BAL', 'seleccion': 'Over 46.5', 'casa': 'DraftKings', 'cuota': 1.91, 'monto': 100.0, 'estado': 'Ganada', 'ganancia_neta': 91.0},
-        {'fecha': '2026-09-30', 'deporte': 'Liga MX', 'partido': 'América vs Chivas', 'seleccion': 'Under 2.5', 'casa': 'Caliente', 'cuota': 1.85, 'monto': 100.0, 'estado': 'Perdida', 'ganancia_neta': -100.0},
-    ])
-    df_init.to_csv(RUTA_BANKROLL, index=False)
-    df_init['fecha'] = pd.to_datetime(df_init['fecha'])
-    return df_init
-
-# ==========================================================
-# TAB 1: CALCULADORA KELLY Y EXPECTED VALUE
-# ==========================================================
-with tab1:
-    st.markdown("### Dimensionamiento Óptimo de Apuestas (Criterio de Kelly)")
-    st.caption("Determina el tamaño exacto que debes arriesgar en base a la probabilidad de tu modelo y el precio del mercado.")
-
-    col1, col2 = st.columns(2, gap="large")
-
-    with col1:
-        st.markdown('<div class="kelly-box">', unsafe_allow_html=True)
-        bankroll = st.number_input("Capital Total de Apuestas (Bankroll $):", min_value=100.0, value=10000.0, step=500.0)
-        
-        prob_modelo_pct = st.slider("Probabilidad estimada por la IA (%):", min_value=1.0, max_value=99.0, value=58.0, step=0.5)
-        prob_modelo = prob_modelo_pct / 100.0
-
-        tipo_cuota = st.selectbox("Formato de Cuota:", ["Decimal (ej. 1.91, 2.20)", "Americana (ej. -110, +135)"])
-        
-        if "Decimal" in tipo_cuota:
-            cuota_dec = st.number_input("Cuota Decimal:", min_value=1.01, value=1.95, step=0.05)
+def render_app(conn, ledger, initial):
+    stats = bank.metrics(ledger, initial)
+    tab1, tab2, tab3 = st.tabs(["🧮 Calculadora Kelly & EV", "📈 Portafolio", "📝 Registrar / Gestionar"])
+    with tab1:
+        bankroll = st.number_input("Banca disponible ($)", min_value=0.0,
+                                  value=max(0.0, stats['disponible']), step=100.0)
+        p = st.slider("Probabilidad estimada (%)", 1.0, 99.0, 58.0, 0.5) / 100
+        format_odds = st.selectbox("Formato de cuota", ["Decimal", "Americana"])
+        odds = 1.0
+        if format_odds == "Decimal":
+            odds = st.number_input("Cuota decimal", min_value=1.01, value=1.95, step=0.05)
         else:
-            cuota_ame = st.number_input("Cuota Americana:", value=110, step=5)
-            if cuota_ame > 0:
-                cuota_dec = (cuota_ame / 100.0) + 1.0
-            else:
-                cuota_dec = (100.0 / abs(cuota_ame)) + 1.0
-
-        fraccion_kelly = st.select_slider(
-            "Fracción de Kelly (Ajuste de Riesgo):",
-            options=[0.125, 0.25, 0.50, 1.0],
-            value=0.25,
-            format_func=lambda x: {0.125: "1/8 Kelly (Ultra Conservador)", 0.25: "1/4 Kelly (Recomendado)", 0.5: "1/2 Kelly (Moderado)", 1.0: "Full Kelly (Agresivo)"}[x]
-        )
-        st.markdown('</div>', unsafe_allow_html=True)
-
-    with col2:
-        # Cálculos matemáticos
-        # b = ganancia neta por unidad apostada = cuota_dec - 1
-        b = cuota_dec - 1.0
-        p = prob_modelo
-        q = 1.0 - p
-
-        # Kelly f* = (b*p - q) / b
-        kelly_full = (b * p - q) / b if b > 0 else 0.0
-        kelly_ajustado = max(0.0, kelly_full * fraccion_kelly)
-
-        # Expected Value = (P * cuota_dec) - 1
-        ev = (p * cuota_dec) - 1.0
-        prob_impl_mercado = 1.0 / cuota_dec
-
-        monto_sugerido = bankroll * kelly_ajustado
-        ganancia_esperada = monto_sugerido * ev
-
-        st.markdown('<div class="kelly-box">', unsafe_allow_html=True)
-        st.markdown("#### Resultado del Análisis Cuantitativo")
-
-        if ev > 0:
-            st.markdown(f'<span class="badge-pos">✅ APUESTA CON VALOR POSITIVO (+EV)</span>', unsafe_allow_html=True)
+            american = st.number_input("Momio americano", value=-110, step=5)
+            try: odds = bank.decimal_odds(american)
+            except ValueError as exc: st.warning(str(exc))
+        fraction = st.select_slider("Fracción de Kelly", options=[0.125, 0.25, 0.5, 1.0], value=0.25)
+        if odds > 1:
+            ev = p * odds - 1
+            kelly = max(0.0, (p * odds - 1) / (odds - 1)) * fraction
+            cols = st.columns(3)
+            cols[0].metric("EV", f"{ev:+.2%}")
+            cols[1].metric("Stake sugerido", f"{kelly:.2%}")
+            cols[2].metric("Monto sugerido", f"${bankroll*kelly:,.2f}")
+            st.caption("La banca disponible descuenta las apuestas pendientes. La calculadora no registra apuestas.")
+    with tab2:
+        if conn is None:
+            st.info("Conecta MySQL para consultar y guardar tu portafolio.")
         else:
-            st.markdown(f'<span class="badge-neg">❌ VALOR NEGATIVO (-EV) · NO APOSTAR</span>', unsafe_allow_html=True)
-
-        st.markdown("<br>", unsafe_allow_html=True)
-        r1, r2 = st.columns(2)
-        with r1:
-            st.metric("Edge sobre el Mercado", f"+{(prob_modelo - prob_impl_mercado)*100:.1f}%" if prob_modelo > prob_impl_mercado else f"{(prob_modelo - prob_impl_mercado)*100:.1f}%")
-            st.metric("Valor Esperado (EV)", f"{ev*100:+.2f}%")
-        with r2:
-            st.metric("Stake Sugerido (%)", f"{kelly_ajustado*100:.2f}% de tu banca")
-            st.metric("Monto a Apostar", f"${monto_sugerido:,.2f}")
-
-        st.markdown("---")
-        st.write(f"- **Probabilidad de la IA:** `{prob_modelo*100:.1f}%`")
-        st.write(f"- **Probabilidad implícita en la cuota ({cuota_dec:.2f}):** `{prob_impl_mercado*100:.1f}%`")
-        if ev > 0:
-            st.success(f"Por cada ${monto_sugerido:,.2f} colocados a esta cuota, tu retorno esperado promedio a largo plazo es de **+${ganancia_esperada:,.2f}**.")
+            cols = st.columns(4)
+            cols[0].metric("Saldo", f"${stats['saldo']:,.2f}")
+            cols[1].metric("Disponible", f"${stats['disponible']:,.2f}")
+            cols[2].metric("Beneficio neto", f"${stats['beneficio']:+,.2f}")
+            cols[3].metric("ROI liquidado", f"{stats['roi']:+.2f}%")
+            st.caption(f"Pendiente: ${stats['pendientes']:,.2f} · Apuestas: {stats['apuestas']} · Acierto: {stats['win_rate']:.1f}%")
+            with st.form("capital_inicial"):
+                value = st.number_input("Capital inicial de la banca ($)", min_value=0.0, value=initial, step=100.0)
+                if st.form_submit_button("Guardar capital inicial"):
+                    bank.capital(conn, value)
+                    st.rerun()
+            st.caption("El ROI incluye apuestas ganadas, perdidas y push. Pendientes y anuladas se muestran aparte.")
+            if st.button("Actualizar liquidación"):
+                changed, errors = bank.settle_pending(conn, RAIZ)
+                st.success(f"{changed} apuestas actualizadas con los resultados disponibles.")
+                for error in errors: st.warning(error)
+                ledger = bank.load_ledger(conn)
+            groups = []
+            for sport, frame in ledger.groupby('deporte'):
+                m = bank.metrics(frame)
+                groups.append(dict(Deporte=sport, Apuestas=len(frame), Apostado=m['apostado'],
+                                   Beneficio=m['beneficio'], ROI=m['roi'], Pendiente=m['pendientes']))
+            st.dataframe(pd.DataFrame(groups), hide_index=True, use_container_width=True)
+            st.dataframe(ledger.drop(columns=['referencia']), hide_index=True, use_container_width=True)
+            st.download_button("Descargar historial", ledger.to_csv(index=False), "bankroll.csv", "text/csv")
+    with tab3:
+        if conn is None:
+            st.info("No se guardan apuestas hasta recuperar la conexión con MySQL.")
         else:
-            st.error("La cuota de la casa de apuestas es menor a la probabilidad real estimada por el modelo. Apostar aquí destruye capital a largo plazo.")
-        st.markdown('</div>', unsafe_allow_html=True)
+            mode = st.radio("Origen de la apuesta", ["Manual", "Predicción del modelo"], horizontal=True)
+            selected = None
+            if mode == "Predicción del modelo":
+                if st.button("Actualizar predicciones disponibles"):
+                    st.session_state.pop('bankroll_predictions', None)
+                if 'bankroll_predictions' not in st.session_state:
+                    st.session_state['bankroll_predictions'] = bank.model_options(conn, RAIZ)
+                options, errors = st.session_state['bankroll_predictions']
+                for error in errors: st.caption(error)
+                if options:
+                    idx = st.selectbox("Selecciona una predicción", range(len(options)),
+                        format_func=lambda i: f"{options[i]['deporte']} · {options[i]['partido']} · {options[i]['seleccion']}")
+                    selected = options[idx]
+                    if pd.notna(selected['probabilidad']):
+                        st.metric("Confianza registrada", f"{float(selected['probabilidad']):.1%}")
+                    st.caption("Registra únicamente una apuesta que realizaste. Confirma la cuota tomada y el monto.")
+                else: st.info("No hay predicciones disponibles para registrar.")
+            if mode == "Manual" or selected is not None:
+                st.session_state.setdefault('bankroll_receipt', str(uuid.uuid4()))
+                with st.form("registrar_apuesta"):
+                    if selected is None:
+                        fecha = st.date_input("Fecha", value=datetime.now(ZoneInfo('America/Mexico_City')).date())
+                        sport = st.selectbox("Deporte", ["MLB", "NFL", "Liga MX"])
+                        partido = st.text_input("Partido")
+                        selection = st.text_input("Selección")
+                        casa = st.text_input("Casa", value="DraftKings")
+                        probability = st.number_input("Confianza (%) — opcional", 0.0, 100.0, 0.0) / 100 or None
+                    else:
+                        fecha, sport = selected['fecha'], selected['deporte']
+                        partido, selection, casa = selected['partido'], selected['seleccion'], selected['casa']
+                        probability = selected['probabilidad']
+                        st.write(f"{partido} · {selection} · {casa}")
+                    odds = st.number_input("Cuota decimal tomada", min_value=1.01,
+                                           value=(float(selected['cuota']) if selected['cuota'] else None) if selected else 1.90,
+                                           step=0.01, key=f"cuota_{mode}_{idx if selected else 'manual'}")
+                    amount = st.number_input("Monto apostado ($)", min_value=1.0, value=100.0, step=10.0)
+                    state = st.selectbox("Estado", bank.STATES)
+                    if st.form_submit_button("Guardar apuesta realizada"):
+                        bet = dict(fecha=fecha, deporte=sport, partido=partido, seleccion=selection,
+                                   casa=casa, probabilidad=probability, cuota=odds, monto=amount, estado=state)
+                        if selected: bet.update(origen=selected['origen'], referencia=selected['referencia'])
+                        try:
+                            if odds is None: raise ValueError("Introduce la cuota decimal que tomaste.")
+                            bank.save_bet(conn, bet, st.session_state['bankroll_receipt'])
+                            st.session_state['bankroll_receipt'] = str(uuid.uuid4())
+                            st.rerun()
+                        except ValueError as exc: st.error(str(exc))
+            st.markdown("### Actualizar una apuesta registrada")
+            if not ledger.empty:
+                idx = st.selectbox("Apuesta", range(len(ledger)),
+                    format_func=lambda i: f"{ledger.iloc[i]['fecha']:%d/%m/%Y} · {ledger.iloc[i]['partido']} · {ledger.iloc[i]['seleccion']} · {ledger.iloc[i]['estado']}")
+                bet = ledger.iloc[idx]
+                with st.form("actualizar_apuesta"):
+                    state = st.selectbox("Nuevo estado", bank.STATES, index=bank.STATES.index(bet['estado']))
+                    if st.form_submit_button("Actualizar estado"):
+                        bank.update_state(conn, bet['id'], state)
+                        st.rerun()
 
-# ==========================================================
-# TAB 2: MÉTRICAS DE PORTAFOLIO Y RENDIMIENTO
-# ==========================================================
-with tab2:
-    df_ledger = cargar_ledger()
 
-    st.markdown("### Auditoría Financiera y Métricas de Portafolio")
-    
-    total_apostado = df_ledger['monto'].sum()
-    ganancia_neta_total = df_ledger['ganancia_neta'].sum()
-    roi_global = (ganancia_neta_total / total_apostado) * 100 if total_apostado > 0 else 0.0
-    
-    apuestas_cerradas = df_ledger[df_ledger['estado'].isin(['Ganada', 'Perdida'])]
-    ganadas = (apuestas_cerradas['estado'] == 'Ganada').sum()
-    win_rate = (ganadas / len(apuestas_cerradas)) * 100 if len(apuestas_cerradas) > 0 else 0.0
-
-    k1, k2, k3, k4 = st.columns(4)
-    with k1:
-        st.metric("Capital Invertido", f"${total_apostado:,.2f}")
-    with k2:
-        st.metric("Beneficio Neto (P&L)", f"${ganancia_neta_total:+,.2f}", delta=f"{roi_global:+.1f}% ROI")
-    with k3:
-        st.metric("Win Rate", f"{win_rate:.1f}%", f"{ganadas} de {len(apuestas_cerradas)}")
-    with k4:
-        st.metric("Apuestas Registradas", f"{len(df_ledger)}")
-
-    st.markdown("---")
-    st.markdown("#### Desglose de Rendimiento por Deporte")
-    
-    resumen_deporte = df_ledger.groupby('deporte').agg(
-        Apuestas=('monto', 'count'),
-        Apostado=('monto', 'sum'),
-        Ganancia_Neta=('ganancia_neta', 'sum'),
-    ).reset_index()
-    resumen_deporte['ROI %'] = (resumen_deporte['Ganancia_Neta'] / resumen_deporte['Apostado']) * 100
-    st.dataframe(resumen_deporte, use_container_width=True, hide_index=True)
-
-    st.markdown("#### Historial Completo de Apuestas")
-    st.dataframe(df_ledger.sort_values(by="fecha", ascending=False), use_container_width=True, hide_index=True)
-
-# ==========================================================
-# TAB 3: REGISTRAR NUEVA APUESTA
-# ==========================================================
-with tab3:
-    st.markdown("### Añadir Nueva Operación al Libro de Apuestas")
-
-    with st.form("form_nueva_apuesta"):
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            f_fecha = st.date_input("Fecha:", value=datetime.today())
-            f_deporte = st.selectbox("Deporte:", ["MLB", "NFL", "Liga MX"])
-            f_partido = st.text_input("Partido (ej. NYY vs BOS / DAL vs PHI):")
-        with c2:
-            f_seleccion = st.text_input("Selección (ej. NYY ML, Over 8.5, Ceedee Lamb Over 75.5 Yds):")
-            f_casa = st.selectbox("Casa de Apuestas:", ["DraftKings", "Caliente", "Bet365", "Pinnacle", "Codere", "Otra"])
-            f_cuota = st.number_input("Cuota Decimal Tomada:", min_value=1.01, value=1.90, step=0.05)
-        with c3:
-            f_monto = st.number_input("Monto Apostado ($):", min_value=1.0, value=100.0, step=10.0)
-            f_estado = st.selectbox("Estado de la Apuesta:", ["Pendiente", "Ganada", "Perdida", "Push"])
-
-        submit_btn = st.form_submit_button("💾 Guardar Apuesta en el Libro", use_container_width=True)
-
-        if submit_btn:
-            if not f_partido or not f_seleccion:
-                st.error("Por favor completa el partido y la selección.")
-            else:
-                # Calcular ganancia neta
-                if f_estado == "Ganada":
-                    ganancia = f_monto * (f_cuota - 1.0)
-                elif f_estado == "Perdida":
-                    ganancia = -f_monto
-                else:
-                    ganancia = 0.0
-
-                nuevo_registro = {
-                    'fecha': f_fecha.strftime("%Y-%m-%d"),
-                    'deporte': f_deporte,
-                    'partido': f_partido,
-                    'seleccion': f_seleccion,
-                    'casa': f_casa,
-                    'cuota': f_cuota,
-                    'monto': f_monto,
-                    'estado': f_estado,
-                    'ganancia_neta': ganancia
-                }
-
-                df_curr = cargar_ledger()
-                df_curr = pd.concat([df_curr, pd.DataFrame([nuevo_registro])], ignore_index=True)
-                df_curr['fecha'] = df_curr['fecha'].dt.strftime("%Y-%m-%d")
-                df_curr.to_csv(RUTA_BANKROLL, index=False)
-                st.success("✅ ¡Apuesta guardada con éxito en el portafolio!")
-                st.rerun()
+conn = None
+try:
+    ledger = pd.DataFrame(columns=bank.COLUMNS)
+    initial = 10000.0
+    try:
+        conn = get_db_connection()
+        bank.prepare(conn)
+        _, errors = bank.settle_pending(conn, RAIZ)
+        for error in errors: st.caption(f"Liquidación pendiente de revisión: {error}")
+        ledger, initial = bank.load_ledger(conn), bank.capital(conn)
+    except Exception as exc:
+        st.warning(f"Bankroll no pudo conectar con MySQL ({type(exc).__name__}).")
+        if conn is not None: conn.close()
+        conn = None
+    render_app(conn, ledger, initial)
+finally:
+    if conn is not None: conn.close()

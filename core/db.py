@@ -16,12 +16,15 @@ def get_db_credentials() -> dict[str, Any]:
     # 1. Intentar leer desde Streamlit secrets si está disponible
     try:
         import streamlit as st
-        if hasattr(st, "secrets") and "host" in st.secrets:
-            creds["host"] = st.secrets["host"]
-            creds["port"] = int(st.secrets.get("port", 3306))
-            creds["user"] = st.secrets["user"]
-            creds["password"] = st.secrets["password"]
-            creds["database"] = st.secrets["database"]
+        section = st.secrets.get("mysql", st.secrets)
+        if "host" in section:
+            creds["host"] = section["host"]
+            creds["port"] = int(section.get("port", 3306))
+            creds["user"] = section["user"]
+            creds["password"] = section["password"]
+            creds["database"] = section["database"]
+            for key in ("ssl_ca", "ssl_verify_cert", "ssl_verify_identity"):
+                if key in section: creds[key] = section[key]
     except Exception:
         pass
 
@@ -45,9 +48,13 @@ def get_db_credentials() -> dict[str, Any]:
         with open(temp_cert, "w", encoding="utf-8") as f:
             f.write(ca_content)
         creds["ssl_ca"] = temp_cert
+    elif os.environ.get("DB_SSL_CA"):
+        creds["ssl_ca"] = os.environ["DB_SSL_CA"]
     elif os.path.exists("aiven_ca.pem"):
         creds["ssl_ca"] = "aiven_ca.pem"
 
+    if creds.get("ssl_ca"):
+        creds["ssl_verify_cert"] = True
     creds["connection_timeout"] = 25
     return creds
 
@@ -89,3 +96,4 @@ def execute_statement(sql: str, params: Optional[dict[str, Any] | tuple[Any, ...
     with db_session() as (conn, cursor):
         cursor.execute(sql, params or ())
         return cursor.rowcount
+

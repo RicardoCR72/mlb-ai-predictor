@@ -248,6 +248,13 @@ def save_cache(cache_dir: Path, cache: dict) -> None:
     (cache_dir / "espn_events.json").write_text(json.dumps(cache, ensure_ascii=False), encoding="utf-8")
 
 
+def cache_is_final(entry, day, cutoff):
+    events = entry if isinstance(entry, list) else (entry or {}).get('events', [])
+    return bool(events) and day < cutoff - timedelta(days=2) and all(
+        (ev.get('status', {}).get('type', {}) or {}).get('name')
+        in {'STATUS_FULL_TIME', 'STATUS_FINAL', 'STATUS_CANCELED'} for ev in events)
+
+
 def run(
     partidos: str = "futbol_liga_mx/data/partidos.csv",
     proximos: str = "futbol_liga_mx/data/proximos.csv",
@@ -286,14 +293,17 @@ def run(
 
     while curr <= scan_end:
         fecha_key = curr.strftime("%Y%m%d")
-        if fecha_key in cache:
-            events_day = cache[fecha_key]
+        entry = cache.get(fecha_key)
+        if cache_is_final(entry, curr, cutoff):
+            events_day = entry if isinstance(entry, list) else entry['events']
         else:
             try:
                 events_day = get_scoreboard(fecha_key)
+                # Solo resultados definitivos se reutilizan. Calendarios, vacíos y
+                # respuestas antiguas con juegos pendientes se vuelven a consultar.
                 cache[fecha_key] = events_day
             except Exception as exc:
-                print(f"  {fecha_key}: error ({exc})")
+                print(f"  {fecha_key}: error ({exc}); se conservan resultados existentes")
                 events_day = []
         for ev in events_day:
             eid = ev.get("id")
@@ -313,9 +323,9 @@ def run(
     print(f"  Proximos partidos: {len(future)}")
 
     if not past_new.empty:
-        temporadas_nuevas = set(past_new["season"].unique())
-        existing_clean = existing[~existing["season"].isin(temporadas_nuevas)].copy()
-        merged = pd.concat([existing_clean[COLUMNS], past_new[COLUMNS]], ignore_index=True)
+        from .inferencia import normalize_teams
+        merged = normalize_teams(pd.concat([existing[COLUMNS], past_new[COLUMNS]], ignore_index=True))
+        merged = merged.drop_duplicates(['fecha', 'local', 'visitante'], keep='last')
         merged = audit(merged)
         path.parent.mkdir(parents=True, exist_ok=True)
         merged.to_csv(path, index=False)
@@ -343,3 +353,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
     run(partidos=args.partidos, proximos=args.proximos, cutoff=args.corte,
         season_start=args.desde, season_end=args.hasta)
+

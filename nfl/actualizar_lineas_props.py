@@ -50,15 +50,8 @@ RUTA_JUGADORES = (
 )
 DIRECTORIO_CACHE = RAIZ_PROYECTO / "data" / "nfl" / "cache" / "odds_props"
 
-# Casas que normalmente tienen buena cobertura de props NFL. Si ninguna de
-# estas aparece para un partido, se conserva la primera casa disponible.
-CASAS_PREFERIDAS = {
-    "draftkings",
-    "fanduel",
-    "betmgm",
-    "williamhill_us",
-    "espnbet",
-}
+# Casa base exclusiva, también al reprocesar respuestas antiguas en caché.
+CASAS_PREFERIDAS = {"draftkings"}
 
 EQUIPO_API_A_SIGLA = {
     "Arizona Cardinals": "ARI",
@@ -486,7 +479,7 @@ def cargar_eventos_desde_cache():
 
 def seleccionar_casas(bookmakers):
     preferidas = [b for b in bookmakers if b.get("key") in CASAS_PREFERIDAS]
-    return preferidas or bookmakers[:1]
+    return preferidas
 
 
 def extraer_lineas(respuesta, juego, indice):
@@ -736,7 +729,8 @@ def juegos_con_captura(conexion, parejas):
         markers = ",".join(["%s"] * len(ids))
         cursor.execute(
             "SELECT DISTINCT id_juego FROM nfl_lineas_props "
-            f"WHERE id_juego IN ({markers})", tuple(ids)
+            f"WHERE id_juego IN ({markers}) "
+            "AND LOWER(TRIM(casa_apuestas))='draftkings'", tuple(ids)
         )
         return {row[0] for row in cursor.fetchall()}
     finally:
@@ -780,8 +774,8 @@ def main():
     )
     parser.add_argument("--una-captura", action="store_true",
                         help="Omite partidos con props previamente guardadas.")
-    parser.add_argument("--solo-draftkings", action="store_true",
-                        help="Solicita cuotas solo de DraftKings.")
+    parser.add_argument("--solo-draftkings", action="store_true", default=True,
+                        help="Compatibilidad: todas las consultas usan DraftKings.")
     parser.add_argument("--reserva-creditos", type=int, default=0,
                         help="Detiene nuevas cuotas antes de bajar de este saldo.")
     args = parser.parse_args()
@@ -891,10 +885,7 @@ def main():
                     break
                 parametros = {"markets": ",".join(MARKETS),
                               "oddsFormat": "american", "dateFormat": "iso"}
-                if args.solo_draftkings:
-                    parametros["bookmakers"] = "draftkings"
-                else:
-                    parametros["regions"] = REGION
+                parametros["bookmakers"] = "draftkings"
                 respuesta, cuota = api_get(
                     f"/sports/{SPORT}/events/{evento['id']}/odds",
                     api_key, **parametros,
@@ -931,3 +922,4 @@ if __name__ == "__main__":
     except Exception as error:
         print(f"ERROR: {error}", file=sys.stderr)
         raise
+

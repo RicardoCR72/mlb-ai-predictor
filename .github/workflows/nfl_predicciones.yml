@@ -87,3 +87,14 @@ jobs:
           DB_NAME: ${{ secrets.NFL_DB_NAME || secrets.DB_NAME }}
           DB_SSL_CA: ${{ runner.temp }}/aiven-ca.pem
         run: python nfl/evaluar_resultados.py
+
+
+      - name: Liquidar apuestas realizadas de Bankroll
+        env:
+          DB_HOST: ${{ secrets.NFL_DB_HOST || secrets.DB_HOST }}
+          DB_PORT: ${{ secrets.NFL_DB_PORT || secrets.DB_PORT }}
+          DB_USER: ${{ secrets.NFL_DB_USER || secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.NFL_DB_PASSWORD || secrets.DB_PASSWORD || secrets.DB_PASS }}
+          DB_NAME: ${{ secrets.NFL_DB_NAME || secrets.DB_NAME }}
+          DB_SSL_CA: ${{ runner.temp }}/aiven-ca.pem
+        run: python scripts/actualizar_bankroll.py
