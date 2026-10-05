@@ -104,6 +104,10 @@ jobs:
         if: ${{ !cancelled() && steps.secretos.outcome == 'success' }}
         run: python mlb/escaner_equipos.py
 
+      - name: Liquidar apuestas realizadas de Bankroll
+        if: ${{ !cancelled() && steps.secretos.outcome == 'success' }}
+        run: python scripts/actualizar_bankroll.py
+
       - name: Enviar resumen MLB, NFL, Liga MX y saldo a Telegram
         if: ${{ !cancelled() && steps.secretos.outcome == 'success' }}
         env:
@@ -127,3 +131,4 @@ jobs:
       - name: Eliminar archivo temporal de secretos
         if: ${{ always() }}
         run: python -c "from pathlib import Path; Path('.streamlit/secrets.toml').unlink(missing_ok=True)"
+

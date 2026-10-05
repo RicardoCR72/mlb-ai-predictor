@@ -1,0 +1,28 @@
+name: Pruebas de integración deportiva
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  pruebas:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install -r requirements/requirements_mlb_v2_actions.txt PyYAML
+      - name: Probar modelos e integración sin APIs ni credenciales
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: >-
+          python -m unittest
+          mlb_totales.test_automatizar mlb_totales.test_core
+          mlb_totales.test_draftkings mlb_totales.test_fechas
+          mlb_totales.test_integracion mlb_totales.test_pitcheo
+          futbol_liga_mx.test_continuidad futbol_liga_mx.test_modelo
+          tests.test_integracion_deportes -v

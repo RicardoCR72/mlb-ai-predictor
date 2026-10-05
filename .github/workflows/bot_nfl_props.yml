@@ -3,17 +3,17 @@ name: Props NFL con limite de creditos
 on:
   schedule:
     # Jueves 22:00 UTC (16:00 CDMX): captura SOLO el TNF (~10h antes del kickoff).
-    - cron: '0 22 * 9-2 4'
+    - cron: '0 22 * 9-12,1-2 4'
     # Viernes 14:00 UTC (08:00 CDMX): liquida el TNF, regenera proyecciones sin odds.
-    - cron: '0 14 * 9-2 5'
+    - cron: '0 14 * 9-12,1-2 5'
     # Domingo 16:00 UTC (10:00 CDMX): captura la jornada dominical (partidos en ~8-16h).
-    - cron: '0 16 * 9-2 0'
+    - cron: '0 16 * 9-12,1-2 0'
     # Domingo 22:00 UTC (16:00 CDMX): segunda captura dominical (SNF, ~3h antes).
-    - cron: '0 22 * 9-2 0'
+    - cron: '0 22 * 9-12,1-2 0'
     # Lunes 22:00 UTC (16:00 CDMX): captura SOLO el MNF (~10h antes del kickoff).
-    - cron: '0 22 * 9-2 1'
+    - cron: '0 22 * 9-12,1-2 1'
     # Martes 14:00 UTC (08:00 CDMX): liquida MNF, regenera proyecciones sin odds.
-    - cron: '0 14 * 9-2 2'
+    - cron: '0 14 * 9-12,1-2 2'
   workflow_dispatch:
     inputs:
       proximas_horas:
@@ -35,11 +35,12 @@ jobs:
     timeout-minutes: 50
     env:
       ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
-      DB_HOST: ${{ secrets.DB_HOST }}
-      DB_PORT: ${{ secrets.DB_PORT }}
-      DB_USER: ${{ secrets.DB_USER }}
-      DB_PASSWORD: ${{ secrets.DB_PASS }}
-      DB_NAME: ${{ secrets.DB_NAME }}
+      DB_HOST: ${{ secrets.NFL_DB_HOST || secrets.DB_HOST }}
+      DB_PORT: ${{ secrets.NFL_DB_PORT || secrets.DB_PORT }}
+      DB_USER: ${{ secrets.NFL_DB_USER || secrets.DB_USER }}
+      DB_PASSWORD: ${{ secrets.NFL_DB_PASSWORD || secrets.DB_PASSWORD || secrets.DB_PASS }}
+      DB_SSL_CA: ${{ runner.temp }}/aiven-ca.pem
+      DB_NAME: ${{ secrets.NFL_DB_NAME || secrets.DB_NAME }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -65,16 +66,19 @@ jobs:
             python nfl/descargar_datos.py
           fi
 
-      # ── Evaluar resultados de props ya terminados (SIN creditos) ─────────
-      - name: Evaluar resultados props terminados
+      - name: Preparar certificado de Aiven
+        shell: bash
         env:
-          DB_SSL_CA: ${{ runner.temp }}/aiven-ca.pem
+          NFL_DB_SSL_CA_CERT: ${{ secrets.NFL_DB_SSL_CA_CERT || secrets.DB_SSL_CA_CERT }}
         run: |
-          # Preparar certificado Aiven
-          if [ -n "${{ secrets.DB_SSL_CA_CERT || secrets.NFL_DB_SSL_CA_CERT }}" ]; then
-            printf '%s' "${{ secrets.DB_SSL_CA_CERT || secrets.NFL_DB_SSL_CA_CERT }}" > "$RUNNER_TEMP/aiven-ca.pem"
-            python nfl/evaluar_resultados_props.py || true
+          if [ -z "$NFL_DB_SSL_CA_CERT" ]; then
+            echo "Falta NFL_DB_SSL_CA_CERT o DB_SSL_CA_CERT"
+            exit 1
           fi
+          printf '%s' "$NFL_DB_SSL_CA_CERT" > "$RUNNER_TEMP/aiven-ca.pem"
+
+      - name: Evaluar resultados props terminados
+        run: python nfl/evaluar_resultados_props.py
 
       # ── Decidir ventana de horas segun dia de la semana ──────────────────
       # Jueves/Lunes: solo el partido de esa noche (~10h)
@@ -90,12 +94,11 @@ jobs:
             HORAS="${{ inputs.proximas_horas }}"
           else
             DOW=$(date -u +%u)   # 1=Lun 2=Mar 4=Jue 5=Vie 6=Sab 7=Dom
-            HORA_UTC=$(date -u +%H)
             case "$DOW" in
               4) HORAS=10 ;;   # Jueves → solo TNF
               1) HORAS=10 ;;   # Lunes  → solo MNF
               7)
-                if [ "$HORA_UTC" = "16" ]; then
+                if [ "${{ github.event.schedule }}" = "0 16 * 9-12,1-2 0" ]; then
                   HORAS=16   # Domingo 10AM CDMX → jornada completa
                 else
                   HORAS=5    # Domingo 16:00 CDMX → solo SNF
@@ -123,3 +126,7 @@ jobs:
       # ── Regenerar proyecciones despues de captura ─────────────────────────
       - name: Generar proyecciones
         run: python nfl/predecir_props_semana_actual.py
+
+
+      - name: Liquidar apuestas realizadas de Bankroll
+        run: python scripts/actualizar_bankroll.py

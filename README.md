@@ -139,3 +139,17 @@ El panel estará disponible en `http://localhost:8501`, permitiendo navegar flui
 
 #### Notificaciones
 - **Reporte diario en Telegram:** `python scripts/reporte_deportes.py`
+
+
+
+## Integración de apuestas realizadas y correcciones
+
+- Bankroll usa `bankroll_apuestas` y `bankroll_config` en el mismo MySQL del panel. Las tablas se crean de forma aditiva al abrir la página o ejecutar `python scripts/actualizar_bankroll.py`. El usuario de MySQL necesita permiso `CREATE TABLE` para la primera ejecución.
+- Registra manualmente una apuesta o selecciona una predicción de MLB (moneyline/totales), NFL (totales/props) o Liga MX. Confirma el monto y la cuota decimal realmente tomada. Las predicciones por sí solas no cuentan como apuestas ni modifican tu saldo.
+- Cada apuesta conserva su cuota, línea, confianza y referencia del partido. Las liquidaciones usan la selección original aunque el modelo se actualice. Puedes cambiar el estado de una apuesta en «Registrar / Gestionar»; un resultado manual cerrado no se sobrescribe automáticamente.
+- El saldo es capital inicial más beneficio liquidado; el disponible descuenta montos pendientes. El ROI se calcula sobre montos liquidados (ganadas, perdidas y push); pendientes y anuladas quedan fuera.
+- El CSV anterior contenía ejemplos y ya no se usa como banca real. Si tienes apuestas reales guardadas allí, conserva una copia y regístralas en el portafolio MySQL. No se importan ejemplos ni se descartan apuestas existentes en MySQL.
+- Los workflows MLB y NFL liquidan las apuestas registradas después de actualizar resultados. También se liquidan al abrir Bankroll. Juegos MLB que requieren revisión de reglas y props sin estadísticas oficiales permanecen pendientes para revisión manual.
+- NFL usa DraftKings exclusivamente para captura y selección de props. El workflow manual consulta cuotas únicamente con `actualizar_odds=true`, una vez, con reserva de 120 créditos.
+- Liga MX comparte variables e inferencia entre pantalla y CLI; su historial no usa resultados futuros. El workflow intenta recuperar 2025–26 desde fuentes gratuitas, conserva resultados ante respuestas parciales y refresca eventos no finalizados. Si la temporada sigue incompleta, muestra el motivo del bloqueo sin generar recomendaciones ni consumir cuotas. No se reentrena el modelo congelado.
+- Las pruebas de integración corren en pull requests y cambios en `main`, sin credenciales ni solicitudes a APIs deportivas.

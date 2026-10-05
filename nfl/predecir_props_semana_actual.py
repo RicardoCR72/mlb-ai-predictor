@@ -543,6 +543,7 @@ def cargar_lineas(conexion, game_ids):
                linea, cuota_over, cuota_under, timestamp_captura
         FROM nfl_lineas_props
         WHERE id_juego IN ({marcadores})
+          AND LOWER(TRIM(casa_apuestas)) = 'draftkings'
     """
     cursor = conexion.cursor(dictionary=True)
     cursor.execute(consulta, tuple(game_ids))
@@ -606,33 +607,8 @@ def cargar_lineas(conexion, game_ids):
         .drop_duplicates(claves_prop + ["casa_apuestas"], keep="first")
     )
 
-    # nfl_proyecciones_props conserva una sola linea por jugador/mercado.
-    # Draftea tiene prioridad cuando se captura manualmente; después usamos
-    # casas con cobertura estable en The Odds API.
-    prioridad_casas = {
-        "draftea": 0,
-        "draftkings": 1,
-        "fanduel": 2,
-        "betmgm": 3,
-        "caesars": 4,
-        "william hill": 4,
-        "espn bet": 5,
-    }
-    lineas["_prioridad_casa"] = (
-        lineas["casa_apuestas"]
-        .astype(str)
-        .str.lower()
-        .map(prioridad_casas)
-        .fillna(99)
-    )
-    lineas = (
-        lineas.sort_values(
-            claves_prop + ["_prioridad_casa", "timestamp_captura"],
-            ascending=[True, True, True, True, False],
-        )
-        .drop_duplicates(claves_prop, keep="first")
-        .drop(columns=["_prioridad_casa", "_balance_linea"])
-    )
+    # La casa base es exclusiva: una cuota ausente no se sustituye por otra casa.
+    lineas = lineas.drop_duplicates(claves_prop, keep="first")
     return lineas.rename(
         columns={"id_juego": "game_id", "id_jugador": "player_id"}
     )
@@ -940,3 +916,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

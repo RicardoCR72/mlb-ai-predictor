@@ -130,6 +130,9 @@ def upcoming_ready(games,fixtures,metrics,now):
 def predict(games,fixtures,params,metrics,quotes=None,now=None,
             output='futbol_liga_mx/predictions/hoy.csv',quote_loader=None):
     now=now or datetime.now(timezone.utc)
+    from .inferencia import normalize_teams
+    games = normalize_teams(games)
+    fixtures = normalize_teams(fixtures)
     fixtures=upcoming_ready(games,fixtures,metrics,now)
     results=[]
     for fixture in fixtures.to_dict('records'):
@@ -197,3 +200,4 @@ if __name__=='__main__':
                 if not key:raise ValueError('Falta ODDS_API_KEY; configura tu clave o usa --sin-momios.')
                 loader=lambda:fetch_draftkings(key)
             predict(games,fixtures,params,metrics,quote_loader=loader)
+

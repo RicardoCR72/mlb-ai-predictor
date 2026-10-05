@@ -6,6 +6,7 @@ import math
 import pandas as pd
 import numpy as np
 import streamlit as st
+from futbol_liga_mx.inferencia import historical_probabilities, upcoming_probabilities
 
 st.set_page_config(
     page_title="Liga MX Oráculo",
@@ -143,7 +144,7 @@ st.markdown(
             <span class="soccer-logo">⚽</span>
             <span>ORÁCULO <span class="soccer-accent">LIGA MX</span></span>
         </div>
-        <div class="soccer-status">MODELO CUANTITATIVO · TOTALES 2.5 · CONTINUIDAD 2025–26</div>
+        <div class="soccer-status">MODELO CUANTITATIVO · TOTALES 2.5 · MODELO CONGELADO</div>
     </div>
     """,
     unsafe_allow_html=True,
@@ -190,102 +191,19 @@ def cargar_modelo_portable():
     return {}
 
 @st.cache_data(ttl=600)
-def calcular_estado_equipos(df_historico: pd.DataFrame) -> dict:
-    """Calcula el estado rolling de cada equipo a partir del historial."""
-    if df_historico.empty:
-        return {}
-    data = df_historico.sort_values('fecha').copy()
-    league_gf = data['goles_local'].mean()
-    league_ga = data['goles_visitante'].mean()
-    state: dict = {}
-    for _, row in data.iterrows():
-        for equipo, gf, ga in [
-            (row['local'], row['goles_local'], row['goles_visitante']),
-            (row['visitante'], row['goles_visitante'], row['goles_local']),
-        ]:
-            if equipo not in state:
-                state[equipo] = []
-            puntos = 3 if gf > ga else (1 if gf == ga else 0)
-            state[equipo].append({
-                'fecha': row['fecha'], 'gf': gf, 'ga': ga, 'pts': puntos
-            })
-    return state
-
-def get_team_features(equipo: str, state: dict, league_gf: float, league_ga: float, 
-                      fecha_partido=None, es_local: bool = True):
-    """Extrae las features del modelo para un equipo dado su historial."""
-    historial = state.get(equipo, [])
-    if fecha_partido is not None:
-        historial = [r for r in historial if r['fecha'] < fecha_partido]
-    ultimos = historial[-5:] if historial else []
-    if not ultimos:
-        gf_5 = league_gf if es_local else league_ga
-        ga_5 = league_ga if es_local else league_gf
-        pts_5 = 1.3 if es_local else 1.1
-        descanso = 7
-        n_juegos = 0
-    else:
-        prior_gf = league_gf if es_local else league_ga
-        prior_ga = league_ga if es_local else league_gf
-        gf_5 = (sum(r['gf'] for r in ultimos) + 5 * prior_gf) / (len(ultimos) + 5)
-        ga_5 = (sum(r['ga'] for r in ultimos) + 5 * prior_ga) / (len(ultimos) + 5)
-        prior_pts = 1.3 if es_local else 1.1
-        pts_5 = (sum(r['pts'] for r in ultimos) + 5 * prior_pts) / (len(ultimos) + 5)
-        ultima_fecha = historial[-1]['fecha'] if historial else None
-        if ultima_fecha is not None and fecha_partido is not None:
-            delta = (fecha_partido - ultima_fecha).days
-            descanso = int(min(max(delta, 0), 30))
-        else:
-            descanso = 7
-        n_juegos = min(len(historial), 25)
-    return gf_5, ga_5, pts_5, descanso, n_juegos
-
-def proyectar_partido(local: str, visitante: str, estado_equipos: dict, modelo_params: dict,
-                      df_historico: pd.DataFrame, fecha_partido=None) -> float:
-    """Proyecta la probabilidad Over 2.5 usando el modelo Poisson + calibración."""
-    if not modelo_params or not estado_equipos:
-        return 0.55  # Fallback: tasa histórica aproximada
-    league_gf = df_historico['goles_local'].mean() if not df_historico.empty else 1.4
-    league_ga = df_historico['goles_visitante'].mean() if not df_historico.empty else 1.2
-    gf_loc, gc_loc, pts_loc, desc_loc, n_loc = get_team_features(
-        local, estado_equipos, league_gf, league_ga, fecha_partido, es_local=True)
-    gf_vis, gc_vis, pts_vis, desc_vis, n_vis = get_team_features(
-        visitante, estado_equipos, league_gf, league_ga, fecha_partido, es_local=False)
-    features_vals = [
-        gf_loc, gc_loc, gf_vis, gc_vis,
-        pts_loc, pts_vis,
-        desc_loc, desc_vis,
-        league_gf, league_ga,
-        n_loc, n_vis,
-    ]
-    mean_v = np.array(modelo_params['mean'])
-    scale_v = np.array(modelo_params['scale'])
-    coef_v = np.array(modelo_params['coef'])
-    intercept_v = float(modelo_params['intercept'])
-    x = (np.array(features_vals) - mean_v) / scale_v
-    log_mu = np.dot(coef_v, x) + intercept_v
-    mu = float(np.exp(log_mu))
-    mu = max(0.05, min(mu, 15.0))
-    # Poisson CDF P(X <= 2) donde X = total goles
-    p_under = math.exp(-mu) * (1 + mu + mu**2 / 2)
-    p_over_raw = float(np.clip(1 - p_under, 1e-5, 1 - 1e-5))
-    # Calibración logística
-    cal = modelo_params.get('calibration', {})
-    if cal and modelo_params.get('winner') == 'calibrada':
-        logit_raw = math.log(p_over_raw / (1 - p_over_raw))
-        cal_coef = float(cal.get('coef', 1.0))
-        cal_int = float(cal.get('intercept', 0.0))
-        logit_cal = cal_coef * logit_raw + cal_int
-        p_over = float(1 / (1 + math.exp(-logit_cal)))
-    else:
-        p_over = p_over_raw
-    return float(np.clip(p_over, 0.10, 0.90))
+def probabilidades_historicas(games, params):
+    return historical_probabilities(games, params)
 
 df_partidos = cargar_datos_ligamx()
 df_proximos = cargar_proximos_ligamx()
 metricas = cargar_metricas_ligamx()
 modelo_params = cargar_modelo_portable()
-estado_equipos = calcular_estado_equipos(df_partidos)
+df_probabilidades = pd.DataFrame()
+if not df_partidos.empty and modelo_params:
+    try:
+        df_probabilidades = probabilidades_historicas(df_partidos, modelo_params)
+    except (ValueError, KeyError) as exc:
+        st.error(f"No se pudieron calcular las probabilidades: {exc}")
 
 # ==========================================================
 # VISTA 0: PRÓXIMOS PARTIDOS Y PROYECCIONES
@@ -297,128 +215,32 @@ if vista == "🔮 Próximos Partidos":
             <div>
                 <div class="soccer-eyebrow">PROYECCIONES MODELO POISSON</div>
                 <h1>Próximos Partidos Liga MX</h1>
-                <div class="soccer-subtitle">Probabilidades calibradas de Over / Under 2.5 goles para la temporada 2025&ndash;26.</div>
+                <div class="soccer-subtitle">Probabilidades calibradas de Over / Under 2.5 goles para la temporada actual.</div>
             </div>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    if df_proximos.empty:
-        st.info(
-            "🔒 **Calendario 2025–26 no cargado.** "
-            "Para ver los próximos partidos con proyecciones necesitas configurar `API_FOOTBALL_KEY` "
-            "y ejecutar:\n\n"
-            "```bash\n"
-            "python -m futbol_liga_mx.proveedor_api\n"
-            "```\n\n"
-            "Esto genera `futbol_liga_mx/data/proximos.csv` con el calendario actual de Liga MX. "
-            "Mientras tanto, puedes ver el historial en la pestaña **Resultados Históricos**."
-        )
-        if not df_partidos.empty and modelo_params:
-            st.markdown("---")
-            st.markdown("### 🧪 Proyección Manual")
-            st.markdown("Puedes simular un partido usando el modelo entrenado:")
-            equipos_conocidos = sorted(list(set(
-                df_partidos['local'].unique().tolist() + df_partidos['visitante'].unique().tolist()
-            )))
-            col_a, col_b = st.columns(2)
-            with col_a:
-                local_sim = st.selectbox("🏠 Equipo Local", equipos_conocidos, index=0, key="sim_local")
-            with col_b:
-                idx_vis = 1 if len(equipos_conocidos) > 1 else 0
-                visitante_sim = st.selectbox("✈️ Equipo Visitante", equipos_conocidos, index=idx_vis, key="sim_visitante")
-            if local_sim != visitante_sim:
-                p_over_sim = proyectar_partido(
-                    local_sim, visitante_sim, estado_equipos, modelo_params, df_partidos
-                )
-                st.markdown(
-                    f"""
-                    <div class="match-card" style="margin-top:1rem;">
-                        <div class="match-header">
-                            <span>🧠 Proyección del Modelo</span>
-                            <span class="match-badge">Simulación</span>
-                        </div>
-                        <div class="match-teams">
-                            <span>{local_sim}</span>
-                            <span style="color:#b7ff3c;">VS</span>
-                            <span>{visitante_sim}</span>
-                        </div>
-                        <div style="display:flex; justify-content:space-between; font-size:0.84rem; color:#8994a5;">
-                            <span>Prob. Over 2.5: <b style="color:#eef3f8;">{p_over_sim*100:.1f}%</b></span>
-                            <span>Prob. Under 2.5: <b style="color:#eef3f8;">{(1-p_over_sim)*100:.1f}%</b></span>
-                        </div>
-                        <div class="prob-bar"><div class="prob-fill" style="width: {p_over_sim*100:.1f}%;"></div></div>
-                        <div style="margin-top:0.6rem; font-size:0.78rem; color:#8994a5;">
-                            ⚠️ Proyección basada en los últimos 5 partidos de cada equipo en el historial.
-                        </div>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
-            else:
-                st.warning("Selecciona dos equipos diferentes.")
+    try:
+        futuros = upcoming_probabilities(df_partidos, df_proximos, modelo_params, metricas)
+    except (ValueError, KeyError) as exc:
+        st.warning(f"Predicciones suspendidas: {exc}")
+        st.caption("Actualiza los datos con el workflow Liga MX. El modelo congelado se conserva.")
+        futuros = pd.DataFrame()
+    if futuros.empty:
+        st.info("No hay partidos habilitados para predecir en los próximos siete días.")
     else:
-        # Hay calendario disponible — mostrar partidos con proyecciones
-        hoy = pd.Timestamp.now(tz='America/Mexico_City').normalize().tz_localize(None)
-        proximos_futuros = df_proximos[df_proximos['fecha'] >= hoy].sort_values('fecha')
-
-        if proximos_futuros.empty:
-            st.warning("No hay partidos próximos en `futbol_liga_mx/data/proximos.csv`. Ejecuta `proveedor_api` para actualizar.")
-        else:
-            n_total = len(proximos_futuros)
-            n_con_model = sum(1 for _, r in proximos_futuros.iterrows()
-                              if r['local'] in estado_equipos and r['visitante'] in estado_equipos)
-            m1, m2, m3 = st.columns(3)
-            with m1:
-                st.metric("Próximos Partidos", f"{n_total}")
-            with m2:
-                temporadas_prox = proximos_futuros['season'].unique() if 'season' in proximos_futuros.columns else ["2025-26"]
-                st.metric("Temporada", temporadas_prox[0] if len(temporadas_prox) > 0 else "2025-26")
-            with m3:
-                st.metric("Con Proyección Modelo", f"{n_con_model}/{n_total}")
-
-            st.markdown("### Partidos y Proyecciones Over/Under 2.5")
-            for _, row in proximos_futuros.head(20).iterrows():
-                fecha_str = row['fecha'].strftime("%d/%m/%Y")
-                inicio_str = ""
-                if 'inicio_utc' in row and pd.notna(row.get('inicio_utc')):
-                    try:
-                        utc_dt = pd.Timestamp(row['inicio_utc']).tz_convert('America/Mexico_City')
-                        inicio_str = utc_dt.strftime("%H:%M CDMX")
-                    except Exception:
-                        pass
-                ronda_str = row.get('ronda', '') if 'ronda' in row else ""
-                fecha_partido_dt = row['fecha'].to_pydatetime() if hasattr(row['fecha'], 'to_pydatetime') else None
-                p_over = proyectar_partido(
-                    row['local'], row['visitante'], estado_equipos, modelo_params, df_partidos, fecha_partido_dt
-                )
-                p_over_pct = p_over * 100
-                recomendacion = "OVER" if p_over >= 0.55 else ("UNDER" if p_over <= 0.45 else "NEUTRO")
-                badge_color = "rgba(183,255,60,0.12)" if recomendacion == "OVER" else ("rgba(99,180,255,0.12)" if recomendacion == "UNDER" else "rgba(255,200,80,0.12)")
-                badge_border = "rgba(183,255,60,0.4)" if recomendacion == "OVER" else ("rgba(99,180,255,0.4)" if recomendacion == "UNDER" else "rgba(255,200,80,0.4)")
-                badge_text_color = "#b7ff3c" if recomendacion == "OVER" else ("#63b4ff" if recomendacion == "UNDER" else "#ffc850")
-                st.markdown(
-                    f"""
-                    <div class="match-card">
-                        <div class="match-header">
-                            <span>🗓️ {fecha_str}{f' · {inicio_str}' if inicio_str else ''}{f' · {ronda_str}' if ronda_str else ''}</span>
-                            <span style="padding:0.25rem 0.6rem; border-radius:999px; background:{badge_color}; border:1px solid {badge_border}; color:{badge_text_color}; font-size:0.75rem; font-weight:800;">{recomendacion} 2.5</span>
-                        </div>
-                        <div class="match-teams">
-                            <span>{row['local']}</span>
-                            <span style="color:#b7ff3c;">VS</span>
-                            <span>{row['visitante']}</span>
-                        </div>
-                        <div style="display:flex; justify-content:space-between; font-size:0.84rem; color:#8994a5; margin-bottom:0.4rem;">
-                            <span>Over 2.5: <b style="color:#eef3f8;">{p_over_pct:.1f}%</b></span>
-                            <span>Under 2.5: <b style="color:#eef3f8;">{100 - p_over_pct:.1f}%</b></span>
-                        </div>
-                        <div class="prob-bar"><div class="prob-fill" style="width:{p_over_pct:.1f}%; background: {'#b7ff3c' if recomendacion=='OVER' else ('#63b4ff' if recomendacion=='UNDER' else '#ffc850')};"></div></div>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
+        st.metric("Próximos partidos", len(futuros))
+        st.caption("Probabilidades del modelo validado. Registra la cuota tomada en Bankroll para calcular EV.")
+        for row in futuros.itertuples(index=False):
+            inicio = pd.Timestamp(row.inicio_utc).tz_convert('America/Mexico_City')
+            st.markdown(f"### {row.visitante} @ {row.local}")
+            st.caption(inicio.strftime('%d/%m/%Y · %H:%M CDMX'))
+            cols = st.columns(2)
+            cols[0].metric("Over 2.5", f"{row.p_over25:.1%}")
+            cols[1].metric("Under 2.5", f"{row.p_under25:.1%}")
+        st.page_link("pages/0_💼_Bankroll.py", label="Registrar una apuesta en Bankroll", icon="💼")
 
 # ==========================================================
 # VISTA 1: RESULTADOS HISTÓRICOS
@@ -437,7 +259,7 @@ elif vista == "⚽ Resultados Históricos":
         unsafe_allow_html=True,
     )
 
-    if df_partidos.empty:
+    if df_partidos.empty or df_probabilidades.empty:
         st.warning("No se encontraron partidos en `futbol_liga_mx/data/partidos.csv`.")
     else:
         # Métricas generales arriba
@@ -452,24 +274,20 @@ elif vista == "⚽ Resultados Históricos":
             over_rate = ((df_partidos['goles_local'] + df_partidos['goles_visitante']) > 2.5).mean()
             st.metric("Tasa Histórica Over 2.5", f"{over_rate * 100:.1f}%")
         with m4:
-            st.metric("Temporada Activa", "2025–26 (Evaluada)")
+            st.metric("Temporada Activa", str(df_partidos.season.max()))
 
         st.markdown("### Partidos Recientes y Proyecciones")
         temporadas_disponibles = sorted(df_partidos['season'].unique().tolist(), reverse=True)
         temporada_sel = st.selectbox("Filtrar por Temporada:", temporadas_disponibles, index=0)
 
-        df_filtrado = df_partidos[df_partidos['season'] == temporada_sel].sort_values(by="fecha", ascending=False).reset_index(drop=True)
+        df_filtrado = df_probabilidades[df_probabilidades['season'] == temporada_sel].sort_values(by="fecha", ascending=False).reset_index(drop=True)
 
         # Mostrar los partidos
         for idx, row in df_filtrado.head(15).iterrows():
             total_goles = row['goles_local'] + row['goles_visitante']
             es_over = total_goles > 2.5
             fecha_str = row['fecha'].strftime("%d/%m/%Y")
-            fecha_dt = row['fecha'].to_pydatetime() if hasattr(row['fecha'], 'to_pydatetime') else None
-            # Probabilidad pre-partido usando el modelo (no los goles reales)
-            p_over_val = proyectar_partido(
-                row['local'], row['visitante'], estado_equipos, modelo_params, df_partidos, fecha_dt
-            )
+            p_over_val = row['p_over25']
             p_over_pct = p_over_val * 100
 
             badge_text = f"REAL: {row['goles_local']} - {row['goles_visitante']} ({'OVER' if es_over else 'UNDER'})"
@@ -588,3 +406,4 @@ else:
             use_container_width=True,
             hide_index=True
         )
+
