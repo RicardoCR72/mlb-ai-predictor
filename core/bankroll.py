@@ -1,6 +1,8 @@
 """Apuestas realizadas: snapshots independientes del modelo y persistencia MySQL."""
 from datetime import datetime, timezone
 import json
+import hashlib
+from decimal import Decimal, ROUND_HALF_UP
 import math
 import uuid
 from pathlib import Path
@@ -32,9 +34,75 @@ def prepare(conn):
             id TINYINT NOT NULL PRIMARY KEY, capital_inicial DOUBLE NOT NULL
         ) ENGINE=InnoDB""")
         cursor.execute('INSERT IGNORE INTO bankroll_config VALUES (1, 10000)')
+        cursor.execute("""CREATE TABLE IF NOT EXISTS bankroll_recibos (
+            huella CHAR(64) PRIMARY KEY, apuesta_id CHAR(36) NOT NULL UNIQUE,
+            ticket VARCHAR(120) NULL
+        ) ENGINE=InnoDB""")
+        cursor.execute("""CREATE TABLE IF NOT EXISTS bankroll_auditoria (
+            id BIGINT AUTO_INCREMENT PRIMARY KEY, apuesta_id CHAR(36) NULL,
+            accion VARCHAR(30) NOT NULL, actor VARCHAR(30) NOT NULL,
+            motivo VARCHAR(500) NOT NULL, anterior TEXT NULL, posterior TEXT NOT NULL,
+            creado_en TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+            KEY ix_auditoria_apuesta (apuesta_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""")
+        cursor.execute("""CREATE TABLE IF NOT EXISTS bankroll_migraciones (
+            version VARCHAR(50) PRIMARY KEY
+        ) ENGINE=InnoDB""")
+        # Migración única: conserva apuestas antiguas e indexa sus recibos sin borrarlas.
+        cursor.execute('SELECT capital_inicial FROM bankroll_config WHERE id=1 FOR UPDATE')
+        cursor.fetchone()
+        cursor.execute("SELECT version FROM bankroll_migraciones WHERE version='recibos_v1'")
+        if cursor.fetchone() is None:
+            legacy = load_ledger(conn)
+            for bet in legacy.to_dict('records'):
+                cursor.execute('INSERT IGNORE INTO bankroll_recibos (huella,apuesta_id,ticket) VALUES (%s,%s,%s)',
+                               (fingerprint(bet), bet['id'], ''))
+            cursor.execute("INSERT INTO bankroll_migraciones VALUES ('recibos_v1')")
         conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
     finally:
         cursor.close()
+
+
+def audit_event(cursor, identifier, action, before, after, actor='manual', reason='Registro de apuesta realizada'):
+    cursor.execute("""INSERT INTO bankroll_auditoria
+        (apuesta_id,accion,actor,motivo,anterior,posterior) VALUES (%s,%s,%s,%s,%s,%s)""",
+        (identifier, action, actor, reason,
+         json.dumps(before, ensure_ascii=False, default=str) if before is not None else None,
+         json.dumps(after, ensure_ascii=False, default=str)))
+
+
+def load_audit(conn):
+    return rows(conn, 'SELECT * FROM bankroll_auditoria ORDER BY id DESC')
+
+
+def export_bundle(conn):
+    import io, zipfile
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, 'w', zipfile.ZIP_DEFLATED) as archive:
+        archive.writestr('apuestas.csv', load_ledger(conn).to_csv(index=False))
+        archive.writestr('auditoria.csv', load_audit(conn).to_csv(index=False))
+        archive.writestr('recibos.csv', rows(conn, 'SELECT * FROM bankroll_recibos').to_csv(index=False))
+        archive.writestr('config.json', json.dumps({'capital_inicial':capital(conn)}, ensure_ascii=False))
+    return buffer.getvalue()
+
+
+def fingerprint(bet):
+    # Un ticket distinto permite registrar dos apuestas reales idénticas.
+    data = {key: bet.get(key) for key in ('deporte','partido','seleccion','casa','origen','referencia','ticket')}
+    for key in ('partido','seleccion','casa'):
+        data[key] = str(data.get(key, '')).strip().casefold()
+    data['origen'] = data.get('origen') or 'manual'
+    data['ticket'] = str(data.get('ticket') or '').strip()
+    reference = data.get('referencia') or {}
+    if isinstance(reference, str): reference = json.loads(reference)
+    data['referencia'] = {key:reference[key] for key in ('game_id','id_jugador','tipo_prop','side','line','fecha','local','visitante') if key in reference} or None
+    data['fecha'] = pd.Timestamp(bet['fecha']).date().isoformat()
+    data['monto'] = f"{float(bet['monto']):.2f}"
+    data['cuota'] = f"{float(bet['cuota']):.6f}"
+    return hashlib.sha256(json.dumps(data, sort_keys=True, default=str).encode()).hexdigest()
 
 
 def rows(conn, sql, params=()):
@@ -59,8 +127,8 @@ def load_ledger(conn):
 def net_profit(state, amount, odds):
     if state not in STATES:
         raise ValueError('Estado inválido.')
-    if state == 'Ganada': return float(amount) * (float(odds) - 1)
-    if state == 'Perdida': return -float(amount)
+    if state == 'Ganada': return float((Decimal(str(amount)) * (Decimal(str(odds)) - 1)).quantize(Decimal('.01'), rounding=ROUND_HALF_UP))
+    if state == 'Perdida': return -round(float(amount), 2)
     return 0.0
 
 
@@ -76,16 +144,33 @@ def save_bet(conn, bet, receipt=None):
     p = None if p is None or pd.isna(p) else float(p)
     if p is not None and (not math.isfinite(p) or not 0 <= p <= 1):
         raise ValueError('Probabilidad fuera de rango.')
+    amount = round(amount, 2)
+    if amount <= 0: raise ValueError('Monto mínimo de 0.01.')
     identifier = receipt or str(uuid.uuid4())
+    reference = dict(bet.get('referencia') or {})
+    reference.setdefault('registrado_utc', datetime.now(timezone.utc).isoformat())
     values = (identifier, pd.Timestamp(bet['fecha']).date(), bet['deporte'],
               bet['partido'].strip(), bet['seleccion'].strip(), bet['casa'].strip(), odds, amount,
               state, net_profit(state, amount, odds), p, bet.get('origen', 'manual'),
-              json.dumps(bet.get('referencia'), ensure_ascii=False) if bet.get('referencia') else None)
+              json.dumps(reference, ensure_ascii=False))
     cursor = conn.cursor()
     try:
+        cursor.execute('SELECT id FROM bankroll_apuestas WHERE id=%s FOR UPDATE', (identifier,))
+        if cursor.fetchone():
+            conn.commit()
+            return identifier
+        # La clave única hace atómico el control de duplicados entre sesiones.
+        from mysql.connector import IntegrityError
+        try:
+            cursor.execute('INSERT INTO bankroll_recibos (huella,apuesta_id,ticket) VALUES (%s,%s,%s)',
+                           (fingerprint(bet), identifier, str(bet.get('ticket') or '')[:120]))
+        except IntegrityError as exc:
+            if exc.errno != 1062: raise
+            raise ValueError('Esta apuesta ya está registrada. Si son dos apuestas reales, introduce un ticket distinto.') from exc
         # Idempotencia del envío del formulario; nunca reescribe un snapshot existente.
         cursor.execute('INSERT INTO bankroll_apuestas (' + ','.join(COLUMNS) + ') VALUES (' +
                        ','.join(['%s'] * len(COLUMNS)) + ') ON DUPLICATE KEY UPDATE id=id', values)
+        audit_event(cursor, identifier, 'registro', None, dict(zip(COLUMNS, values)))
         conn.commit()
         return identifier
     except Exception:
@@ -95,17 +180,23 @@ def save_bet(conn, bet, receipt=None):
         cursor.close()
 
 
-def update_state(conn, identifier, state, only_pending=False):
-    frame = rows(conn, 'SELECT monto,cuota,estado FROM bankroll_apuestas WHERE id=%s', (identifier,))
-    if frame.empty: raise ValueError('La apuesta ya no existe.')
-    row = frame.iloc[0]
-    profit = net_profit(state, row.monto, row.cuota)
-    cursor = conn.cursor()
+def update_state(conn, identifier, state, only_pending=False, reason='Actualización manual'):
+    if state not in STATES: raise ValueError('Estado inválido.')
+    if not str(reason).strip(): raise ValueError('Indica el motivo de la corrección.')
+    cursor = conn.cursor(dictionary=True)
     try:
-        sql = 'UPDATE bankroll_apuestas SET estado=%s,ganancia_neta=%s WHERE id=%s'
-        if only_pending: sql += " AND estado='Pendiente'"
-        cursor.execute(sql, (state, profit, identifier))
+        cursor.execute('SELECT monto,cuota,estado,ganancia_neta FROM bankroll_apuestas WHERE id=%s FOR UPDATE', (identifier,))
+        row = cursor.fetchone()
+        if not row: raise ValueError('La apuesta ya no existe.')
+        if row['estado'] == state or (only_pending and row['estado'] != 'Pendiente'):
+            conn.commit()
+            return 0
+        profit = net_profit(state, row['monto'], row['cuota'])
+        cursor.execute('UPDATE bankroll_apuestas SET estado=%s,ganancia_neta=%s WHERE id=%s', (state, profit, identifier))
         changed = cursor.rowcount
+        if changed:
+            audit_event(cursor, identifier, 'estado', row, {'estado':state, 'ganancia_neta':profit},
+                        'automatico' if only_pending else 'manual', str(reason).strip()[:500])
         conn.commit()
         return changed
     except Exception:
@@ -121,8 +212,15 @@ def capital(conn, value=None):
         if not math.isfinite(value) or value < 0: raise ValueError('Capital inicial inválido.')
         cursor = conn.cursor()
         try:
+            cursor.execute('SELECT capital_inicial FROM bankroll_config WHERE id=1 FOR UPDATE')
+            previous = cursor.fetchone()[0]
             cursor.execute('UPDATE bankroll_config SET capital_inicial=%s WHERE id=1', (value,))
+            if float(previous) != value:
+                audit_event(cursor, None, 'capital', {'capital_inicial':float(previous)}, {'capital_inicial':value}, reason='Cambio de capital inicial')
             conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
         finally:
             cursor.close()
     return float(rows(conn, 'SELECT capital_inicial FROM bankroll_config WHERE id=1').iloc[0, 0])
@@ -159,7 +257,7 @@ def model_options(conn, root, now=None):
     options, errors = [], []
     queries = {
         'mlb_total': """SELECT id,game_pk AS game_id,fecha_oficial AS fecha,equipo_local AS local,
-            equipo_visitante AS visitante,seleccion,linea,cuota_seleccion AS cuota,confianza AS probabilidad
+            equipo_visitante AS visitante,seleccion,linea,start_utc AS inicio_utc,cuota_seleccion AS cuota,confianza AS probabilidad
             FROM mlb_totales_predicciones WHERE start_utc>UTC_TIMESTAMP()
             AND LOWER(TRIM(casa_apuestas))='draftkings'""",
         'mlb_ml': """SELECT j.id_juego AS game_id,p.fecha,p.equipo_local AS local,
@@ -201,6 +299,8 @@ def model_options(conn, root, now=None):
                     continue
                 if not math.isfinite(odds) or odds <= 1: continue
                 ref = {key: str(row[key]) for key in ('game_id', 'id_jugador', 'tipo_prop') if key in row}
+                if source == 'mlb_total':
+                    ref['inicio_utc'] = pd.Timestamp(row['inicio_utc']).tz_localize('UTC').isoformat() if pd.Timestamp(row['inicio_utc']).tzinfo is None else pd.Timestamp(row['inicio_utc']).isoformat()
                 ref.update(side=selection, line=float(row['linea']) if 'linea' in row and pd.notna(row['linea']) else None)
                 label = selection if source == 'mlb_ml' else f"{row.get('jugador', '')} {row.get('tipo_prop', 'Total')} {selection} {row.get('linea', '')}".strip()
                 options.append(dict(fecha=row['fecha'], deporte='MLB' if source.startswith('mlb') else 'NFL',
@@ -222,7 +322,7 @@ def model_options(conn, root, now=None):
                     partido=f"{row['visitante']} @ {row['local']}", seleccion=side+' 2.5',
                     casa='DraftKings', cuota=None, probabilidad=row['p_'+side.lower()+'25'],
                     origen='liga_mx', referencia=dict(fecha=row['fecha'], local=row['local'],
-                        visitante=row['visitante'], side=side, line=2.5)))
+                        visitante=row['visitante'], inicio_utc=str(row['inicio_utc']), side=side, line=2.5)))
     except Exception as exc:
         errors.append(f'Liga MX: {exc}')
     return options, errors
@@ -262,7 +362,7 @@ def settle_pending(conn, root):
                 data = data[(data.fecha == ref['fecha']) & (data.local == ref['local']) & (data.visitante == ref['visitante'])]
                 if len(data) == 1:
                     r = data.iloc[0];state = total_state(r.goles_local+r.goles_visitante, ref['line'], ref['side'])
-            if state: changed += update_state(conn, bet['id'], state, only_pending=True)
+            if state: changed += update_state(conn, bet['id'], state, only_pending=True, reason='Resultado oficial disponible; línea original conservada')
         except Exception as exc:
             errors.append(f"{bet['partido']}: {type(exc).__name__}")
     return changed, errors

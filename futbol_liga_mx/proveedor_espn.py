@@ -4,7 +4,7 @@ Usa el endpoint publico de ESPN para obtener los partidos de la temporada
 activa (Apertura/Clausura). Complementa los datos historicos de openfootball.
 
 Limitaciones:
-- ESPN solo expone la temporada actual; no sirve para historial.
+- Admite consultas históricas por fecha; la recuperación valida fase y cobertura.
 - El endpoint puede cambiar sin aviso (es no oficial).
 - Barre dia a dia el rango de la temporada (usa cache local para evitar
   repetir peticiones ya procesadas).
@@ -161,7 +161,7 @@ def parse_events(events: list, cutoff: date) -> tuple[pd.DataFrame, pd.DataFrame
     unknown_teams: set[str] = set()
 
     # Precalcular jornadas inferidas para todos los eventos
-    jornada_inferida = inferir_jornada(events)
+    # Las fechas no demuestran el número de jornada; usar únicamente el dato explícito.
 
     for ev in events:
         comp = (ev.get("competitions") or [{}])[0]
@@ -179,12 +179,17 @@ def parse_events(events: list, cutoff: date) -> tuple[pd.DataFrame, pd.DataFrame
             continue
 
         season_info = ev.get("season") or {}
-        season_year = int(season_info.get("year", local_date.year if local_date.month >= 7 else local_date.year - 1))
+        slug = season_info.get('slug', '')
+        if slug and slug not in ('torneo-apertura', 'torneo-clausura'):
+            continue  # Liguilla/play-in no entran al modelo de fase regular.
+        season_year = local_date.year if local_date.month >= 7 else local_date.year - 1
         season_str = f"{season_year}-{str((season_year + 1) % 100).zfill(2)}"
         torneo = "Apertura" if local_date.month >= 7 else "Clausura"
         # Usar numero de semana de ESPN; si no lo incluye, usar jornada inferida por fecha
-        week = ev.get("week") or jornada_inferida.get(ev.get("id"))
-        ronda = f"{torneo}, Matchday {week}" if week else f"{torneo}, Matchday ?"
+        week = ev.get("week")
+        if isinstance(week, dict): week = week.get("number")
+        if not isinstance(week, int) or not 1 <= week <= 17: week = None
+        ronda = f"{torneo}, Matchday {week}" if week else f"{torneo}, fase regular"
 
         home_name = away_name = None
         home_score = away_score = 0
@@ -287,6 +292,7 @@ def run(
     cache = load_cache(cache_dir)
 
     all_events: dict[str, dict] = {}
+    failed_days = []
     curr = season_start
     total_dias = (scan_end - season_start).days + 1
     print(f"Escaneando {total_dias} dias de ESPN ({season_start} a {scan_end})...")
@@ -305,6 +311,7 @@ def run(
             except Exception as exc:
                 print(f"  {fecha_key}: error ({exc}); se conservan resultados existentes")
                 events_day = []
+                failed_days.append(fecha_key)
         for ev in events_day:
             eid = ev.get("id")
             if eid:
@@ -319,6 +326,12 @@ def run(
         return existing, pd.DataFrame(columns=FIXTURE_COLUMNS)
 
     past_new, future = parse_events(list(all_events.values()), cutoff)
+    from .cobertura_actual import scan_report
+    scanned = past_new[past_new.fecha.between(season_start.isoformat(),cutoff.isoformat())]
+    report = scan_report(list(all_events.values()), scanned, season_start, cutoff, failed_days)
+    # Solo el escaneo completo desde el inicio del torneo reemplaza la evidencia.
+    if season_start == date(2026,7,1) and scan_end >= cutoff:
+        path.with_name('cobertura_actual.json').write_text(json.dumps(report,indent=2),encoding='utf-8')
     print(f"  Resultados terminados: {len(past_new)}")
     print(f"  Proximos partidos: {len(future)}")
 

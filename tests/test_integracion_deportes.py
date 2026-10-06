@@ -30,6 +30,11 @@ class FakeCursor:
     rowcount = 1
     def __init__(self, conn): self.conn = conn
     def execute(self, sql, params=()): self.conn.calls.append((sql, params))
+    def fetchone(self):
+        sql = self.conn.calls[-1][0]
+        if sql.startswith('SELECT monto'): return dict(monto=150,cuota=2.0,estado='Pendiente',ganancia_neta=0)
+        return None
+    def fetchall(self): return []
     def close(self): pass
 
 
@@ -57,15 +62,15 @@ class TestBankroll(unittest.TestCase):
                    casa='DraftKings', cuota=1.91, monto=100, probabilidad=.58,
                    origen='nfl_total', referencia={'game_id':'g','line':45.5,'side':'OVER'})
         bank.save_bet(conn, bet, 'receipt')
-        params = conn.calls[0][1]
+        params = next(params for sql,params in conn.calls if sql.startswith('INSERT INTO bankroll_apuestas'))
         self.assertEqual(params[1], date(2026,10,4))
         self.assertEqual(params[8], 'Pendiente')
         self.assertEqual(params[9],0)
         self.assertEqual(params[10],.58)
-        self.assertIn('ON DUPLICATE KEY UPDATE id=id',conn.calls[0][0])
+        self.assertTrue(any('ON DUPLICATE KEY UPDATE id=id' in sql for sql,_ in conn.calls))
         bet['fecha'] = pd.Timestamp('2026-10-04')
         bank.save_bet(conn, bet, 'receipt')
-        self.assertEqual(conn.calls[1][1][1],date(2026,10,4))
+        self.assertEqual([params for sql,params in conn.calls if sql.startswith('INSERT INTO bankroll_apuestas')][-1][1],date(2026,10,4))
 
     def test_invalid_price_does_not_write(self):
         with self.assertRaises(ValueError): bank.decimal_odds(0)
@@ -86,9 +91,9 @@ class TestBankroll(unittest.TestCase):
         with patch.object(bank,'load_ledger',return_value=ledger), patch.object(bank,'rows',side_effect=query):
             changed, errors=bank.settle_pending(conn, ROOT)
         self.assertEqual(changed,1);self.assertEqual(errors,[])
-        sql,params=conn.calls[0]
+        sql,params=next((sql,params) for sql,params in conn.calls if sql.startswith('UPDATE bankroll_apuestas'))
         self.assertEqual(params,('Ganada',150.0,'receipt'))
-        self.assertIn("AND estado='Pendiente'",sql)
+        self.assertTrue(any('FOR UPDATE' in sql for sql,_ in conn.calls))
 
     def test_manual_or_already_settled_bets_are_not_overwritten(self):
         ledger=pd.DataFrame([dict(estado='Ganada',origen='nfl_total'),
@@ -169,6 +174,7 @@ class TestLigaMXIntegration(unittest.TestCase):
 
     def test_missing_season_blocks_screen_before_odds(self):
         games=pd.read_csv(ROOT/'futbol_liga_mx/data/partidos.csv')
+        games=games[games.season.ne('2025-26')]
         fixtures=pd.read_csv(ROOT/'futbol_liga_mx/data/proximos.csv')
         with self.assertRaisesRegex(ValueError,'2025-26 incompleta'):
             upcoming_probabilities(games,fixtures,{}, {'seasons':{'confirmacion':'2024-25'}})
@@ -176,9 +182,10 @@ class TestLigaMXIntegration(unittest.TestCase):
     def test_failed_backfill_preserves_existing_file(self):
         with tempfile.TemporaryDirectory() as tmp:
             path=Path(tmp)/'partidos.csv'
-            path.write_bytes((ROOT/'futbol_liga_mx/data/partidos.csv').read_bytes())
+            saved=pd.read_csv(ROOT/'futbol_liga_mx/data/partidos.csv')
+            saved[saved.season.ne('2025-26')].to_csv(path,index=False)
             original=path.read_bytes()
-            with patch('futbol_liga_mx.recuperar_historial.fetch',return_value=None),patch('futbol_liga_mx.recuperar_historial.fetch_csv',return_value=None):
+            with patch('futbol_liga_mx.recuperar_historial.fetch',return_value=None),patch('futbol_liga_mx.recuperar_historial.fetch_csv',return_value=None),patch('futbol_liga_mx.recuperar_historial.espn_history',return_value=pd.DataFrame(columns=saved.columns)):
                 self.assertFalse(recover(path,Path(tmp)/'cache'))
             self.assertEqual(path.read_bytes(),original)
 
@@ -194,6 +201,9 @@ class TestBankrollUI(unittest.TestCase):
         stack.enter_context(patch.object(bank, 'settle_pending', return_value=(0, [])))
         stack.enter_context(patch.object(bank, 'load_ledger', return_value=pd.DataFrame(columns=bank.COLUMNS)))
         stack.enter_context(patch.object(bank, 'capital', return_value=1000.0))
+        stack.enter_context(patch.object(bank, 'export_bundle', return_value=b'zip'))
+        stack.enter_context(patch.object(bank, 'load_audit', return_value=pd.DataFrame()))
+        stack.enter_context(patch('streamlit.page_link'))
         return stack, conn
 
     def test_manual_save_from_form_has_valid_date(self):
@@ -206,9 +216,9 @@ class TestBankrollUI(unittest.TestCase):
             fields['Selección'].set_value('OVER 45.5')
             next(widget for widget in app.button if widget.label == 'Guardar apuesta realizada').click().run(timeout=10)
         self.assertEqual(len(app.exception), 0)
-        self.assertEqual(len(conn.calls), 1)
-        self.assertIsInstance(conn.calls[0][1][1], date)
-        self.assertEqual(conn.calls[0][1][9], 0.0)
+        self.assertEqual(sum(sql.startswith('INSERT INTO bankroll_apuestas') for sql,_ in conn.calls),1)
+        self.assertIsInstance(next(params for sql,params in conn.calls if sql.startswith('INSERT INTO bankroll_apuestas'))[1], date)
+        self.assertEqual(next(params for sql,params in conn.calls if sql.startswith('INSERT INTO bankroll_apuestas'))[9], 0.0)
 
     def test_model_form_keeps_snapshot_when_predictions_update(self):
         from streamlit.testing.v1 import AppTest
@@ -223,7 +233,7 @@ class TestBankrollUI(unittest.TestCase):
             next(widget for widget in app.button if widget.label == 'Guardar apuesta realizada').click().run(timeout=10)
         self.assertEqual(len(app.exception), 0)
         self.assertEqual(load.call_count, 1)
-        params = conn.calls[0][1]
+        params = next(params for sql,params in conn.calls if sql.startswith('INSERT INTO bankroll_apuestas'))
         self.assertEqual(params[4], 'OVER 40.5')
         self.assertEqual(params[10], .58)
         self.assertEqual(json.loads(params[12])['line'],40.5)
