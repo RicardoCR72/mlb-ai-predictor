@@ -25,7 +25,7 @@ jobs:
           mlb_totales.test_draftkings mlb_totales.test_fechas
           mlb_totales.test_integracion mlb_totales.test_pitcheo
           futbol_liga_mx.test_continuidad futbol_liga_mx.test_modelo
-          tests.test_integracion_deportes tests.test_observabilidad -v
+          tests.test_integracion_deportes tests.test_observabilidad tests.test_actualizacion_manual -v
   mysql-real:
     runs-on: ubuntu-latest
     timeout-minutes: 10
