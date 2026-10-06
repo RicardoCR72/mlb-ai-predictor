@@ -116,7 +116,21 @@ class TestNFLIntegration(unittest.TestCase):
             for interval in event['cron'].split()[3].split(','):
                 lo,hi=map(int,interval.split('-'))
                 self.assertLessEqual(lo,hi)
-        self.assertEqual(workflow['jobs']['props']['env']['DB_SSL_CA'],'${{ runner.temp }}/aiven-ca.pem')
+        self.assertNotIn('DB_SSL_CA',workflow['jobs']['props']['env'])
+        cert=next(step for step in workflow['jobs']['props']['steps'] if step.get('name')=='Preparar certificado de Aiven')
+        self.assertIn('DB_SSL_CA=%s',cert['run'])
+        self.assertIn('$GITHUB_ENV',cert['run'])
+
+    def test_job_environment_uses_only_contexts_available_before_runner(self):
+        import re
+        allowed={'github','needs','strategy','matrix','vars','secrets','inputs'}
+        for path in (ROOT/'.github/workflows').glob('*.yml'):
+            workflow=yaml.safe_load(path.read_text())
+            for job in workflow.get('jobs',{}).values():
+                for value in job.get('env',{}).values():
+                    for expression in re.findall(r'\$\{\{(.*?)\}\}',str(value)):
+                        contexts=re.findall(r'(?<![\w.])([a-zA-Z_]+)\.',expression)
+                        self.assertTrue(set(contexts)<=allowed,f'{path.name}: contexto inválido en env del job: {contexts}')
 
     def test_manual_odds_download_is_unique_and_opt_in(self):
         w=yaml.safe_load((ROOT/'.github/workflows/nfl_props.yml').read_text())

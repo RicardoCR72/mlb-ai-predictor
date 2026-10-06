@@ -1,0 +1,58 @@
+name: Preparar tablas aditivas de Bankroll
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/preparar_bankroll.yml'
+permissions:
+  contents: read
+concurrency:
+  group: preparar-bankroll
+  cancel-in-progress: false
+jobs:
+  preparar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      DB_HOST: ${{ secrets.NFL_DB_HOST || secrets.DB_HOST }}
+      DB_PORT: ${{ secrets.NFL_DB_PORT || secrets.DB_PORT }}
+      DB_USER: ${{ secrets.NFL_DB_USER || secrets.DB_USER }}
+      DB_PASSWORD: ${{ secrets.NFL_DB_PASSWORD || secrets.DB_PASSWORD || secrets.DB_PASS }}
+      DB_NAME: ${{ secrets.NFL_DB_NAME || secrets.DB_NAME }}
+      DB_SSL_CA_CERT: ${{ secrets.NFL_DB_SSL_CA_CERT || secrets.DB_SSL_CA_CERT }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install "pandas>=2.2,<3" mysql-connector-python requests
+      - name: Preparar recibos y auditoría conservando apuestas y capital
+        run: |
+          if [ -z "$DB_HOST" ] || [ -z "$DB_USER" ] || [ -z "$DB_NAME" ] || [ -z "$DB_PASSWORD" ]; then
+            echo "::error::Faltan secretos MySQL de producción."
+            exit 1
+          fi
+          python - <<'PYCODE'
+          from core.db import get_db_connection
+          from core.bankroll import prepare,load_ledger,capital
+          conn=get_db_connection()
+          try:
+              cur=conn.cursor()
+              try:
+                  cur.execute("SHOW TABLES LIKE 'bankroll_apuestas'")
+                  ledger_exists=cur.fetchone() is not None
+                  cur.execute("SHOW TABLES LIKE 'bankroll_config'")
+                  capital_exists=cur.fetchone() is not None
+              finally:cur.close()
+              before=load_ledger(conn) if ledger_exists else None
+              initial=capital(conn) if capital_exists else None
+              prepare(conn)
+              after=load_ledger(conn)
+              if before is not None: assert before.equals(after), 'Se alteró el historial previo'
+              if initial is not None: assert initial==capital(conn), 'Se alteró el capital previo'
+              print('Preparación aditiva: OK. Apuestas conservadas:',len(after))
+          finally:conn.close()
+          PYCODE
+      - name: Comprobar tablas y conexión TLS después de preparar
+        run: python scripts/validar_mysql.py

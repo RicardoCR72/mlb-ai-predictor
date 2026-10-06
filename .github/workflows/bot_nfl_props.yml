@@ -39,7 +39,6 @@ jobs:
       DB_PORT: ${{ secrets.NFL_DB_PORT || secrets.DB_PORT }}
       DB_USER: ${{ secrets.NFL_DB_USER || secrets.DB_USER }}
       DB_PASSWORD: ${{ secrets.NFL_DB_PASSWORD || secrets.DB_PASSWORD || secrets.DB_PASS }}
-      DB_SSL_CA: ${{ runner.temp }}/aiven-ca.pem
       DB_NAME: ${{ secrets.NFL_DB_NAME || secrets.DB_NAME }}
     steps:
       - uses: actions/checkout@v4
@@ -76,6 +75,7 @@ jobs:
             exit 1
           fi
           printf '%s' "$NFL_DB_SSL_CA_CERT" > "$RUNNER_TEMP/aiven-ca.pem"
+          printf 'DB_SSL_CA=%s\n' "$RUNNER_TEMP/aiven-ca.pem" >> "$GITHUB_ENV"
 
       - name: Evaluar resultados props terminados
         run: python nfl/evaluar_resultados_props.py
