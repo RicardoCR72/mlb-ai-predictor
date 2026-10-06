@@ -25,4 +25,33 @@ jobs:
           mlb_totales.test_draftkings mlb_totales.test_fechas
           mlb_totales.test_integracion mlb_totales.test_pitcheo
           futbol_liga_mx.test_continuidad futbol_liga_mx.test_modelo
-          tests.test_integracion_deportes -v
+          tests.test_integracion_deportes tests.test_observabilidad -v
+  mysql-real:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: integration-only
+          MYSQL_DATABASE: bankroll_ci
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -pintegration-only"
+          --health-interval=10s --health-timeout=5s --health-retries=10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install pandas mysql-connector-python
+      - name: Persistencia, duplicados, auditoría y saldo en MySQL real
+        env:
+          BANKROLL_MYSQL_TEST: '1'
+          DB_HOST: 127.0.0.1
+          DB_PORT: '3306'
+          DB_USER: root
+          DB_PASSWORD: integration-only
+          DB_NAME: bankroll_ci
+        run: python -m unittest tests.test_bankroll_mysql -v

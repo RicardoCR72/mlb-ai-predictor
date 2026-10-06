@@ -2,10 +2,8 @@ name: Actualizar Liga MX (ESPN)
 
 on:
   schedule:
-    # Martes y viernes a las 12:00 UTC (06:00 CDMX)
-    # Cubre resultados del fin de semana y actualiza proximos partidos
-    - cron: '0 12 * * 2'
-    - cron: '0 12 * * 5'
+    # Diario a las 12:00 UTC (06:00 CDMX), para mantener la auditoría vigente.
+    - cron: '0 12 * * *'
   workflow_dispatch:
     inputs:
       desde:
@@ -49,7 +47,9 @@ jobs:
       - name: Cache ESPN responses
         uses: actions/cache@v4
         with:
-          path: futbol_liga_mx/data/cache/espn_events.json
+          path: |
+            futbol_liga_mx/data/cache/espn_events.json
+            futbol_liga_mx/data/cache/espn_2025_26
           key: liga-mx-espn-${{ github.run_id }}
           restore-keys: |
             liga-mx-espn-
@@ -57,22 +57,38 @@ jobs:
       - name: Recuperar temporada faltante sin reentrenar
         run: python -m futbol_liga_mx.recuperar_historial
 
-      - name: Actualizar partidos y proximos desde ESPN
+      - name: Evaluar temporada adicional sin reentrenar
         run: |
-          ARGS=""
-          if [ -n "${{ inputs.desde }}" ]; then
-            ARGS="$ARGS --desde ${{ inputs.desde }}"
-          fi
-          if [ -n "${{ inputs.hasta }}" ]; then
-            ARGS="$ARGS --hasta ${{ inputs.hasta }}"
-          fi
-          python -m futbol_liga_mx.proveedor_espn $ARGS
+          python - <<'PYCODE'
+          from pathlib import Path
+          import pandas as pd
+          from futbol_liga_mx.datos import complete
+          from futbol_liga_mx.continuidad import evaluate_2025, frozen_model
+          from futbol_liga_mx.inferencia import normalize_teams
+          games = normalize_teams(pd.read_csv('futbol_liga_mx/data/partidos.csv'))
+          if complete(games[games.season.eq('2025-26')]):
+              params, metrics = frozen_model('futbol_liga_mx/modelos')
+              evaluate_2025(games, params, metrics, 'futbol_liga_mx/modelos/confirmacion_2025_26.json')
+          PYCODE
+
+      - name: Actualizar partidos y proximos desde ESPN
+        env:
+          SCAN_DESDE: ${{ inputs.desde }}
+          SCAN_HASTA: ${{ inputs.hasta }}
+        run: |
+          ARGS=()
+          if [ -n "$SCAN_DESDE" ]; then ARGS+=(--desde "$SCAN_DESDE"); fi
+          if [ -n "$SCAN_HASTA" ]; then ARGS+=(--hasta "$SCAN_HASTA"); fi
+          python -m futbol_liga_mx.proveedor_espn "${ARGS[@]}"
 
       - name: Commit y push de los datos actualizados
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add futbol_liga_mx/data/partidos.csv futbol_liga_mx/data/proximos.csv || true
+          git add futbol_liga_mx/data/partidos.csv futbol_liga_mx/data/proximos.csv
+          for FILE in futbol_liga_mx/data/cobertura_2025_26.json futbol_liga_mx/data/cobertura_actual.json futbol_liga_mx/modelos/confirmacion_2025_26.json; do
+            if [ -f "$FILE" ]; then git add "$FILE"; fi
+          done
           if git diff --staged --quiet; then
             echo "Sin cambios en los datos de Liga MX."
           else

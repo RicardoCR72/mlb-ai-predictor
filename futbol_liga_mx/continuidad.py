@@ -115,11 +115,13 @@ def upcoming_ready(games,fixtures,metrics,now):
     current=games[games.season=='2026-27']
     if current.empty or (now.astimezone(MX).date()-pd.to_datetime(current.fecha.max()).date()).days>21:
         raise ValueError('Historial Apertura 2026 ausente o desactualizado (más de 21 días).')
-    rounds=current.ronda.str.extract(r'^Apertura, Matchday (\d+)$',expand=False).dropna().astype(int)
-    if rounds.empty:raise ValueError('No hay fase regular del Apertura 2026.')
-    latest=int(rounds.max())
-    if int((rounds<latest).sum()) < 9*(latest-1)-3:
-        raise ValueError('Faltan varios resultados en jornadas anteriores del Apertura 2026.')
+    from .cobertura_actual import verified_current
+    if not verified_current(current,now):
+        rounds=current.ronda.str.extract(r'^Apertura, Matchday (\d+)$',expand=False).dropna().astype(int)
+        if rounds.empty:raise ValueError('No hay fase regular del Apertura 2026.')
+        latest=int(rounds.max())
+        if int((rounds<latest).sum()) < 9*(latest-1)-3:
+            raise ValueError('Faltan varios resultados en jornadas anteriores del Apertura 2026.')
     if metrics['seasons']['confirmacion']!='2024-25':raise ValueError('No es el modelo congelado.')
     fixtures=fixtures[fixtures.season=='2026-27']
     fechas=pd.to_datetime(fixtures.inicio_utc,utc=True,errors='coerce')

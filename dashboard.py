@@ -407,3 +407,7 @@ with st.sidebar:
     st.caption("Selecciona MLB o NFL desde el menú superior de esta barra.")
     st.markdown("---")
     st.caption("Modelos, mercado, lesiones y rendimiento en un solo sistema.")
+
+
+
+st.page_link("pages/4_📡_Estado_y_Modelos.py", label="ESTADO DE INTEGRACIONES Y MODELOS", icon="📡", use_container_width=True)

@@ -1,0 +1,35 @@
+name: Validar conexión MySQL de producción
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'core/**'
+      - 'scripts/validar_mysql.py'
+      - '.github/workflows/validacion_mysql.yml'
+permissions:
+  contents: read
+jobs:
+  conexion:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      DB_HOST: ${{ secrets.NFL_DB_HOST || secrets.DB_HOST }}
+      DB_PORT: ${{ secrets.NFL_DB_PORT || secrets.DB_PORT }}
+      DB_USER: ${{ secrets.NFL_DB_USER || secrets.DB_USER }}
+      DB_PASSWORD: ${{ secrets.NFL_DB_PASSWORD || secrets.DB_PASSWORD || secrets.DB_PASS }}
+      DB_NAME: ${{ secrets.NFL_DB_NAME || secrets.DB_NAME }}
+      DB_SSL_CA_CERT: ${{ secrets.NFL_DB_SSL_CA_CERT || secrets.DB_SSL_CA_CERT }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install pandas mysql-connector-python
+      - name: Verificar conexión sin modificar apuestas
+        run: |
+          if [ -z "$DB_HOST" ] || [ -z "$DB_USER" ] || [ -z "$DB_NAME" ] || [ -z "$DB_PASSWORD" ]; then
+            echo "::error::Faltan secretos MySQL de producción."
+            exit 1
+          fi
+          python scripts/validar_mysql.py

@@ -164,6 +164,10 @@ def render_app(conn, ledger, initial):
             st.dataframe(pd.DataFrame(groups), hide_index=True, use_container_width=True)
             st.dataframe(ledger.drop(columns=['referencia']), hide_index=True, use_container_width=True)
             st.download_button("Descargar historial", ledger.to_csv(index=False), "bankroll.csv", "text/csv")
+            st.download_button("Exportar banca completa", bank.export_bundle(conn), "bankroll_completo.zip", "application/zip")
+            with st.expander("Historial de correcciones"):
+                st.dataframe(bank.load_audit(conn), hide_index=True, use_container_width=True)
+            st.page_link("pages/4_📡_Estado_y_Modelos.py", label="Estado de integraciones y rendimiento", icon="📡")
     with tab3:
         if conn is None:
             st.info("No se guardan apuestas hasta recuperar la conexión con MySQL.")
@@ -205,9 +209,10 @@ def render_app(conn, ledger, initial):
                                            step=0.01, key=f"cuota_{mode}_{idx if selected else 'manual'}")
                     amount = st.number_input("Monto apostado ($)", min_value=1.0, value=100.0, step=10.0)
                     state = st.selectbox("Estado", bank.STATES)
+                    ticket = st.text_input("Ticket o referencia de la casa (opcional)")
                     if st.form_submit_button("Guardar apuesta realizada"):
                         bet = dict(fecha=fecha, deporte=sport, partido=partido, seleccion=selection,
-                                   casa=casa, probabilidad=probability, cuota=odds, monto=amount, estado=state)
+                                   casa=casa, probabilidad=probability, cuota=odds, monto=amount, estado=state, ticket=ticket.strip())
                         if selected: bet.update(origen=selected['origen'], referencia=selected['referencia'])
                         try:
                             if odds is None: raise ValueError("Introduce la cuota decimal que tomaste.")
@@ -222,9 +227,12 @@ def render_app(conn, ledger, initial):
                 bet = ledger.iloc[idx]
                 with st.form("actualizar_apuesta"):
                     state = st.selectbox("Nuevo estado", bank.STATES, index=bank.STATES.index(bet['estado']))
+                    reason = st.text_input("Motivo de la corrección")
                     if st.form_submit_button("Actualizar estado"):
-                        bank.update_state(conn, bet['id'], state)
-                        st.rerun()
+                        try:
+                            bank.update_state(conn, bet['id'], state, reason=reason)
+                            st.rerun()
+                        except ValueError as exc: st.error(str(exc))
 
 
 conn = None
