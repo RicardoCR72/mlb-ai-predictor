@@ -25,7 +25,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: pip install pandas mysql-connector-python
+      - run: pip install "pandas>=2.2,<3" mysql-connector-python requests
       - name: Verificar conexión sin modificar apuestas
         run: |
           if [ -z "$DB_HOST" ] || [ -z "$DB_USER" ] || [ -z "$DB_NAME" ] || [ -z "$DB_PASSWORD" ]; then

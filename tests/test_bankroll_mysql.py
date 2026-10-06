@@ -46,6 +46,21 @@ class TestRealMySQL(unittest.TestCase):
             failing={**bet,'ticket':'failure','partido':'x'*300}
             with self.assertRaises(Exception):bank.save_bet(conn,failing,str(uuid.uuid4()))
             self.assertEqual(len(bank.rows(conn,'SELECT * FROM bankroll_recibos')),2)
+            # Simular los registros anteriores a la tabla de recibos, incluidos duplicados históricos.
+            audit_count=len(bank.load_audit(conn))
+            cur=conn.cursor()
+            try:
+                cur.execute('DELETE FROM bankroll_recibos')
+                cur.execute('DELETE FROM bankroll_migraciones')
+                conn.commit()
+            finally:cur.close()
+            bank.prepare(conn)
+            self.assertEqual(len(bank.load_ledger(conn)),2)  # nunca borra apuestas previas
+            self.assertEqual(len(bank.rows(conn,'SELECT * FROM bankroll_recibos')),1)
+            self.assertEqual(len(bank.load_audit(conn)),audit_count)
+            bank.prepare(conn)  # migración idempotente
+            with self.assertRaisesRegex(ValueError,'ya está registrada'):
+                bank.save_bet(conn,bet,str(uuid.uuid4()))
         finally:conn.close()
 
 if __name__=='__main__':unittest.main()

@@ -145,6 +145,7 @@ def save_bet(conn, bet, receipt=None):
     if p is not None and (not math.isfinite(p) or not 0 <= p <= 1):
         raise ValueError('Probabilidad fuera de rango.')
     amount = round(amount, 2)
+    if amount <= 0: raise ValueError('Monto mínimo de 0.01.')
     identifier = receipt or str(uuid.uuid4())
     reference = dict(bet.get('referencia') or {})
     reference.setdefault('registrado_utc', datetime.now(timezone.utc).isoformat())

@@ -12,11 +12,11 @@ def main():
         try:
             cur.execute('SELECT VERSION()');version=cur.fetchone()[0]
             cur.execute("SHOW STATUS LIKE 'Ssl_cipher'");tls=cur.fetchone()
-            cur.execute("SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME IN ('bankroll_apuestas','bankroll_config','bankroll_recibos','bankroll_auditoria')")
+            cur.execute("SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME IN ('bankroll_apuestas','bankroll_config','bankroll_recibos','bankroll_auditoria','bankroll_migraciones')")
             tables={r[0] for r in cur.fetchall()}
             print('Conexión MySQL real: OK. Versión:',version)
             print('TLS activo:',bool(tls and tls[1]))
-            expected={'bankroll_apuestas','bankroll_config','bankroll_recibos','bankroll_auditoria'}
+            expected={'bankroll_apuestas','bankroll_config','bankroll_recibos','bankroll_auditoria','bankroll_migraciones'}
             print('Tablas de bankroll:',len(tables),'de',len(expected))
             if tables != expected:
                 print('::warning::Abre Bankroll para aplicar la preparación aditiva de tablas. No se modificó la base en este diagnóstico.')
