@@ -1,3 +1,4 @@
+from core.ui_actualizacion import render_update_button
 import json
 from pathlib import Path
 from datetime import datetime
@@ -193,6 +194,8 @@ def cargar_modelo_portable():
 @st.cache_data(ttl=600)
 def probabilidades_historicas(games, params):
     return historical_probabilities(games, params)
+
+render_update_button("liga_mx")
 
 df_partidos = cargar_datos_ligamx()
 df_proximos = cargar_proximos_ligamx()

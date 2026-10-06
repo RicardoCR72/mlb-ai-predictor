@@ -1,3 +1,4 @@
+from core.ui_actualizacion import render_update_button
 from pathlib import Path
 import runpy
 
@@ -263,6 +264,8 @@ vista = st.radio(
 
 raiz = Path(__file__).resolve().parents[1]
 
+render_update_button("nfl_totales" if vista == "🏈 Totales" else "nfl_props")
+
 if vista == "🏈 Totales":
     st.markdown(
         """
@@ -285,3 +288,4 @@ else:
         str(raiz / "nfl" / "ui_props.py"),
         run_name="nfl_props_ui",
     )
+

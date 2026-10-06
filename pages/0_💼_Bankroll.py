@@ -1,3 +1,4 @@
+from core.ui_actualizacion import render_update_button
 import json
 from pathlib import Path
 from datetime import datetime
@@ -151,11 +152,6 @@ def render_app(conn, ledger, initial):
                     bank.capital(conn, value)
                     st.rerun()
             st.caption("El ROI incluye apuestas ganadas, perdidas y push. Pendientes y anuladas se muestran aparte.")
-            if st.button("Actualizar liquidación"):
-                changed, errors = bank.settle_pending(conn, RAIZ)
-                st.success(f"{changed} apuestas actualizadas con los resultados disponibles.")
-                for error in errors: st.warning(error)
-                ledger = bank.load_ledger(conn)
             groups = []
             for sport, frame in ledger.groupby('deporte'):
                 m = bank.metrics(frame)
@@ -234,6 +230,8 @@ def render_app(conn, ledger, initial):
                             st.rerun()
                         except ValueError as exc: st.error(str(exc))
 
+
+render_update_button("bankroll")
 
 conn = None
 try:

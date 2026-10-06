@@ -12,6 +12,7 @@ Limitaciones:
 from __future__ import annotations
 
 import argparse
+from concurrent.futures import ThreadPoolExecutor
 import json
 import re
 import unicodedata
@@ -266,9 +267,12 @@ def run(
     cutoff: date | None = None,
     season_start: date | None = None,
     season_end: date | None = None,
+    workers: int = 1,
+    include_today: bool = False,
+    strict: bool = False,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Descarga partidos ESPN de la temporada activa y actualiza los CSVs."""
-    cutoff = cutoff or (datetime.now(MX).date() - timedelta(days=1))
+    cutoff = cutoff or (datetime.now(MX).date() - timedelta(days=0 if include_today else 1))
     hoy = datetime.now(MX).date()
 
     if season_start is None:
@@ -297,28 +301,28 @@ def run(
     total_dias = (scan_end - season_start).days + 1
     print(f"Escaneando {total_dias} dias de ESPN ({season_start} a {scan_end})...")
 
-    while curr <= scan_end:
-        fecha_key = curr.strftime("%Y%m%d")
-        entry = cache.get(fecha_key)
-        if cache_is_final(entry, curr, cutoff):
-            events_day = entry if isinstance(entry, list) else entry['events']
-        else:
-            try:
-                events_day = get_scoreboard(fecha_key)
-                # Solo resultados definitivos se reutilizan. Calendarios, vacíos y
-                # respuestas antiguas con juegos pendientes se vuelven a consultar.
-                cache[fecha_key] = events_day
-            except Exception as exc:
-                print(f"  {fecha_key}: error ({exc}); se conservan resultados existentes")
-                events_day = []
-                failed_days.append(fecha_key)
-        for ev in events_day:
-            eid = ev.get("id")
-            if eid:
-                all_events[eid] = ev
-        curr += timedelta(days=1)
+    if not 1 <= workers <= 4: raise ValueError('workers debe estar entre 1 y 4.')
+    days = [season_start+timedelta(days=i) for i in range(max(0,total_dias))]
+    def fetch_day(day):
+        key=day.strftime('%Y%m%d')
+        entry=cache.get(key)
+        if cache_is_final(entry,day,cutoff):
+            return key,entry if isinstance(entry,list) else entry['events'],False,False
+        try:return key,get_scoreboard(key),True,False
+        except Exception as exc:
+            print(f"  {key}: error ({type(exc).__name__}); se conservan resultados existentes")
+            return key,[],False,True
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        for fecha_key,events_day,fetched,failed in pool.map(fetch_day,days):
+            if fetched:cache[fecha_key]=events_day
+            if failed:failed_days.append(fecha_key)
+            for ev in events_day:
+                eid=ev.get('id')
+                if eid:all_events[eid]=ev
 
     save_cache(cache_dir, cache)
+    if strict and failed_days:
+        raise RuntimeError(f"ESPN no respondió en {len(failed_days)} fechas. Se conservó el historial anterior; vuelve a intentar.")
     print(f"Eventos unicos encontrados: {len(all_events)}")
 
     if not all_events:
@@ -328,7 +332,7 @@ def run(
     past_new, future = parse_events(list(all_events.values()), cutoff)
     from .cobertura_actual import scan_report
     scanned = past_new[past_new.fecha.between(season_start.isoformat(),cutoff.isoformat())]
-    report = scan_report(list(all_events.values()), scanned, season_start, cutoff, failed_days)
+    report = scan_report(list(all_events.values()), scanned, season_start, cutoff, failed_days,allow_current_day=include_today)
     # Solo el escaneo completo desde el inicio del torneo reemplaza la evidencia.
     if season_start == date(2026,7,1) and scan_end >= cutoff:
         path.with_name('cobertura_actual.json').write_text(json.dumps(report,indent=2),encoding='utf-8')
@@ -363,7 +367,8 @@ if __name__ == "__main__":
     parser.add_argument("--corte", type=date.fromisoformat, help="Ultimo dia finalizado (AAAA-MM-DD)")
     parser.add_argument("--desde", type=date.fromisoformat, help="Inicio del escaneo (AAAA-MM-DD)")
     parser.add_argument("--hasta", type=date.fromisoformat, help="Fin del escaneo (AAAA-MM-DD)")
+    parser.add_argument("--workers", type=int, choices=range(1,5), default=1)
     args = parser.parse_args()
     run(partidos=args.partidos, proximos=args.proximos, cutoff=args.corte,
-        season_start=args.desde, season_end=args.hasta)
+        season_start=args.desde, season_end=args.hasta, workers=args.workers)
 
