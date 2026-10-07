@@ -58,7 +58,7 @@ render_history(ledger)
                     page.wait_for_function('document.body.scrollWidth <= innerWidth+2')
                     page.wait_for_function("(()=>{const c=document.querySelectorAll('.oracle-pick');return c.length>1 && Math.abs(c[0].getBoundingClientRect().y-c[1].getBoundingClientRect().y)<2})()")
                     page.set_viewport_size({'width':390,'height':844})
-                    page.get_by_role('radio',name='Tabla',exact=True).check()
+                    page.get_by_text('Tabla',exact=True).click()
                     page.get_by_text('Columnas visibles',exact=True).wait_for()
                     page.wait_for_function('document.body.scrollWidth <= innerWidth+2')
                     assert page.locator('[data-testid="stDataFrame"]:visible').count()>=1
