@@ -1,4 +1,5 @@
 from core.ui_filtros import performance_filters
+from core.ui_bankroll import render_analytics, render_history
 from core.ui_actualizacion import render_update_button
 import json
 from pathlib import Path
@@ -153,6 +154,7 @@ def render_app(conn, ledger, initial):
                     bank.capital(conn, value)
                     st.rerun()
             st.caption("El ROI incluye apuestas ganadas, perdidas y push. Pendientes y anuladas se muestran aparte.")
+            render_analytics(ledger, initial)
             st.markdown('### Rendimiento e historial filtrados')
             filtered = ledger.copy()
             filtered['Temporada'] = pd.to_datetime(filtered['fecha']).dt.year
@@ -171,8 +173,9 @@ def render_app(conn, ledger, initial):
                 m = bank.metrics(frame)
                 groups.append(dict(Deporte=sport, Apuestas=len(frame), Apostado=m['apostado'],
                                    Beneficio=m['beneficio'], ROI=m['roi'], Pendiente=m['pendientes']))
-            st.dataframe(pd.DataFrame(groups), hide_index=True, use_container_width=True)
-            st.dataframe(filtered.drop(columns=['referencia','Temporada']), hide_index=True, use_container_width=True)
+            with st.expander('Resumen filtrado por deporte en tabla'):
+                st.dataframe(pd.DataFrame(groups), hide_index=True, use_container_width=True)
+            render_history(filtered)
             st.download_button("Descargar historial", filtered.drop(columns=['Temporada']).to_csv(index=False), "bankroll.csv", "text/csv")
             st.download_button("Exportar banca completa", bank.export_bundle(conn), "bankroll_completo.zip", "application/zip")
             with st.expander("Historial de correcciones"):

@@ -10,6 +10,8 @@ LABELS={'mlb':'Actualizar resultados MLB','nfl_totales':'Actualizar resultados d
 
 
 def render_update_button(service):
+    from core.ui_movil import apply_mobile_layout
+    apply_mobile_layout()
     key=f'actualizacion_manual_{service}'
     if st.button(LABELS[service],key=key,icon='🔄'):
         with st.status('Actualizando resultados oficiales…',expanded=True) as status:
