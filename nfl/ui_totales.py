@@ -1,3 +1,5 @@
+from core.ui_picks import render_pick, nfl_pick
+from core.ui_filtros import performance_filters
 import html
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -503,103 +505,22 @@ def mostrar_badge(estado):
 
 
 def mostrar_partido(fila):
-    fecha = fila["gameday"]
-    texto_fecha = (
-        fecha.strftime("%d/%m/%Y")
-        if pd.notna(fecha)
-        else "Fecha pendiente"
-    )
-    es_pick = fila["estado"] == "PICK"
-    clase_estado = "" if es_pick else " no-pick"
-    badge = "PICK" if es_pick else str(fila["estado"])
-    linea = formatear_numero(fila["total_line"], 1)
-    seleccion = fila["pick"] if pd.notna(fila["pick"]) else "SIN LÍNEA"
-    seleccion_texto = (
-        f"{seleccion} {linea}" if seleccion in {"OVER", "UNDER"}
-        else seleccion
-    )
-    probabilidad = fila["prob_pick"]
-    confianza = 0.0 if pd.isna(probabilidad) else float(probabilidad) * 100
-    confianza = min(max(confianza, 0.0), 100.0)
-    edge = formatear_numero(fila["edge"], 2)
-    edge_clase = " total-positive" if es_pick else ""
+    pick = nfl_pick(fila)
+    render_pick(pick, market='Total del partido', state=str(fila['estado']),
+        details=[('Proyección', formatear_numero(fila['pred_total'], 1)),
+                 ('Edge', formatear_numero(fila['edge'], 2)), ('EV estimado', formatear_porcentaje(fila['ev'])),
+                 ('P(Over) / P(Under)', formatear_porcentaje(fila['prob_over'])+' / '+formatear_porcentaje(fila['prob_under'])),
+                 ('Proyección base', formatear_numero(fila['pred_total_base'], 1))],
+        allow_register=fila['pick'] in ('OVER', 'UNDER') and pd.notna(fila['total_line']))
 
-    st.markdown(
-        f"""
-        <div class="total-pick-card{clase_estado}">
-            <div class="total-card-head">
-                <div>
-                    <div class="total-game">{html_seguro(fila['away_team'])} @ {html_seguro(fila['home_team'])}</div>
-                    <div class="total-context">{html_seguro(texto_fecha)} · Semana {int(fila['week'])}</div>
-                    <div class="total-context">Total del partido · Modelo con mercado</div>
-                </div>
-                <span class="total-badge{clase_estado}">{html_seguro(badge)}</span>
-            </div>
-            <div class="total-selection">
-                <span class="total-pick-name">{html_seguro(seleccion_texto)}</span>
-                <span class="total-odds">{html_seguro(formatear_momio(fila['odds_pick']))}</span>
-            </div>
-            <div class="total-values">
-                <div><span class="total-value-label">LÍNEA</span><span class="total-value">{html_seguro(linea)}</span></div>
-                <div><span class="total-value-label">PROYECCIÓN</span><span class="total-value">{html_seguro(formatear_numero(fila['pred_total'], 1))}</span></div>
-                <div><span class="total-value-label">EDGE</span><span class="total-value{edge_clase}">{html_seguro(edge)}</span></div>
-                <div><span class="total-value-label">PROB. / EV</span><span class="total-value">{html_seguro(formatear_porcentaje(probabilidad))} / {html_seguro(formatear_porcentaje(fila['ev']))}</span></div>
-            </div>
-            <div class="total-confidence"><span style="width:{confianza:.1f}%"></span></div>
-            <div class="total-footer">
-                <span>P(Over) {html_seguro(formatear_porcentaje(fila['prob_over']))}</span>
-                <span>P(Under) {html_seguro(formatear_porcentaje(fila['prob_under']))}</span>
-                <span>Base {html_seguro(formatear_numero(fila['pred_total_base'], 1))}</span>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
 
 
 def mostrar_resultado_total(fila):
-    resultado = str(fila.get("resultado_pick", "PENDIENTE"))
-    clase = {
-        "GANADA": "",
-        "PERDIDA": " lost",
-        "PUSH": " push",
-    }.get(resultado, " push")
-    fecha = (
-        fila["gameday"].strftime("%d/%m/%Y")
-        if pd.notna(fila.get("gameday"))
-        else "Fecha pendiente"
-    )
-    unidades = pd.to_numeric(
-        pd.Series([fila.get("beneficio_unidades")]), errors="coerce"
-    ).iloc[0]
-    unidades_texto = (
-        "N/D" if pd.isna(unidades) else f"{float(unidades):+.2f} u"
-    )
-    seleccion = (
-        f"{fila.get('pick', 'N/D')} "
-        f"{formatear_numero(fila.get('total_line'), 1)}"
-    )
-    confianza_texto = formatear_porcentaje(fila.get("prob_pick"))
-    st.markdown(
-        f"""
-        <div class="total-result-card{clase}">
-            <div class="total-result-head">
-                <div>
-                    <div class="total-result-title">{html_seguro(fila['away_team'])} @ {html_seguro(fila['home_team'])}</div>
-                    <div class="total-result-meta">{fecha} · Total del partido</div>
-                </div>
-                <span class="total-result-badge{clase}">{html_seguro(resultado)}</span>
-            </div>
-            <div class="total-history-values">
-                <div><span class="total-result-label">SELECCIÓN</span><span class="total-result-value">{html_seguro(seleccion)}</span></div>
-                <div><span class="total-result-label">TOTAL REAL</span><span class="total-result-value">{html_seguro(formatear_numero(fila.get('total_real'), 1))}</span></div>
-                <div><span class="total-result-label">CONFIANZA</span><span class="total-result-value">{html_seguro(confianza_texto)}</span></div>
-                <div><span class="total-result-label">UNIDADES</span><span class="total-result-value">{html_seguro(unidades_texto)}</span></div>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    render_pick(nfl_pick(fila), market='Total del partido · Simulación 1 u', state=str(fila.get('resultado_pick','PENDIENTE')),
+        details=[('Total real',formatear_numero(fila.get('total_real'),1)),
+                 ('Unidades', 'N/D' if pd.isna(fila.get('beneficio_unidades')) else f"{float(fila['beneficio_unidades']):+.2f} u")],
+        allow_register=False)
+
 
 
 # ==========================================================
@@ -811,6 +732,8 @@ if seccion_totales == "📈 Rendimiento":
             ["GANADA", "PERDIDA", "PUSH"]
         )
     ].copy()
+    liquidados = performance_filters(liquidados, 'gameday', 'nfl_total_perf', season_col='season',
+        probability_col='prob_pick', probability_scale=100, result_col='resultado_pick')
     partidos_rendimiento = opciones_partidos(liquidados)
     partido_rendimiento = st.selectbox(
         "Partido",
@@ -830,6 +753,7 @@ if seccion_totales == "📈 Rendimiento":
             unsafe_allow_html=True,
         )
     else:
+        st.download_button('Descargar rendimiento filtrado', liquidados.to_csv(index=False), 'nfl_totales_rendimiento.csv', 'text/csv', key='totals_perf_csv')
         ganadas = int(
             (liquidados["resultado_pick"] == "GANADA").sum()
         )

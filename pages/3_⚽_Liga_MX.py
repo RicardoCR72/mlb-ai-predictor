@@ -1,3 +1,5 @@
+from core.ui_picks import render_pick, liga_pick
+from core.ui_filtros import performance_filters
 from core.ui_actualizacion import render_update_button
 import json
 from pathlib import Path
@@ -236,14 +238,12 @@ if vista == "🔮 Próximos Partidos":
     else:
         st.metric("Próximos partidos", len(futuros))
         st.caption("Probabilidades del modelo validado. Registra la cuota tomada en Bankroll para calcular EV.")
-        for row in futuros.itertuples(index=False):
-            inicio = pd.Timestamp(row.inicio_utc).tz_convert('America/Mexico_City')
-            st.markdown(f"### {row.visitante} @ {row.local}")
-            st.caption(inicio.strftime('%d/%m/%Y · %H:%M CDMX'))
+        for _, row in futuros.iterrows():
             cols = st.columns(2)
-            cols[0].metric("Over 2.5", f"{row.p_over25:.1%}")
-            cols[1].metric("Under 2.5", f"{row.p_under25:.1%}")
-        st.page_link("pages/0_💼_Bankroll.py", label="Registrar una apuesta en Bankroll", icon="💼")
+            for col, side in zip(cols, ('OVER','UNDER')):
+                with col:
+                    render_pick(liga_pick(row, side), market='Total de goles', state='Modelo congelado',
+                        details=[('Cuota', 'Introduce la cuota tomada al registrar')])
 
 # ==========================================================
 # VISTA 1: RESULTADOS HISTÓRICOS
@@ -265,6 +265,10 @@ elif vista == "⚽ Resultados Históricos":
     if df_partidos.empty or df_probabilidades.empty:
         st.warning("No se encontraron partidos en `futbol_liga_mx/data/partidos.csv`.")
     else:
+        df_probabilidades = performance_filters(df_probabilidades, 'fecha', 'liga_hist', season_col='season')
+        df_partidos = df_probabilidades.copy()
+        if df_partidos.empty:
+            st.info('No hay partidos para los filtros seleccionados.'); st.stop()
         # Métricas generales arriba
         ultimos = df_partidos.sort_values(by="fecha", ascending=False)
         m1, m2, m3, m4 = st.columns(4)
@@ -280,10 +284,8 @@ elif vista == "⚽ Resultados Históricos":
             st.metric("Temporada Activa", str(df_partidos.season.max()))
 
         st.markdown("### Partidos Recientes y Proyecciones")
-        temporadas_disponibles = sorted(df_partidos['season'].unique().tolist(), reverse=True)
-        temporada_sel = st.selectbox("Filtrar por Temporada:", temporadas_disponibles, index=0)
-
-        df_filtrado = df_probabilidades[df_probabilidades['season'] == temporada_sel].sort_values(by="fecha", ascending=False).reset_index(drop=True)
+        df_filtrado = df_probabilidades.sort_values(by='fecha', ascending=False).reset_index(drop=True)
+        st.caption('Se muestran los 15 partidos más recientes de la muestra filtrada. Evaluación histórica, sin dinero apostado.')
 
         # Mostrar los partidos
         for idx, row in df_filtrado.head(15).iterrows():
@@ -293,31 +295,12 @@ elif vista == "⚽ Resultados Históricos":
             p_over_val = row['p_over25']
             p_over_pct = p_over_val * 100
 
-            badge_text = f"REAL: {row['goles_local']} - {row['goles_visitante']} ({'OVER' if es_over else 'UNDER'})"
-            resultado_color = "#b7ff3c" if es_over else "#63b4ff"
-            st.markdown(
-                f"""
-                <div class="match-card">
-                    <div class="match-header">
-                        <span>🗓️ {fecha_str} · {row['ronda']}</span>
-                        <span style="padding:0.25rem 0.6rem; border-radius:999px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.15); color:{resultado_color}; font-size:0.75rem; font-weight:800;">{badge_text}</span>
-                    </div>
-                    <div class="match-teams">
-                        <span>{row['local']}</span>
-                        <span style="color:#b7ff3c;">VS</span>
-                        <span>{row['visitante']}</span>
-                    </div>
-                    <div style="display:flex; justify-content:space-between; font-size:0.84rem; color:#8994a5;">
-                        <span>Prob. Over 2.5 (pre-partido): <b style="color:#eef3f8;">{p_over_pct:.1f}%</b></span>
-                        <span>Prob. Under 2.5: <b style="color:#eef3f8;">{100 - p_over_pct:.1f}%</b></span>
-                    </div>
-                    <div class="prob-bar">
-                        <div class="prob-fill" style="width: {p_over_pct:.1f}%; background:{resultado_color};"></div>
-                    </div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
+            pick = dict(fecha=row['fecha'], deporte='Liga MX', partido=f"{row['visitante']} @ {row['local']}",
+                seleccion='OVER 2.5', casa='Sin cuota histórica', cuota=None, probabilidad=float(row['p_over25']))
+            render_pick(pick, market='Total de goles · Evaluación histórica',
+                state=f"Real: {row['goles_visitante']} – {row['goles_local']} · {'OVER' if es_over else 'UNDER'}",
+                details=[('Probabilidad Under 2.5',f"{1-float(row['p_over25']):.1%}"),
+                         ('Jornada',str(row['ronda']))], allow_register=False)
 
 # ==========================================================
 # VISTA 2: MÉTRICAS DE VALIDACIÓN
@@ -409,4 +392,3 @@ else:
             use_container_width=True,
             hide_index=True
         )
-

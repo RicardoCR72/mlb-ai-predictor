@@ -93,4 +93,24 @@ def render_cards(frame,performance=False):
     for start in range(0,len(frame),2):
         columns=st.columns(2,gap='medium')
         for column,(_,row) in zip(columns,frame.iloc[start:start+2].iterrows()):
-            with column:st.markdown(render(row),unsafe_allow_html=True)
+            with column:
+                if performance:
+                    from core.ui_picks import render_pick
+                    pick = dict(fecha=row['fecha_oficial'], deporte='MLB',
+                        partido=f"{row['equipo_visitante']} @ {row['equipo_local']}",
+                        seleccion=f"{row['seleccion']} {float(row['linea']):g}", casa='DraftKings',
+                        cuota=float(row['cuota_seleccion']), probabilidad=float(row['confianza_pct'])/100)
+                    render_pick(pick, market='Total del partido · Simulación 1 u', state=str(row['resultado']),
+                        details=[('Unidades', f"{float(row['unidades']):+.2f} u" if pd.notna(row['unidades']) else 'Pendiente'),
+                                 ('EV original', f"{float(row['ev']):+.1%}")], allow_register=False)
+                else:
+                    from core.ui_picks import render_pick, mlb_total_pick
+                    side=str(row['seleccion']).lower()
+                    render_pick(mlb_total_pick(row), market='Total del partido', state=str(row['estado_valor']),
+                        details=[('Proyección', f"{float(row['total_proyectado']):.2f}"),
+                                 ('EV estimado', f"{float(row['ev_'+side]):+.1%}"),
+                                 ('P(Over) / P(Under)', f"{float(row['p_over']):.1%} / {float(row['p_under']):.1%}"),
+                                 ('Probabilidad Push', f"{float(row['p_push']):.1%}"),
+                                 ('Abridores', f"{row['abridor_visitante']} · {row['abridor_local']}"),
+                                 ('Contexto', 'Playoffs · experimental' if row['game_type']!='R' else 'Modelo en evaluación'),
+                                 ('Antigüedad de cuota', f"{max(float(row['age_minutes']),0):.0f} min")])

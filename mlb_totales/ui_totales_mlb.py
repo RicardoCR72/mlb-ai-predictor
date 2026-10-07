@@ -1,3 +1,4 @@
+from core.ui_filtros import performance_filters
 """Panel de totales separado de moneyline; probabilidades V2 y snapshots previos."""
 from datetime import datetime,timezone,timedelta
 from pathlib import Path
@@ -124,6 +125,8 @@ def render_performance(connect):
         frame=registro.settle(only_base(registro.history(connection)))
         if frame.empty:
             st.info('Aún no hay predicciones de DraftKings registradas. Actions o Totales V2 las guardan antes de los partidos.');return
+        frame['temporada'] = pd.to_datetime(frame['fecha_oficial']).dt.year
+        frame = performance_filters(frame, 'fecha_oficial', 'mlb_total_period', season_col='temporada', result_col='resultado')
         cols=st.columns(2)
         confidence=cols[0].slider('Probabilidad registrada mínima (%)',0,95,0,key='mlb_totales_perf_conf')
         candidates=cols[1].checkbox('Solo candidatos originales con EV positivo',value=True,key='mlb_totales_perf_ev')
