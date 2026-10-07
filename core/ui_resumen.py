@@ -76,6 +76,8 @@ def partial_count(items, field):
 
 
 def render_home():
+    from core.ui_movil import apply_mobile_layout
+    apply_mobile_layout()
     st.subheader('Tu resumen del día')
     data=snapshot()
     st.caption(f"{data['today']} · CDMX · Lectura del resumen: {timestamp(data['at'])}")
@@ -108,13 +110,32 @@ def render_home():
             'Registros por revisar':count(item['pending']),
             'Último dato':timestamp(item['last_data'],item['service']=='mlb',item['service'] in ('mlb_total','liga_mx')),
             'Estado':'Consulta parcial: revisar' if item['errors'] else age_status(item['last_data'])})
-    st.dataframe(pd.DataFrame(table),hide_index=True,use_container_width=True)
+    for start in range(0,len(table),2):
+        cols=st.columns(2)
+        for col,row in zip(cols,table[start:start+2]):
+            with col:
+                with st.container(border=True):
+                    st.write('**'+row['Servicio']+'**')
+                    st.write(f"Picks hoy: {row['Picks hoy']} · Por revisar: {row['Registros por revisar']}")
+                    st.caption('Último dato: '+row['Último dato'])
+                    st.caption(row['Estado'])
+    with st.expander('Ver tabla de disponibilidad'):
+        st.dataframe(pd.DataFrame(table),hide_index=True,use_container_width=True)
     st.markdown('**Próximos partidos · siete días incluido hoy**')
     games=[]
     for source,sport in [('mlb','MLB'),('nfl_totales','NFL'),('liga_mx','Liga MX')]:
         games.extend(dict(Deporte=sport,**g) for g in services[source]['games'])
     if games:
-        st.dataframe(pd.DataFrame(games).sort_values(['Fecha','Deporte','Partido']),hide_index=True,use_container_width=True)
+        calendar=pd.DataFrame(games).sort_values(['Fecha','Deporte','Partido'])
+        limit=st.selectbox('Partidos a mostrar',[5,10,20,'Todos'],index=1,key='home_calendar_limit')
+        visible=calendar if limit=='Todos' else calendar.head(int(limit))
+        for row in visible.to_dict('records'):
+            with st.container(border=True):
+                st.write('**'+row['Deporte']+' · '+row['Partido']+'**')
+                st.caption(row['Fecha']+' · '+row['Horario'])
+        st.caption(f'{len(visible)} de {len(calendar)} partidos. El límite no modifica los totales del resumen.')
+        with st.expander('Ver calendario completo en tabla'):
+            st.dataframe(calendar,hide_index=True,use_container_width=True)
     else: st.info('No hay próximos partidos disponibles en los calendarios consultados.')
     if any(item['errors'] for item in sports):
         st.warning('El resumen está incompleto. Las fuentes disponibles siguen visibles; revisa el estado en la pestaña correspondiente.')
