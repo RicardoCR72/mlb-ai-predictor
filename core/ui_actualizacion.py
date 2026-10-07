@@ -30,3 +30,5 @@ def render_update_button(service):
             for item in result['steps']:
                 (st.success if item['ok'] else st.warning)(item['paso']+': '+item['detalle'])
     if service=='liga_mx':st.caption('La primera actualización puede tardar unos minutos mientras ESPN verifica el historial de la temporada.')
+    from core.ui_resumen import render_service_status
+    render_service_status(service)

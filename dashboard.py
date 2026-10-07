@@ -1,3 +1,4 @@
+from core.ui_resumen import render_home
 import streamlit as st
 
 
@@ -79,7 +80,7 @@ st.markdown(
         display: grid;
         grid-template-columns: minmax(0, 1.4fr) minmax(270px, .6fr);
         gap: 2rem;
-        padding: 2.5rem;
+        padding: 1.4rem;
         border: 1px solid #253044;
         border-radius: 24px;
         background: linear-gradient(135deg, #121925 0%, #0d131d 68%, #111b14 100%);
@@ -105,7 +106,7 @@ st.markdown(
     }
     .hub-hero h1 {
         color: #f7fafc;
-        font-size: clamp(2.25rem, 5vw, 4.8rem);
+        font-size: clamp(1.8rem, 3vw, 2.7rem);
         line-height: .98;
         letter-spacing: -.055em;
         margin: 0 0 1rem;
@@ -277,15 +278,15 @@ st.markdown(
             <span class="hub-logo">O</span>
             <span>ORÁCULO <span class="hub-brand-accent">SPORTS AI</span></span>
         </div>
-        <div class="hub-status"><span class="hub-status-dot"></span>SISTEMA OPERATIVO</div>
+        <div class="hub-status"><span class="hub-status-dot"></span>RESUMEN DE DATOS</div>
     </div>
     <section class="hub-hero">
         <div>
-            <div class="hub-eyebrow">INTELIGENCIA DEPORTIVA · VALOR MEDIBLE</div>
-            <h1>Modelos cuantitativos.<br><span>Decisiones con contexto.</span></h1>
+            <div class="hub-eyebrow">INICIO · DATOS Y RESULTADOS</div>
+            <h1>Tu centro deportivo.<br><span>El resumen de hoy.</span></h1>
             <div class="hub-subtitle">
-                Un centro de análisis para detectar oportunidades, contrastar mercado,
-                incorporar lesiones y medir cada resultado con transparencia.
+                Consulta los partidos disponibles, revisa resultados pendientes
+                y abre tu banca desde un solo lugar.
             </div>
         </div>
         <div class="hub-signal">
@@ -295,15 +296,11 @@ st.markdown(
             <div class="hub-signal-value"><span>LIGA MX</span> · Totales 2.5</div>
         </div>
     </section>
-    <div class="hub-grid">
-        <div class="hub-kpi"><div class="hub-kpi-label">Deportes</div><div class="hub-kpi-value">MLB + NFL + LIGA MX</div><div class="hub-kpi-note">3 deportes en producción</div></div>
-        <div class="hub-kpi"><div class="hub-kpi-label">Mercados NFL</div><div class="hub-kpi-value">Totales + 6 props</div><div class="hub-kpi-note">Seguimiento por selección</div></div>
-        <div class="hub-kpi"><div class="hub-kpi-label">Persistencia</div><div class="hub-kpi-value">MySQL · Aiven</div><div class="hub-kpi-note">Histórico centralizado</div></div>
-        <div class="hub-kpi"><div class="hub-kpi-label">Operación</div><div class="hub-kpi-value">Automatizada</div><div class="hub-kpi-note">GitHub Actions activo</div></div>
-    </div>
     """,
     unsafe_allow_html=True,
 )
+
+render_home()
 
 st.markdown('<div class="hub-section-title">Selecciona tu centro de análisis</div>', unsafe_allow_html=True)
 st.markdown('<div class="hub-section-note">Cada módulo mantiene su propio modelo, controles y seguimiento de rendimiento.</div>', unsafe_allow_html=True)
@@ -316,7 +313,7 @@ with mlb_col:
         <div class="sport-card">
             <div class="sport-head">
                 <div><div class="sport-code">BASEBALL ENGINE</div><div class="sport-title">⚾ MLB</div></div>
-                <span class="sport-badge">PRODUCCIÓN</span>
+                <span class="sport-badge">ANÁLISIS</span>
             </div>
             <div class="sport-copy">Proyección de totales con probabilidades Over/Under, contexto del partido y auditoría histórica.</div>
             <div class="sport-list">
@@ -341,7 +338,7 @@ with nfl_col:
         <div class="sport-card">
             <div class="sport-head">
                 <div><div class="sport-code">FOOTBALL ENGINE</div><div class="sport-title">🏈 NFL</div></div>
-                <span class="sport-badge">PRODUCCIÓN</span>
+                <span class="sport-badge">ANÁLISIS</span>
             </div>
             <div class="sport-copy">Totales y seis mercados de jugadores con lesiones, valor esperado y liquidación automática.</div>
             <div class="sport-list">
@@ -366,7 +363,7 @@ with ligamx_col:
         <div class="sport-card">
             <div class="sport-head">
                 <div><div class="sport-code">SOCCER ENGINE</div><div class="sport-title">⚽ LIGA MX</div></div>
-                <span class="sport-badge">PRODUCCIÓN</span>
+                <span class="sport-badge">ANÁLISIS</span>
             </div>
             <div class="sport-copy">Modelos Poisson y regresión logística calibrada para el mercado de Over/Under 2.5 goles.</div>
             <div class="sport-list">
@@ -392,7 +389,7 @@ st.markdown(
         <div class="hub-step"><div class="hub-step-number">01</div><div class="hub-step-title">Datos</div><div class="hub-step-note">Calendario, estadísticas, líneas y lesiones.</div></div>
         <div class="hub-step"><div class="hub-step-number">02</div><div class="hub-step-title">Modelos</div><div class="hub-step-note">Proyección y probabilidad calibrada.</div></div>
         <div class="hub-step"><div class="hub-step-number">03</div><div class="hub-step-title">Valor</div><div class="hub-step-note">Edge, EV y filtros de publicación.</div></div>
-        <div class="hub-step"><div class="hub-step-number">04</div><div class="hub-step-title">Seguimiento</div><div class="hub-step-note">Resultados, unidades y ROI real.</div></div>
+        <div class="hub-step"><div class="hub-step-number">04</div><div class="hub-step-title">Seguimiento</div><div class="hub-step-note">Resultados, simulaciones y apuestas realizadas.</div></div>
     </div>
     <div class="hub-footer">
         <span>ORÁCULO SPORTS AI · Centro de operaciones predictivas</span>
@@ -404,7 +401,7 @@ st.markdown(
 
 with st.sidebar:
     st.markdown("### Oráculo Sports AI")
-    st.caption("Selecciona MLB o NFL desde el menú superior de esta barra.")
+    st.caption("Selecciona MLB, NFL, Liga MX o Bankroll desde el menú de esta barra.")
     st.markdown("---")
     st.caption("Modelos, mercado, lesiones y rendimiento en un solo sistema.")
 
