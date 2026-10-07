@@ -154,3 +154,18 @@ def liga_pick(row, side):
         seleccion=side+' 2.5', casa='DraftKings', cuota=None, probabilidad=number(row['p_'+side.lower()+'25']),
         origen='liga_mx', referencia=dict(fecha=date,local=row['local'],visitante=row['visitante'],
             side=side,line=2.5,inicio_utc=kickoff(row['inicio_utc'])))
+
+
+def render_liga_matches(frame):
+    """Una tarjeta por encuentro, conservando ambas opciones de registro."""
+    for offset in range(0, len(frame), 2):
+        columns = st.columns(2)
+        for column, (_, row) in zip(columns, frame.iloc[offset:offset+2].iterrows()):
+            with column:
+                over = liga_pick(row, 'OVER')
+                side = st.selectbox('Selección para registrar', ('OVER', 'UNDER'),
+                    index=0 if row['p_over25'] >= row['p_under25'] else 1,
+                    format_func=lambda value: value+' 2.5', key='liga_side_'+pick_key(over))
+                render_pick(liga_pick(row, side), market='Total de goles', state='Modelo congelado',
+                    details=[('Probabilidad Over 2.5', percent(row['p_over25'])),
+                             ('Probabilidad Under 2.5', percent(row['p_under25']))])

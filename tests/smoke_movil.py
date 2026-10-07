@@ -23,6 +23,8 @@ from tests.test_analitica_bankroll import AnalyticsTests
 from core.ui_bankroll import render_analytics,render_history
 from core.ui_movil import apply_mobile_layout
 from core.ui_filtros import performance_filters
+from core.ui_picks import render_liga_matches
+import pandas as pd
 st.set_page_config(layout='wide')
 apply_mobile_layout()
 ledger=AnalyticsTests().ledger()
@@ -30,6 +32,13 @@ ledger['partido']='New England Patriots @ Jacksonville Jaguars'
 render_analytics(ledger,1000)
 ledger=performance_filters(ledger,'fecha','smoke',probability_col='probabilidad',probability_scale=100,result_col='estado')
 render_history(ledger)
+st.button('Actualizar resultados Liga MX')
+st.download_button('Descargar muestra','prueba','prueba.txt')
+with st.form('style_check'):
+    st.form_submit_button('Guardar muestra')
+st.page_link('https://github.com/RicardoCR72/mlb-ai-predictor',label='Ver proyecto')
+render_liga_matches(pd.DataFrame([dict(fecha='2099-10-10',inicio_utc='2099-10-11T01:00:00Z',
+ visitante=f'Visitante {i}',local=f'Local {i}',p_over25=.58,p_under25=.42) for i in range(9)]))
 ''')
         with socket.socket() as sock:
             sock.bind(('127.0.0.1',0));port=sock.getsockname()[1]
@@ -50,6 +59,13 @@ render_history(ledger)
                     page.goto(url)
                     page.locator('.oracle-pick').first.wait_for(timeout=30000)
                     assert page.locator('[data-testid="stException"]').count()==0
+                    liga=page.locator('.oracle-pick').filter(has_text='Liga MX')
+                    liga.nth(8).wait_for(timeout=30000)
+                    assert liga.count()==9,liga.count()
+                    controls=page.locator('[data-testid="stButton"] button,[data-testid="stDownloadButton"] button,[data-testid="stFormSubmitButton"] button,[data-testid="stPageLink"] a')
+                    styles=controls.evaluate_all('(nodes)=>nodes.map(n=>{const s=getComputedStyle(n);return {border:s.borderTopColor,width:s.borderTopWidth,radius:s.borderTopLeftRadius,color:s.color}})')
+                    assert len(styles)>=13,styles
+                    assert all(s['border']=='rgb(183, 255, 60)' and s['width']=='1px' and s['radius']=='9px' and s['color']=='rgb(183, 255, 60)' for s in styles),styles
                     page.wait_for_function('document.body.scrollWidth <= innerWidth+2')
                     mobile=page.locator('.oracle-pick').evaluate_all('(cards)=>cards.map(c=>{const r=c.getBoundingClientRect();return {x:r.x,y:r.y,w:r.width,right:r.right}})')
                     assert all(c['x']>=0 and c['right']<=392 and c['w']>300 for c in mobile),mobile
@@ -64,7 +80,7 @@ render_history(ledger)
                     assert page.locator('[data-testid="stDataFrame"]:visible').count()>=1
                     assert page.locator('[data-testid="stException"]').count()==0
                     browser.close()
-                print('Responsive OK: tarjetas en una columna a 390 px, dos a 1280 px, tabla opcional sin desbordamiento de página.')
+                print('Responsive OK: una columna a 390 px, dos a 1280 px, tabla sin desbordamiento, nueve tarjetas Liga MX y botones/enlaces con contorno MLB.')
             finally:
                 process.terminate()
                 try: process.wait(timeout=10)

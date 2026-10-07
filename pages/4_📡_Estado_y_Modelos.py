@@ -6,8 +6,10 @@ from core.db import get_db_connection
 from core import bankroll as bank
 from core.observabilidad import WORKFLOWS, workflow_status, data_status
 from core.rendimiento import grouped_performance, mlb_snapshot_performance
+from core.ui_movil import apply_mobile_layout
 
 st.set_page_config(page_title='Estado y modelos',page_icon='📡',layout='wide')
+apply_mobile_layout()
 st.title('Estado de integraciones y rendimiento')
 ROOT = Path(__file__).resolve().parents[1]
 

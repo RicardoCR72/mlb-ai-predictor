@@ -9,6 +9,34 @@ from core import bankroll
 
 
 class PickTests(TestCase):
+    def test_liga_nine_games_have_nine_cards_and_keep_selected_side_for_registration(self):
+        with patch('core.ui_picks.get_db_connection') as connect:
+            at=AppTest.from_string('''
+import pandas as pd
+from core.ui_picks import render_liga_matches
+render_liga_matches(pd.DataFrame([dict(fecha='2099-10-10',inicio_utc='2099-10-11T01:00:00Z',
+ visitante=f'Visitante {i}',local=f'Local {i}',p_over25=.58,p_under25=.42) for i in range(9)]))
+''').run()
+            self.assertFalse(at.exception)
+            cards=lambda: [m.value for m in at.markdown if '<div class="oracle-pick ' in m.value]
+            self.assertEqual(len(cards()),9)
+            self.assertEqual(len(at.button),9)
+            self.assertTrue(all('58.0%' in card and '42.0%' in card for card in cards()))
+            at.selectbox[0].select('UNDER').run()
+            self.assertEqual(len(cards()),9)
+            at.button[0].click().run()
+            draft=at.session_state['pick_draft']
+            self.assertEqual(draft['seleccion'],'UNDER 2.5')
+            self.assertEqual(draft['referencia']['side'],'UNDER')
+            self.assertEqual(draft['referencia']['local'],'Local 0')
+            self.assertEqual(draft['probabilidad'],.42)
+            at.button[2].click().run()
+            at.selectbox[0].select('OVER').run()
+            at.button[0].click().run()
+            self.assertEqual(at.session_state['pick_draft']['probabilidad'],.58)
+            self.assertFalse(at.exception)
+            connect.assert_not_called()
+
     def nfl_row(self):
         return dict(id_juego='2026_05_A_B', id_jugador='p1', tipo_prop='receiving_yards',
             gameday='2026-10-10', away_team='A', home_team='B', pick='OVER', seleccion='UNDER',
