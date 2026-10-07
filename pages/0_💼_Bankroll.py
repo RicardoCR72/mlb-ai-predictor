@@ -1,3 +1,4 @@
+from core.ui_filtros import performance_filters
 from core.ui_actualizacion import render_update_button
 import json
 from pathlib import Path
@@ -152,14 +153,27 @@ def render_app(conn, ledger, initial):
                     bank.capital(conn, value)
                     st.rerun()
             st.caption("El ROI incluye apuestas ganadas, perdidas y push. Pendientes y anuladas se muestran aparte.")
+            st.markdown('### Rendimiento e historial filtrados')
+            filtered = ledger.copy()
+            filtered['Temporada'] = pd.to_datetime(filtered['fecha']).dt.year
+            filtered['Mercado'] = filtered['origen'].map({'mlb_ml':'MLB · Moneyline', 'mlb_total':'MLB · Totales',
+                'nfl_total':'NFL · Totales', 'nfl_prop':'NFL · Props', 'liga_mx':'Liga MX · Totales', 'manual':'Manual'}).fillna('Otro')
+            filtered = performance_filters(filtered, 'fecha', 'bankroll_perf', season_col='Temporada',
+                probability_col='probabilidad', probability_scale=100, market_col='Mercado', result_col='estado')
+            m = bank.metrics(filtered)
+            cols = st.columns(3)
+            cols[0].metric('Beneficio de la muestra', f"${m['beneficio']:+,.2f}")
+            cols[1].metric('ROI de la muestra', f"{m['roi']:+.2f}%")
+            cols[2].metric('Apuestas de la muestra', m['apuestas'])
+            st.caption('Saldo y disponible de arriba corresponden a toda la banca. Estos filtros afectan el rendimiento y las descargas del historial.')
             groups = []
-            for sport, frame in ledger.groupby('deporte'):
+            for sport, frame in filtered.groupby('deporte'):
                 m = bank.metrics(frame)
                 groups.append(dict(Deporte=sport, Apuestas=len(frame), Apostado=m['apostado'],
                                    Beneficio=m['beneficio'], ROI=m['roi'], Pendiente=m['pendientes']))
             st.dataframe(pd.DataFrame(groups), hide_index=True, use_container_width=True)
-            st.dataframe(ledger.drop(columns=['referencia']), hide_index=True, use_container_width=True)
-            st.download_button("Descargar historial", ledger.to_csv(index=False), "bankroll.csv", "text/csv")
+            st.dataframe(filtered.drop(columns=['referencia','Temporada']), hide_index=True, use_container_width=True)
+            st.download_button("Descargar historial", filtered.drop(columns=['Temporada']).to_csv(index=False), "bankroll.csv", "text/csv")
             st.download_button("Exportar banca completa", bank.export_bundle(conn), "bankroll_completo.zip", "application/zip")
             with st.expander("Historial de correcciones"):
                 st.dataframe(bank.load_audit(conn), hide_index=True, use_container_width=True)

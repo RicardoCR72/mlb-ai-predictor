@@ -1,3 +1,5 @@
+from core.ui_picks import render_pick
+from core.ui_filtros import performance_filters
 from core.ui_actualizacion import render_update_button
 import os
 import html
@@ -350,57 +352,21 @@ def html_seguro(valor):
 
 
 def mostrar_pick_mlb(fila):
-    confianza = float(fila["Confianza (%)"])
-    cuota = float(fila["Paga del Favorito"])
-    st.markdown(
-        f"""
-        <div class="mlb-pick-card">
-            <div class="mlb-card-kicker">PRONÓSTICO MLB</div>
-            <div class="mlb-card-title">{html_seguro(fila['Partido'])}</div>
-            <div class="mlb-card-meta">Abridores: {html_seguro(fila['Abridores'])}</div>
-            <div class="mlb-pick-line">
-                <span class="mlb-pick-name">{html_seguro(fila['Pick de la IA'])}</span>
-                <span class="mlb-odds">{cuota:.2f}</span>
-            </div>
-            <div class="mlb-card-values">
-                <div><span class="mlb-value-label">CONFIANZA</span><span class="mlb-value">{confianza:.1f}%</span></div>
-            </div>
-            <div class="mlb-confidence"><span style="width:{min(max(confianza, 0), 100):.1f}%"></span></div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    pick = dict(fecha=fila['Fecha'], deporte='MLB', partido=fila['Partido'],
+        seleccion=fila['Pick de la IA'], casa='DraftKings', cuota=float(fila['Paga del Favorito']),
+        probabilidad=float(fila['Confianza (%)'])/100, origen='mlb_ml',
+        referencia=dict(game_id=str(fila['id_juego']), side=fila['Pick de la IA'], line=None))
+    render_pick(pick, market='Moneyline', state='Pronóstico', details=[('Abridores',fila['Abridores'])])
+
 
 
 def mostrar_registro_auditoria(fila):
-    resultado = str(fila["Resultado"])
-    ganada = "Ganada" in resultado
-    clase = "won" if ganada else "lost"
-    etiqueta = "GANADA" if ganada else "PERDIDA"
-    profit = float(fila["Profit ($)"])
-    clase_profit = (
-        "mlb-profit-positive" if profit >= 0 else "mlb-profit-negative"
-    )
-    fecha = pd.to_datetime(fila["Fecha"]).strftime("%d/%m/%Y")
-    st.markdown(
-        f"""
-        <div class="mlb-audit-card {clase}">
-            <div class="mlb-audit-head">
-                <span class="mlb-audit-date">{fecha}</span>
-                <span class="mlb-result-badge {clase}">{etiqueta}</span>
-            </div>
-            <div class="mlb-audit-match">{html_seguro(fila['Partido'])}</div>
-            <div class="mlb-audit-pick">Pick: {html_seguro(fila['Pick de la IA'])}</div>
-            <div class="mlb-audit-values">
-                <div><span class="mlb-value-label">CONFIANZA</span><span class="mlb-value">{float(fila['Confianza (%)']):.1f}%</span></div>
-                <div><span class="mlb-value-label">STAKE</span><span class="mlb-value">${float(fila['Stake ($)']):,.0f}</span></div>
-                <div><span class="mlb-value-label">CUOTA</span><span class="mlb-value">{float(fila['Cuota']):.2f}</span></div>
-                <div><span class="mlb-value-label">PROFIT</span><span class="mlb-value {clase_profit}">${profit:+,.0f}</span></div>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    pick = dict(fecha=fila['Fecha'], deporte='MLB', partido=fila['Partido'], seleccion=fila['Pick de la IA'],
+        casa='DraftKings', cuota=float(fila['Cuota']), probabilidad=float(fila['Confianza (%)'])/100)
+    render_pick(pick, market='Moneyline · Simulación', state=str(fila['Resultado']),
+        details=[('Stake simulado', f"${float(fila['Stake ($)']):,.0f}"),
+                 ('Profit simulado', f"${float(fila['Profit ($)']):+,.0f}")], allow_register=False)
+
 
 # ==========================================================
 # 1. CARGAR LA INTELIGENCIA ARTIFICIAL V4.0
@@ -442,7 +408,7 @@ def normalizar_equipo(nombre):
 def cargar_datos_hoy():
     conexion = conectar_bd()
     consulta = """
-        SELECT j.equipo_local AS 'Equipo Local', j.equipo_visitante AS 'Equipo Visitante',
+        SELECT j.id_juego, j.fecha AS 'Fecha', j.equipo_local AS 'Equipo Local', j.equipo_visitante AS 'Equipo Visitante',
                MAX(c.cuota_local) AS 'Paga Local', MAX(c.cuota_visitante) AS 'Paga Visitante'
         FROM juegos j
         JOIN cuotas_moneyline c ON j.id_juego = c.id_juego
@@ -452,7 +418,7 @@ def cargar_datos_hoy():
     df = pd.read_sql(consulta, conexion, params=(hoy_mx(),))
     conexion.close()
     if not df.empty:
-        df = df.drop_duplicates(subset=['Equipo Local', 'Equipo Visitante'], keep='last').reset_index(drop=True)
+        df = df.drop_duplicates(subset=['id_juego'], keep='last').reset_index(drop=True)
     return df
 
 
@@ -752,7 +718,7 @@ if vista_mlb in ("⚾ Totales V2", "📊 Rendimiento Totales"):
 
 modelo, scaler, columnas_v4 = cargar_oraculo()
 df = cargar_datos_hoy()
-if not df.empty: df = df.drop_duplicates(subset=['Equipo Local', 'Equipo Visitante']).reset_index(drop=True)
+if not df.empty: df = df.drop_duplicates(subset=['id_juego']).reset_index(drop=True)
 
 if not df.empty and modelo is not None:
     df_csv_estatico = pd.read_csv(RUTA_DATA_MLB / 'mlb_dataset_ia.csv')
@@ -830,6 +796,8 @@ if not df.empty and modelo is not None:
             guardar_pick_ia(hoy_mx(), local_api, visita_api, favorito, confianza_final, paga)
 
             resultados.append({
+                "id_juego": df.loc[i, "id_juego"],
+                "Fecha": df.loc[i, "Fecha"],
                 "Partido": f"{local_api} vs {visita_api}",
                 "Abridores": f"{p_local} vs {p_visita}",
                 "Pick de la IA": favorito,
@@ -1029,6 +997,10 @@ if not df.empty and modelo is not None:
                 })
 
             df_todas = pd.DataFrame(registros_completos)
+            df_todas['Temporada'] = pd.to_datetime(df_todas['Fecha']).dt.year
+            df_todas = performance_filters(df_todas, 'Fecha', 'mlb_ml_perf', season_col='Temporada', result_col='Resultado')
+            if df_todas.empty:
+                st.info('No hay registros para los filtros seleccionados.'); st.stop()
 
             # 2. 🔥 LA MAGIA: EL ESCÁNER DE ROI ÓPTIMO
             if st.button("🔍 Encontrar mejor umbral de ROI"):
@@ -1066,7 +1038,7 @@ if not df.empty and modelo is not None:
             roi = (ganancia_neta / inversion_total) * 100 if inversion_total > 0 else 0
 
             col1, col2, col3, col4 = st.columns(4)
-            col1.metric("Apuestas Realizadas", f"{apuestas_realizadas} de {len(df_pasado)}")
+            col1.metric("Apuestas Realizadas", f"{apuestas_realizadas} de {len(df_todas)}")
             col2.metric("Inversión Simulada", f"${inversion_total:,.2f}")
             col3.metric("Profit Neto", f"${ganancia_neta:,.2f}")
             col4.metric("ROI", f"{roi:.2f}%")
@@ -1094,58 +1066,12 @@ if not df.empty and modelo is not None:
                     "Fecha", ascending=False
                 ).reset_index(drop=True)
 
-                fechas_disponibles = sorted(
-                    auditoria_base["Fecha"].dt.date.unique(),
-                    reverse=True,
-                )
-                controles_auditoria = st.columns(
-                    [1.25, 1.25, 1, 1.65], gap="medium"
-                )
+                controles_auditoria = st.columns([1,1,1,2])
                 with controles_auditoria[0]:
-                    fecha_auditoria = st.selectbox(
-                        "Fecha",
-                        ["Todas las fechas"] + fechas_disponibles,
-                        format_func=lambda valor: (
-                            valor
-                            if isinstance(valor, str)
-                            else valor.strftime("%d/%m/%Y")
-                        ),
-                        key="fecha_auditoria_mlb",
-                    )
-                with controles_auditoria[1]:
-                    confianza_auditoria = st.selectbox(
-                        "Confianza mínima",
-                        ["Umbral del ROI"] + list(range(50, 100)),
-                        format_func=lambda valor: (
-                            valor
-                            if isinstance(valor, str)
-                            else f"{valor}%"
-                        ),
-                        key="confianza_auditoria_mlb",
-                    )
-                with controles_auditoria[2]:
-                    limite_auditoria = st.selectbox(
-                        "Registros a mostrar",
-                        [10, 20, 50, "Todos"],
-                        index=1,
-                        key="limite_auditoria_mlb",
-                    )
-                auditoria_filtrada = auditoria_base.copy()
-                if fecha_auditoria != "Todas las fechas":
-                    auditoria_filtrada = auditoria_filtrada[
-                        auditoria_filtrada["Fecha"].dt.date
-                        == fecha_auditoria
-                    ]
-
-                umbral_auditoria = (
-                    float(filtro_confianza)
-                    if confianza_auditoria == "Umbral del ROI"
-                    else float(confianza_auditoria)
-                )
-                auditoria_filtrada = auditoria_filtrada[
-                    auditoria_filtrada["Confianza (%)"]
-                    >= umbral_auditoria
-                ].reset_index(drop=True)
+                    limite_auditoria = st.selectbox('Registros a mostrar', [10,20,50,'Todos'], index=1, key='limite_auditoria_mlb')
+                auditoria_filtrada = df_filtrado.sort_values('Fecha', ascending=False).reset_index(drop=True)
+                umbral_auditoria = float(filtro_confianza)
+                st.caption('Las tarjetas y la descarga usan la misma muestra que el ROI. El límite solo cambia las tarjetas visibles.')
 
                 with controles_auditoria[3]:
                     csv_auditoria = auditoria_filtrada.assign(

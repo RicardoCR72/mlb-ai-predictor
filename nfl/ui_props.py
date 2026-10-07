@@ -1,3 +1,5 @@
+from core.ui_picks import render_pick, nfl_pick
+from core.ui_filtros import performance_filters
 import hmac
 import html
 from datetime import datetime
@@ -834,118 +836,21 @@ def mostrar_prop(fila):
 
 
 def mostrar_prop_compacto(fila):
-    """Tarjeta compacta estilo sportsbook para la vista principal."""
-    es_anota = fila["tipo_prop"] == "anytime_td"
-    es_revision = fila["estado_pick"] == "REVISAR LESION"
-    estado = "REVISAR" if es_revision else "CANDIDATO"
-    clase_revision = " review" if es_revision else ""
+    pick = nfl_pick(fila, prop=True)
+    render_pick(pick, market=str(fila['mercado']), state=str(fila['estado_pick']),
+        details=[('Proyección', formatear_porcentaje(fila['proyeccion']) if fila['tipo_prop']=='anytime_td' else formatear_numero(fila['proyeccion'], 2)),
+                 ('Edge', formatear_numero(fila['edge'], 2)), ('EV estimado', formatear_porcentaje(fila['ev_estimado'])),
+                 ('Lesión', texto_seguro(fila.get('estado_lesion'), 'Sin alerta'))],
+        allow_register=fila['seleccion'] in ('OVER','UNDER','ANOTA'))
 
-    if es_anota:
-        seleccion = "ANOTA TOUCHDOWN"
-        proyeccion = formatear_porcentaje(fila["proyeccion"])
-        edge = formatear_porcentaje(fila["edge"])
-    else:
-        linea = formatear_numero(fila["linea"], 1)
-        seleccion = f"{texto_seguro(fila['seleccion'], 'SIN LÍNEA')} {linea}"
-        decimales = 1 if "yards" in fila["tipo_prop"] else 2
-        proyeccion = formatear_numero(fila["proyeccion"], decimales)
-        edge = formatear_numero(fila["edge"], 2)
-
-    probabilidad = fila["probabilidad_pick"]
-    probabilidad_texto = formatear_porcentaje(probabilidad)
-    confianza = 0.0 if pd.isna(probabilidad) else float(probabilidad) * 100
-    confianza = min(max(confianza, 0.0), 100.0)
-    ev = formatear_porcentaje(fila["ev_estimado"])
-    momio = formatear_momio(fila["cuota_pick"])
-    casa = texto_seguro(fila.get("casa_apuestas"))
-    contexto = (
-        f"{texto_seguro(fila['position'])} · {texto_seguro(fila['team'])} · "
-        f"{texto_seguro(fila['away_team'])} @ {texto_seguro(fila['home_team'])}"
-    )
-
-    estado_lesion = texto_seguro(
-        fila.get("estado_lesion"), "healthy_or_unlisted"
-    )
-    lesion_html = ""
-    if estado_lesion not in {"healthy_or_unlisted", "healthy", "N/D"}:
-        lesion_html = (
-            '<div class="sports-context" style="color:#f6c761;margin-top:.55rem">'
-            f'🏥 Confirmar disponibilidad: {html_seguro(estado_lesion)}</div>'
-        )
-
-    st.markdown(
-        f"""
-        <div class="sports-pick{clase_revision}">
-            <div class="sports-pick-head">
-                <div>
-                    <div class="sports-player">{html_seguro(fila['player_name'])}</div>
-                    <div class="sports-context">{html_seguro(contexto)}</div>
-                    <div class="sports-context">{html_seguro(fila['mercado'])} · {html_seguro(casa)}</div>
-                </div>
-                <span class="sports-badge{clase_revision}">{estado}</span>
-            </div>
-            <div class="sports-selection">
-                <span class="sports-pick-name">{html_seguro(seleccion)}</span>
-                <span class="sports-odds">{html_seguro(momio)}</span>
-            </div>
-            <div class="sports-values">
-                <div><span class="sports-value-label">PROYECCIÓN</span><span class="sports-value">{html_seguro(proyeccion)}</span></div>
-                <div><span class="sports-value-label">EDGE</span><span class="sports-value sports-positive">{html_seguro(edge)}</span></div>
-                <div><span class="sports-value-label">PROB. / EV</span><span class="sports-value">{html_seguro(probabilidad_texto)} / {html_seguro(ev)}</span></div>
-            </div>
-            <div class="sports-confidence"><span style="width:{confianza:.1f}%"></span></div>
-            {lesion_html}
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
 
 
 def mostrar_resultado_prop(fila):
-    resultado = texto_seguro(fila.get("resultado_pick"), "PENDIENTE")
-    clase = {
-        "GANADA": "",
-        "PERDIDA": " lost",
-        "PUSH": " push",
-    }.get(resultado, " push")
-    fecha = (
-        fila["gameday"].strftime("%d/%m/%Y")
-        if pd.notna(fila.get("gameday"))
-        else "Fecha pendiente"
-    )
-    seleccion = texto_seguro(fila.get("seleccion"))
-    if fila.get("tipo_prop") != "anytime_td":
-        seleccion += " " + formatear_numero(fila.get("linea"), 1)
-    unidades = fila.get("beneficio_unidades")
-    unidades_texto = (
-        "N/D" if pd.isna(unidades) else f"{float(unidades):+.2f} u"
-    )
-    confianza_texto = formatear_porcentaje(fila.get("probabilidad_pick"))
-    origen_pick = (
-        "Alerta de lesión"
-        if texto_seguro(fila.get("estado_pick")) == "REVISAR LESION"
-        else "Pick oficial"
-    )
-    st.markdown(
-        f"""
-        <div class="result-card{clase}">
-            <div class="result-head">
-                <div>
-                    <div class="result-title">{html_seguro(fila['player_name'])}</div>
-                    <div class="result-meta">{html_seguro(fila['mercado'])} · {html_seguro(fila['away_team'])} @ {html_seguro(fila['home_team'])} · {fecha} · {html_seguro(origen_pick)}</div>
-                </div>
-                <span class="result-badge{clase}">{html_seguro(resultado)}</span>
-            </div>
-            <div class="result-values">
-                <div><span class="result-label">SELECCIÓN</span><span class="result-value">{html_seguro(seleccion)}</span></div>
-                <div><span class="result-label">RESULTADO REAL</span><span class="result-value">{html_seguro(formatear_numero(fila.get('valor_real'), 1))}</span></div>
-                <div><span class="result-label">CONFIANZA</span><span class="result-value">{html_seguro(confianza_texto)}</span></div>
-                <div><span class="result-label">UNIDADES</span><span class="result-value">{html_seguro(unidades_texto)}</span></div>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    render_pick(nfl_pick(fila, prop=True), market=str(fila['mercado'])+' · Simulación 1 u', state=str(fila.get('resultado_pick','PENDIENTE')),
+        details=[('Resultado real',formatear_numero(fila.get('valor_real'),1)),
+                 ('Unidades', 'N/D' if pd.isna(fila.get('beneficio_unidades')) else f"{float(fila['beneficio_unidades']):+.2f} u"),
+                 ('Publicación',str(fila.get('estado_pick','')))], allow_register=False)
+
 
 
 def mostrar_lesion_compacta(fila):
@@ -1230,6 +1135,10 @@ if seccion_props == "📈 Rendimiento":
             ["GANADA", "PERDIDA", "PUSH"]
         )
     ].copy()
+    partidos_perf = opciones_partidos(resultados)
+    partido_perf = st.selectbox('Partido', list(partidos_perf), key='props_perf_partido')
+    if partidos_perf[partido_perf] is not None:
+        resultados = resultados[resultados['id_juego'] == partidos_perf[partido_perf]]
     resultados = (
         resultados.sort_values(
             ["evaluado_en", "actualizado_en", "id_proyeccion"],
@@ -1240,6 +1149,9 @@ if seccion_props == "📈 Rendimiento":
         )
         .reset_index(drop=True)
     )
+
+    resultados = performance_filters(resultados, 'gameday', 'nfl_prop_perf', season_col='season',
+        probability_col='probabilidad_pick', probability_scale=100, market_col='mercado', result_col='resultado_pick')
 
     if resultados.empty:
         st.markdown(
@@ -1436,83 +1348,10 @@ if seccion_props == "📈 Rendimiento":
 
         st.write("**Historial de picks evaluados**")
 
+        st.download_button('Descargar rendimiento filtrado', resultados.to_csv(index=False), 'nfl_props_rendimiento.csv', 'text/csv', key='props_perf_csv')
         historial_filtrado = resultados.copy()
-        semanas_disponibles = (
-            resultados[["season", "week"]]
-            .drop_duplicates()
-            .sort_values(["season", "week"], ascending=False)
-        )
-        mapa_semanas = {"Todas las semanas": None}
-        for _, fila_semana in semanas_disponibles.iterrows():
-            etiqueta = (
-                f"{int(fila_semana['season'])} · "
-                f"Semana {int(fila_semana['week'])}"
-            )
-            mapa_semanas[etiqueta] = (
-                int(fila_semana["season"]),
-                int(fila_semana["week"]),
-            )
-
-        mercados_disponibles = sorted(
-            resultados["mercado"].dropna().astype(str).unique()
-        )
-        resultados_disponibles = ["GANADA", "PERDIDA", "PUSH"]
-        partidos_historial = opciones_partidos(resultados)
-
-        filtro_semana, filtro_partido, filtro_mercado, filtro_resultado, filtro_cantidad = (
-            st.columns([1.15, 1.9, 1.15, 0.95, 0.75], gap="medium")
-        )
-        with filtro_semana:
-            semana_historial = st.selectbox(
-                "Semana",
-                list(mapa_semanas.keys()),
-                key="props_historial_semana",
-            )
-        with filtro_partido:
-            partido_historial = st.selectbox(
-                "Partido",
-                list(partidos_historial),
-                key="props_historial_partido",
-            )
-        with filtro_mercado:
-            mercado_historial = st.selectbox(
-                "Mercado",
-                ["Todos los mercados"] + mercados_disponibles,
-                key="props_historial_mercado",
-            )
-        with filtro_resultado:
-            resultado_historial = st.selectbox(
-                "Resultado",
-                ["Todos"] + resultados_disponibles,
-                key="props_historial_resultado",
-            )
-        with filtro_cantidad:
-            cantidad_historial = st.selectbox(
-                "Mostrar",
-                ["20", "50", "100", "Todos"],
-                index=1,
-                key="props_historial_cantidad",
-            )
-
-        llave_semana = mapa_semanas[semana_historial]
-        if llave_semana is not None:
-            temporada_filtro, semana_filtro = llave_semana
-            historial_filtrado = historial_filtrado[
-                (historial_filtrado["season"] == temporada_filtro)
-                & (historial_filtrado["week"] == semana_filtro)
-            ]
-        if partidos_historial[partido_historial] is not None:
-            historial_filtrado = historial_filtrado[
-                historial_filtrado["id_juego"] == partidos_historial[partido_historial]
-            ]
-        if mercado_historial != "Todos los mercados":
-            historial_filtrado = historial_filtrado[
-                historial_filtrado["mercado"] == mercado_historial
-            ]
-        if resultado_historial != "Todos":
-            historial_filtrado = historial_filtrado[
-                historial_filtrado["resultado_pick"] == resultado_historial
-            ]
+        cantidad_historial = st.selectbox('Mostrar', ['20','50','100','Todos'], index=1, key='props_historial_cantidad')
+        st.caption('El límite de tarjetas no modifica las métricas de la muestra.')
 
         total_filtrado = len(historial_filtrado)
         if cantidad_historial != "Todos":
