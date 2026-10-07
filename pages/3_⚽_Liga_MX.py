@@ -1,4 +1,4 @@
-from core.ui_picks import render_pick, liga_pick
+from core.ui_picks import render_pick, render_liga_matches
 from core.ui_filtros import performance_filters
 from core.ui_actualizacion import render_update_button
 import json
@@ -238,12 +238,8 @@ if vista == "🔮 Próximos Partidos":
     else:
         st.metric("Próximos partidos", len(futuros))
         st.caption("Probabilidades del modelo validado. Registra la cuota tomada en Bankroll para calcular EV.")
-        for _, row in futuros.iterrows():
-            cols = st.columns(2)
-            for col, side in zip(cols, ('OVER','UNDER')):
-                with col:
-                    render_pick(liga_pick(row, side), market='Total de goles', state='Modelo congelado',
-                        details=[('Cuota', 'Introduce la cuota tomada al registrar')])
+        st.caption('Una tarjeta por partido con ambas probabilidades. Elige Over o Under antes de registrar tu apuesta.')
+        render_liga_matches(futuros)
 
 # ==========================================================
 # VISTA 1: RESULTADOS HISTÓRICOS
