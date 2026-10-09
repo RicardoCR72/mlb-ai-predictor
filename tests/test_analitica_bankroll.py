@@ -97,3 +97,65 @@ render_history(ledger)
         app.multiselect(key='bank_history_columns').set_value([]).run()
         self.assertFalse(app.exception)
         self.assertTrue(any('Selecciona al menos' in i.value for i in app.info))
+
+
+class UnitsTests(TestCase):
+    def test_conversion_preserves_pesos_and_roi_at_different_unit_values(self):
+        frame=AnalyticsTests().ledger()
+        original=frame.copy(deep=True)
+        for unit in (100,250):
+            result=bank.with_units(frame,unit)
+            self.assertEqual(result['Monto (u)'].tolist(),(frame.monto/unit).tolist())
+            self.assertEqual(result['Beneficio (u)'].tolist(),(frame.ganancia_neta/unit).tolist())
+            self.assertEqual(bank.metrics(result,1000),bank.metrics(frame,1000))
+            self.assertTrue(result['Valor unidad (MXN)'].eq(unit).all())
+            pd.testing.assert_frame_equal(frame,original)
+        empty=bank.with_units(frame.iloc[:0],100)
+        self.assertTrue(empty.empty)
+        for invalid in (0,-100,float('nan'),float('inf'),.001):
+            with self.assertRaises(ValueError):bank.with_units(frame,invalid)
+
+    def test_cards_and_table_show_actual_mxn_and_configured_units(self):
+        at=AppTest.from_string('''
+from tests.test_analitica_bankroll import AnalyticsTests
+from core.ui_bankroll import render_history
+render_history(AnalyticsTests().ledger(),250)
+''').run()
+        self.assertFalse(at.exception)
+        cards=[m.value for m in at.markdown if '<div class="oracle-pick ' in m.value]
+        self.assertTrue(any('$100.00 MXN · 0.40 u' in card for card in cards))
+        self.assertTrue(any('$-300.00 MXN · -1.20 u' in card for card in cards))
+        self.assertTrue(any('Pendiente' in card for card in cards))
+        at.radio(key='bank_history_view').set_value('Tabla').run()
+        self.assertFalse(at.exception)
+        table=at.dataframe[-1].value
+        self.assertIn('Monto (u)',table)
+        self.assertEqual(table['Monto (MXN)'].tolist(),[100,300,100,200,900])
+        self.assertEqual(table['Monto (u)'].tolist(),[.4,1.2,.4,.8,3.6])
+
+    def test_model_equivalence_uses_shared_value_and_does_not_invent_offline_amounts(self):
+        from unittest.mock import patch
+        from core.ui_unidades import load_unit
+        load_unit.clear()
+        source='from core.ui_unidades import render_model_equivalence\nrender_model_equivalence(2,.91)'
+        with patch('core.ui_unidades.load_unit',return_value=250):
+            at=AppTest.from_string(source).run()
+        self.assertFalse(at.exception)
+        self.assertEqual(at.metric[0].value,'$500.00 MXN')
+        self.assertEqual(at.metric[1].value,'$+227.50 MXN')
+        with patch('core.ui_unidades.load_unit',return_value=None):
+            at=AppTest.from_string(source).run()
+        self.assertFalse(at.exception)
+        self.assertEqual(len(at.metric),0)
+        self.assertTrue(any('Bankroll → Portafolio' in c.value for c in at.caption))
+
+    def test_read_only_unit_lookup_closes_connection_on_failure(self):
+        from unittest.mock import Mock,patch
+        from core.ui_unidades import load_unit
+        load_unit.clear()
+        conn=Mock()
+        with patch('core.ui_unidades.get_db_connection',return_value=conn), \
+             patch.object(bank,'unit_value',side_effect=RuntimeError('private-detail')):
+            self.assertIsNone(load_unit())
+        conn.close.assert_called_once()
+        load_unit.clear()

@@ -34,6 +34,10 @@ def prepare(conn):
             id TINYINT NOT NULL PRIMARY KEY, capital_inicial DOUBLE NOT NULL
         ) ENGINE=InnoDB""")
         cursor.execute('INSERT IGNORE INTO bankroll_config VALUES (1, 10000)')
+        cursor.execute("""CREATE TABLE IF NOT EXISTS bankroll_unidad (
+            id TINYINT NOT NULL PRIMARY KEY, valor_mxn DOUBLE NOT NULL
+        ) ENGINE=InnoDB""")
+        cursor.execute('INSERT IGNORE INTO bankroll_unidad (id,valor_mxn) VALUES (1,100)')
         cursor.execute("""CREATE TABLE IF NOT EXISTS bankroll_recibos (
             huella CHAR(64) PRIMARY KEY, apuesta_id CHAR(36) NOT NULL UNIQUE,
             ticket VARCHAR(120) NULL
@@ -85,7 +89,8 @@ def export_bundle(conn):
         archive.writestr('apuestas.csv', load_ledger(conn).to_csv(index=False))
         archive.writestr('auditoria.csv', load_audit(conn).to_csv(index=False))
         archive.writestr('recibos.csv', rows(conn, 'SELECT * FROM bankroll_recibos').to_csv(index=False))
-        archive.writestr('config.json', json.dumps({'capital_inicial':capital(conn)}, ensure_ascii=False))
+        archive.writestr('config.json', json.dumps({'capital_inicial':capital(conn),
+                                                  'valor_unidad_mxn':unit_value(conn)}, ensure_ascii=False))
     return buffer.getvalue()
 
 
@@ -199,6 +204,47 @@ def update_state(conn, identifier, state, only_pending=False, reason='Actualizac
                         'automatico' if only_pending else 'manual', str(reason).strip()[:500])
         conn.commit()
         return changed
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        cursor.close()
+
+
+def validate_unit(value):
+    value = float(value)
+    if not math.isfinite(value) or value <= 0:
+        raise ValueError('El valor de la unidad debe ser positivo y finito.')
+    value = round(value, 2)
+    if value <= 0:
+        raise ValueError('El valor mínimo de la unidad es 0.01 MXN.')
+    return value
+
+
+def with_units(frame, value):
+    """Equivalencia al valor actual; conserva los importes originales en MXN."""
+    value = validate_unit(value)
+    result = frame.copy()
+    result['Monto (u)'] = pd.to_numeric(result['monto'], errors='coerce') / value
+    result['Beneficio (u)'] = pd.to_numeric(result['ganancia_neta'], errors='coerce') / value
+    result['Valor unidad (MXN)'] = value
+    return result
+
+
+def unit_value(conn, value=None):
+    if value is None:
+        return validate_unit(rows(conn, 'SELECT valor_mxn FROM bankroll_unidad WHERE id=1').iloc[0, 0])
+    value = validate_unit(value)
+    cursor = conn.cursor()
+    try:
+        cursor.execute('SELECT valor_mxn FROM bankroll_unidad WHERE id=1 FOR UPDATE')
+        previous = float(cursor.fetchone()[0])
+        cursor.execute('UPDATE bankroll_unidad SET valor_mxn=%s WHERE id=1', (value,))
+        if previous != value:
+            audit_event(cursor, None, 'unidad', {'valor_unidad_mxn':previous},
+                        {'valor_unidad_mxn':value}, reason='Cambio del valor de la unidad')
+        conn.commit()
+        return value
     except Exception:
         conn.rollback()
         raise

@@ -220,3 +220,12 @@ Incidente TNF del 8 de octubre de 2026: el cron de las 22:00 UTC arrancó a las 
 ### Rendimiento de totales NFL
 
 Los filtros de rendimiento se muestran abiertos y permiten combinar periodo, temporada, confianza, semana, mercado (OVER/UNDER), resultado (GANADA/PERDIDA/PUSH) y partido. Todos se aplican antes de balance, acierto, beneficio, ROI, comparación por mercado, resumen semanal, tarjetas y descarga del rendimiento. La comparación por mercado ordena OVER y UNDER por ROI de la muestra filtrada y usa una unidad por pick; no representa apuestas reales. Si se filtra solo Ganada o Perdida, las métricas describen solo ese subconjunto. La página Estado y Modelos y sus enlaces se retiraron; los indicadores de datos permanecen en el inicio y en cada deporte.
+
+
+### Rendimiento en unidades y banca real
+
+MLB Moneyline, MLB Totales V2 y NFL Totales/Props simulan **1 unidad por pick**. Moneyline ya no pondera el monto según la confianza: ganada aporta cuota decimal menos 1, perdida −1 u. Tarjetas, métricas, curva y CSV de Moneyline usan esa misma simulación; la curva muestra beneficio acumulado, no saldo de dinero real. Los filtros de confianza se conservan.
+
+En **Bankroll → Portafolio → Valor de 1 unidad (MXN)** se guarda una denominación común (valor inicial 100 MXN) en la tabla aditiva `bankroll_unidad`, con auditoría transaccional. No cambia capital, montos, cuotas ni beneficios de apuestas anteriores. Las equivalencias de toda la banca se calculan con el valor actual: monto/unidad y beneficio/unidad. Historial y CSV muestran pesos y unidades; la exportación completa conserva los pesos originales y el valor de la unidad en `config.json`.
+
+Las equivalencias monetarias de las simulaciones MLB/NFL usan ese mismo valor mediante una consulta de lectura. Si no está disponible, se mantienen las unidades y no se inventa una conversión en pesos. Cambiar la unidad no cambia el ROI. Liga MX mantiene su evaluación estadística sin fabricar rentabilidad donde faltan cuotas históricas; sus apuestas realizadas sí aparecen en pesos y unidades en Bankroll.

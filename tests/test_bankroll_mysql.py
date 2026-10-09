@@ -62,12 +62,27 @@ class TestRealMySQL(unittest.TestCase):
             ledger=bank.load_ledger(conn);stats=bank.metrics(ledger,1000)
             self.assertEqual(stats['saldo'],1091);self.assertEqual(stats['disponible'],1091)
             self.assertEqual(stats['roi'],91)
+            bank.unit_value(conn,250)
+            bank.prepare(conn)  # no restablece la unidad ni reescribe las apuestas
+            self.assertEqual(bank.unit_value(conn),250)
+            units=bank.with_units(bank.load_ledger(conn),bank.unit_value(conn))
+            self.assertEqual(units.iloc[0]['Monto (u)'],.4)
+            self.assertAlmostEqual(units.iloc[0]['Beneficio (u)'],.364)
+            self.assertEqual(units.iloc[0].monto,100)
+            self.assertEqual(units.iloc[0].ganancia_neta,91)
+            self.assertEqual(bank.metrics(units,1000),stats)
+            second=get_db_connection()
+            try:self.assertEqual(bank.unit_value(second),250)
+            finally:second.close()
             events=bank.load_audit(conn);events=events[events.apuesta_id.eq(receipt)]
             self.assertEqual(list(events.accion),['estado','registro'])
             self.assertEqual(events.iloc[0].motivo,'Resultado comprobado')
             import io,zipfile
             with zipfile.ZipFile(io.BytesIO(bank.export_bundle(conn))) as archive:
                 self.assertEqual(set(archive.namelist()),{'apuestas.csv','auditoria.csv','recibos.csv','config.json'})
+                import json
+                self.assertEqual(json.loads(archive.read('config.json'))['valor_unidad_mxn'],250)
+            self.assertEqual(len(bank.load_audit(conn).query("accion == 'unidad'")),1)
             # A distinct bookmaker ticket permits a second real identical wager.
             bank.save_bet(conn,{**bet,'ticket':'second-ticket'},str(uuid.uuid4()))
             self.assertEqual(len(bank.load_ledger(conn)),2)

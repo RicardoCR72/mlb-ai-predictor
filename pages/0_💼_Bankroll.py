@@ -115,6 +115,7 @@ st.markdown(
 )
 
 def render_app(conn, ledger, initial):
+    unit = bank.unit_value(conn) if conn is not None else 100.0
     stats = bank.metrics(ledger, initial)
     tab1, tab2, tab3 = st.tabs(["🧮 Calculadora Kelly & EV", "📈 Portafolio", "📝 Registrar / Gestionar"])
     with tab1:
@@ -136,16 +137,16 @@ def render_app(conn, ledger, initial):
             cols = st.columns(3)
             cols[0].metric("EV", f"{ev:+.2%}")
             cols[1].metric("Stake sugerido", f"{kelly:.2%}")
-            cols[2].metric("Monto sugerido", f"${bankroll*kelly:,.2f}")
+            cols[2].metric("Monto sugerido", f"${bankroll*kelly:,.2f} MXN", f"{bankroll*kelly/unit:.2f} u")
             st.caption("La banca disponible descuenta las apuestas pendientes. La calculadora no registra apuestas.")
     with tab2:
         if conn is None:
             st.info("Conecta MySQL para consultar y guardar tu portafolio.")
         else:
             cols = st.columns(4)
-            cols[0].metric("Saldo", f"${stats['saldo']:,.2f}")
-            cols[1].metric("Disponible", f"${stats['disponible']:,.2f}")
-            cols[2].metric("Beneficio neto", f"${stats['beneficio']:+,.2f}")
+            cols[0].metric("Saldo", f"${stats['saldo']:,.2f} MXN", f"{stats['saldo']/unit:.2f} u")
+            cols[1].metric("Disponible", f"${stats['disponible']:,.2f} MXN", f"{stats['disponible']/unit:.2f} u")
+            cols[2].metric("Beneficio neto", f"${stats['beneficio']:+,.2f} MXN", f"{stats['beneficio']/unit:+.2f} u")
             cols[3].metric("ROI liquidado", f"{stats['roi']:+.2f}%")
             st.caption(f"Pendiente: ${stats['pendientes']:,.2f} · Apuestas: {stats['apuestas']} · Acierto: {stats['win_rate']:.1f}%")
             with st.form("capital_inicial"):
@@ -153,10 +154,19 @@ def render_app(conn, ledger, initial):
                 if st.form_submit_button("Guardar capital inicial"):
                     bank.capital(conn, value)
                     st.rerun()
+            with st.form("valor_unidad"):
+                unit_input = st.number_input("Valor de 1 unidad (MXN)", min_value=0.01,
+                                             value=unit, step=10.0, format="%.2f")
+                if st.form_submit_button("Guardar valor de la unidad"):
+                    bank.unit_value(conn, unit_input)
+                    st.cache_data.clear()
+                    st.rerun()
+            st.caption(f"1 u = ${unit:,.2f} MXN. Las equivalencias usan el valor actual de la unidad; "
+                       "cambiarlo no modifica montos, cuotas, beneficios ni ROI de las apuestas realizadas.")
             st.caption("El ROI incluye apuestas ganadas, perdidas y push. Pendientes y anuladas se muestran aparte.")
             render_analytics(ledger, initial)
             st.markdown('### Rendimiento e historial filtrados')
-            filtered = ledger.copy()
+            filtered = bank.with_units(ledger, unit)
             filtered['Temporada'] = pd.to_datetime(filtered['fecha']).dt.year
             filtered['Mercado'] = filtered['origen'].map({'mlb_ml':'MLB · Moneyline', 'mlb_total':'MLB · Totales',
                 'nfl_total':'NFL · Totales', 'nfl_prop':'NFL · Props', 'liga_mx':'Liga MX · Totales', 'manual':'Manual'}).fillna('Otro')
@@ -164,7 +174,7 @@ def render_app(conn, ledger, initial):
                 probability_col='probabilidad', probability_scale=100, market_col='Mercado', result_col='estado')
             m = bank.metrics(filtered)
             cols = st.columns(3)
-            cols[0].metric('Beneficio de la muestra', f"${m['beneficio']:+,.2f}")
+            cols[0].metric('Beneficio de la muestra', f"${m['beneficio']:+,.2f} MXN", f"{m['beneficio']/unit:+.2f} u")
             cols[1].metric('ROI de la muestra', f"{m['roi']:+.2f}%")
             cols[2].metric('Apuestas de la muestra', m['apuestas'])
             st.caption('Saldo y disponible de arriba corresponden a toda la banca. Estos filtros afectan el rendimiento y las descargas del historial.')
@@ -172,10 +182,11 @@ def render_app(conn, ledger, initial):
             for sport, frame in filtered.groupby('deporte'):
                 m = bank.metrics(frame)
                 groups.append(dict(Deporte=sport, Apuestas=len(frame), Apostado=m['apostado'],
-                                   Beneficio=m['beneficio'], ROI=m['roi'], Pendiente=m['pendientes']))
+                                   Beneficio=m['beneficio'], **{'Apostado (u)':m['apostado']/unit,
+                                   'Beneficio (u)':m['beneficio']/unit}, ROI=m['roi'], Pendiente=m['pendientes']))
             with st.expander('Resumen filtrado por deporte en tabla'):
                 st.dataframe(pd.DataFrame(groups), hide_index=True, use_container_width=True)
-            render_history(filtered)
+            render_history(filtered, unit)
             st.download_button("Descargar historial", filtered.drop(columns=['Temporada']).to_csv(index=False), "bankroll.csv", "text/csv")
             st.download_button("Exportar banca completa", bank.export_bundle(conn), "bankroll_completo.zip", "application/zip")
             with st.expander("Historial de correcciones"):
