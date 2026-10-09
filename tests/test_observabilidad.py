@@ -69,11 +69,5 @@ class TestHistoricalCoverage(unittest.TestCase):
         self.assertFalse(verified_current(changed,now,report))
         self.assertFalse(verified_current(frame,now+pd.Timedelta(days=10),report))
         self.assertFalse(verified_current(frame,now,{**report,'unresolved_events':['pending']}))
-    def test_status_page_offline(self):
-        from streamlit.testing.v1 import AppTest
-        root=Path(__file__).resolve().parents[1]
-        with patch('core.db.get_db_connection',side_effect=RuntimeError('offline')),patch('core.observabilidad.workflow_status',return_value={'resultado':'success'}):
-            app=AppTest.from_file(str(root/'pages/4_📡_Estado_y_Modelos.py')).run(timeout=10)
-        self.assertEqual(len(app.exception),0)
 
 if __name__=='__main__':unittest.main()

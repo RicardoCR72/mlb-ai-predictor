@@ -180,7 +180,6 @@ def render_app(conn, ledger, initial):
             st.download_button("Exportar banca completa", bank.export_bundle(conn), "bankroll_completo.zip", "application/zip")
             with st.expander("Historial de correcciones"):
                 st.dataframe(bank.load_audit(conn), hide_index=True, use_container_width=True)
-            st.page_link("pages/4_📡_Estado_y_Modelos.py", label="Estado de integraciones y rendimiento", icon="📡")
     with tab3:
         if conn is None:
             st.info("No se guardan apuestas hasta recuperar la conexión con MySQL.")

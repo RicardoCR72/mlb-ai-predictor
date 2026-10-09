@@ -1,4 +1,6 @@
 from datetime import date
+import ast
+from pathlib import Path
 from unittest import TestCase
 from unittest.mock import Mock, patch
 import pandas as pd
@@ -131,6 +133,14 @@ render_pick(dict(fecha='2000-01-01',deporte='MLB',partido='A @ B',seleccion='OVE
 
 
 class FilterTests(TestCase):
+    def test_week_market_and_result_combine_without_changing_input(self):
+        frame=pd.DataFrame(dict(fecha=['2026-09-10']*4,week=[1,1,2,2],pick=['OVER','UNDER','UNDER','OVER'],
+            resultado=['GANADA','PERDIDA','GANADA','PUSH']))
+        got=filter_frame(frame,'fecha',week_col='week',week='1',market_col='pick',market='UNDER',
+                         result_col='resultado',result='PERDIDA')
+        self.assertEqual(got.index.tolist(),[1])
+        self.assertEqual(len(frame),4)
+
     def test_cdmx_dates_and_inclusive_seven_day_window(self):
         frame=pd.DataFrame({'fecha':['2026-10-07T03:00:00Z','2026-10-01','2026-09-29',None],
             'prob':[.6,.7,.8,.9]})
@@ -167,3 +177,61 @@ st.metric('Muestra',len(filtered))
         self.assertEqual(at.metric[0].value,'1')
         at.selectbox[1].select('Ganada').run()
         self.assertEqual(at.metric[0].value,'0')
+
+
+class NFLTotalsFiltersTests(TestCase):
+    def app(self):
+        # Ejecutar el bloque real de Rendimiento con datos de prueba, sin MySQL.
+        root=Path(__file__).resolve().parents[1]
+        tree=ast.parse((root/'nfl/ui_totales.py').read_text())
+        helpers=[n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name in
+                 ('opciones_partidos','formatear_numero','formatear_porcentaje','mostrar_resultado_total')]
+        branch=next(n for n in tree.body if isinstance(n,ast.If)
+                    and ast.unparse(n.test)=="seccion_totales == '📈 Rendimiento'")
+        source='''
+import numpy as np
+import pandas as pd
+import streamlit as st
+from core.ui_picks import render_pick,nfl_pick
+from core.ui_filtros import performance_filters
+rows=[]
+for i,(week,pick,result,profit,p) in enumerate([(1,'OVER','GANADA',.9,.6),
+ (1,'UNDER','PERDIDA',-1,.61),(2,'UNDER','GANADA',1.2,.7),(2,'OVER','PUSH',0,.55)]):
+ rows.append(dict(id_prediccion=i+1,id_juego=f'g{i}',season=2026,week=week,
+  gameday=pd.Timestamp('2026-09-10')+pd.Timedelta(days=i),away_team=f'A{i}',home_team=f'B{i}',
+  pick=pick,resultado_pick=result,beneficio_unidades=profit,prob_pick=p,estado='PICK',
+  total_line=45.5,odds_pick=-110,total_real=46))
+historico=pd.DataFrame(rows)
+seccion_totales='📈 Rendimiento'
+'''+ast.unparse(ast.Module(body=helpers+[branch],type_ignores=[]))+'''
+st.session_state['visible_ids']=liquidados.id_juego.tolist()
+'''
+        return AppTest.from_string(source).run()
+
+    def test_real_totals_filters_update_metrics_market_comparison_and_cards(self):
+        at=self.app()
+        self.assertFalse(at.exception)
+        self.assertTrue(at.expander[0].proto.expanded)
+        def select(label,value):
+            next(s for s in at.selectbox if s.label==label).select(value).run()
+            self.assertFalse(at.exception)
+        self.assertEqual(at.metric[0].value,'2-1-1')
+        comparison=at.dataframe[0].value
+        self.assertEqual(comparison.Mercado.tolist(),['OVER','UNDER'])
+        self.assertAlmostEqual(comparison.iloc[0]['ROI (%)'],45)
+        select('Mercado','UNDER')
+        self.assertEqual(at.metric[0].value,'1-1-0')
+        self.assertEqual(at.metric[3].value,'10.00%')
+        select('Semana','1')
+        self.assertEqual(at.metric[0].value,'0-1-0')
+        self.assertEqual(at.metric[3].value,'-100.00%')
+        self.assertEqual(at.session_state['visible_ids'],['g1'])
+        cards=[m.value for m in at.markdown if '<div class="oracle-pick ' in m.value]
+        self.assertEqual(len(cards),1)
+        self.assertIn('UNDER 45.5',cards[0])
+        select('Resultado','PERDIDA')
+        self.assertEqual(at.session_state['visible_ids'],['g1'])
+        select('Resultado','GANADA')
+        self.assertEqual(at.session_state['visible_ids'],[])
+        self.assertEqual(len(at.metric),0)
+        self.assertTrue(any('No hay picks oficiales liquidados' in m.value for m in at.markdown))
