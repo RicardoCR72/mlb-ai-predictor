@@ -717,10 +717,11 @@ if vista_mlb in ("⚾ Totales V2", "📊 Rendimiento Totales"):
     st.stop()
 
 modelo, scaler, columnas_v4 = cargar_oraculo()
-df = cargar_datos_hoy()
+df = cargar_datos_hoy() if vista_mlb == "⚾ Picks de hoy" else pd.DataFrame()
 if not df.empty: df = df.drop_duplicates(subset=['id_juego']).reset_index(drop=True)
 
-if not df.empty and modelo is not None:
+# El historial no depende de que existan partidos pendientes hoy.
+if modelo is not None and (vista_mlb == "📈 Rendimiento" or not df.empty):
     df_csv_estatico = pd.read_csv(RUTA_DATA_MLB / 'mlb_dataset_ia.csv')
     df_pasado = cargar_historial_xampp()
     df_hist = fusionar_historiales(df_csv_estatico, df_pasado)
@@ -997,7 +998,8 @@ if not df.empty and modelo is not None:
                 })
 
             df_todas = pd.DataFrame(registros_completos)
-            df_todas['Temporada'] = pd.to_datetime(df_todas['Fecha']).dt.year
+            df_todas['Fecha'] = pd.to_datetime(df_todas['Fecha'])
+            df_todas['Temporada'] = df_todas['Fecha'].dt.year
             df_todas = performance_filters(df_todas, 'Fecha', 'mlb_ml_perf', season_col='Temporada', result_col='Resultado')
             if df_todas.empty:
                 st.info('No hay registros para los filtros seleccionados.'); st.stop()
@@ -1116,8 +1118,13 @@ if not df.empty and modelo is not None:
         else:
             st.info("⏳ Aún no hay partidos terminados en la base de datos para generar el ROI histórico.")
 else:
-    if df.empty:
-        st.error("🚨 ERROR DE DATOS: La base de datos de XAMPP no tiene juegos nuevos registrados para hoy.")
+    if vista_mlb == "⚾ Picks de hoy" and df.empty:
+        st.markdown(
+            '<div class="mlb-empty">No hay juegos pendientes con cuotas '
+            'disponibles para hoy. Puedes consultar los partidos anteriores '
+            'en Rendimiento.</div>',
+            unsafe_allow_html=True,
+        )
     elif modelo is None:
         st.error("🚨 ERROR DE IA: Faltan archivos de la V4.0.")
 

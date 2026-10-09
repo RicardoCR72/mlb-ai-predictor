@@ -235,3 +235,80 @@ st.session_state['visible_ids']=liquidados.id_juego.tolist()
         self.assertEqual(at.session_state['visible_ids'],[])
         self.assertEqual(len(at.metric),0)
         self.assertTrue(any('No hay picks oficiales liquidados' in m.value for m in at.markdown))
+
+
+class MLBHistoryVisibilityTests(TestCase):
+    def app(self, view, historical=True):
+        root = Path(__file__).resolve().parents[1]
+        tree = ast.parse((root/'pages/1_⚾_MLB.py').read_text())
+        helpers = [node for node in tree.body if isinstance(node, ast.FunctionDef)
+                   and node.name in ('mostrar_registro_auditoria', 'obtener_confianza_registrada')]
+        start = next(i for i, node in enumerate(tree.body)
+                     if isinstance(node, ast.Assign) and
+                     ast.unparse(node.targets[0]) == '(modelo, scaler, columnas_v4)')
+        source = '''
+import streamlit as st
+import pandas as pd
+import numpy as np
+from pathlib import Path
+from core.ui_filtros import performance_filters
+from core.ui_picks import render_pick
+RUTA_DATA_MLB = Path('.')
+def cargar_oraculo(): return object(), None, []
+def cargar_datos_hoy():
+    st.session_state['consulto_hoy'] = True
+    return pd.DataFrame()
+history = pd.DataFrame([
+    dict(fecha='2026-09-01', **{'Equipo Local':'A','Equipo Visitante':'B',
+         'Paga Local':1.9,'Paga Visitante':2.0}, marcador_local=5,marcador_visitante=2),
+    dict(fecha='2026-09-02', **{'Equipo Local':'C','Equipo Visitante':'D',
+         'Paga Local':1.8,'Paga Visitante':2.1}, marcador_local=1,marcador_visitante=3)])
+registered = pd.DataFrame([
+    dict(fecha='2026-09-01',equipo_local='A',equipo_visitante='B',pick_ia='A',confianza=70,cuota=1.9),
+    dict(fecha='2026-09-02',equipo_local='C',equipo_visitante='D',pick_ia='C',confianza=68,cuota=1.8)])
+def cargar_historial_xampp(): return history.copy()
+def cargar_registro_picks_historico(): return registered.copy()
+def fusionar_historiales(*args): return pd.DataFrame()
+def cargar_metricas_avanzadas(): return pd.DataFrame()
+def cargar_metricas_historico(): return pd.DataFrame()
+def cargar_lesiones_historico(): return pd.DataFrame()
+def cargar_pitchers_historico(): return pd.DataFrame()
+def normalizar_equipo(name): return name
+pd.read_csv = lambda *args, **kwargs: pd.DataFrame()
+'''+f'vista_mlb = {view!r}\n'+('' if historical else 'history = history.iloc[0:0]\n')
+        source += ast.unparse(ast.Module(body=helpers+tree.body[start:], type_ignores=[]))
+        return AppTest.from_string(source).run()
+
+    def test_history_renders_cards_and_metrics_without_querying_today(self):
+        at = self.app('📈 Rendimiento')
+        self.assertFalse(at.exception)
+        self.assertFalse(at.error)
+        self.assertNotIn('consulto_hoy', at.session_state)
+        self.assertEqual(at.metric[0].value, '2 de 2')
+        self.assertEqual(at.metric[2].value, '$70.00')
+        self.assertEqual(at.metric[3].value, '14.00%')
+        cards = [m.value for m in at.markdown if '<div class="oracle-pick ' in m.value]
+        self.assertEqual(len(cards), 2)
+        self.assertTrue(any('A vs B' in card for card in cards))
+        self.assertTrue(any('C vs D' in card for card in cards))
+        next(s for s in at.selectbox if s.label == 'Resultado').select('✅ Ganada').run()
+        self.assertFalse(at.exception)
+        self.assertEqual(at.metric[0].value, '1 de 1')
+        self.assertEqual(len([m for m in at.markdown if '<div class="oracle-pick ' in m.value]), 1)
+
+    def test_empty_today_uses_neutral_mlb_style_and_preserves_history_navigation(self):
+        at = self.app('⚾ Picks de hoy')
+        self.assertFalse(at.exception)
+        self.assertFalse(at.error)
+        self.assertTrue(at.session_state['consulto_hoy'])
+        notice = next(m.value for m in at.markdown if 'No hay juegos pendientes' in m.value)
+        self.assertIn('class="mlb-empty"', notice)
+        self.assertIn('Rendimiento', notice)
+        self.assertNotIn('XAMPP', notice)
+
+    def test_truly_empty_history_shows_its_own_message(self):
+        at = self.app('📈 Rendimiento', historical=False)
+        self.assertFalse(at.exception)
+        self.assertFalse(at.error)
+        self.assertTrue(any('Aún no hay partidos terminados' in item.value for item in at.info))
+        self.assertFalse(any('No hay juegos pendientes' in item.value for item in at.markdown))
