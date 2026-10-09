@@ -8,8 +8,8 @@ on:
     - cron: '0 22 * 9-12,1-2 4'
     # Viernes 14:00 UTC (08:00 CDMX): liquida el TNF, regenera proyecciones sin odds.
     - cron: '0 14 * 9-12,1-2 5'
-    # Domingo 14:00 UTC (08:00 CDMX): jornada dominical; reintentos sin recobrar.
-    - cron: '0 14 * 9-12,1-2 0'
+    # Domingo 12:00 UTC (06:00 CDMX): incluye juegos internacionales tempranos.
+    - cron: '0 12 * 9-12,1-2 0'
     - cron: '0 16 * 9-12,1-2 0'
     # Domingo 22:00 UTC (16:00 CDMX): captura solo juegos de hoy sin captura previa.
     - cron: '0 22 * 9-12,1-2 0'

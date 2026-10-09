@@ -33,6 +33,7 @@ def liberar(conn):
     cursor = conn.cursor()
     try:
         cursor.execute('SELECT RELEASE_LOCK(%s)', (LOCK_NAME,))
+        cursor.fetchone()
     finally:
         cursor.close()
 
