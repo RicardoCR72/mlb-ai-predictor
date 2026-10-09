@@ -7,6 +7,35 @@ from core import bankroll as bank
 
 @unittest.skipUnless(os.environ.get('BANKROLL_MYSQL_TEST')=='1','Requiere MySQL de pruebas')
 class TestRealMySQL(unittest.TestCase):
+    def test_nfl_paid_capture_audit_and_lock_between_connections(self):
+        from datetime import date
+        from nfl import capturas
+        self.assertEqual(os.environ.get('DB_NAME'),'bankroll_ci')
+        first,second=get_db_connection(),get_db_connection()
+        try:
+            capturas.preparar(first)
+            self.assertTrue(capturas.adquirir(first))
+            self.assertFalse(capturas.adquirir(second))
+            game='test-'+str(uuid.uuid4())
+            id=capturas.iniciar(first,game,'event-test',date(2026,10,11))
+            # La reserva de consulta persiste aunque nunca llegue una respuesta HTTP.
+            cur=second.cursor(dictionary=True)
+            cur.execute('SELECT * FROM nfl_capturas_odds WHERE id=%s',(id,))
+            row=cur.fetchone();cur.close();second.commit()
+            self.assertEqual(row['estado'],'solicitada')
+            self.assertIsNone(row['creditos'])
+            capturas.terminar(first,id,6)
+            cur=second.cursor(dictionary=True)
+            cur.execute('SELECT * FROM nfl_capturas_odds WHERE id=%s',(id,))
+            row=cur.fetchone();cur.close();second.commit()
+            self.assertEqual(row['creditos'],6)
+            self.assertEqual(row['fecha_mexico'],date(2026,10,11))
+            capturas.liberar(first)
+            self.assertTrue(capturas.adquirir(second))
+            capturas.liberar(second)
+        finally:
+            first.close();second.close()
+
     def test_persistence_duplicate_audit_and_balance(self):
         self.assertEqual(os.environ.get('DB_NAME'),'bankroll_ci')
         conn = get_db_connection()
