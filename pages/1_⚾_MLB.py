@@ -706,7 +706,7 @@ vista_mlb = st.radio(
     ["⚾ Picks de hoy", "📈 Rendimiento", "⚾ Totales V2", "📊 Rendimiento Totales"],
     horizontal=True, label_visibility="collapsed", key="mlb_vista_principal",
 )
-render_update_button("mlb")
+render_update_button("mlb", compact=True)
 
 if vista_mlb in ("⚾ Totales V2", "📊 Rendimiento Totales"):
     from mlb_totales.ui_totales_mlb import render_picks, render_performance
