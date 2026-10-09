@@ -265,7 +265,7 @@ vista = st.radio(
 
 raiz = Path(__file__).resolve().parents[1]
 
-render_update_button("nfl_totales" if vista == "🏈 Totales" else "nfl_props")
+render_update_button("nfl_totales" if vista == "🏈 Totales" else "nfl_props", compact=True)
 render_prediction_button()
 
 if vista == "🏈 Totales":
