@@ -2,25 +2,23 @@ name: Props NFL con limite de creditos
 
 on:
   schedule:
-    # Jueves 22:00 UTC (16:00 CDMX): captura SOLO el TNF (~10h antes del kickoff).
+    # Jueves 20:00 UTC (14:00 CDMX): captura solo partidos de hoy.
+    - cron: '0 20 * 9-12,1-2 4'
+    # Segundo intento si el primero no capturó; no duplica cobros del día.
     - cron: '0 22 * 9-12,1-2 4'
     # Viernes 14:00 UTC (08:00 CDMX): liquida el TNF, regenera proyecciones sin odds.
     - cron: '0 14 * 9-12,1-2 5'
-    # Domingo 16:00 UTC (10:00 CDMX): captura la jornada dominical (partidos en ~8-16h).
+    # Domingo 12:00 UTC (06:00 CDMX): incluye juegos internacionales tempranos.
+    - cron: '0 12 * 9-12,1-2 0'
     - cron: '0 16 * 9-12,1-2 0'
-    # Domingo 22:00 UTC (16:00 CDMX): segunda captura dominical (SNF, ~3h antes).
+    # Domingo 22:00 UTC (16:00 CDMX): captura solo juegos de hoy sin captura previa.
     - cron: '0 22 * 9-12,1-2 0'
-    # Lunes 22:00 UTC (16:00 CDMX): captura SOLO el MNF (~10h antes del kickoff).
+    # Lunes 20:00 UTC (14:00 CDMX): solo MNF del día.
+    - cron: '0 20 * 9-12,1-2 1'
     - cron: '0 22 * 9-12,1-2 1'
     # Martes 14:00 UTC (08:00 CDMX): liquida MNF, regenera proyecciones sin odds.
     - cron: '0 14 * 9-12,1-2 2'
   workflow_dispatch:
-    inputs:
-      proximas_horas:
-        description: 'Ventana de captura en horas (0 = sin limite)'
-        required: false
-        default: '14'
-        type: string
 
 permissions:
   contents: read
@@ -80,52 +78,49 @@ jobs:
       - name: Evaluar resultados props terminados
         run: python nfl/evaluar_resultados_props.py
 
-      # ── Decidir ventana de horas segun dia de la semana ──────────────────
-      # Jueves/Lunes: solo el partido de esa noche (~10h)
-      # Domingo 16h UTC: jornada completa (~16h hasta el SNF)
-      # Domingo 22h UTC: solo SNF (~4h)
-      # Viernes/Martes: sin odds, solo liquidar (se salta la captura)
-      # workflow_dispatch: usa el input del usuario
-      - name: Calcular ventana de captura
+      # Usar el cron original: una ejecución del jueves puede empezar el viernes UTC.
+      - name: Seleccionar captura programada
         id: ventana
-        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_SCHEDULE: ${{ github.event.schedule }}
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            HORAS="${{ inputs.proximas_horas }}"
-          else
-            DOW=$(date -u +%u)   # 1=Lun 2=Mar 4=Jue 5=Vie 6=Sab 7=Dom
-            case "$DOW" in
-              4) HORAS=10 ;;   # Jueves → solo TNF
-              1) HORAS=10 ;;   # Lunes  → solo MNF
-              7)
-                if [ "${{ github.event.schedule }}" = "0 16 * 9-12,1-2 0" ]; then
-                  HORAS=16   # Domingo 10AM CDMX → jornada completa
-                else
-                  HORAS=5    # Domingo 16:00 CDMX → solo SNF
-                fi
-                ;;
-              5|2) HORAS=0 ;; # Viernes/Martes → no descargar odds
-              *)   HORAS=14 ;;
-            esac
-          fi
-          echo "horas=$HORAS" >> "$GITHUB_OUTPUT"
-          echo "Ventana de captura: $HORAS horas"
+          python - <<'PYTHON'
+          import os
+          from nfl.jornada import captura_programada
+          capture = os.environ['EVENT_NAME'] == 'workflow_dispatch' or captura_programada(os.environ['EVENT_SCHEDULE'])
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as output:
+              output.write('capturar=' + ('true' if capture else 'false') + '\n')
+          print('Captura programada:', capture, '| Solo hoy en México, antes del inicio.')
+          PYTHON
 
-      # ── Captura de odds (solo si HORAS > 0) ──────────────────────────────
+      - name: Actualizar calendario y totales de hoy sin creditos
+        if: steps.ventana.outputs.capturar == 'true'
+        run: python nfl/predecir_semana_actual.py --solo-hoy
+
+      - name: Comprobar modelos y props de hoy antes de gastar creditos
+        if: steps.ventana.outputs.capturar == 'true'
+        run: python nfl/predecir_props_semana_actual.py --solo-hoy
+
       - name: Capturar odds del partido de hoy
-        if: steps.ventana.outputs.horas != '0'
-        shell: bash
+        if: steps.ventana.outputs.capturar == 'true'
         run: |
-          HORAS="${{ steps.ventana.outputs.horas }}"
           python nfl/actualizar_lineas_props.py \
-            --proximas-horas "$HORAS" \
+            --solo-hoy \
             --una-captura \
             --solo-draftkings \
             --reserva-creditos 120
 
       # ── Regenerar proyecciones despues de captura ─────────────────────────
       - name: Generar proyecciones
-        run: python nfl/predecir_props_semana_actual.py
+        env:
+          CAPTURAR: ${{ steps.ventana.outputs.capturar }}
+        run: |
+          if [ "$CAPTURAR" = "true" ]; then
+            python nfl/predecir_props_semana_actual.py --solo-hoy
+          else
+            python nfl/predecir_props_semana_actual.py
+          fi
 
 
       - name: Liquidar apuestas realizadas de Bankroll

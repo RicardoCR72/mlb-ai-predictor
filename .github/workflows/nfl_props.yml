@@ -109,7 +109,7 @@ jobs:
           DB_NAME: ${{ secrets.NFL_DB_NAME || secrets.DB_NAME }}
           DB_SSL_CA: ${{ runner.temp }}/aiven-ca.pem
           ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
-        run: python nfl/actualizar_lineas_props.py --proximas-horas 14 --una-captura --solo-draftkings --reserva-creditos 120
+        run: python nfl/actualizar_lineas_props.py --solo-hoy --una-captura --solo-draftkings --reserva-creditos 120
 
       # NOTA: Las proyecciones se generan tras cada captura de bot_nfl_props.yml.
       # Aquí solo se regeneran cuando se corre manualmente.
@@ -123,7 +123,7 @@ jobs:
           DB_PASSWORD: ${{ secrets.NFL_DB_PASSWORD || secrets.DB_PASSWORD || secrets.DB_PASS }}
           DB_NAME: ${{ secrets.NFL_DB_NAME || secrets.DB_NAME }}
           DB_SSL_CA: ${{ runner.temp }}/aiven-ca.pem
-        run: python nfl/predecir_props_semana_actual.py
+        run: python nfl/predecir_props_semana_actual.py --solo-hoy
 
 
       - name: Liquidar apuestas realizadas de Bankroll

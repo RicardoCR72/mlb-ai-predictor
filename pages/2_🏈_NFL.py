@@ -1,4 +1,5 @@
 from core.ui_actualizacion import render_update_button
+from core.ui_nfl_creditos import render_prediction_button
 from pathlib import Path
 import runpy
 
@@ -265,6 +266,7 @@ vista = st.radio(
 raiz = Path(__file__).resolve().parents[1]
 
 render_update_button("nfl_totales" if vista == "🏈 Totales" else "nfl_props")
+render_prediction_button()
 
 if vista == "🏈 Totales":
     st.markdown(

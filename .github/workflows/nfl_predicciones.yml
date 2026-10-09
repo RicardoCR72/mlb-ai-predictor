@@ -75,7 +75,7 @@ jobs:
           DB_PASSWORD: ${{ secrets.NFL_DB_PASSWORD || secrets.DB_PASSWORD || secrets.DB_PASS }}
           DB_NAME: ${{ secrets.NFL_DB_NAME || secrets.DB_NAME }}
           DB_SSL_CA: ${{ runner.temp }}/aiven-ca.pem
-        run: python nfl/predecir_semana_actual.py
+        run: python nfl/predecir_semana_actual.py --solo-hoy
 
       - name: Evaluar partidos terminados
         env:

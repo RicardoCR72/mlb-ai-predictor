@@ -1,4 +1,6 @@
 import os
+import argparse
+from jornada import calendario_hoy
 
 from pathlib import Path
 
@@ -929,7 +931,7 @@ def obtener_proxima_semana(calendario):
 
 
 
-def preparar_features(calendario, proxima_semana):
+def preparar_features(calendario, proxima_semana, game_ids=None):
 
     regulares = calendario[
 
@@ -966,6 +968,9 @@ def preparar_features(calendario, proxima_semana):
     ].copy()
 
 
+
+    if game_ids is not None:
+        proximos = proximos[proximos['game_id'].isin(game_ids)].copy()
 
     if proximos.empty:
 
@@ -1062,6 +1067,8 @@ def preparar_features(calendario, proxima_semana):
 
 
 
+    if game_ids is not None:
+        prediccion = prediccion[prediccion['game_id'].isin(game_ids)].copy()
     return prediccion
 
 
@@ -1640,6 +1647,9 @@ def mostrar_resultados(df, semana):
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--solo-hoy', action='store_true')
+    args = parser.parse_args()
 
     DIRECTORIO_PREDICCIONES.mkdir(
 
@@ -1653,15 +1663,19 @@ def main():
 
     calendario = actualizar_calendario()
 
+    game_ids = None
+    if args.solo_hoy:
+        hoy = calendario_hoy(calendario[
+            calendario['season'].eq(TEMPORADA_ACTUAL) & calendario['game_type'].eq('REG')
+            & (calendario['home_score'].isna() | calendario['away_score'].isna())])
+        if hoy.empty:
+            print('No hay partidos NFL de hoy sin iniciar; no se generan predicciones.')
+            return
+        game_ids = hoy['game_id'].tolist()
+        proxima_semana = int(hoy['week'].min())
+    else:
+        proxima_semana = obtener_proxima_semana(calendario)
     actualizar_lesiones()
-
-
-
-    proxima_semana = obtener_proxima_semana(
-
-        calendario
-
-    )
 
 
 
@@ -1682,7 +1696,7 @@ def main():
         calendario,
 
         proxima_semana,
-
+        game_ids=game_ids,
     )
 
 
@@ -1713,6 +1727,12 @@ def main():
 
     )
 
+    if args.solo_hoy:
+        predicciones = calendario_hoy(predicciones)
+        if predicciones.empty:
+            print('Los partidos ya comenzaron; no se guardan nuevas predicciones prepartido.')
+            return
+
 
 
     ruta_salida = (
@@ -1725,7 +1745,7 @@ def main():
 
             f"{TEMPORADA_ACTUAL}_"
 
-            f"semana_{proxima_semana}.csv"
+            f"semana_{proxima_semana}" + ("_hoy" if args.solo_hoy else "") + ".csv"
 
         )
 
@@ -1745,7 +1765,8 @@ def main():
 
     print("Sincronizando predicciones con MySQL...")
 
-    guardar_predicciones_mysql(predicciones)
+    if not guardar_predicciones_mysql(predicciones):
+        raise RuntimeError('No se guardaron las predicciones en MySQL.')
 
 
 

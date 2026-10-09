@@ -1,6 +1,8 @@
 """Genera proyecciones semanales para los principales props NFL."""
 
 import json
+import argparse
+from jornada import calendario_hoy
 from pathlib import Path
 
 import joblib
@@ -197,7 +199,7 @@ def agregar_contexto_partido(df, calendario):
     return resultado
 
 
-def preparar_features(calendario, semana):
+def preparar_features(calendario, semana, game_ids=None):
     raw = pd.read_parquet(RUTA_JUGADORES)
     historico, _, lesiones = cargar_datos()
     proximos = calendario[
@@ -207,6 +209,8 @@ def preparar_features(calendario, semana):
         & (calendario["home_score"].isna() | calendario["away_score"].isna())
     ].copy()
 
+    if game_ids is not None:
+        proximos = proximos[proximos['game_id'].isin(game_ids)].copy()
     futuras_raw = crear_filas_futuras(raw, proximos)
     futuras = agregar_contexto_partido(futuras_raw, proximos)
     combinadas = pd.concat([historico, futuras], ignore_index=True, sort=False)
@@ -310,13 +314,15 @@ def agregar_notas_lesiones(df, proximos):
     return resultado
 
 
-def preparar_features_adicionales(calendario, semana):
+def preparar_features_adicionales(calendario, semana, game_ids=None):
     proximos = calendario[
         (calendario["season"] == TEMPORADA_ACTUAL)
         & (calendario["week"] == semana)
         & (calendario["game_type"] == "REG")
         & (calendario["home_score"].isna() | calendario["away_score"].isna())
     ].copy()
+    if game_ids is not None:
+        proximos = proximos[proximos['game_id'].isin(game_ids)].copy()
     historico, lesiones = cargar_datos_pc()
     raw = pd.read_parquet(RUTA_JUGADORES)
     futuras = crear_filas_futuras_generales(raw, proximos)
@@ -855,15 +861,29 @@ def guardar_proyecciones(conexion, df):
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--solo-hoy', action='store_true')
+    args = parser.parse_args()
     DIRECTORIO_SALIDA.mkdir(parents=True, exist_ok=True)
     calendario = actualizar_calendario()
+    game_ids = None
+    if args.solo_hoy:
+        hoy = calendario_hoy(calendario[
+            calendario['season'].eq(TEMPORADA_ACTUAL) & calendario['game_type'].eq('REG')
+            & (calendario['home_score'].isna() | calendario['away_score'].isna())])
+        if hoy.empty:
+            print('No hay partidos NFL de hoy sin iniciar; no se generan props.')
+            return
+        game_ids = hoy['game_id'].tolist()
+        semana = int(hoy['week'].min())
+    else:
+        semana = obtener_proxima_semana(calendario)
     actualizar_lesiones()
     actualizar_estadisticas_jugadores()
-    semana = obtener_proxima_semana(calendario)
     print(f"Semana detectada: {semana}")
 
-    features, juegos = preparar_features(calendario, semana)
-    pase, carrera, touchdown = preparar_features_adicionales(calendario, semana)
+    features, juegos = preparar_features(calendario, semana, game_ids=game_ids)
+    pase, carrera, touchdown = preparar_features_adicionales(calendario, semana, game_ids=game_ids)
     print(
         "Jugadores elegibles | "
         f"recepcion: {len(features):,} | pase: {len(pase):,} | "
@@ -881,7 +901,16 @@ def main():
         ignore_index=True,
     ).drop_duplicates("player_id")
 
+    if args.solo_hoy:
+        juegos = calendario_hoy(juegos)
+        proyecciones = proyecciones[proyecciones['game_id'].isin(juegos['game_id'])].copy()
+        if juegos.empty:
+            print('Los partidos ya comenzaron; no se guardan nuevas predicciones prepartido.')
+            return
+
     conexion = obtener_conexion()
+    if conexion is None:
+        raise RuntimeError('No hay conexión MySQL para guardar props.')
     try:
         if conexion is not None:
             sincronizar_catalogos(conexion, catalogo, juegos)
@@ -893,7 +922,7 @@ def main():
             conexion.close()
 
     ruta = DIRECTORIO_SALIDA / (
-        f"nfl_props_{TEMPORADA_ACTUAL}_semana_{semana}.csv"
+        f"nfl_props_{TEMPORADA_ACTUAL}_semana_{semana}" + ("_hoy" if args.solo_hoy else "") + ".csv"
     )
     resultado.to_csv(ruta, index=False)
 

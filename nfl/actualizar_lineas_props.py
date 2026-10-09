@@ -29,6 +29,8 @@ import pandas as pd
 import requests
 
 from predecir_semana_actual import TEMPORADA_ACTUAL, obtener_configuracion_mysql
+from jornada import ahora_mexico, eventos_hoy, limites_utc
+import capturas
 
 
 API_BASE = "https://api.the-odds-api.com/v4"
@@ -151,7 +153,7 @@ def api_get(ruta: str, api_key: str, **parametros):
     return respuesta.json(), cuota
 
 
-def cargar_juegos_pendientes(conexion):
+def cargar_juegos_pendientes(conexion, solo_hoy=False):
     cursor = conexion.cursor(dictionary=True)
     cursor.execute(
         """
@@ -171,34 +173,28 @@ def cargar_juegos_pendientes(conexion):
         return []
 
     # Evita gastar créditos consultando semanas futuras que ya estén cargadas.
+    if solo_hoy:
+        return juegos
     semana = min(int(juego["semana"]) for juego in juegos)
     return [juego for juego in juegos if int(juego["semana"]) == semana]
 
 
 def emparejar_eventos(juegos, eventos, permitir_iniciados=False):
-    por_equipos = {
-        (juego["equipo_visitante"], juego["equipo_local"]): juego
-        for juego in juegos
-    }
+    from jornada import inicio_evento, MEXICO
+    from zoneinfo import ZoneInfo
     parejas = []
     ahora = datetime.now(timezone.utc)
     for evento in eventos:
-        inicio_texto = evento.get("commence_time")
-        if inicio_texto:
-            try:
-                inicio = datetime.fromisoformat(
-                    inicio_texto.replace("Z", "+00:00")
-                )
-                # Nunca guardar líneas live como si fueran prepartido.
-                if inicio <= ahora and not permitir_iniciados:
-                    continue
-            except (TypeError, ValueError):
-                pass
-        visitante = EQUIPO_API_A_SIGLA.get(evento.get("away_team"))
-        local = EQUIPO_API_A_SIGLA.get(evento.get("home_team"))
-        juego = por_equipos.get((visitante, local))
-        if juego:
-            parejas.append((juego, evento))
+        inicio = inicio_evento(evento)
+        if inicio is None or (inicio <= ahora and not permitir_iniciados):
+            continue
+        visitante = EQUIPO_API_A_SIGLA.get(evento.get('away_team'))
+        local = EQUIPO_API_A_SIGLA.get(evento.get('home_team'))
+        day = inicio.astimezone(ZoneInfo('America/New_York')).date()
+        matching = [j for j in juegos if j['equipo_visitante'] == visitante
+                    and j['equipo_local'] == local and pd.Timestamp(j['fecha']).date() == day]
+        if len(matching) == 1:
+            parejas.append((matching[0], evento))
     return parejas
 
 
@@ -720,24 +716,29 @@ def imprimir_cuota(cuota):
 
 
 def juegos_con_captura(conexion, parejas):
-    """No volver a pagar por un partido que ya tiene props guardadas."""
+    """Omitir capturas del día; las líneas de un jueves anterior no bloquean hoy."""
     ids = [juego["id_juego"] for juego, _ in parejas]
     if not ids:
         return set()
     cursor = conexion.cursor()
     try:
         markers = ",".join(["%s"] * len(ids))
+        day = ahora_mexico().date()
+        start, end = limites_utc(day)
         cursor.execute(
             "SELECT DISTINCT id_juego FROM nfl_lineas_props "
             f"WHERE id_juego IN ({markers}) "
-            "AND LOWER(TRIM(casa_apuestas))='draftkings'", tuple(ids)
-        )
+            "AND LOWER(TRIM(casa_apuestas))='draftkings' "
+            "AND timestamp_captura >= %s AND timestamp_captura < %s "
+            "UNION SELECT id_juego FROM nfl_capturas_odds "
+            f"WHERE id_juego IN ({markers}) AND fecha_mexico=%s AND estado<>'sin_lineas'",
+            (*ids, start, end, *ids, day))
         return {row[0] for row in cursor.fetchall()}
     finally:
         cursor.close()
 
 
-def main():
+def main(argv=None):
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "--solo-eventos",
@@ -778,7 +779,13 @@ def main():
                         help="Compatibilidad: todas las consultas usan DraftKings.")
     parser.add_argument("--reserva-creditos", type=int, default=0,
                         help="Detiene nuevas cuotas antes de bajar de este saldo.")
-    args = parser.parse_args()
+    parser.add_argument('--solo-hoy', action='store_true',
+                        help='Compatibilidad: todas las consultas pagadas se limitan a hoy en México.')
+    parser.add_argument('--eventos', default=None, help='IDs permitidos por el resumen previo de la web.')
+    parser.add_argument('--max-creditos', type=int, default=None, help='Presupuesto máximo de esta ejecución.')
+    args = parser.parse_args(argv)
+    if args.max_creditos is not None and args.max_creditos < 0:
+        parser.error('--max-creditos no puede ser negativo')
 
     if args.reconstruir_semana and not args.usar_cache:
         parser.error("--reconstruir-semana requiere --usar-cache")
@@ -789,13 +796,21 @@ def main():
 
     api_key = obtener_api_key()
     conexion = conectar_mysql()
+    locked = False
+    report = dict(fecha=str(ahora_mexico().date()), solicitados=0, omitidos=0,
+                  insertadas=0, sin_lineas=0, creditos=0, restantes=None, completo=False)
     try:
+        if not args.usar_cache and not args.solo_catalogo:
+            locked = capturas.adquirir(conexion)
+            if not locked:
+                raise RuntimeError('Ya hay una captura NFL en curso; no se consultaron cuotas.')
+            capturas.preparar(conexion)
         sincronizados = sincronizar_catalogo_jugadores(conexion)
         print(f"Catalogo NFL sincronizado: {sincronizados:,} jugadores.")
         if args.solo_catalogo:
             print("Catalogo actualizado. No se consulto The Odds API.")
             return
-        juegos = cargar_juegos_pendientes(conexion)
+        juegos = cargar_juegos_pendientes(conexion, solo_hoy=not args.usar_cache)
         if not juegos:
             print("No hay juegos NFL pendientes para capturar.")
             return
@@ -821,6 +836,11 @@ def main():
                 f"{reconstruccion['proyecciones_eliminadas']:,}"
             )
         eventos, cuota = api_get(f"/sports/{SPORT}/events", api_key)
+        if not args.usar_cache:
+            eventos = eventos_hoy(eventos)
+            if args.eventos is not None:
+                allowed = set(args.eventos.split(','))
+                eventos = [e for e in eventos if e['id'] in allowed]
         if args.usar_cache:
             por_id = {evento.get("id"): evento for evento in eventos}
             for evento in cargar_eventos_desde_cache():
@@ -829,6 +849,8 @@ def main():
         parejas_api = emparejar_eventos(
             juegos, eventos, permitir_iniciados=args.usar_cache
         )
+        report['esperados'] = len(eventos)
+        report['sin_emparejar'] = len(eventos) - len(parejas_api)
         parejas = filtrar_parejas_por_ventana(
             parejas_api, args.proximas_horas
         )
@@ -836,7 +858,8 @@ def main():
             anteriores = juegos_con_captura(conexion, parejas)
             parejas = [(juego, evento) for juego, evento in parejas
                        if juego["id_juego"] not in anteriores]
-            print(f"Partidos con captura previa omitidos: {len(anteriores)}")
+            report['omitidos'] = len(anteriores)
+            print(f"Partidos con captura de hoy omitidos: {len(anteriores)}")
         print(f"Partidos emparejados con The Odds API: {len(parejas)}")
         if args.proximas_horas is not None:
             print(
@@ -858,6 +881,9 @@ def main():
         if args.reserva_creditos and cuota.get("restantes") is None:
             raise RuntimeError("No se recibió saldo de The Odds API; no se consultan props.")
         restantes = int(cuota["restantes"]) if cuota.get("restantes") is not None else None
+        report['restantes'] = restantes
+        budget = args.max_creditos if args.max_creditos is not None else len(parejas)*len(MARKETS)
+        reserved = 0
 
         equipos = {
             equipo
@@ -868,6 +894,7 @@ def main():
         indice = indice_jugadores(jugadores)
 
         todas = []
+        inserted_total = 0
         no_resueltos = set()
         for numero, (juego, evento) in enumerate(parejas, start=1):
             print(
@@ -879,6 +906,12 @@ def main():
                 print("  Sin respuesta cacheada; se omite sin consultar la API.")
                 continue
             if not args.usar_cache:
+                if str(ahora_mexico().date()) != report['fecha'] or not eventos_hoy([evento]):
+                    print('El partido ya comenzó o cambió el día; se omite sin consultar cuotas.')
+                    continue
+                if reserved + len(MARKETS) > budget:
+                    print('Presupuesto de esta ejecución alcanzado; no se consultan más cuotas.')
+                    break
                 if (restantes is not None and args.reserva_creditos
                         and restantes < args.reserva_creditos + len(MARKETS)):
                     print("  Reserva mensual alcanzada; se omiten las cuotas restantes.")
@@ -886,23 +919,48 @@ def main():
                 parametros = {"markets": ",".join(MARKETS),
                               "oddsFormat": "american", "dateFormat": "iso"}
                 parametros["bookmakers"] = "draftkings"
+                capture_id = capturas.iniciar(conexion, juego['id_juego'], evento['id'], ahora_mexico().date())
+                reserved += len(MARKETS)
+                report['solicitados'] += 1
+                previous_cost = report['creditos']
+                report['creditos'] = None  # Un fallo de red puede ocurrir después del cobro.
                 respuesta, cuota = api_get(
                     f"/sports/{SPORT}/events/{evento['id']}/odds",
                     api_key, **parametros,
                 )
+                cost = int(cuota['costo']) if cuota.get('costo') is not None else None
+                capturas.terminar(conexion, capture_id, cost)
+                report['creditos'] = previous_cost + cost if previous_cost is not None and cost is not None else None
                 if cuota.get("restantes") is not None:
                     restantes = int(cuota["restantes"])
+                else:
+                    restantes = None
+                report['restantes'] = restantes
                 guardar_cache_evento(evento["id"], respuesta)
             else:
                 cuota = {"usados": None, "restantes": None, "costo": 0}
                 print("  Usando respuesta cacheada.")
             lineas, sin_match = extraer_lineas(respuesta, juego, indice)
+            if not lineas:
+                report['sin_lineas'] += 1
+                print('Sin props completos de DraftKings; las líneas anteriores no son una captura nueva.')
+            if not args.usar_cache and not lineas and cost == 0:
+                capturas.terminar(conexion, capture_id, cost, state='sin_lineas')
+            inserted_total += guardar_lineas(conexion, lineas)
+            report['insertadas'] = inserted_total
             todas.extend(lineas)
             no_resueltos.update(sin_match)
             print(f"  Lineas completas encontradas: {len(lineas)}")
             imprimir_cuota(cuota)
+            # Sin saldo verificado, detener las siguientes peticiones pagadas.
+            if not args.usar_cache and restantes is None:
+                print('No se recibió saldo; se detienen las siguientes cuotas.')
+                break
 
-        insertadas = guardar_lineas(conexion, todas)
+        insertadas = inserted_total
+        report['insertadas'] = insertadas
+        report['completo'] = (report['solicitados'] + report['omitidos'] >= report['esperados']
+                              and report['sin_lineas'] == 0 and report['creditos'] is not None)
         print("\n" + "=" * 72)
         print(f"Lineas completas descargadas: {len(todas):,}")
         print(f"Capturas nuevas insertadas en MySQL: {insertadas:,}")
@@ -912,8 +970,13 @@ def main():
             print(f"Jugadores no relacionados ({len(no_resueltos)}): {muestra}")
         print("=" * 72)
     finally:
-        if conexion.is_connected():
-            conexion.close()
+        print('NFL_ODDS_REPORT='+json.dumps(report, ensure_ascii=False))
+        try:
+            if locked and conexion.is_connected():
+                capturas.liberar(conexion)
+        finally:
+            if conexion.is_connected():
+                conexion.close()
 
 
 if __name__ == "__main__":

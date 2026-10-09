@@ -25,7 +25,7 @@ jobs:
           mlb_totales.test_draftkings mlb_totales.test_fechas
           mlb_totales.test_integracion mlb_totales.test_pitcheo
           futbol_liga_mx.test_continuidad futbol_liga_mx.test_modelo
-          tests.test_integracion_deportes tests.test_observabilidad tests.test_actualizacion_manual tests.test_ui_picks tests.test_resumen tests.test_analitica_bankroll -v
+          tests.test_integracion_deportes tests.test_observabilidad tests.test_actualizacion_manual tests.test_ui_picks tests.test_resumen tests.test_analitica_bankroll tests.test_nfl_jornada -v
       - name: Probar presentación móvil y escritorio con datos de prueba
         run: |
           python -m pip install playwright
