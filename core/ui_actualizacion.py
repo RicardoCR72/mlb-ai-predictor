@@ -9,22 +9,33 @@ LABELS={'mlb':'Actualizar resultados MLB','nfl_totales':'Actualizar resultados d
         'bankroll':'Actualizar resultados y bankroll'}
 
 
-def render_update_button(service):
+def render_update_button(service, *, compact=False):
     from core.ui_movil import apply_mobile_layout
     apply_mobile_layout()
     key=f'actualizacion_manual_{service}'
     if st.button(LABELS[service],key=key,icon='🔄'):
-        with st.status('Actualizando resultados oficiales…',expanded=True) as status:
-            result=run_update(service,ROOT,on_step=lambda label:st.write(label))
+        with (st.spinner('Actualizando resultados oficiales…') if compact else
+              st.status('Actualizando resultados oficiales…',expanded=True)) as status:
+            result=run_update(service,ROOT,on_step=None if compact else lambda label:st.write(label))
             if result['busy']:
-                status.update(label='Ya hay una actualización de este servicio en curso.',state='error')
+                if compact:
+                    st.toast('Ya hay una actualización de este servicio en curso.',icon='⚠️')
+                else:
+                    status.update(label='Ya hay una actualización de este servicio en curso.',state='error')
             else:
                 st.session_state[key+'_result']=result
                 st.cache_data.clear()
                 st.session_state.pop('bankroll_predictions',None)
                 failures=sum(not item['ok'] for item in result['steps'])
-                status.update(label='Actualización completa.' if not failures else 'Actualización parcial: revisa el detalle.',
-                              state='complete' if not failures else 'error')
+                label='Actualización completa.' if not failures else 'Actualización parcial: revisa el detalle.'
+                if compact:
+                    st.toast(label,icon='✅' if not failures else '⚠️')
+                    if failures:
+                        st.error(' · '.join(item['detalle'] for item in result['steps'] if not item['ok']))
+                else:
+                    status.update(label=label,state='complete' if not failures else 'error')
+    if compact:
+        return
     result=st.session_state.get(key+'_result')
     if result:
         st.caption(f"Última actualización manual: {result['at'][:19].replace('T',' ')} · CDMX")

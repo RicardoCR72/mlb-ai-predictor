@@ -218,10 +218,13 @@ class ManualTests(unittest.TestCase):
         plan=dict(fecha='2099-01-01',eventos=[event('tnf','2099-01-02T00:20:00Z')],max_creditos=6,restantes=500,reserva=120)
         with patch('core.ui_nfl_creditos.consultar',return_value=plan),\
              patch('core.ui_nfl_creditos.run_predictions',return_value=dict(ok=True,detalle='Actualizadas',reporte=None)) as run:
-            at=AppTest.from_string('from core.ui_nfl_creditos import render_prediction_button\nrender_prediction_button()').run()
+            at=AppTest.from_string('from core.ui_actualizacion import render_update_button\nfrom core.ui_nfl_creditos import render_prediction_button\nrender_update_button("nfl_props",compact=True)\nrender_prediction_button()').run()
             self.assertFalse(at.exception);run.assert_not_called()
-            self.assertIn('6 créditos',at.button[0].label)
-            at.button[0].click().run()
+            self.assertEqual(len(at.button),2)
+            self.assertEqual(len(at.expander),0)
+            self.assertEqual(len(at.caption),0)
+            self.assertIn('6 créditos',at.button[1].label)
+            at.button[1].click().run()
             self.assertFalse(at.exception);run.assert_called_once()
             self.assertEqual(run.call_args.args[1]['eventos'][0]['id'],'tnf')
 

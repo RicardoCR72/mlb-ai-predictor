@@ -42,7 +42,7 @@ render_liga_matches(pd.DataFrame([dict(fecha='2099-10-10',inicio_utc='2099-10-11
 import core.ui_nfl_creditos as paid_ui
 paid_ui.consultar=lambda day: dict(fecha=day,eventos=[dict(id='demo',away_team='Arizona Cardinals',
  home_team='Seattle Seahawks',commence_time='2099-01-01T00:20:00Z')],max_creditos=6,restantes=500,reserva=120)
-paid_ui.run_predictions=lambda root,plan,on_step: dict(ok=True,detalle='Predicciones de prueba actualizadas',
+paid_ui.run_predictions=lambda root,plan: dict(ok=True,detalle='Predicciones de prueba actualizadas',
  reporte=dict(fecha=plan['fecha'],solicitados=1,creditos=6,restantes=494,insertadas=30))
 paid_ui.render_prediction_button()
 ''')
@@ -88,7 +88,7 @@ paid_ui.render_prediction_button()
                     assert page.locator('[data-testid="stDataFrame"]:visible').count()>=1
                     assert page.locator('[data-testid="stException"]').count()==0
                     paid_button.click()
-                    page.get_by_text('Predicciones de prueba actualizadas',exact=True).first.wait_for()
+                    page.get_by_text('Predicciones de prueba actualizadas · Consumo: 6 · Restantes: 494',exact=True).first.wait_for()
                     page.wait_for_function('document.body.scrollWidth <= innerWidth+2')
                     assert page.locator('[data-testid="stException"]').count()==0
                     browser.close()
