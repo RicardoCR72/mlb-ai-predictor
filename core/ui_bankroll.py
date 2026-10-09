@@ -59,16 +59,18 @@ def render_analytics(ledger, initial):
             st.download_button('Descargar exposición por encuentro',games.to_csv(index=False),'exposicion_bankroll.csv','text/csv',key='bank_exposure_csv')
 
 
-def render_history(frame):
+def render_history(frame, unit=100.0):
+    frame=bank.with_units(frame,unit)
     if frame.empty:
         st.info('No hay apuestas para los filtros seleccionados.');return
     view=st.radio('Vista del historial',['Tarjetas','Tabla'],horizontal=True,key='bank_history_view')
     if view=='Tabla':
         names={'fecha':'Fecha','deporte':'Deporte','partido':'Partido','seleccion':'Selección','casa':'Casa',
             'cuota':'Cuota decimal','monto':'Monto (MXN)','estado':'Estado','ganancia_neta':'Beneficio (MXN)',
-            'probabilidad':'Probabilidad','Mercado':'Mercado'}
+            'probabilidad':'Probabilidad','Mercado':'Mercado',
+            'Monto (u)':'Monto (u)','Beneficio (u)':'Beneficio (u)','Valor unidad (MXN)':'Valor unidad (MXN)'}
         table=frame[[col for col in names if col in frame]].rename(columns=names)
-        cols=st.multiselect('Columnas visibles',list(table.columns),default=['Fecha','Partido','Selección','Estado','Monto (MXN)'],key='bank_history_columns')
+        cols=st.multiselect('Columnas visibles',list(table.columns),default=['Fecha','Partido','Selección','Estado','Monto (MXN)','Monto (u)'],key='bank_history_columns')
         if cols: st.dataframe(table[cols],hide_index=True,use_container_width=True)
         else: st.info('Selecciona al menos una columna. La descarga conserva todos los datos del historial filtrado.')
         return
@@ -82,6 +84,6 @@ def render_history(frame):
             with col:
                 pick=dict(fecha=row['fecha'],deporte=row['deporte'],partido=row['partido'],seleccion=row['seleccion'],
                     casa=row['casa'],cuota=row['cuota'],probabilidad=row['probabilidad'],referencia=reference(row['referencia']))
-                profit='Pendiente' if row['estado']=='Pendiente' else f"${float(row['ganancia_neta']):+,.2f} MXN"
+                profit='Pendiente' if row['estado']=='Pendiente' else f"${float(row['ganancia_neta']):+,.2f} MXN · {float(row['Beneficio (u)']):+.2f} u"
                 render_pick(pick,market='Apuesta realizada',state=row['estado'],allow_register=False,
-                    details=[('Monto apostado',f"${float(row['monto']):,.2f} MXN"),('Beneficio',profit)])
+                    details=[('Monto apostado',f"${float(row['monto']):,.2f} MXN · {float(row['Monto (u)']):.2f} u"),('Beneficio',profit)])

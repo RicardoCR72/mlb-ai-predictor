@@ -215,6 +215,7 @@ class TestBankrollUI(unittest.TestCase):
         stack.enter_context(patch.object(bank, 'settle_pending', return_value=(0, [])))
         stack.enter_context(patch.object(bank, 'load_ledger', return_value=pd.DataFrame(columns=bank.COLUMNS)))
         stack.enter_context(patch.object(bank, 'capital', return_value=1000.0))
+        stack.enter_context(patch.object(bank, 'unit_value', return_value=100.0))
         stack.enter_context(patch.object(bank, 'export_bundle', return_value=b'zip'))
         stack.enter_context(patch.object(bank, 'load_audit', return_value=pd.DataFrame()))
         stack.enter_context(patch('streamlit.page_link'))
@@ -251,6 +252,25 @@ class TestBankrollUI(unittest.TestCase):
         self.assertEqual(params[4], 'OVER 40.5')
         self.assertEqual(params[10], .58)
         self.assertEqual(json.loads(params[12])['line'],40.5)
+
+    def test_unit_form_updates_display_without_writing_bets(self):
+        from streamlit.testing.v1 import AppTest
+        context, conn = self.context()
+        current = [100.0]
+        def unit_value(connection, value=None):
+            if value is not None: current[0] = value
+            return current[0]
+        with context, patch.object(bank, 'unit_value', side_effect=unit_value) as unit:
+            app = AppTest.from_file(str(ROOT/'pages/0_💼_Bankroll.py')).run(timeout=10)
+            self.assertFalse(app.exception)
+            next(w for w in app.number_input if w.label == 'Valor de 1 unidad (MXN)').set_value(250.0)
+            next(w for w in app.button if w.label == 'Guardar valor de la unidad').click().run(timeout=10)
+            self.assertFalse(app.exception)
+            unit.assert_any_call(conn, 250.0)
+            self.assertEqual(next(w for w in app.metric if w.label == 'Saldo').value, '$1,000.00 MXN')
+            self.assertEqual(next(w for w in app.metric if w.label == 'Saldo').delta, '4.00 u')
+            self.assertFalse(any(sql.startswith(('INSERT INTO bankroll_apuestas', 'UPDATE bankroll_apuestas'))
+                                 for sql, _ in conn.calls))
 
     def test_offline_keeps_calculator_without_saving(self):
         from streamlit.testing.v1 import AppTest

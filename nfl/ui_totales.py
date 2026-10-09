@@ -1,3 +1,4 @@
+from core.ui_unidades import render_model_equivalence
 from core.ui_picks import render_pick, nfl_pick
 from core.ui_filtros import performance_filters
 import html
@@ -790,6 +791,8 @@ if seccion_totales == "📈 Rendimiento":
             "ROI",
             formatear_porcentaje(roi),
         )
+
+        render_model_equivalence(len(liquidados), beneficio)
 
         comparacion = (liquidados.assign(
             unidades=pd.to_numeric(liquidados['beneficio_unidades'], errors='coerce').fillna(0))

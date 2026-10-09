@@ -1,3 +1,4 @@
+from core.ui_unidades import render_model_equivalence
 from core.ui_picks import render_pick
 from core.ui_filtros import performance_filters
 from core.ui_actualizacion import render_update_button
@@ -364,8 +365,8 @@ def mostrar_registro_auditoria(fila):
     pick = dict(fecha=fila['Fecha'], deporte='MLB', partido=fila['Partido'], seleccion=fila['Pick de la IA'],
         casa='DraftKings', cuota=float(fila['Cuota']), probabilidad=float(fila['Confianza (%)'])/100)
     render_pick(pick, market='Moneyline · Simulación', state=str(fila['Resultado']),
-        details=[('Stake simulado', f"${float(fila['Stake ($)']):,.0f}"),
-                 ('Profit simulado', f"${float(fila['Profit ($)']):+,.0f}")], allow_register=False)
+        details=[('Stake simulado', f"{float(fila['Stake (u)']):.2f} u"),
+                 ('Profit simulado', f"{float(fila['Profit (u)']):+.2f} u")], allow_register=False)
 
 
 # ==========================================================
@@ -876,7 +877,7 @@ if modelo is not None and (vista_mlb == "📈 Rendimiento" or not df.empty):
         st.subheader("Rendimiento histórico")
         st.caption(
             "Simulación basada en los picks y cuotas registrados antes "
-            "de cada partido."
+            "de cada partido, con una simulación de 1 unidad por pick."
         )
 
         columna_filtro, columna_ayuda = st.columns([1, 3], gap="medium")
@@ -975,9 +976,7 @@ if modelo is not None and (vista_mlb == "📈 Rendimiento" or not df.empty):
 
                 gano_local_real = df_pasado.loc[i, 'marcador_local'] > df_pasado.loc[i, 'marcador_visitante']
 
-                if confianza >= 70.0: apuesta = 300
-                elif confianza >= 65.0: apuesta = 200
-                else: apuesta = 100
+                apuesta = 1.0
 
                 if ia_pick_local == gano_local_real:
                     ganancia = (apuesta * float(cuota_favorito)) - apuesta
@@ -991,10 +990,10 @@ if modelo is not None and (vista_mlb == "📈 Rendimiento" or not df.empty):
                     "Partido": f"{local_api} vs {visita_api}",
                     "Pick de la IA": favorito,
                     "Confianza (%)": round(confianza, 1),
-                    "Stake ($)": apuesta,
+                    "Stake (u)": apuesta,
                     "Cuota": round(float(cuota_favorito), 2),
                     "Resultado": resultado_txt,
-                    "Profit ($)": round(ganancia, 2)
+                    "Profit (u)": round(ganancia, 2)
                 })
 
             df_todas = pd.DataFrame(registros_completos)
@@ -1011,8 +1010,8 @@ if modelo is not None and (vista_mlb == "📈 Rendimiento" or not df.empty):
                 for t in np.arange(50.0, 95.0, 0.5):
                     df_t = df_todas[df_todas['Confianza (%)'] >= t]
                     if len(df_t) >= 5: # Filtro de seguridad: mínimo 5 apuestas para que el % sea real
-                        inv = df_t['Stake ($)'].sum()
-                        gan = df_t['Profit ($)'].sum()
+                        inv = df_t['Stake (u)'].sum()
+                        gan = df_t['Profit (u)'].sum()
                         roi_t = (gan / inv) * 100 if inv > 0 else 0
                         mejores_escenarios.append({"Confianza Mínima": t, "ROI (%)": roi_t, "Apuestas Realizadas": len(df_t)})
                 
@@ -1035,20 +1034,21 @@ if modelo is not None and (vista_mlb == "📈 Rendimiento" or not df.empty):
             df_filtrado = df_todas[df_todas['Confianza (%)'] >= filtro_confianza]
 
             apuestas_realizadas = len(df_filtrado)
-            inversion_total = df_filtrado['Stake ($)'].sum() if apuestas_realizadas > 0 else 0
-            ganancia_neta = df_filtrado['Profit ($)'].sum() if apuestas_realizadas > 0 else 0
+            inversion_total = df_filtrado['Stake (u)'].sum() if apuestas_realizadas > 0 else 0
+            ganancia_neta = df_filtrado['Profit (u)'].sum() if apuestas_realizadas > 0 else 0
             roi = (ganancia_neta / inversion_total) * 100 if inversion_total > 0 else 0
 
             col1, col2, col3, col4 = st.columns(4)
             col1.metric("Apuestas Realizadas", f"{apuestas_realizadas} de {len(df_todas)}")
-            col2.metric("Inversión Simulada", f"${inversion_total:,.2f}")
-            col3.metric("Profit Neto", f"${ganancia_neta:,.2f}")
+            col2.metric("Unidades apostadas", f"{inversion_total:,.2f} u")
+            col3.metric("Beneficio simulado", f"{ganancia_neta:+,.2f} u")
             col4.metric("ROI", f"{roi:.2f}%")
+            render_model_equivalence(inversion_total, ganancia_neta)
 
-            st.subheader("Crecimiento del bankroll")
+            st.subheader("Beneficio acumulado del modelo (u)")
             if apuestas_realizadas > 0:
                 df_filtrado = df_filtrado.sort_values(by="Fecha").reset_index(drop=True)
-                historial_banco = [0] + df_filtrado['Profit ($)'].cumsum().tolist()
+                historial_banco = [0] + df_filtrado['Profit (u)'].cumsum().tolist()
                 st.area_chart(historial_banco, color="#b7ff3c")
             else:
                 st.markdown(

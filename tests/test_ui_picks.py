@@ -194,6 +194,7 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 from core.ui_picks import render_pick,nfl_pick
+from core.ui_unidades import render_model_equivalence
 from core.ui_filtros import performance_filters
 rows=[]
 for i,(week,pick,result,profit,p) in enumerate([(1,'OVER','GANADA',.9,.6),
@@ -254,6 +255,7 @@ import numpy as np
 from pathlib import Path
 from core.ui_filtros import performance_filters
 from core.ui_picks import render_pick
+from core.ui_unidades import render_model_equivalence
 from unittest.mock import patch
 RUTA_DATA_MLB = Path('.')
 def cargar_oraculo(): return object(), None, []
@@ -287,12 +289,14 @@ def normalizar_equipo(name): return name
         self.assertFalse(at.error)
         self.assertNotIn('consulto_hoy', at.session_state)
         self.assertEqual(at.metric[0].value, '2 de 2')
-        self.assertEqual(at.metric[2].value, '$70.00')
-        self.assertEqual(at.metric[3].value, '14.00%')
+        self.assertEqual(at.metric[1].value, '2.00 u')
+        self.assertEqual(at.metric[2].value, '-0.10 u')
+        self.assertEqual(at.metric[3].value, '-5.00%')
         cards = [m.value for m in at.markdown if '<div class="oracle-pick ' in m.value]
         self.assertEqual(len(cards), 2)
         self.assertTrue(any('A vs B' in card for card in cards))
         self.assertTrue(any('C vs D' in card for card in cards))
+        self.assertTrue(all('1.00 u' in card for card in cards))
         next(s for s in at.selectbox if s.label == 'Resultado').select('✅ Ganada').run()
         self.assertFalse(at.exception)
         self.assertEqual(at.metric[0].value, '1 de 1')

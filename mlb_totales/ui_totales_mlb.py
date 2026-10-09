@@ -1,3 +1,4 @@
+from core.ui_unidades import render_model_equivalence
 from core.ui_filtros import performance_filters
 """Panel de totales separado de moneyline; probabilidades V2 y snapshots previos."""
 from datetime import datetime,timezone,timedelta
@@ -140,6 +141,7 @@ def render_performance(connect):
         cols[3].metric('Acierto sin push',f"{summary['acierto']:.1f}%")
         st.caption(f"Ganadas {summary['ganadas']} · Perdidas {summary['perdidas']} · Push {summary['push']}. "
                    'Cuotas, probabilidades y EV originales de DraftKings.')
+        render_model_equivalence(summary['apuestas'], summary['unidades'])
         render_cards(frame,performance=True)
         if frame.empty:
             st.info('No hay registros de DraftKings que cumplan los filtros seleccionados.')
