@@ -9,7 +9,7 @@ PERIODS = ['Todo el historial','Hoy','Últimos 7 días','Este mes','Temporada','
 
 def filter_frame(frame, date_col, *, period='Todo el historial', today=None, start=None, end=None,
                  season_col=None, season=None, probability_col=None, probability_scale=1, minimum=0,
-                 market_col=None, market=None, result_col=None, result=None):
+                 market_col=None, market=None, result_col=None, result=None, week_col=None, week=None):
     result_frame = frame.copy()
     today = today or datetime.now(ZoneInfo('America/Mexico_City')).date()
     if period in ('Hoy','Últimos 7 días','Este mes','Rango personalizado'):
@@ -29,14 +29,15 @@ def filter_frame(frame, date_col, *, period='Todo el historial', today=None, sta
     if minimum > 0 and probability_col:
         p = pd.to_numeric(result_frame[probability_col], errors='coerce') * probability_scale
         result_frame = result_frame[p.ge(minimum) & p.le(100)]
-    for col, value in ((market_col,market),(result_col,result)):
+    for col, value in ((market_col,market),(result_col,result),(week_col,week)):
         if col and value is not None: result_frame = result_frame[result_frame[col].astype(str).eq(str(value))]
     return result_frame
 
 
 def performance_filters(frame, date_col, key, *, season_col=None, probability_col=None,
-                        probability_scale=1, market_col=None, result_col=None):
-    with st.expander('Filtros de rendimiento', expanded=False):
+                        probability_scale=1, market_col=None, result_col=None, week_col=None, expanded=False):
+    week = None
+    with st.expander('Filtros de rendimiento', expanded=expanded):
         period = st.selectbox('Periodo', PERIODS, key=key+'_period')
         start = end = season = None
         if period == 'Temporada':
@@ -55,6 +56,12 @@ def performance_filters(frame, date_col, key, *, season_col=None, probability_co
         minimum = 0
         if probability_col:
             minimum = st.slider('Confianza mínima (%)',0,100,0,key=key+'_confidence')
+        if week_col and week_col in frame:
+            weeks = sorted(frame[week_col].dropna().astype(str).unique(),
+                           key=lambda value: float(value), reverse=True)
+            choice = st.selectbox('Semana', ['Todas']+weeks, key=key+'_week',
+                format_func=lambda value: value if value=='Todas' else f'Semana {float(value):g}')
+            week = None if choice=='Todas' else choice
         selected = {}
         for kind,col,label in [('market',market_col,'Mercado'),('result',result_col,'Resultado')]:
             if col and col in frame:
@@ -63,6 +70,7 @@ def performance_filters(frame, date_col, key, *, season_col=None, probability_co
                 selected[kind] = None if choice=='Todos' else choice
     filtered = filter_frame(frame,date_col,period=period,start=start,end=end,season_col=season_col,season=season,
         probability_col=probability_col,probability_scale=probability_scale,minimum=minimum,
-        market_col=market_col,market=selected.get('market'),result_col=result_col,result=selected.get('result'))
+        market_col=market_col,market=selected.get('market'),result_col=result_col,result=selected.get('result'),
+        week_col=week_col,week=week)
     st.caption(f'Muestra filtrada: {len(filtered):,} registros. Fechas en CDMX; las métricas usan esta selección.')
     return filtered

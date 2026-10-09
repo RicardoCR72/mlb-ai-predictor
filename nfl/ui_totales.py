@@ -733,7 +733,8 @@ if seccion_totales == "📈 Rendimiento":
         )
     ].copy()
     liquidados = performance_filters(liquidados, 'gameday', 'nfl_total_perf', season_col='season',
-        probability_col='prob_pick', probability_scale=100, result_col='resultado_pick')
+        probability_col='prob_pick', probability_scale=100, market_col='pick',
+        result_col='resultado_pick', week_col='week', expanded=True)
     partidos_rendimiento = opciones_partidos(liquidados)
     partido_rendimiento = st.selectbox(
         "Partido",
@@ -747,9 +748,8 @@ if seccion_totales == "📈 Rendimiento":
 
     if liquidados.empty:
         st.markdown(
-            '<div class="total-empty-state">Todavía no existen picks '
-            'oficiales terminados. El panel se actualizará automáticamente '
-            'después de los partidos.</div>',
+            '<div class="total-empty-state">No hay picks oficiales liquidados '
+            'para los filtros seleccionados.</div>',
             unsafe_allow_html=True,
         )
     else:
@@ -790,6 +790,16 @@ if seccion_totales == "📈 Rendimiento":
             "ROI",
             formatear_porcentaje(roi),
         )
+
+        comparacion = (liquidados.assign(
+            unidades=pd.to_numeric(liquidados['beneficio_unidades'], errors='coerce').fillna(0))
+            .groupby('pick', as_index=False)
+            .agg(Picks=('id_prediccion','count'), Beneficio=('unidades','sum')))
+        comparacion['ROI (%)'] = comparacion['Beneficio'] / comparacion['Picks'] * 100
+        comparacion = comparacion.rename(columns={'pick':'Mercado','Beneficio':'Beneficio (u)'})
+        st.write('**Rentabilidad por mercado**')
+        st.dataframe(comparacion.sort_values('ROI (%)',ascending=False), hide_index=True, use_container_width=True)
+        st.caption('OVER y UNDER: simulación de 1 unidad por pick. La comparación usa todos los filtros activos, incluido Resultado.')
 
         semanal = (
             liquidados.assign(
