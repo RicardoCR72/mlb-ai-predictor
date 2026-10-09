@@ -1,5 +1,6 @@
 from datetime import date
 import ast
+import textwrap
 from pathlib import Path
 from unittest import TestCase
 from unittest.mock import Mock, patch
@@ -253,6 +254,7 @@ import numpy as np
 from pathlib import Path
 from core.ui_filtros import performance_filters
 from core.ui_picks import render_pick
+from unittest.mock import patch
 RUTA_DATA_MLB = Path('.')
 def cargar_oraculo(): return object(), None, []
 def cargar_datos_hoy():
@@ -274,9 +276,9 @@ def cargar_metricas_historico(): return pd.DataFrame()
 def cargar_lesiones_historico(): return pd.DataFrame()
 def cargar_pitchers_historico(): return pd.DataFrame()
 def normalizar_equipo(name): return name
-pd.read_csv = lambda *args, **kwargs: pd.DataFrame()
 '''+f'vista_mlb = {view!r}\n'+('' if historical else 'history = history.iloc[0:0]\n')
-        source += ast.unparse(ast.Module(body=helpers+tree.body[start:], type_ignores=[]))
+        source += 'with patch("pandas.read_csv", return_value=pd.DataFrame()):\n'
+        source += textwrap.indent(ast.unparse(ast.Module(body=helpers+tree.body[start:], type_ignores=[])), '    ')
         return AppTest.from_string(source).run()
 
     def test_history_renders_cards_and_metrics_without_querying_today(self):
