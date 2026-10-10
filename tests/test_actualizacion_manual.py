@@ -63,6 +63,8 @@ class TestManualUpdates(unittest.TestCase):
         root=ROOT/'futbol_liga_mx/data'
         frame=pd.read_csv(root/'partidos.csv');frame=frame[frame.season.eq('2026-27')]
         now=datetime(2026,10,6,13,tzinfo=ZoneInfo('UTC'))
+        # El CSV crece a diario: esta auditoría solo incluye el corte simulado.
+        frame=frame[pd.to_datetime(frame.fecha).dt.date.le(now.date())]
         class Frozen(datetime):
             @classmethod
             def now(cls,tz=None):return now.astimezone(tz) if tz else now.replace(tzinfo=None)
