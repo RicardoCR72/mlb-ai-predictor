@@ -1,6 +1,7 @@
+from core.ui_controles import state_message, roi_sample, render_order
 from core.ui_unidades import render_model_equivalence
 from core.ui_picks import render_pick, nfl_pick
-from core.ui_filtros import performance_filters
+from core.ui_filtros import performance_filters, safe_select
 import html
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -538,16 +539,11 @@ try:
     with st.spinner("Consultando predicciones en Aiven..."):
         historico = cargar_predicciones_mysql()
 except Exception as error:
-    st.error(
-        "No fue posible consultar las predicciones en MySQL."
-    )
-    st.code(str(error), language="text")
+    state_message("No fue posible consultar las predicciones NFL. Reintenta cuando vuelva la conexión.",kind="offline")
     st.stop()
 
 if historico.empty:
-    st.warning(
-        "La base de datos todavía no contiene predicciones NFL."
-    )
+    state_message('La base de datos todavía no contiene predicciones NFL.',kind='empty')
     st.stop()
 
 temporada = int(historico["season"].max())
@@ -631,6 +627,7 @@ resumen[3].metric(
     formatear_porcentaje(probabilidad_media),
 )
 resumen[4].metric("ROI histórico", formatear_porcentaje(roi_resumen))
+roi_sample(apuestas_roi_resumen)
 
 
 # ==========================================================
@@ -654,7 +651,7 @@ if seccion_totales == "🔥 Picks filtrados":
             "utilizarlos."
         )
         partidos_candidatos = opciones_partidos(picks)
-        partido_candidato = st.selectbox(
+        partido_candidato = safe_select(
             "Partido",
             list(partidos_candidatos),
             key="totales_partido_candidatos",
@@ -665,14 +662,10 @@ if seccion_totales == "🔥 Picks filtrados":
                 picks_mostrar["id_juego"] == partidos_candidatos[partido_candidato]
             ]
         if picks_mostrar.empty:
-            st.markdown(
-                '<div class="total-empty-state">No quedan picks pendientes '
-                'para ese partido en la semana actual.</div>',
-                unsafe_allow_html=True,
-            )
+            state_message('No quedan picks pendientes para ese partido en la semana actual.',kind='filters')
         else:
             filas_picks = list(
-                picks_mostrar.sort_values("ev", ascending=False).iterrows()
+                render_order(picks_mostrar, 'nfl_total_picks',date_col='gameday',confidence_col='prob_pick',ev_col='ev',upcoming=True).iterrows()
             )
             for inicio in range(0, len(filas_picks), 2):
                 columnas = st.columns(2, gap="medium")
@@ -735,9 +728,10 @@ if seccion_totales == "📈 Rendimiento":
     ].copy()
     liquidados = performance_filters(liquidados, 'gameday', 'nfl_total_perf', season_col='season',
         probability_col='prob_pick', probability_scale=100, market_col='pick',
-        result_col='resultado_pick', week_col='week', expanded=True)
+        result_col='resultado_pick', week_col='week', expanded=True,
+        extra_keys={'partido':'totales_partido_rendimiento'})
     partidos_rendimiento = opciones_partidos(liquidados)
-    partido_rendimiento = st.selectbox(
+    partido_rendimiento = safe_select(
         "Partido",
         list(partidos_rendimiento),
         key="totales_partido_rendimiento",
@@ -748,11 +742,7 @@ if seccion_totales == "📈 Rendimiento":
         ]
 
     if liquidados.empty:
-        st.markdown(
-            '<div class="total-empty-state">No hay picks oficiales liquidados '
-            'para los filtros seleccionados.</div>',
-            unsafe_allow_html=True,
-        )
+        state_message('No hay picks oficiales liquidados para los filtros seleccionados.',kind='filters')
     else:
         st.download_button('Descargar rendimiento filtrado', liquidados.to_csv(index=False), 'nfl_totales_rendimiento.csv', 'text/csv', key='totals_perf_csv')
         ganadas = int(
@@ -772,7 +762,8 @@ if seccion_totales == "📈 Rendimiento":
             liquidados["beneficio_unidades"],
             errors="coerce",
         ).fillna(0).sum()
-        roi = beneficio / len(liquidados)
+        muestra_roi=int(pd.to_numeric(liquidados['beneficio_unidades'],errors='coerce').notna().sum())
+        roi = beneficio / muestra_roi if muestra_roi else np.nan
 
         metricas = st.columns(4)
         metricas[0].metric(
@@ -792,13 +783,14 @@ if seccion_totales == "📈 Rendimiento":
             formatear_porcentaje(roi),
         )
 
-        render_model_equivalence(len(liquidados), beneficio)
+        roi_sample(muestra_roi)
+        render_model_equivalence(muestra_roi, beneficio)
 
         comparacion = (liquidados.assign(
-            unidades=pd.to_numeric(liquidados['beneficio_unidades'], errors='coerce').fillna(0))
+            unidades=pd.to_numeric(liquidados['beneficio_unidades'], errors='coerce'))
             .groupby('pick', as_index=False)
-            .agg(Picks=('id_prediccion','count'), Beneficio=('unidades','sum')))
-        comparacion['ROI (%)'] = comparacion['Beneficio'] / comparacion['Picks'] * 100
+            .agg(Picks=('id_prediccion','count'), Muestra_ROI=('unidades','count'), Beneficio=('unidades','sum')))
+        comparacion['ROI (%)'] = comparacion['Beneficio'] / comparacion['Muestra_ROI'].replace(0,np.nan) * 100
         comparacion = comparacion.rename(columns={'pick':'Mercado','Beneficio':'Beneficio (u)'})
         st.write('**Rentabilidad por mercado**')
         st.dataframe(comparacion.sort_values('ROI (%)',ascending=False), hide_index=True, use_container_width=True)
@@ -818,7 +810,7 @@ if seccion_totales == "📈 Rendimiento":
                 unidades=pd.to_numeric(
                     liquidados["beneficio_unidades"],
                     errors="coerce",
-                ).fillna(0),
+                ),
             )
             .groupby(["season", "week"], as_index=False)
             .agg(
@@ -827,6 +819,7 @@ if seccion_totales == "📈 Rendimiento":
                 perdidas=("perdida", "sum"),
                 pushes=("push", "sum"),
                 unidades=("unidades", "sum"),
+                muestra_roi=("unidades", "count"),
             )
         )
         semanal["acierto_pct"] = (
@@ -835,13 +828,14 @@ if seccion_totales == "📈 Rendimiento":
             * 100
         )
         semanal["roi_pct"] = (
-            semanal["unidades"] / semanal["picks"] * 100
+            semanal["unidades"] / semanal["muestra_roi"].replace(0,np.nan) * 100
         )
         semanal = semanal.rename(
             columns={
                 "season": "Temporada",
                 "week": "Semana",
                 "picks": "Picks",
+                "muestra_roi": "Muestra ROI",
                 "ganadas": "Ganadas",
                 "perdidas": "Perdidas",
                 "pushes": "Push",
@@ -878,7 +872,7 @@ if seccion_totales == "📈 Rendimiento":
 
         st.subheader("Historial liquidado")
         filas_resultados = list(
-            liquidados.sort_values("gameday", ascending=False)
+            render_order(liquidados, 'nfl_total_perf',date_col='gameday',confidence_col='prob_pick',profit_col='beneficio_unidades')
             .head(20)
             .iterrows()
         )

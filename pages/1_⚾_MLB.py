@@ -1,3 +1,4 @@
+from core.ui_controles import state_message, roi_sample, render_order
 from core.ui_unidades import render_model_equivalence
 from core.ui_picks import render_pick
 from core.ui_filtros import performance_filters
@@ -366,7 +367,8 @@ def mostrar_registro_auditoria(fila):
         casa='DraftKings', cuota=float(fila['Cuota']), probabilidad=float(fila['Confianza (%)'])/100)
     render_pick(pick, market='Moneyline · Simulación', state=str(fila['Resultado']),
         details=[('Stake simulado', f"{float(fila['Stake (u)']):.2f} u"),
-                 ('Profit simulado', f"{float(fila['Profit (u)']):+.2f} u")], allow_register=False)
+                 ('Profit simulado', f"{float(fila['Profit (u)']):+.2f} u"),
+                 ('Procedencia', fila.get('Procedencia', 'Hora no verificable'))], allow_register=False)
 
 
 # ==========================================================
@@ -393,7 +395,7 @@ def cargar_oraculo():
 
         return modelo, scaler, columnas_v4
     except Exception as e:
-        st.error(f"Error cargando la IA V4.0: {e}")
+        state_message("El modelo MLB no está disponible. Revisa sus archivos y vuelve a intentarlo.",kind="offline")
         return None, None, None
 
 def conectar_bd():
@@ -809,7 +811,7 @@ if modelo is not None and (vista_mlb == "📈 Rendimiento" or not df.empty):
 
         df_resultados = pd.DataFrame(resultados)
         if df_resultados.empty:
-            st.warning("📭 No se pudo generar ningún pick hoy.")
+            state_message("No se pudo generar ningún pick hoy. Revisa los datos disponibles.",kind="blocked")
             st.stop()
 
         df_resultados = df_resultados.sort_values(by="Confianza (%)", ascending=False).reset_index(drop=True)
@@ -856,6 +858,7 @@ if modelo is not None and (vista_mlb == "📈 Rendimiento" or not df.empty):
                 "pronósticos de mayor confianza."
             )
         df_filtrado = df_resultados[df_resultados['Confianza (%)'] >= filtro_hoy]
+        df_filtrado = render_order(df_filtrado, 'mlb_ml_picks', date_col='Fecha',confidence_col='Confianza (%)',upcoming=True)
 
         if not df_filtrado.empty:
             filas_picks = list(df_filtrado.iterrows())
@@ -867,17 +870,13 @@ if modelo is not None and (vista_mlb == "📈 Rendimiento" or not df.empty):
                     with columna:
                         mostrar_pick_mlb(fila)
         else:
-            st.markdown(
-                '<div class="mlb-empty">No hay pronósticos que superen '
-                'el filtro de confianza seleccionado.</div>',
-                unsafe_allow_html=True,
-            )
+            state_message('No hay pronósticos que superen el filtro de confianza seleccionado.',kind='filters')
 
     if vista_mlb == "📈 Rendimiento":
         st.subheader("Rendimiento histórico")
         st.caption(
-            "Simulación basada en los picks y cuotas registrados antes "
-            "de cada partido, con una simulación de 1 unidad por pick."
+            "Simulación de 1 unidad por pick. Se distingue lo guardado de las "
+            "reconstrucciones históricas; los registros antiguos no verifican la hora de publicación."
         )
 
         columna_filtro, columna_ayuda = st.columns([1, 3], gap="medium")
@@ -993,15 +992,17 @@ if modelo is not None and (vista_mlb == "📈 Rendimiento" or not df.empty):
                     "Stake (u)": apuesta,
                     "Cuota": round(float(cuota_favorito), 2),
                     "Resultado": resultado_txt,
-                    "Profit (u)": round(ganancia, 2)
+                    "Profit (u)": round(ganancia, 2),
+                    "Procedencia": "Guardado · hora no verificable" if confianza_registrada is not None else "Reconstruido"
                 })
 
             df_todas = pd.DataFrame(registros_completos)
             df_todas['Fecha'] = pd.to_datetime(df_todas['Fecha'])
             df_todas['Temporada'] = df_todas['Fecha'].dt.year
-            df_todas = performance_filters(df_todas, 'Fecha', 'mlb_ml_perf', season_col='Temporada', result_col='Resultado')
+            df_todas = performance_filters(df_todas, 'Fecha', 'mlb_ml_perf', season_col='Temporada', result_col='Resultado', provenance_col='Procedencia',
+                extra_keys={'confidence_moneyline':'filtro_confianza_roi'})
             if df_todas.empty:
-                st.info('No hay registros para los filtros seleccionados.'); st.stop()
+                state_message('No hay registros para los filtros seleccionados.',kind='filters'); st.stop()
 
             # 2. 🔥 LA MAGIA: EL ESCÁNER DE ROI ÓPTIMO
             if st.button("🔍 Encontrar mejor umbral de ROI"):
@@ -1043,6 +1044,7 @@ if modelo is not None and (vista_mlb == "📈 Rendimiento" or not df.empty):
             col2.metric("Unidades apostadas", f"{inversion_total:,.2f} u")
             col3.metric("Beneficio simulado", f"{ganancia_neta:+,.2f} u")
             col4.metric("ROI", f"{roi:.2f}%")
+            roi_sample(apuestas_realizadas)
             render_model_equivalence(inversion_total, ganancia_neta)
 
             st.subheader("Beneficio acumulado del modelo (u)")
@@ -1051,11 +1053,7 @@ if modelo is not None and (vista_mlb == "📈 Rendimiento" or not df.empty):
                 historial_banco = [0] + df_filtrado['Profit (u)'].cumsum().tolist()
                 st.area_chart(historial_banco, color="#b7ff3c")
             else:
-                st.markdown(
-                    '<div class="mlb-empty">Ningún partido histórico '
-                    'alcanzó esa confianza.</div>',
-                    unsafe_allow_html=True,
-                )
+                state_message('Ningún partido histórico alcanzó esa confianza.',kind='empty')
 
             st.subheader("Libro de auditoría")
             st.caption("Detalle de las apuestas incluidas en el cálculo.")
@@ -1071,7 +1069,8 @@ if modelo is not None and (vista_mlb == "📈 Rendimiento" or not df.empty):
                 controles_auditoria = st.columns([1,1,1,2])
                 with controles_auditoria[0]:
                     limite_auditoria = st.selectbox('Registros a mostrar', [10,20,50,'Todos'], index=1, key='limite_auditoria_mlb')
-                auditoria_filtrada = df_filtrado.sort_values('Fecha', ascending=False).reset_index(drop=True)
+                auditoria_filtrada = render_order(df_filtrado, 'mlb_ml_perf', date_col='Fecha',
+                    confidence_col='Confianza (%)', profit_col='Profit (u)').reset_index(drop=True)
                 umbral_auditoria = float(filtro_confianza)
                 st.caption('Las tarjetas y la descarga usan la misma muestra que el ROI. El límite solo cambia las tarjetas visibles.')
 
@@ -1101,11 +1100,7 @@ if modelo is not None and (vista_mlb == "📈 Rendimiento" or not df.empty):
 
                 filas_auditoria = list(auditoria_visible.iterrows())
                 if not filas_auditoria:
-                    st.markdown(
-                        '<div class="mlb-empty">No existen partidos que '
-                        'coincidan con los filtros seleccionados.</div>',
-                        unsafe_allow_html=True,
-                    )
+                    state_message('No existen partidos que coincidan con los filtros seleccionados.',kind='filters')
                 else:
                     for inicio in range(0, len(filas_auditoria), 2):
                         columnas_auditoria = st.columns(2, gap="medium")
@@ -1116,15 +1111,10 @@ if modelo is not None and (vista_mlb == "📈 Rendimiento" or not df.empty):
                             with columna:
                                 mostrar_registro_auditoria(fila)
         else:
-            st.info("⏳ Aún no hay partidos terminados en la base de datos para generar el ROI histórico.")
+            state_message("Aún no hay partidos terminados en la base de datos para generar el ROI histórico.")
 else:
     if vista_mlb == "⚾ Picks de hoy" and df.empty:
-        st.markdown(
-            '<div class="mlb-empty">No hay juegos pendientes con cuotas '
-            'disponibles para hoy. Puedes consultar los partidos anteriores '
-            'en Rendimiento.</div>',
-            unsafe_allow_html=True,
-        )
+        state_message('No hay juegos pendientes con cuotas disponibles para hoy. Puedes consultar los partidos anteriores en Rendimiento.',kind='empty')
     elif modelo is None:
-        st.error("🚨 ERROR DE IA: Faltan archivos de la V4.0.")
+        state_message("El modelo MLB no está disponible. Revisa sus archivos de datos y vuelve a intentarlo.",kind="offline")
 

@@ -401,6 +401,6 @@ st.markdown(
 
 with st.sidebar:
     st.markdown("### Oráculo Sports AI")
-    st.caption("Selecciona MLB, NFL, Liga MX o Bankroll desde el menú de esta barra.")
+    st.caption("Selecciona MLB, NFL, Liga MX, Comparador o Bankroll desde el menú de esta barra.")
     st.markdown("---")
     st.caption("Modelos, mercado, lesiones y rendimiento en un solo sistema.")

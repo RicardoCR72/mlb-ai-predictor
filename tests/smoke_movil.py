@@ -25,6 +25,8 @@ from core.ui_movil import apply_mobile_layout
 from core.ui_filtros import performance_filters
 from core.ui_picks import render_liga_matches
 import pandas as pd
+import core.ui_comparador as comparator_ui
+from core.comparador import normalize
 st.set_page_config(layout='wide')
 apply_mobile_layout()
 ledger=AnalyticsTests().ledger()
@@ -45,6 +47,11 @@ paid_ui.consultar=lambda day: dict(fecha=day,eventos=[dict(id='demo',away_team='
 paid_ui.run_predictions=lambda root,plan: dict(ok=True,detalle='Predicciones de prueba actualizadas',
  reporte=dict(fecha=plan['fecha'],solicitados=1,creditos=6,restantes=494,insertadas=30))
 paid_ui.render_prediction_button()
+comparison_data=normalize(pd.DataFrame([dict(id=str(i),fecha='2026-10-01',modelo='v1',resultado=result,
+ probabilidad=.6,cuota=1.9) for i,result in enumerate(['GANADA','PERDIDA','PUSH'])]),
+ sport='MLB',market='Moneyline',identity=['id'])
+comparator_ui.load_comparison=lambda:(comparison_data,[])
+comparator_ui.render_comparison()
 ''')
         with socket.socket() as sock:
             sock.bind(('127.0.0.1',0));port=sock.getsockname()[1]
@@ -82,6 +89,8 @@ paid_ui.render_prediction_button()
                     page.wait_for_function('document.body.scrollWidth <= innerWidth+2')
                     page.wait_for_function("(()=>{const c=document.querySelectorAll('.oracle-pick');return c.length>1 && Math.abs(c[0].getBoundingClientRect().y-c[1].getBoundingClientRect().y)<2})()")
                     page.set_viewport_size({'width':390,'height':844})
+                    page.get_by_text('Comparador de rendimiento',exact=True).wait_for()
+                    assert page.get_by_text('Mínimo de picks con beneficio conocido',exact=True).count()==1
                     page.get_by_text('Tabla',exact=True).click()
                     page.get_by_text('Columnas visibles',exact=True).wait_for()
                     page.wait_for_function('document.body.scrollWidth <= innerWidth+2')

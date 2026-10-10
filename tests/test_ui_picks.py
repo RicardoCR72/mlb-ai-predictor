@@ -168,7 +168,7 @@ class FilterTests(TestCase):
         at=AppTest.from_string('''
 import pandas as pd
 import streamlit as st
-from core.ui_filtros import performance_filters
+from core.ui_filtros import performance_filters,safe_select
 frame=pd.DataFrame(dict(fecha=['2026-10-01','2026-10-02'],prob=[.55,.7],estado=['Ganada','Perdida']))
 filtered=performance_filters(frame,'fecha','test',probability_col='prob',probability_scale=100,result_col='estado')
 st.metric('Muestra',len(filtered))
@@ -195,7 +195,8 @@ import pandas as pd
 import streamlit as st
 from core.ui_picks import render_pick,nfl_pick
 from core.ui_unidades import render_model_equivalence
-from core.ui_filtros import performance_filters
+from core.ui_controles import state_message,roi_sample,render_order
+from core.ui_filtros import performance_filters,safe_select
 rows=[]
 for i,(week,pick,result,profit,p) in enumerate([(1,'OVER','GANADA',.9,.6),
  (1,'UNDER','PERDIDA',-1,.61),(2,'UNDER','GANADA',1.2,.7),(2,'OVER','PUSH',0,.55)]):
@@ -213,7 +214,7 @@ st.session_state['visible_ids']=liquidados.id_juego.tolist()
     def test_real_totals_filters_update_metrics_market_comparison_and_cards(self):
         at=self.app()
         self.assertFalse(at.exception)
-        self.assertTrue(at.expander[0].proto.expanded)
+        self.assertTrue(next(e for e in at.expander if e.label=='Filtros de rendimiento').proto.expanded)
         def select(label,value):
             next(s for s in at.selectbox if s.label==label).select(value).run()
             self.assertFalse(at.exception)
@@ -240,7 +241,7 @@ st.session_state['visible_ids']=liquidados.id_juego.tolist()
 
 
 class MLBHistoryVisibilityTests(TestCase):
-    def app(self, view, historical=True):
+    def app(self, view, historical=True, reconstructed=False):
         root = Path(__file__).resolve().parents[1]
         tree = ast.parse((root/'pages/1_⚾_MLB.py').read_text())
         helpers = [node for node in tree.body if isinstance(node, ast.FunctionDef)
@@ -253,12 +254,25 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 from pathlib import Path
-from core.ui_filtros import performance_filters
+from core.ui_filtros import performance_filters,safe_select
 from core.ui_picks import render_pick
 from core.ui_unidades import render_model_equivalence
+from core.ui_controles import state_message,roi_sample,render_order
 from unittest.mock import patch
 RUTA_DATA_MLB = Path('.')
-def cargar_oraculo(): return object(), None, []
+class Model:
+    def predict(self,frame,verbose=0):return np.array([[.7]])
+class Scaler:
+    def transform(self,frame):return frame
+def cargar_oraculo(): return Model(), Scaler(), []
+ZONAS_HORARIAS={}
+def obtener_estado_actual(*args,**kwargs):return .5,0,3,.5,'A'
+def obtener_metricas_avanzadas_fecha(*args):return .7,.7,4.5
+def limpiar_cuotas_v4(*args):return .5,.5
+def _fila_mas_reciente(*args):return None
+def aplicar_filtro_medico(favorito,confianza,*args):return confianza
+def aplicar_filtro_pitchers(favorito,confianza,*args):return confianza,'TBD','TBD'
+
 def cargar_datos_hoy():
     st.session_state['consulto_hoy'] = True
     return pd.DataFrame()
@@ -278,7 +292,7 @@ def cargar_metricas_historico(): return pd.DataFrame()
 def cargar_lesiones_historico(): return pd.DataFrame()
 def cargar_pitchers_historico(): return pd.DataFrame()
 def normalizar_equipo(name): return name
-'''+f'vista_mlb = {view!r}\n'+('' if historical else 'history = history.iloc[0:0]\n')
+'''+f'vista_mlb = {view!r}\n'+('' if historical else 'history = history.iloc[0:0]\n')+('registered=registered.iloc[[0]]\n' if reconstructed else '')
         source += 'with patch("pandas.read_csv", return_value=pd.DataFrame()):\n'
         source += textwrap.indent(ast.unparse(ast.Module(body=helpers+tree.body[start:], type_ignores=[])), '    ')
         return AppTest.from_string(source).run()
@@ -308,7 +322,7 @@ def normalizar_equipo(name): return name
         self.assertFalse(at.error)
         self.assertTrue(at.session_state['consulto_hoy'])
         notice = next(m.value for m in at.markdown if 'No hay juegos pendientes' in m.value)
-        self.assertIn('class="mlb-empty"', notice)
+        self.assertIn('class="oracle-state"', notice)
         self.assertIn('Rendimiento', notice)
         self.assertNotIn('XAMPP', notice)
 
@@ -316,5 +330,19 @@ def normalizar_equipo(name): return name
         at = self.app('📈 Rendimiento', historical=False)
         self.assertFalse(at.exception)
         self.assertFalse(at.error)
-        self.assertTrue(any('Aún no hay partidos terminados' in item.value for item in at.info))
+        self.assertTrue(any('Aún no hay partidos terminados' in item.value for item in at.markdown))
         self.assertFalse(any('No hay juegos pendientes' in item.value for item in at.markdown))
+
+
+    def test_reconstructed_and_saved_picks_are_visible_and_filterable_separately(self):
+        at=self.app('📈 Rendimiento',reconstructed=True)
+        self.assertFalse(at.exception)
+        cards=[m.value for m in at.markdown if '<div class="oracle-pick ' in m.value]
+        self.assertTrue(any('Reconstruido' in card for card in cards))
+        self.assertTrue(any('Guardado · hora no verificable' in card for card in cards))
+        next(w for w in at.selectbox if w.label=='Procedencia').select('Reconstruido').run()
+        self.assertFalse(at.exception)
+        self.assertEqual(at.metric[0].value,'1 de 1')
+        cards=[m.value for m in at.markdown if '<div class="oracle-pick ' in m.value]
+        self.assertEqual(len(cards),1)
+        self.assertIn('Reconstruido',cards[0])

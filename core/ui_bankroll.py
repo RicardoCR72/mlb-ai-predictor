@@ -4,6 +4,7 @@ import streamlit as st
 from core import bankroll as bank
 from core.analitica_bankroll import balance_curve,exposure,reference
 from core.ui_picks import render_pick
+from core.ui_controles import state_message, render_order
 
 
 def render_analytics(ledger, initial):
@@ -13,7 +14,7 @@ def render_analytics(ledger, initial):
         st.markdown('### Evolución del saldo')
         curve=balance_curve(ledger,initial)
         if curve.empty:
-            st.info('Todavía no hay apuestas liquidadas para construir la curva del saldo.')
+            state_message('Todavía no hay apuestas liquidadas para construir la curva del saldo.',kind='empty')
         else:
             cols=st.columns(3)
             cols[0].metric('Saldo reconstruido final',f"${curve.iloc[-1]['Saldo']:,.2f} MXN")
@@ -37,7 +38,7 @@ def render_analytics(ledger, initial):
         cols[1].metric('Pendiente respecto al saldo',f'{percent:.1f}%' if percent is not None else 'No calculable')
         cols[2].metric('Disponible para nuevas apuestas',f"${stats['disponible']:,.2f} MXN")
         if sports.empty:
-            st.info('No tienes apuestas pendientes.')
+            state_message('No tienes apuestas pendientes.')
             return
         st.bar_chart(sports.set_index('Deporte')[['Comprometido (MXN)']],horizontal=True,color='#b7ff3c',use_container_width=True)
         st.caption('Porcentajes de concentración calculados sobre el total pendiente. La exposición usa toda la banca, independientemente de los filtros de rendimiento.')
@@ -62,7 +63,8 @@ def render_analytics(ledger, initial):
 def render_history(frame, unit=100.0):
     frame=bank.with_units(frame,unit)
     if frame.empty:
-        st.info('No hay apuestas para los filtros seleccionados.');return
+        state_message('No hay apuestas para los filtros seleccionados.',kind='filters');return
+    frame=render_order(frame,'bankroll_perf',date_col='fecha',confidence_col='probabilidad',profit_col='ganancia_neta')
     view=st.radio('Vista del historial',['Tarjetas','Tabla'],horizontal=True,key='bank_history_view')
     if view=='Tabla':
         names={'fecha':'Fecha','deporte':'Deporte','partido':'Partido','seleccion':'Selección','casa':'Casa',
@@ -75,7 +77,7 @@ def render_history(frame, unit=100.0):
         else: st.info('Selecciona al menos una columna. La descarga conserva todos los datos del historial filtrado.')
         return
     limit=st.selectbox('Apuestas a mostrar',[10,20,50,'Todos'],index=1,key='bank_history_limit')
-    sorted_frame=frame.sort_values('fecha',ascending=False,kind='stable')
+    sorted_frame=frame
     visible=sorted_frame if limit=='Todos' else sorted_frame.head(int(limit))
     st.caption(f'{len(visible)} de {len(frame)} apuestas. El límite no cambia métricas ni descargas.')
     for start in range(0,len(visible),2):

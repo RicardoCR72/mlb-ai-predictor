@@ -277,7 +277,7 @@ class TestBankrollUI(unittest.TestCase):
         with patch('core.db.get_db_connection', side_effect=RuntimeError('offline')):
             app = AppTest.from_file(str(ROOT/'pages/0_💼_Bankroll.py')).run(timeout=10)
         self.assertEqual(len(app.exception), 0)
-        self.assertTrue(any('MySQL' in warning.value for warning in app.warning))
+        self.assertTrue(any('MySQL' in message.value for message in app.markdown))
 
 
 if __name__=='__main__': unittest.main()

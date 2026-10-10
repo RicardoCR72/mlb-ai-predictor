@@ -130,8 +130,8 @@ render_history(AnalyticsTests().ledger(),250)
         self.assertFalse(at.exception)
         table=at.dataframe[-1].value
         self.assertIn('Monto (u)',table)
-        self.assertEqual(table['Monto (MXN)'].tolist(),[100,300,100,200,900])
-        self.assertEqual(table['Monto (u)'].tolist(),[.4,1.2,.4,.8,3.6])
+        self.assertEqual(table['Monto (MXN)'].tolist(),[900,200,100,300,100])
+        self.assertEqual(table['Monto (u)'].tolist(),[3.6,.8,.4,1.2,.4])
 
     def test_model_equivalence_uses_shared_value_and_does_not_invent_offline_amounts(self):
         from unittest.mock import patch
