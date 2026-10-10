@@ -99,9 +99,9 @@ with patch('core.ui_resumen.snapshot',return_value=home_data),patch('streamlit.p
                     preview=page.locator('.agenda-match:visible')
                     preview.first.wait_for(timeout=30000)
                     assert preview.count()==5
-                    page.get_by_role('radio',name='10 partidos',exact=True).click()
+                    page.locator('.st-key-home_agenda_controls').get_by_text('10 partidos',exact=True).click()
                     page.wait_for_function("document.querySelectorAll('.st-key-home_calendar_full').length>0 && [...document.querySelectorAll('.agenda-match')].filter(e=>e.getClientRects().length).length===10")
-                    page.get_by_role('radio',name='Todos',exact=True).click()
+                    page.locator('.st-key-home_agenda_controls').get_by_text('Todos',exact=True).click()
                     page.wait_for_function("[...document.querySelectorAll('.agenda-match')].filter(e=>e.getClientRects().length).length===12")
                     page.get_by_text('Ver calendario completo',exact=True).click()
                     page.locator('.st-key-home_calendar_full .agenda-day').first.wait_for()
