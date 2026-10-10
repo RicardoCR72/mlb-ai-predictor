@@ -60,7 +60,10 @@ from unittest.mock import patch
 from tests.test_resumen import SummaryTests
 from core.ui_resumen import render_home
 real_page_link=st.page_link
-with patch('core.ui_resumen.snapshot',return_value=SummaryTests().fixture()),patch('streamlit.page_link',
+home_data=SummaryTests().fixture()
+home_data['services']['liga_mx']['games']=[dict(Fecha=f'2026-10-{6+i//2:02}',Horario='22:00 CDMX',
+ Partido=f'Visitante de nombre largo {i} @ Equipo local {i}') for i in range(12)]
+with patch('core.ui_resumen.snapshot',return_value=home_data),patch('streamlit.page_link',
     side_effect=lambda page,**kwargs:real_page_link('https://github.com/RicardoCR72/mlb-ai-predictor',**kwargs)):
     render_home()
 ''')
@@ -93,6 +96,22 @@ with patch('core.ui_resumen.snapshot',return_value=SummaryTests().fixture()),pat
                     assert len(styles)>=13,styles
                     assert all(s['border']=='rgb(183, 255, 60)' and s['width']=='1px' and s['radius']=='9px' and s['color']=='rgb(183, 255, 60)' for s in styles),styles
                     page.get_by_text('Tus deportes',exact=True).wait_for(timeout=30000)
+                    preview=page.locator('.agenda-match:visible')
+                    preview.first.wait_for(timeout=30000)
+                    assert preview.count()==5
+                    page.locator('.st-key-home_agenda_controls').get_by_text('10 partidos',exact=True).click()
+                    page.get_by_text('10 de 12 partidos · próximos siete días.',exact=True).wait_for(timeout=30000)
+                    assert preview.count()==10
+                    page.locator('.st-key-home_agenda_controls').get_by_text('Todos',exact=True).click()
+                    page.get_by_text('12 de 12 partidos · próximos siete días.',exact=True).wait_for(timeout=30000)
+                    assert preview.count()==12
+                    page.get_by_text('Ver calendario completo',exact=True).click()
+                    page.locator('.st-key-home_calendar_full .agenda-day').first.wait_for()
+                    assert page.locator('.st-key-home_calendar_full .agenda-match:visible').count()==12
+                    page.get_by_text('Detalle de disponibilidad',exact=True).click()
+                    page.locator('.availability-card').first.wait_for()
+                    assert page.locator('.availability-card:visible').count()==5
+                    page.wait_for_function('document.body.scrollWidth <= innerWidth+2')
                     assert page.get_by_text('Captura de cuota: Hora no disponible',exact=True).count()>=9
                     details=page.locator('.oracle-details').first
                     assert not details.evaluate('(e)=>e.open')
