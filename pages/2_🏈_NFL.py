@@ -259,14 +259,18 @@ vista = st.radio(
     "Sección NFL",
     ["🏈 Totales", "📊 Props de jugadores"],
     horizontal=True,
+    format_func=lambda value: value.lstrip("🏈📊 "),
     label_visibility="collapsed",
     key="nfl_vista_principal",
 )
 
 raiz = Path(__file__).resolve().parents[1]
 
-render_update_button("nfl_totales" if vista == "🏈 Totales" else "nfl_props", compact=True)
-render_prediction_button()
+result_action,prediction_action=st.columns(2)
+with result_action:
+    render_update_button("nfl_totales" if vista == "🏈 Totales" else "nfl_props", compact=True)
+with prediction_action:
+    render_prediction_button()
 
 if vista == "🏈 Totales":
     st.markdown(

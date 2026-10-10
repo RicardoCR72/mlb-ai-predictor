@@ -196,6 +196,7 @@ import streamlit as st
 from core.ui_picks import render_pick,nfl_pick
 from core.ui_unidades import render_model_equivalence
 from core.ui_controles import state_message,roi_sample,render_order
+from core.graficas_rendimiento import render_performance_charts
 from core.ui_filtros import performance_filters,safe_select
 rows=[]
 for i,(week,pick,result,profit,p) in enumerate([(1,'OVER','GANADA',.9,.6),
@@ -258,6 +259,7 @@ from core.ui_filtros import performance_filters,safe_select
 from core.ui_picks import render_pick
 from core.ui_unidades import render_model_equivalence
 from core.ui_controles import state_message,roi_sample,render_order
+from core.graficas_rendimiento import render_performance_charts
 from unittest.mock import patch
 RUTA_DATA_MLB = Path('.')
 class Model:

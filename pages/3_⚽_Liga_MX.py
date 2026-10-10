@@ -158,6 +158,7 @@ vista = st.radio(
     "Sección Liga MX",
     ["🔮 Próximos Partidos", "⚽ Resultados Históricos", "📊 Métricas de Validación", "📋 Historial y Cobertura"],
     horizontal=True,
+    format_func=lambda value: value.lstrip("🔥📋📈⚾🏈📊⚽🔮💼 "),
     label_visibility="collapsed",
     key="ligamx_vista",
 )
@@ -232,7 +233,7 @@ if vista == "🔮 Próximos Partidos":
         futuros = upcoming_probabilities(df_partidos, df_proximos, modelo_params, metricas)
     except (ValueError, KeyError) as exc:
         state_message("Las predicciones están suspendidas hasta verificar la cobertura de los datos.",kind="blocked")
-        st.caption("Actualiza los datos con el workflow Liga MX. El modelo congelado se conserva.")
+        st.caption("Usa «Actualizar resultados y calendario Liga MX» para verificar los datos.")
         futuros = pd.DataFrame()
     if futuros.empty:
         state_message('No hay partidos habilitados para predecir en los próximos siete días.',kind='empty')
@@ -261,7 +262,7 @@ elif vista == "⚽ Resultados Históricos":
     )
 
     if df_partidos.empty or df_probabilidades.empty:
-        state_message('No se encontraron partidos en `futbol_liga_mx/data/partidos.csv`.',kind='empty')
+        state_message('Todavía no hay partidos históricos disponibles.',kind='empty')
     else:
         df_probabilidades = performance_filters(df_probabilidades, 'fecha', 'liga_hist', season_col='season')
         df_partidos = df_probabilidades.copy()
@@ -283,7 +284,7 @@ elif vista == "⚽ Resultados Históricos":
 
         st.markdown("### Partidos Recientes y Proyecciones")
         df_filtrado = render_order(df_probabilidades,'liga_hist',date_col='fecha',confidence_col='p_over25').reset_index(drop=True)
-        st.caption('Se muestran los 15 partidos más recientes de la muestra filtrada. Evaluación histórica, sin dinero apostado.')
+        st.caption('Se muestran hasta 15 partidos de la muestra según el orden seleccionado. Evaluación histórica, sin dinero apostado.')
 
         # Mostrar los partidos
         for idx, row in df_filtrado.head(15).iterrows():
@@ -358,7 +359,7 @@ else:
         """
         <div class="soccer-view-hero">
             <div>
-                <div class="soccer-eyebrow">BASE DE DATOS</div>
+                <div class="soccer-eyebrow">RESULTADOS GUARDADOS</div>
                 <h1>Historial Completo Liga MX</h1>
                 <div class="soccer-subtitle">Consulta de marcadores, goles totales y temporadas registradas.</div>
             </div>

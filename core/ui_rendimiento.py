@@ -69,7 +69,8 @@ def performance_filters(frame, date_col, key, *, season_col=None, probability_co
         for kind,col,label in [('market',market_col,'Mercado'),('result',result_col,'Resultado'),('provenance',provenance_col,'Procedencia')]:
             if col and col in frame:
                 values = sorted(frame[col].dropna().astype(str).unique())
-                choice = safe_select(label,['Todos']+values,key=key+'_'+kind)
+                choice = safe_select(label,['Todos']+values,key=key+'_'+kind,
+                    **({'help':'Indica si el registro se verificó antes del partido, conserva una hora no comprobable o fue reconstruido.'} if kind=='provenance' else {}))
                 selected[kind] = None if choice=='Todos' else choice
     filtered = filter_frame(frame,date_col,period=period,start=start,end=end,season_col=season_col,season=season,
         probability_col=probability_col,probability_scale=probability_scale,minimum=minimum,

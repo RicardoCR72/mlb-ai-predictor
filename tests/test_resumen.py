@@ -128,3 +128,12 @@ class SummaryTests(TestCase):
             app.button(key='home_refresh').click().run()
             self.assertFalse(app.exception)
             clear.assert_called_once()
+
+    def test_home_has_one_direct_link_per_destination_and_no_duplicate_marketing_cards(self):
+        with patch('core.ui_resumen.snapshot',return_value=self.fixture()):
+            app=AppTest.from_file(str(ROOT/'dashboard.py')).run()
+        self.assertFalse(app.exception)
+        links=app.get('page_link')
+        self.assertEqual(len(links),5)
+        self.assertEqual(len({link.proto.label for link in links}),5)
+        self.assertFalse(any('sport-card' in m.value or 'Flujo operativo' in m.value for m in app.markdown))

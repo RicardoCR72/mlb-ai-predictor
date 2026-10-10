@@ -1,3 +1,4 @@
+from core.graficas_rendimiento import render_performance_charts
 from core.ui_controles import state_message, roi_sample, render_order
 from core.ui_unidades import render_model_equivalence
 from core.ui_picks import render_pick
@@ -707,7 +708,8 @@ def obtener_confianza_registrada(df_registro, fecha_juego, equipo_local, equipo_
 vista_mlb = st.radio(
     "Sección MLB",
     ["⚾ Picks de hoy", "📈 Rendimiento", "⚾ Totales V2", "📊 Rendimiento Totales"],
-    horizontal=True, label_visibility="collapsed", key="mlb_vista_principal",
+    horizontal=True,
+    format_func=lambda value: value.lstrip("🔥📋📈⚾🏈📊⚽🔮💼 "), label_visibility="collapsed", key="mlb_vista_principal",
 )
 render_update_button("mlb", compact=True)
 
@@ -817,29 +819,7 @@ if modelo is not None and (vista_mlb == "📈 Rendimiento" or not df.empty):
         df_resultados = df_resultados.sort_values(by="Confianza (%)", ascending=False).reset_index(drop=True)
 
         mejor_pick = df_resultados.loc[0]
-        metricas_hoy = st.columns(4)
-        metricas_hoy[0].metric("Partidos", len(df_resultados))
-        metricas_hoy[1].metric(
-            "Mejor pick", str(mejor_pick["Pick de la IA"])
-        )
-        metricas_hoy[2].metric(
-            "Confianza máxima", f"{mejor_pick['Confianza (%)']:.1f}%"
-        )
-        metricas_hoy[3].metric(
-            "Cuota", f"{float(mejor_pick['Paga del Favorito']):.2f}"
-        )
-
-        st.subheader("🔥 Pick más fuerte del día")
-        st.markdown(
-            f"""
-            <div class="mlb-best-card">
-                <div class="mlb-card-kicker">SELECCIÓN PRINCIPAL</div>
-                <div class="mlb-card-title">{html_seguro(mejor_pick['Pick de la IA'])}</div>
-                <div class="mlb-card-meta">{html_seguro(mejor_pick['Partido'])} · Confianza {float(mejor_pick['Confianza (%)']):.1f}% · Cuota {float(mejor_pick['Paga del Favorito']):.2f}</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+        st.metric('Partidos con pronóstico',len(df_resultados))
 
         st.subheader("Pronósticos del día")
 
@@ -1005,7 +985,7 @@ if modelo is not None and (vista_mlb == "📈 Rendimiento" or not df.empty):
                 state_message('No hay registros para los filtros seleccionados.',kind='filters'); st.stop()
 
             # 2. 🔥 LA MAGIA: EL ESCÁNER DE ROI ÓPTIMO
-            if st.button("🔍 Encontrar mejor umbral de ROI"):
+            if st.button("Encontrar mejor umbral de ROI"):
                 mejores_escenarios = []
                 # Va a iterar desde el 50% al 95% de confianza probando los números
                 for t in np.arange(50.0, 95.0, 0.5):
@@ -1047,13 +1027,8 @@ if modelo is not None and (vista_mlb == "📈 Rendimiento" or not df.empty):
             roi_sample(apuestas_realizadas)
             render_model_equivalence(inversion_total, ganancia_neta)
 
-            st.subheader("Beneficio acumulado del modelo (u)")
-            if apuestas_realizadas > 0:
-                df_filtrado = df_filtrado.sort_values(by="Fecha").reset_index(drop=True)
-                historial_banco = [0] + df_filtrado['Profit (u)'].cumsum().tolist()
-                st.area_chart(historial_banco, color="#b7ff3c")
-            else:
-                state_message('Ningún partido histórico alcanzó esa confianza.',kind='empty')
+            render_performance_charts(df_filtrado,date_col='Fecha',profit_col='Profit (u)',
+                result_col='Resultado',default_group='Moneyline')
 
             st.subheader("Libro de auditoría")
             st.caption("Detalle de las apuestas incluidas en el cálculo.")
@@ -1079,7 +1054,7 @@ if modelo is not None and (vista_mlb == "📈 Rendimiento" or not df.empty):
                         Fecha=auditoria_filtrada["Fecha"].dt.date
                     ).to_csv(index=False).encode("utf-8")
                     st.download_button(
-                        "⬇️ Descargar resultados filtrados",
+                        "Descargar resultados filtrados",
                         data=csv_auditoria,
                         file_name="auditoria_picks_mlb_filtrada.csv",
                         mime="text/csv",

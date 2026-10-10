@@ -1,3 +1,4 @@
+from core.graficas_rendimiento import render_performance_charts
 from core.ui_controles import state_message, roi_sample, render_order
 from core.ui_unidades import render_model_equivalence
 from core.ui_picks import render_pick, nfl_pick
@@ -528,15 +529,9 @@ def mostrar_resultado_total(fila):
 # ==========================================================
 # CARGA DESDE MYSQL
 # ==========================================================
-if st.sidebar.button(
-    "🔄 Recargar desde MySQL",
-    use_container_width=True,
-):
-    st.cache_data.clear()
-    st.rerun()
 
 try:
-    with st.spinner("Consultando predicciones en Aiven..."):
+    with st.spinner("Consultando predicciones guardadas…"):
         historico = cargar_predicciones_mysql()
 except Exception as error:
     state_message("No fue posible consultar las predicciones NFL. Reintenta cuando vuelva la conexión.",kind="offline")
@@ -563,7 +558,7 @@ st.sidebar.caption(f"NFL {temporada} · Semana {semana}")
 ultima_actualizacion = historico["actualizado_en"].max()
 if pd.notna(ultima_actualizacion):
     st.sidebar.caption(
-        "Actualizado en MySQL: "
+        "Último registro: "
         + ultima_actualizacion.strftime("%d/%m/%Y %H:%M")
     )
 
@@ -618,16 +613,11 @@ roi_resumen = (
     else np.nan
 )
 
-resumen = st.columns(5)
+resumen = st.columns(3)
 resumen[0].metric("Partidos", len(df))
 resumen[1].metric("Con línea", int(df["total_line"].notna().sum()))
 resumen[2].metric("Picks", len(picks))
-resumen[3].metric(
-    "Probabilidad media",
-    formatear_porcentaje(probabilidad_media),
-)
-resumen[4].metric("ROI histórico", formatear_porcentaje(roi_resumen))
-roi_sample(apuestas_roi_resumen)
+
 
 
 # ==========================================================
@@ -637,13 +627,13 @@ seccion_totales = st.radio(
     "Sección de totales",
     ["🔥 Picks filtrados", "📋 Todos los partidos", "📈 Rendimiento"],
     horizontal=True,
+    format_func=lambda value: value.lstrip("🔥📋📈⚾🏈📊⚽🔮💼 "),
     label_visibility="collapsed",
     key="nfl_totales_seccion",
 )
 
 if seccion_totales == "🔥 Picks filtrados":
-    zona_picks, zona_pulso = st.columns([3.25, 1], gap="large")
-    with zona_picks:
+    with st.container():
         st.subheader(f"Oportunidades · Semana {semana}")
         st.caption(
             "Solo partidos pendientes de hoy en adelante que superan los "
@@ -674,36 +664,6 @@ if seccion_totales == "🔥 Picks filtrados":
                 ):
                     with columna:
                         mostrar_partido(fila)
-
-    with zona_pulso:
-        st.subheader("Pulso")
-        pulso = (
-            0.0
-            if pd.isna(probabilidad_media)
-            else float(probabilidad_media) * 100
-        )
-        pulso = min(max(pulso, 0.0), 100.0)
-        record = (
-            f"{ganadas_resumen}-{perdidas_resumen}-{pushes_resumen}"
-            if not liquidados_resumen.empty
-            else "Sin resultados"
-        )
-        st.markdown(
-            f"""
-            <div class="total-pulse">
-                <div class="total-pulse-title">Confianza media</div>
-                <div class="total-pulse-ring" style="--pulse:{pulso:.1f}%">
-                    <strong>{html_seguro(formatear_porcentaje(probabilidad_media))}</strong>
-                </div>
-                <div class="total-pulse-row"><span>Récord</span><strong>{html_seguro(record)}</strong></div>
-                <div class="total-pulse-row"><span>ROI histórico</span><strong>{html_seguro(formatear_porcentaje(roi_resumen))}</strong></div>
-                <div class="total-pulse-row"><span>Unidades</span><strong>{unidades_resumen:+.2f} u</strong></div>
-                <div class="total-pulse-row"><span>Mayor edge</span><strong>{html_seguro(formatear_numero(mayor_edge, 2))}</strong></div>
-                <div class="total-pulse-note">El modelo exige al menos 3 puntos de edge y EV positivo para marcar un PICK.</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
 
 if seccion_totales == "📋 Todos los partidos":
     st.subheader("Calendario analizado")
@@ -785,6 +745,8 @@ if seccion_totales == "📈 Rendimiento":
 
         roi_sample(muestra_roi)
         render_model_equivalence(muestra_roi, beneficio)
+        render_performance_charts(liquidados,date_col='gameday',profit_col='beneficio_unidades',
+            result_col='resultado_pick',group_cols=('pick',))
 
         comparacion = (liquidados.assign(
             unidades=pd.to_numeric(liquidados['beneficio_unidades'], errors='coerce'))

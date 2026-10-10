@@ -16,7 +16,7 @@ def render_prediction_button():
         plan = consultar(str(ahora_mexico().date()))
     except Exception as exc:
         help_text = str(exc) if type(exc) is RuntimeError else 'No se pudo consultar el calendario y saldo.'
-        st.button('Actualizar predicciones NFL de hoy (usa créditos)',key=key,icon='🏈',
+        st.button('Actualizar predicciones NFL de hoy (usa créditos)',key=key,
                   disabled=True,help=help_text)
         return
     disabled = not plan['eventos'] or plan['restantes'] is None or plan['restantes'] < plan['reserva']+6
@@ -26,7 +26,7 @@ def render_prediction_button():
     if disabled:
         help_text += ' Sin partidos elegibles o sin saldo suficiente por encima de la reserva.'
     if not st.button(f"Actualizar predicciones NFL de hoy (hasta {plan['max_creditos']} créditos)",
-                     key=key,icon='🏈',disabled=disabled,help=help_text):
+                     key=key,disabled=disabled,help=help_text):
         return
     with st.spinner('Actualizando predicciones NFL de hoy…'):
         result = run_predictions(Path(__file__).resolve().parents[1],plan)
@@ -38,6 +38,7 @@ def render_prediction_button():
     if report:
         cost = report['creditos'] if report['creditos'] is not None else 'No confirmado por la API'
         message += f" · Consumo: {cost} · Restantes: {report['restantes']}"
-    st.toast(message,icon='✅' if result['ok'] else '⚠️')
+    st.toast(message)
+    st.caption(message)
     if not result['ok']:
         st.error(message)
