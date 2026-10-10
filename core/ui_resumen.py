@@ -124,21 +124,13 @@ def render_home():
         games.extend(dict(Deporte=sport,**g) for g in services[source]['games'])
     if games:
         calendar=pd.DataFrame(games).sort_values(['Fecha','Deporte','Partido'])
-        limit=st.selectbox('Partidos a mostrar',[5,10,20,'Todos'],index=0,key='home_calendar_limit')
-        visible=calendar if limit=='Todos' else calendar.head(int(limit))
-        for row in visible.to_dict('records'):
-            with st.container(border=True):
-                st.write('**'+row['Deporte']+' · '+row['Partido']+'**')
-                st.caption(row['Fecha']+' · '+row['Horario'])
-        st.caption(f'{len(visible)} de {len(calendar)} partidos · próximos siete días.')
-        with st.expander('Ver calendario completo'):
-            st.dataframe(calendar,hide_index=True,use_container_width=True)
+        from core.ui_agenda import render_agenda
+        render_agenda(calendar)
     else:state_message('No hay próximos partidos disponibles en los calendarios consultados.')
-    with st.expander('Detalle de disponibilidad'):
-        table=[{'Servicio':item['label'],'Picks hoy':count(item['picks_today']),
-                'Por revisar':count(item['pending']),
-                'Último registro':timestamp(item['last_data'],item['service']=='mlb',item['service'] in ('mlb_total','liga_mx')),
-                'Estado':'Consulta parcial' if item['errors'] else age_status(item['last_data'])} for item in sports]
-        st.dataframe(pd.DataFrame(table),hide_index=True,use_container_width=True)
-        st.caption('Por revisar cuenta selecciones sin resultado; un partido puede tener varios registros. '
-                   'Una fecha antigua puede corresponder a días sin partidos. El resumen solo lee datos guardados.')
+    from core.ui_agenda import render_availability,CSS
+    st.markdown(CSS,unsafe_allow_html=True)
+    table=[{'Servicio':item['label'],'Picks hoy':count(item['picks_today']),
+            'Por revisar':count(item['pending']),
+            'Último registro':timestamp(item['last_data'],item['service']=='mlb',item['service'] in ('mlb_total','liga_mx')),
+            'Estado':'Consulta parcial' if item['errors'] else age_status(item['last_data'])} for item in sports]
+    render_availability(table)
