@@ -21,34 +21,41 @@ def render_home():
     cols[0].metric('Picks disponibles hoy',partial_count(sports,'picks_today'))
     cols[1].metric('Registros por revisar',partial_count(sports,'pending'))
     cols[2].metric('Banca disponible',f"${finance['disponible']:,.2f} MXN" if finance else 'No disponible')
+    st.markdown('''<style>
+.st-key-home_sports [data-testid="stHorizontalBlock"],.st-key-home_tools [data-testid="stHorizontalBlock"]{align-items:stretch}
+.st-key-home_sports [data-testid="stColumn"] > [data-testid="stVerticalBlock"],.st-key-home_tools [data-testid="stColumn"] > [data-testid="stVerticalBlock"]{height:100%;flex:1}
+.st-key-home_sports [data-testid="stElementContainer"]:has(> [data-testid="stPageLink"]),.st-key-home_tools [data-testid="stElementContainer"]:has(> [data-testid="stPageLink"]){margin-top:auto}
+</style>''',unsafe_allow_html=True)
     st.subheader('Tus deportes')
     groups=[('MLB','⚾','mlb',['mlb','mlb_total'],'pages/1_⚾_MLB.py'),
             ('NFL','🏈','nfl_totales',['nfl_totales','nfl_props'],'pages/2_🏈_NFL.py'),
             ('Liga MX','⚽','liga_mx',['liga_mx'],'pages/3_⚽_Liga_MX.py')]
-    for col,(name,icon,calendar,keys,page) in zip(st.columns(3),groups):
-        with col,st.container(border=True):
-            st.markdown(f'### {icon} {name}')
-            st.metric('Partidos pendientes hoy',count(services[calendar]['games_today']))
-            for key in keys:
-                item=services[key]
-                label=item['label'].split(' · ')[-1]
-                st.write(f"**{label}** · {count(item['picks_today'])} picks")
-                st.caption('Último registro: '+timestamp(item['last_data'],key=='mlb',key in ('mlb_total','liga_mx')))
-            if any(services[key]['errors'] for key in keys):st.caption('Información parcial · vuelve a consultar o actualiza este deporte.')
-            st.page_link(page,label='Abrir '+name,use_container_width=True)
+    with st.container(key='home_sports'):
+        for col,(name,icon,calendar,keys,page) in zip(st.columns(3),groups):
+            with col,st.container(border=True,height='stretch',key='home_sport_'+calendar):
+                st.markdown(f'### {icon} {name}')
+                st.metric('Partidos pendientes hoy',count(services[calendar]['games_today']))
+                for key in keys:
+                    item=services[key]
+                    label=item['label'].split(' · ')[-1]
+                    st.write(f"**{label}** · {count(item['picks_today'])} picks")
+                    st.caption('Último registro: '+timestamp(item['last_data'],key=='mlb',key in ('mlb_total','liga_mx')))
+                if any(services[key]['errors'] for key in keys):st.caption('Información parcial · vuelve a consultar o actualiza este deporte.')
+                st.page_link(page,label='Abrir '+name,use_container_width=True)
     st.caption('Liga MX cuenta ambas opciones O/U por encuentro. MLB Moneyline y NFL no verifican la hora de inicio.')
-    left,right=st.columns(2)
-    with left,st.container(border=True):
-        st.markdown('### Bankroll')
-        if finance:
-            st.write(f"Saldo: **${finance['saldo']:,.2f} MXN** · Comprometido: **${finance['pendientes']:,.2f} MXN**")
-            st.caption(f"{count(services['bankroll']['pending'])} apuestas pendientes")
-        else:state_message('Tu banca no está disponible en este momento.',kind='offline')
-        st.page_link('pages/0_💼_Bankroll.py',label='Abrir Bankroll',use_container_width=True)
-    with right,st.container(border=True):
-        st.markdown('### Comparador')
-        st.write('Compara mercados y modelos con una simulación de 1 u por pick.')
-        st.page_link('pages/4_📊_Comparador.py',label='Abrir Comparador',use_container_width=True)
+    with st.container(key='home_tools'):
+        left,right=st.columns(2)
+        with left,st.container(border=True,height='stretch',key='home_bankroll_card'):
+            st.markdown('### Bankroll')
+            if finance:
+                st.markdown(rf"Saldo: **\${finance['saldo']:,.2f} MXN** · Comprometido: **\${finance['pendientes']:,.2f} MXN**")
+                st.caption(f"{count(services['bankroll']['pending'])} apuestas pendientes")
+            else:state_message('Tu banca no está disponible en este momento.',kind='offline')
+            st.page_link('pages/0_💼_Bankroll.py',label='Abrir Bankroll',use_container_width=True)
+        with right,st.container(border=True,height='stretch',key='home_comparator_card'):
+            st.markdown('### Comparador')
+            st.write('Compara mercados y modelos con una simulación de 1 u por pick.')
+            st.page_link('pages/4_📊_Comparador.py',label='Abrir Comparador',use_container_width=True)
     st.subheader('Próximos partidos')
     games=[]
     for source,sport in [('mlb','MLB'),('nfl_totales','NFL'),('liga_mx','Liga MX')]:

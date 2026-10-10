@@ -61,6 +61,7 @@ from tests.test_resumen import SummaryTests
 from core.ui_inicio import render_home
 real_page_link=st.page_link
 home_data=SummaryTests().fixture()
+home_data['services']['bankroll']['finance']=dict(saldo=10000,pendientes=0,disponible=10000)
 home_data['services']['liga_mx']['games']=[dict(Fecha=f'2026-10-{6+i//2:02}',Horario='22:00 CDMX',
  Partido=f'Visitante de nombre largo {i} @ Equipo local {i}') for i in range(12)]
 with patch('core.ui_resumen.snapshot',return_value=home_data),patch('streamlit.page_link',
@@ -127,6 +128,18 @@ with patch('core.ui_resumen.snapshot',return_value=home_data),patch('streamlit.p
                     page.set_viewport_size({'width':1280,'height':900})
                     page.wait_for_function('document.body.scrollWidth <= innerWidth+2')
                     page.wait_for_function("(()=>{const c=document.querySelectorAll('.oracle-pick');return c.length>1 && Math.abs(c[0].getBoundingClientRect().y-c[1].getBoundingClientRect().y)<2})()")
+                    # The cards follow the tallest content in each row; their links share a baseline.
+                    for selector,number in [('.st-key-home_sports [class*="st-key-home_sport_"]',3),
+                                            ('.st-key-home_bankroll_card,.st-key-home_comparator_card',2)]:
+                        cards=page.locator(selector)
+                        assert cards.count()==number
+                        page.wait_for_function("""(selector)=>{const cards=[...document.querySelectorAll(selector)];
+                            const heights=cards.map(c=>c.getBoundingClientRect().height);
+                            const links=cards.map(c=>c.querySelector('[data-testid="stPageLink"]').getBoundingClientRect().bottom);
+                            return Math.max(...heights)-Math.min(...heights)<2 && Math.max(...links)-Math.min(...links)<2}
+                            """,arg=selector)
+                    assert page.locator('.st-key-home_bankroll_card .katex').count()==0
+                    assert '$10,000.00 MXN' in page.locator('.st-key-home_bankroll_card').inner_text()
                     page.set_viewport_size({'width':390,'height':844})
                     page.get_by_text('Comparador de rendimiento',exact=True).wait_for()
                     assert page.get_by_text('Mínimo de picks con beneficio conocido',exact=True).count()==1
