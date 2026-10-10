@@ -1,6 +1,7 @@
+from core.ui_controles import state_message, roi_sample, render_order
 from core.ui_unidades import render_model_equivalence
 from core.ui_picks import render_pick, nfl_pick
-from core.ui_filtros import performance_filters
+from core.ui_filtros import performance_filters, safe_select
 import hmac
 import html
 from datetime import datetime
@@ -793,7 +794,7 @@ def mostrar_prop(fila):
                 unsafe_allow_html=True,
             )
         else:
-            st.info("Todavía no existe una línea para este jugador.")
+            state_message('Todavía no existe una línea para este jugador.',kind='empty')
 
         detalles = st.columns(4)
         detalles[0].write(
@@ -921,14 +922,11 @@ try:
     with st.spinner("Consultando props NFL en Aiven..."):
         historico = cargar_props_mysql()
 except Exception as error:
-    st.error("No fue posible consultar las proyecciones de props.")
-    st.code(str(error), language="text")
+    state_message("No fue posible consultar las proyecciones de props. Reintenta cuando vuelva la conexión.",kind="offline")
     st.stop()
 
 if historico.empty:
-    st.warning(
-        "Todavía no existen proyecciones en nfl_proyecciones_props."
-    )
+    state_message('Todavía no existen proyecciones NFL Props guardadas.',kind='empty')
     st.stop()
 
 temporada = int(historico["season"].max())
@@ -1022,6 +1020,7 @@ resumen[1].metric("Con línea", len(con_linea), f"de {len(df)} props")
 resumen[2].metric("Candidatos", len(candidatos))
 resumen[3].metric("Prob. media", formatear_porcentaje(prob_media))
 resumen[4].metric("ROI histórico", formatear_porcentaje(roi_resumen))
+roi_sample(apuestas_roi_resumen)
 
 
 # ---------------------------------------------------------------------------
@@ -1056,13 +1055,13 @@ if seccion_props == "🔥 Candidatos":
         selector_partido, selector_mercado = st.columns(2, gap="medium")
         with selector_partido:
             partidos_candidatos = opciones_partidos(candidatos_mostrar)
-            partido_candidato = st.selectbox(
+            partido_candidato = safe_select(
                 "Partido",
                 list(partidos_candidatos),
                 key="props_partido_candidatos",
             )
         with selector_mercado:
-            mercado_candidatos = st.selectbox(
+            mercado_candidatos = safe_select(
                 "Mercado",
                 ["Todos los mercados"]
                 + list(NOMBRES_MERCADOS.values()),
@@ -1079,13 +1078,10 @@ if seccion_props == "🔥 Candidatos":
             ]
 
         if candidatos_mostrar.empty:
-            st.markdown(
-                '<div class="empty-state">No quedan candidatos pendientes '
-                'para ese partido y mercado en la semana actual.</div>',
-                unsafe_allow_html=True,
-            )
+            state_message('No quedan candidatos pendientes para ese partido y mercado en la semana actual.',kind='filters')
         else:
-            filas_candidatos = list(candidatos_mostrar.iterrows())
+            filas_candidatos = list(render_order(candidatos_mostrar,'nfl_prop_picks',date_col='gameday',
+                confidence_col='probabilidad_pick',ev_col='ev_estimado',upcoming=True).iterrows())
             for inicio in range(0, len(filas_candidatos), 2):
                 columnas_picks = st.columns(2, gap="medium")
                 for columna, (_, fila) in zip(
@@ -1137,7 +1133,7 @@ if seccion_props == "📈 Rendimiento":
         )
     ].copy()
     partidos_perf = opciones_partidos(resultados)
-    partido_perf = st.selectbox('Partido', list(partidos_perf), key='props_perf_partido')
+    partido_perf = safe_select('Partido', list(partidos_perf), key='props_perf_partido')
     if partidos_perf[partido_perf] is not None:
         resultados = resultados[resultados['id_juego'] == partidos_perf[partido_perf]]
     resultados = (
@@ -1152,15 +1148,11 @@ if seccion_props == "📈 Rendimiento":
     )
 
     resultados = performance_filters(resultados, 'gameday', 'nfl_prop_perf', season_col='season',
-        probability_col='probabilidad_pick', probability_scale=100, market_col='mercado', result_col='resultado_pick')
+        probability_col='probabilidad_pick', probability_scale=100, market_col='mercado', result_col='resultado_pick',week_col='week',
+        extra_keys={'partido':'props_perf_partido'})
 
     if resultados.empty:
-        st.markdown(
-            '<div class="empty-state">Todavía no hay candidatos '
-            'evaluados. El panel se activará automáticamente cuando '
-            'existan estadísticas oficiales.</div>',
-            unsafe_allow_html=True,
-        )
+        state_message('Todavía no hay candidatos evaluados. El panel se activará automáticamente cuando existan estadísticas oficiales.',kind='empty')
     else:
         resultados["es_ganada"] = (
             resultados["resultado_pick"] == "GANADA"
@@ -1195,6 +1187,7 @@ if seccion_props == "📈 Rendimiento":
             "Unidades", f"{unidades:+.2f} u"
         )
         metricas_roi[5].metric("ROI", formatear_porcentaje(roi))
+        roi_sample(apuestas_roi)
         st.caption(
             "Acierto sobre picks decididos: "
             + formatear_porcentaje(acierto)
@@ -1315,8 +1308,9 @@ if seccion_props == "📈 Rendimiento":
         st.write("**Historial de picks evaluados**")
 
         st.download_button('Descargar rendimiento filtrado', resultados.to_csv(index=False), 'nfl_props_rendimiento.csv', 'text/csv', key='props_perf_csv')
-        historial_filtrado = resultados.copy()
-        cantidad_historial = st.selectbox('Mostrar', ['20','50','100','Todos'], index=1, key='props_historial_cantidad')
+        historial_filtrado = render_order(resultados,'nfl_prop_perf',date_col='gameday',
+            confidence_col='probabilidad_pick',profit_col='beneficio_unidades')
+        cantidad_historial = safe_select('Mostrar', ['20','50','100','Todos'], index=1, key='props_historial_cantidad')
         st.caption('El límite de tarjetas no modifica las métricas de la muestra.')
 
         total_filtrado = len(historial_filtrado)
@@ -1331,11 +1325,7 @@ if seccion_props == "📈 Rendimiento":
         )
 
         if historial_filtrado.empty:
-            st.markdown(
-                '<div class="empty-state">No existen picks evaluados '
-                'que coincidan con esos filtros.</div>',
-                unsafe_allow_html=True,
-            )
+            state_message('No existen picks evaluados que coincidan con esos filtros.',kind='filters')
         else:
             filas_resultados = list(historial_filtrado.iterrows())
             for inicio in range(0, len(filas_resultados), 2):
@@ -1372,11 +1362,7 @@ if seccion_props == "🏥 Lesiones":
     ].copy()
     lesionados = lesionados.drop_duplicates("id_jugador")
     if lesionados.empty:
-        st.markdown(
-            '<div class="empty-state">No hay jugadores elegibles con '
-            'estatus de lesión activo.</div>',
-            unsafe_allow_html=True,
-        )
+        state_message('No hay jugadores elegibles con estatus de lesión activo.',kind='empty')
     else:
         st.write("**Reporte activo**")
         filas_lesionados = list(
@@ -1438,7 +1424,7 @@ with st.sidebar.expander("✍️ Capturar Draftea", expanded=False):
                 f"{fila.away_team} @ {fila.home_team}": fila.id_juego
                 for fila in juegos.itertuples(index=False)
             }
-            etiqueta_juego = st.selectbox(
+            etiqueta_juego = safe_select(
                 "Partido", list(etiquetas_juegos.keys())
             )
             id_juego = etiquetas_juegos[etiqueta_juego]
@@ -1454,11 +1440,11 @@ with st.sidebar.expander("✍️ Capturar Draftea", expanded=False):
                 f"{fila.player_name} · {fila.position} · {fila.team}": fila.id_jugador
                 for fila in disponibles.itertuples(index=False)
             }
-            etiqueta_jugador = st.selectbox(
+            etiqueta_jugador = safe_select(
                 "Jugador", list(etiquetas_jugadores.keys())
             )
             id_jugador = etiquetas_jugadores[etiqueta_jugador]
-            nombre_prop = st.selectbox(
+            nombre_prop = safe_select(
                 "Mercado", list(NOMBRES_MERCADOS.values())
             )
             tipo_prop = next(
@@ -1512,7 +1498,6 @@ with st.sidebar.expander("✍️ Capturar Draftea", expanded=False):
                         )
                     except Exception as error:
                         st.error("No se pudo guardar la línea.")
-                        st.code(str(error), language="text")
 
 st.divider()
 columnas_csv = [

@@ -1,3 +1,4 @@
+from core.ui_controles import state_message, roi_sample, render_order
 from core.ui_unidades import render_model_equivalence
 from core.ui_filtros import performance_filters
 """Panel de totales separado de moneyline; probabilidades V2 y snapshots previos."""
@@ -56,15 +57,15 @@ def render_picks(connect):
         with st.spinner('Consultando partidos pendientes y líneas reales…'):
             games=cached_calendar(str(day))
             if games.empty:
-                st.info('No hay partidos pendientes para esta fecha.');return
+                state_message('No hay partidos pendientes para esta fecha.',kind='empty');return
             quotes=only_base(registro.quote_rows(connection,day))
             zone=str(st.secrets.get('mlb_odds_capture_timezone','America/Mazatlan'))
             aligned=match(games,quotes,max_age_minutes=int(max_age),quote_timezone=zone)
             if aligned.empty:
-                st.info('Los partidos de esta fecha ya comenzaron.');return
+                state_message('Los partidos de esta fecha ya comenzaron.');return
             ready=only_base(aligned[aligned.estado_mercado=='OK']).reset_index(drop=True)
             if ready.empty:
-                st.info('No hay líneas recientes y verificadas de DraftKings. Actualiza la captura de cuotas de MLB.')
+                state_message('No hay líneas recientes y verificadas de DraftKings. Actualiza la captura de cuotas de MLB.',kind='empty')
                 diagnostics(aligned);return
             with st.spinner('Calculando probabilidades con los abridores anunciados…'):
                 pred=cached_predict(ready.to_csv(index=False),stamp())
@@ -77,11 +78,11 @@ def render_picks(connect):
                 try:
                     registro.save_snapshots(connection,pred,load(ROOT)['model_id'])
                 except Exception as exc:
-                    st.warning(f'Las predicciones se muestran, pero el registro falló ({type(exc).__name__}).')
+                    state_message('Las predicciones se muestran, pero no se pudieron guardar. Reintenta cuando vuelva la conexión.',kind='offline')
             else:
-                st.warning('El registro histórico todavía no está preparado. Consulta la guía de instalación.')
+                state_message('El registro histórico todavía no está preparado. Consulta la guía de instalación.',kind='empty')
             if (pred.estado=='ACTUALIZAR_HISTORIAL').any():
-                st.warning('Actualiza el historial de pitcheo hasta el último día completo antes de utilizar estas predicciones.')
+                state_message('Actualiza el historial de pitcheo hasta el último día completo antes de utilizar estas predicciones.',kind='blocked')
             display=pred[good].copy()
             if not display.empty:
                 metrics=st.columns(3)
@@ -94,10 +95,10 @@ def render_picks(connect):
             if only:display=display[display.estado_valor=='CANDIDATO']
             display=display[display.prob_seleccion*100>=minimum]
             if display.empty:
-                st.info('No hay pronósticos que cumplan los filtros seleccionados.')
+                state_message('No hay pronósticos que cumplan los filtros seleccionados.',kind='filters')
             else:
                 display['ev_seleccion']=np.where(display.seleccion=='OVER',display.ev_over,display.ev_under)
-                display=display.sort_values('ev_seleccion',ascending=False)
+                display=render_order(display,'mlb_total_picks',date_col='start_utc',confidence_col='prob_seleccion',ev_col='ev_seleccion',upcoming=True)
                 st.caption('Modelo en evaluación. El EV es una estimación; playoffs tiene una muestra histórica pequeña.')
                 render_cards(display)
                 st.download_button('Descargar predicciones actuales',display.to_csv(index=False),
@@ -105,9 +106,7 @@ def render_picks(connect):
             issues=pd.concat([aligned[aligned.estado_mercado!='OK'],pred[~good]],ignore_index=True)
             diagnostics(issues)
     except Exception as exc:
-        st.error(f'No se pudo cargar Totales V2: {type(exc).__name__}. '
-                 'Comprueba el modelo, los históricos y la conexión MySQL.')
-        with st.expander('Detalle técnico'):st.code(str(exc))
+        state_message('No se pudo cargar Totales V2. Comprueba el modelo, los históricos y la conexión MySQL.',kind='offline')
     finally:
         if connection is not None:connection.close()
 
@@ -119,15 +118,16 @@ def render_performance(connect):
     try:
         connection=connect()
         if not registro.tables_ready(connection):
-            st.info('Prepara el registro siguiendo la guía de instalación.');return
+            state_message('El registro de predicciones todavía no está preparado.',kind='blocked');return
         if st.button('Actualizar resultados oficiales',key='mlb_totales_resultados_refresh'):
             with st.spinner('Consultando resultados oficiales…'):
                 registro.refresh_results(connection)
         frame=registro.settle(only_base(registro.history(connection)))
         if frame.empty:
-            st.info('Aún no hay predicciones de DraftKings registradas. Actions o Totales V2 las guardan antes de los partidos.');return
+            state_message('Aún no hay predicciones de DraftKings registradas. Actions o Totales V2 las guardan antes de los partidos.',kind='empty');return
         frame['temporada'] = pd.to_datetime(frame['fecha_oficial']).dt.year
-        frame = performance_filters(frame, 'fecha_oficial', 'mlb_total_period', season_col='temporada', result_col='resultado')
+        frame = performance_filters(frame, 'fecha_oficial', 'mlb_total_period', season_col='temporada', result_col='resultado',
+            extra_keys={'confidence_total':'mlb_totales_perf_conf','candidates':'mlb_totales_perf_ev'})
         cols=st.columns(2)
         confidence=cols[0].slider('Probabilidad registrada mínima (%)',0,95,0,key='mlb_totales_perf_conf')
         candidates=cols[1].checkbox('Solo candidatos originales con EV positivo',value=True,key='mlb_totales_perf_ev')
@@ -138,18 +138,19 @@ def render_performance(connect):
         cols[0].metric('Pronósticos resueltos',summary['apuestas'])
         cols[1].metric('Ganancia simulada',f"{summary['unidades']:+.2f} u")
         cols[2].metric('ROI simulado',f"{summary['roi']:+.1f}%")
+        roi_sample(summary['apuestas'])
         cols[3].metric('Acierto sin push',f"{summary['acierto']:.1f}%")
         st.caption(f"Ganadas {summary['ganadas']} · Perdidas {summary['perdidas']} · Push {summary['push']}. "
                    'Cuotas, probabilidades y EV originales de DraftKings.')
         render_model_equivalence(summary['apuestas'], summary['unidades'])
+        frame=render_order(frame,'mlb_total_period',date_col='fecha_oficial',confidence_col='confianza_pct',profit_col='unidades')
         render_cards(frame,performance=True)
         if frame.empty:
-            st.info('No hay registros de DraftKings que cumplan los filtros seleccionados.')
+            state_message('No hay registros de DraftKings que cumplan los filtros seleccionados.',kind='filters')
         if not frame.empty:
             st.download_button('Descargar rendimiento',frame.to_csv(index=False),'mlb_totales_rendimiento.csv',
                                'text/csv',key='mlb_totales_performance_csv')
     except Exception as exc:
-        st.error(f'No se pudo cargar el rendimiento de totales: {type(exc).__name__}.')
-        with st.expander('Detalle técnico'):st.code(str(exc))
+        state_message('No se pudo cargar el rendimiento de totales. Reintenta cuando vuelva la conexión.',kind='offline')
     finally:
         if connection is not None:connection.close()

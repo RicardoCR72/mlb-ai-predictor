@@ -1,3 +1,4 @@
+from core.ui_controles import state_message
 from core.ui_filtros import performance_filters
 from core.ui_bankroll import render_analytics, render_history
 from core.ui_actualizacion import render_update_button
@@ -141,7 +142,7 @@ def render_app(conn, ledger, initial):
             st.caption("La banca disponible descuenta las apuestas pendientes. La calculadora no registra apuestas.")
     with tab2:
         if conn is None:
-            st.info("Conecta MySQL para consultar y guardar tu portafolio.")
+            state_message("Conecta MySQL para consultar y guardar tu portafolio.",kind="offline")
         else:
             cols = st.columns(4)
             cols[0].metric("Saldo", f"${stats['saldo']:,.2f} MXN", f"{stats['saldo']/unit:.2f} u")
@@ -176,6 +177,7 @@ def render_app(conn, ledger, initial):
             cols = st.columns(3)
             cols[0].metric('Beneficio de la muestra', f"${m['beneficio']:+,.2f} MXN", f"{m['beneficio']/unit:+.2f} u")
             cols[1].metric('ROI de la muestra', f"{m['roi']:+.2f}%")
+            st.caption(f"Muestra del ROI real: {int(filtered.estado.isin(['Ganada','Perdida','Push']).sum())} apuestas liquidadas. Montos reales variables.")
             cols[2].metric('Apuestas de la muestra', m['apuestas'])
             st.caption('Saldo y disponible de arriba corresponden a toda la banca. Estos filtros afectan el rendimiento y las descargas del historial.')
             groups = []
@@ -193,7 +195,7 @@ def render_app(conn, ledger, initial):
                 st.dataframe(bank.load_audit(conn), hide_index=True, use_container_width=True)
     with tab3:
         if conn is None:
-            st.info("No se guardan apuestas hasta recuperar la conexión con MySQL.")
+            state_message("No se guardan apuestas hasta recuperar la conexión con MySQL.",kind="offline")
         else:
             mode = st.radio("Origen de la apuesta", ["Manual", "Predicción del modelo"], horizontal=True)
             selected = None
@@ -211,7 +213,7 @@ def render_app(conn, ledger, initial):
                     if pd.notna(selected['probabilidad']):
                         st.metric("Confianza registrada", f"{float(selected['probabilidad']):.1%}")
                     st.caption("Registra únicamente una apuesta que realizaste. Confirma la cuota tomada y el monto.")
-                else: st.info("No hay predicciones disponibles para registrar.")
+                else: state_message("No hay predicciones disponibles para registrar.")
             if mode == "Manual" or selected is not None:
                 st.session_state.setdefault('bankroll_receipt', str(uuid.uuid4()))
                 with st.form("registrar_apuesta"):
@@ -271,7 +273,7 @@ try:
         for error in errors: st.caption(f"Liquidación pendiente de revisión: {error}")
         ledger, initial = bank.load_ledger(conn), bank.capital(conn)
     except Exception as exc:
-        st.warning(f"Bankroll no pudo conectar con MySQL ({type(exc).__name__}).")
+        state_message("Bankroll no pudo conectar con MySQL. La calculadora sigue disponible; reintenta más tarde.",kind="offline")
         if conn is not None: conn.close()
         conn = None
     render_app(conn, ledger, initial)

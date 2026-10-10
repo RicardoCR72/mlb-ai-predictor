@@ -1,3 +1,4 @@
+from core.ui_controles import state_message, render_order
 from core.ui_picks import render_pick, render_liga_matches
 from core.ui_filtros import performance_filters
 from core.ui_actualizacion import render_update_button
@@ -208,7 +209,7 @@ if not df_partidos.empty and modelo_params:
     try:
         df_probabilidades = probabilidades_historicas(df_partidos, modelo_params)
     except (ValueError, KeyError) as exc:
-        st.error(f"No se pudieron calcular las probabilidades: {exc}")
+        state_message("No se pudieron calcular las probabilidades de Liga MX. Revisa los datos del modelo.",kind="blocked")
 
 # ==========================================================
 # VISTA 0: PRÓXIMOS PARTIDOS Y PROYECCIONES
@@ -230,15 +231,16 @@ if vista == "🔮 Próximos Partidos":
     try:
         futuros = upcoming_probabilities(df_partidos, df_proximos, modelo_params, metricas)
     except (ValueError, KeyError) as exc:
-        st.warning(f"Predicciones suspendidas: {exc}")
+        state_message("Las predicciones están suspendidas hasta verificar la cobertura de los datos.",kind="blocked")
         st.caption("Actualiza los datos con el workflow Liga MX. El modelo congelado se conserva.")
         futuros = pd.DataFrame()
     if futuros.empty:
-        st.info("No hay partidos habilitados para predecir en los próximos siete días.")
+        state_message('No hay partidos habilitados para predecir en los próximos siete días.',kind='empty')
     else:
         st.metric("Próximos partidos", len(futuros))
         st.caption("Probabilidades del modelo validado. Registra la cuota tomada en Bankroll para calcular EV.")
         st.caption('Una tarjeta por partido con ambas probabilidades. Elige Over o Under antes de registrar tu apuesta.')
+        futuros=render_order(futuros,'liga_picks',date_col='inicio_utc',confidence_col='p_over25',upcoming=True)
         render_liga_matches(futuros)
 
 # ==========================================================
@@ -259,12 +261,12 @@ elif vista == "⚽ Resultados Históricos":
     )
 
     if df_partidos.empty or df_probabilidades.empty:
-        st.warning("No se encontraron partidos en `futbol_liga_mx/data/partidos.csv`.")
+        state_message('No se encontraron partidos en `futbol_liga_mx/data/partidos.csv`.',kind='empty')
     else:
         df_probabilidades = performance_filters(df_probabilidades, 'fecha', 'liga_hist', season_col='season')
         df_partidos = df_probabilidades.copy()
         if df_partidos.empty:
-            st.info('No hay partidos para los filtros seleccionados.'); st.stop()
+            state_message('No hay partidos para los filtros seleccionados.',kind='filters'); st.stop()
         # Métricas generales arriba
         ultimos = df_partidos.sort_values(by="fecha", ascending=False)
         m1, m2, m3, m4 = st.columns(4)
@@ -280,7 +282,7 @@ elif vista == "⚽ Resultados Históricos":
             st.metric("Temporada Activa", str(df_partidos.season.max()))
 
         st.markdown("### Partidos Recientes y Proyecciones")
-        df_filtrado = df_probabilidades.sort_values(by='fecha', ascending=False).reset_index(drop=True)
+        df_filtrado = render_order(df_probabilidades,'liga_hist',date_col='fecha',confidence_col='p_over25').reset_index(drop=True)
         st.caption('Se muestran los 15 partidos más recientes de la muestra filtrada. Evaluación histórica, sin dinero apostado.')
 
         # Mostrar los partidos
@@ -346,7 +348,7 @@ elif vista == "📊 Métricas de Validación":
             df_cob = pd.DataFrame(list(cobertura.items()), columns=["Temporada", "Partidos"])
             st.dataframe(df_cob, use_container_width=True, hide_index=True)
     else:
-        st.warning("No se encontró `futbol_liga_mx/modelos/metricas.json`.")
+        state_message("Las métricas de validación de Liga MX no están disponibles.",kind="blocked")
 
 # ==========================================================
 # VISTA 3: HISTORIAL Y COBERTURA

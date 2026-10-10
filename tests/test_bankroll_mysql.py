@@ -7,6 +7,19 @@ from core import bankroll as bank
 
 @unittest.skipUnless(os.environ.get('BANKROLL_MYSQL_TEST')=='1','Requiere MySQL de pruebas')
 class TestRealMySQL(unittest.TestCase):
+    def test_favorites_persist_update_and_delete_without_touching_bankroll(self):
+        from core import preferencias
+        self.assertEqual(os.environ.get('DB_NAME'),'bankroll_ci')
+        scope='test-'+str(uuid.uuid4())
+        preferencias.save(scope,'Recepciones',{'period':'Últimos 7 días','market':'receptions','confidence':60})
+        self.assertEqual(preferencias.load(scope)['Recepciones']['confidence'],60)
+        preferencias.save(scope,'Recepciones',{'period':'Todo el historial','confidence':65})
+        self.assertEqual(len(preferencias.load(scope)),1)
+        self.assertEqual(preferencias.load(scope)['Recepciones']['confidence'],65)
+        self.assertEqual(preferencias.load(scope+'other'),{})
+        preferencias.delete(scope,'Recepciones')
+        self.assertEqual(preferencias.load(scope),{})
+
     def test_nfl_paid_capture_audit_and_lock_between_connections(self):
         from datetime import date
         from nfl import capturas
