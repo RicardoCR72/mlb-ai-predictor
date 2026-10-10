@@ -77,66 +77,68 @@ def partial_count(items, field):
 
 def render_home():
     from core.ui_movil import apply_mobile_layout
+    from core.ui_controles import state_message
     apply_mobile_layout()
-    st.subheader('Tu resumen del día')
     data=snapshot()
-    st.caption(f"{data['today']} · CDMX · Lectura del resumen: {timestamp(data['at'])}")
-    if st.button('Volver a consultar el resumen',key='home_refresh',icon='🔄'):
-        load_snapshot.clear();st.rerun()
+    st.caption(f"{data['today']} · CDMX · Consultado: {timestamp(data['at'])}")
+    if st.button('Actualizar resumen', key='home_refresh', help='Vuelve a leer los datos guardados. No genera predicciones.'):
+        load_snapshot.clear(); st.rerun()
     services=data['services']
-    calendars=[services[k] for k in ('mlb','nfl_totales','liga_mx')]
     sports=[services[k] for k in ('mlb','mlb_total','nfl_totales','nfl_props','liga_mx')]
     finance=services['bankroll'].get('finance')
-    cols=st.columns(4)
-    cols[0].metric('Partidos de hoy registrados',partial_count(calendars,'games_today'))
-    cols[1].metric('Picks disponibles hoy',partial_count(sports,'picks_today'))
-    cols[2].metric('Registros de deportes por revisar',partial_count(sports,'pending'))
-    cols[3].metric('Banca disponible',f"${finance['disponible']:,.2f} MXN" if finance else 'No disponible')
-    st.caption('Calendario guardado: MLB, NFL y Liga MX habilitada. Picks filtrados guardados; en Liga MX se cuentan las dos selecciones O/U por partido. '
-               'Pendientes cuenta registros por servicio, por lo que un mismo partido puede tener varias selecciones. NFL no tiene hora verificada.')
-    with st.container(border=True):
-        st.markdown('**Tu bankroll**')
+    cols=st.columns(3)
+    cols[0].metric('Picks disponibles hoy',partial_count(sports,'picks_today'))
+    cols[1].metric('Registros por revisar',partial_count(sports,'pending'))
+    cols[2].metric('Banca disponible',f"${finance['disponible']:,.2f} MXN" if finance else 'No disponible')
+    st.subheader('Tus deportes')
+    groups=[('MLB','⚾','mlb',['mlb','mlb_total'],'pages/1_⚾_MLB.py'),
+            ('NFL','🏈','nfl_totales',['nfl_totales','nfl_props'],'pages/2_🏈_NFL.py'),
+            ('Liga MX','⚽','liga_mx',['liga_mx'],'pages/3_⚽_Liga_MX.py')]
+    for col,(name,icon,calendar,keys,page) in zip(st.columns(3),groups):
+        with col,st.container(border=True):
+            st.markdown(f'### {icon} {name}')
+            st.metric('Partidos pendientes hoy',count(services[calendar]['games_today']))
+            for key in keys:
+                item=services[key]
+                label=item['label'].split(' · ')[-1]
+                st.write(f"**{label}** · {count(item['picks_today'])} picks")
+                st.caption('Último registro: '+timestamp(item['last_data'],key=='mlb',key in ('mlb_total','liga_mx')))
+            if any(services[key]['errors'] for key in keys):st.caption('Información parcial · vuelve a consultar o actualiza este deporte.')
+            st.page_link(page,label='Abrir '+name,use_container_width=True)
+    st.caption('Liga MX cuenta ambas opciones O/U por encuentro. MLB Moneyline y NFL no verifican la hora de inicio.')
+    left,right=st.columns(2)
+    with left,st.container(border=True):
+        st.markdown('### Bankroll')
         if finance:
-            cols=st.columns(3)
-            cols[0].metric('Saldo',f"${finance['saldo']:,.2f} MXN")
-            cols[1].metric('Dinero comprometido',f"${finance['pendientes']:,.2f} MXN")
-            cols[2].metric('Apuestas pendientes',count(services['bankroll']['pending']))
-        else: st.info('No se pudo consultar tu banca. No se muestra un saldo estimado.')
-        st.page_link('pages/0_💼_Bankroll.py',label='Abrir Bankroll',icon='💼')
-    st.markdown('**Disponibilidad por servicio**')
-    table=[]
-    for item in sports:
-        table.append({'Servicio':item['label'],'Picks hoy':count(item['picks_today']),
-            'Registros por revisar':count(item['pending']),
-            'Último dato':timestamp(item['last_data'],item['service']=='mlb',item['service'] in ('mlb_total','liga_mx')),
-            'Estado':'Consulta parcial: revisar' if item['errors'] else age_status(item['last_data'])})
-    for start in range(0,len(table),2):
-        cols=st.columns(2)
-        for col,row in zip(cols,table[start:start+2]):
-            with col:
-                with st.container(border=True):
-                    st.write('**'+row['Servicio']+'**')
-                    st.write(f"Picks hoy: {row['Picks hoy']} · Por revisar: {row['Registros por revisar']}")
-                    st.caption('Último dato: '+row['Último dato'])
-                    st.caption(row['Estado'])
-    with st.expander('Ver tabla de disponibilidad'):
-        st.dataframe(pd.DataFrame(table),hide_index=True,use_container_width=True)
-    st.markdown('**Próximos partidos · siete días incluido hoy**')
+            st.write(f"Saldo: **${finance['saldo']:,.2f} MXN** · Comprometido: **${finance['pendientes']:,.2f} MXN**")
+            st.caption(f"{count(services['bankroll']['pending'])} apuestas pendientes")
+        else:state_message('Tu banca no está disponible en este momento.',kind='offline')
+        st.page_link('pages/0_💼_Bankroll.py',label='Abrir Bankroll',use_container_width=True)
+    with right,st.container(border=True):
+        st.markdown('### Comparador')
+        st.write('Compara mercados y modelos con una simulación de 1 u por pick.')
+        st.page_link('pages/4_📊_Comparador.py',label='Abrir Comparador',use_container_width=True)
+    st.subheader('Próximos partidos')
     games=[]
     for source,sport in [('mlb','MLB'),('nfl_totales','NFL'),('liga_mx','Liga MX')]:
         games.extend(dict(Deporte=sport,**g) for g in services[source]['games'])
     if games:
         calendar=pd.DataFrame(games).sort_values(['Fecha','Deporte','Partido'])
-        limit=st.selectbox('Partidos a mostrar',[5,10,20,'Todos'],index=1,key='home_calendar_limit')
+        limit=st.selectbox('Partidos a mostrar',[5,10,20,'Todos'],index=0,key='home_calendar_limit')
         visible=calendar if limit=='Todos' else calendar.head(int(limit))
         for row in visible.to_dict('records'):
             with st.container(border=True):
                 st.write('**'+row['Deporte']+' · '+row['Partido']+'**')
                 st.caption(row['Fecha']+' · '+row['Horario'])
-        st.caption(f'{len(visible)} de {len(calendar)} partidos. El límite no modifica los totales del resumen.')
-        with st.expander('Ver calendario completo en tabla'):
+        st.caption(f'{len(visible)} de {len(calendar)} partidos · próximos siete días.')
+        with st.expander('Ver calendario completo'):
             st.dataframe(calendar,hide_index=True,use_container_width=True)
-    else: st.info('No hay próximos partidos disponibles en los calendarios consultados.')
-    if any(item['errors'] for item in sports):
-        st.warning('El resumen está incompleto. Las fuentes disponibles siguen visibles; revisa el estado en la pestaña correspondiente.')
-    st.caption('Este inicio no actualiza resultados, no liquida apuestas ni genera predicciones. Usa el botón de actualización dentro de cada deporte.')
+    else:state_message('No hay próximos partidos disponibles en los calendarios consultados.')
+    with st.expander('Detalle de disponibilidad'):
+        table=[{'Servicio':item['label'],'Picks hoy':count(item['picks_today']),
+                'Por revisar':count(item['pending']),
+                'Último registro':timestamp(item['last_data'],item['service']=='mlb',item['service'] in ('mlb_total','liga_mx')),
+                'Estado':'Consulta parcial' if item['errors'] else age_status(item['last_data'])} for item in sports]
+        st.dataframe(pd.DataFrame(table),hide_index=True,use_container_width=True)
+        st.caption('Por revisar cuenta selecciones sin resultado; un partido puede tener varios registros. '
+                   'Una fecha antigua puede corresponder a días sin partidos. El resumen solo lee datos guardados.')

@@ -99,7 +99,8 @@ def render_cards(frame,performance=False):
                     pick = dict(fecha=row['fecha_oficial'], deporte='MLB',
                         partido=f"{row['equipo_visitante']} @ {row['equipo_local']}",
                         seleccion=f"{row['seleccion']} {float(row['linea']):g}", casa='DraftKings',
-                        cuota=float(row['cuota_seleccion']), probabilidad=float(row['confianza_pct'])/100)
+                        cuota=float(row['cuota_seleccion']), probabilidad=float(row['confianza_pct'])/100,
+                        cuota_capturada_utc=row.get('quote_captured_utc'))
                     render_pick(pick, market='Total del partido · Simulación 1 u', state=str(row['resultado']),
                         details=[('Unidades', f"{float(row['unidades']):+.2f} u" if pd.notna(row['unidades']) else 'Pendiente'),
                                  ('EV original', f"{float(row['ev']):+.1%}")], allow_register=False)

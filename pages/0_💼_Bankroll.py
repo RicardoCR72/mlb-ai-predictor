@@ -200,7 +200,7 @@ def render_app(conn, ledger, initial):
             mode = st.radio("Origen de la apuesta", ["Manual", "Predicción del modelo"], horizontal=True)
             selected = None
             if mode == "Predicción del modelo":
-                if st.button("Actualizar predicciones disponibles"):
+                if st.button("Cargar picks guardados"):
                     st.session_state.pop('bankroll_predictions', None)
                 if 'bankroll_predictions' not in st.session_state:
                     st.session_state['bankroll_predictions'] = bank.model_options(conn, RAIZ)

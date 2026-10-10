@@ -1,3 +1,4 @@
+from core.graficas_rendimiento import render_performance_charts
 from core.ui_controles import state_message, roi_sample, render_order
 from core.ui_unidades import render_model_equivalence
 from core.ui_picks import render_pick, nfl_pick
@@ -914,12 +915,9 @@ def insertar_linea_draftea(
 # ---------------------------------------------------------------------------
 # Carga y filtros
 # ---------------------------------------------------------------------------
-if st.sidebar.button("🔄 Recargar desde MySQL", use_container_width=True):
-    st.cache_data.clear()
-    st.rerun()
 
 try:
-    with st.spinner("Consultando props NFL en Aiven..."):
+    with st.spinner("Consultando props guardados…"):
         historico = cargar_props_mysql()
 except Exception as error:
     state_message("No fue posible consultar las proyecciones de props. Reintenta cuando vuelva la conexión.",kind="offline")
@@ -1014,13 +1012,10 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-resumen = st.columns(5)
+resumen = st.columns(3)
 resumen[0].metric("Jugadores", jugadores)
 resumen[1].metric("Con línea", len(con_linea), f"de {len(df)} props")
 resumen[2].metric("Candidatos", len(candidatos))
-resumen[3].metric("Prob. media", formatear_porcentaje(prob_media))
-resumen[4].metric("ROI histórico", formatear_porcentaje(roi_resumen))
-roi_sample(apuestas_roi_resumen)
 
 
 # ---------------------------------------------------------------------------
@@ -1032,6 +1027,7 @@ seccion_props = st.radio(
     "Sección de props",
     ["🔥 Candidatos", "📈 Rendimiento", "🏥 Lesiones"],
     horizontal=True,
+    format_func=lambda value: value.lstrip("🔥📋📈⚾🏈📊⚽🔮💼 "),
     label_visibility="collapsed",
     key="nfl_props_seccion",
 )
@@ -1044,8 +1040,7 @@ if seccion_props == "🔥 Candidatos":
         ascending=[False, False],
         na_position="last",
     )
-    zona_picks, zona_pulso = st.columns([3.25, 1], gap="large")
-    with zona_picks:
+    with st.container():
         st.subheader(f"Oportunidades · Semana {semana}")
         st.caption(
             "Solo partidos pendientes de hoy en adelante. Confirma "
@@ -1089,35 +1084,6 @@ if seccion_props == "🔥 Candidatos":
                 ):
                     with columna:
                         mostrar_prop_compacto(fila)
-
-    with zona_pulso:
-        st.subheader("Pulso")
-        pulso = 0.0 if pd.isna(prob_media) else float(prob_media) * 100
-        pulso = min(max(pulso, 0.0), 100.0)
-        probabilidad_pulso = formatear_porcentaje(prob_media)
-        roi_pulso = formatear_porcentaje(roi_resumen)
-        unidades_pulso = f"{unidades_resumen:+.2f} u"
-        record_pulso = (
-            f"{ganadas_resumen}-{perdidas_resumen}-{pushes_resumen}"
-            if not resultados_resumen.empty
-            else "Sin resultados"
-        )
-        st.markdown(
-            f"""
-            <div class="pulse-panel">
-                <div class="pulse-title">Confianza media</div>
-                <div class="pulse-ring" style="--pulse:{pulso:.1f}%">
-                    <strong>{html_seguro(probabilidad_pulso)}</strong>
-                </div>
-                <div class="pulse-row"><span>Récord</span><strong>{html_seguro(record_pulso)}</strong></div>
-                <div class="pulse-row"><span>ROI histórico</span><strong>{html_seguro(roi_pulso)}</strong></div>
-                <div class="pulse-row"><span>Unidades</span><strong>{html_seguro(unidades_pulso)}</strong></div>
-                <div class="pulse-row"><span>Revisar lesión</span><strong>{len(revisar_lesion)}</strong></div>
-                <div class="pulse-note">El valor real se confirma al comparar proyección, momio y contexto de última hora.</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
 
 if seccion_props == "📈 Rendimiento":
     st.subheader("Rendimiento de picks publicados")
@@ -1250,6 +1216,9 @@ if seccion_props == "📈 Rendimiento":
                         unsafe_allow_html=True,
                     )
 
+        render_performance_charts(resultados,date_col='gameday',profit_col='beneficio_unidades',
+            result_col='resultado_pick',group_cols=('mercado',))
+
         st.write("**Evolución por semana**")
         por_semana = (
             resultados.groupby(["season", "week"], as_index=False)
@@ -1275,10 +1244,6 @@ if seccion_props == "📈 Rendimiento":
         )
         por_semana["Unidades acumuladas"] = (
             por_semana["Unidades"].fillna(0.0).cumsum()
-        )
-        st.line_chart(
-            por_semana.set_index("Semana")[["Unidades acumuladas"]],
-            use_container_width=True,
         )
         semanas_recientes = por_semana.sort_values(
             ["season", "week"], ascending=False

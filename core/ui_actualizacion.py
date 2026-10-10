@@ -1,5 +1,6 @@
-"""Botón común; invalida caché antes de que la pestaña vuelva a leer sus datos."""
+"""Actualización de resultados con respuesta breve junto al control."""
 from pathlib import Path
+import re
 import streamlit as st
 from core.actualizacion_manual import run_update
 
@@ -9,39 +10,46 @@ LABELS={'mlb':'Actualizar resultados MLB','nfl_totales':'Actualizar resultados d
         'bankroll':'Actualizar resultados y bankroll'}
 
 
-def render_update_button(service, *, compact=False):
+def update_message(result):
+    parts=[]; known=[]
+    names={'Marcadores MLB':'partidos MLB actualizados','Resultados MLB Totales V2':'resultados de totales MLB revisados',
+           'Resultados NFL totales':'resultados de totales NFL evaluados','Resultados NFL props':'resultados de props NFL evaluados',
+           'Liquidación de bankroll':'apuestas liquidadas'}
+    failures=[item for item in result['steps'] if not item['ok']]
+    for item in result['steps']:
+        if not item['ok']: continue
+        match=re.match(r'\s*(\d+)\b',str(item['detalle']))
+        no_pending=str(item['detalle']).startswith('Sin partidos MLB pendientes')
+        if item['paso'] in names and (match or no_pending):
+            n=int(match.group(1)) if match else 0
+            known.append(n)
+            if n:parts.append(f"{n} {names[item['paso']]}")
+        else:
+            known.append(None)
+            parts.append('Calendario e historial revisados' if 'Liga MX' in item['paso'] else item['detalle'])
+    if failures: return 'Actualización parcial'+(' · '+' · '.join(parts) if parts else '')+'.'
+    if known and all(n==0 for n in known):return 'Sin cambios: no hay nuevos resultados para guardar.'
+    return ' · '.join(parts)+'.' if parts else 'Consulta completada.'
+
+
+def render_update_button(service, *, compact=True):
     from core.ui_movil import apply_mobile_layout
     apply_mobile_layout()
     key=f'actualizacion_manual_{service}'
-    if st.button(LABELS[service],key=key,icon='🔄'):
-        with (st.spinner('Actualizando resultados oficiales…') if compact else
-              st.status('Actualizando resultados oficiales…',expanded=True)) as status:
-            result=run_update(service,ROOT,on_step=None if compact else lambda label:st.write(label))
-            if result['busy']:
-                if compact:
-                    st.toast('Ya hay una actualización de este servicio en curso.',icon='⚠️')
-                else:
-                    status.update(label='Ya hay una actualización de este servicio en curso.',state='error')
-            else:
-                st.session_state[key+'_result']=result
-                st.cache_data.clear()
-                st.session_state.pop('bankroll_predictions',None)
-                failures=sum(not item['ok'] for item in result['steps'])
-                label='Actualización completa.' if not failures else 'Actualización parcial: revisa el detalle.'
-                if compact:
-                    st.toast(label,icon='✅' if not failures else '⚠️')
-                    if failures:
-                        st.error(' · '.join(item['detalle'] for item in result['steps'] if not item['ok']))
-                else:
-                    status.update(label=label,state='complete' if not failures else 'error')
-    if compact:
+    help_text='Consulta resultados oficiales y revisa tus apuestas pendientes. No consume créditos de cuotas.'
+    if service=='liga_mx':help_text+=' La verificación del historial puede tardar unos minutos.'
+    if not st.button(LABELS[service],key=key,help=help_text):return
+    with st.spinner('Actualizando resultados oficiales…'):
+        result=run_update(service,ROOT)
+    if result['busy']:
+        st.toast('Ya hay una actualización de este servicio en curso.')
         return
-    result=st.session_state.get(key+'_result')
-    if result:
-        st.caption(f"Última actualización manual: {result['at'][:19].replace('T',' ')} · CDMX")
-        with st.expander('Detalle de la última actualización'):
-            for item in result['steps']:
-                (st.success if item['ok'] else st.warning)(item['paso']+': '+item['detalle'])
-    if service=='liga_mx':st.caption('La primera actualización puede tardar unos minutos mientras ESPN verifica el historial de la temporada.')
-    from core.ui_resumen import render_service_status
-    render_service_status(service)
+    st.session_state[key+'_result']=result
+    st.cache_data.clear()
+    st.session_state.pop('bankroll_predictions',None)
+    label=update_message(result)
+    st.toast(label)
+    st.caption(label)
+    failures=[item for item in result['steps'] if not item['ok']]
+    if failures:
+        st.warning(' · '.join(item['paso']+': '+item['detalle'] for item in failures))

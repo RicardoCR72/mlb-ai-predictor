@@ -65,11 +65,11 @@ class ComparisonTests(TestCase):
         with patch('core.ui_comparador.load_comparison',return_value=(self.frame(),['NFL Props'])):
             at=AppTest.from_string('from core.ui_comparador import render_comparison\nrender_comparison()').run()
             self.assertFalse(at.exception)
-            table=at.dataframe[-1].value
+            table=next(t.value for t in at.dataframe if 'Picks evaluados' in t.value)
             self.assertIn('Picks con beneficio conocido',table)
             next(w for w in at.selectbox if w.label=='Resultado').select('GANADA').run()
             self.assertFalse(at.exception)
-            self.assertTrue(at.dataframe[-1].value['Perdidas'].eq(0).all())
+            self.assertTrue(next(t.value for t in at.dataframe if 'Picks evaluados' in t.value)['Perdidas'].eq(0).all())
             self.assertTrue(any('Fuente no disponible' in m.value for m in at.markdown))
 
 
@@ -202,3 +202,81 @@ class DeploymentImportTests(TestCase):
         from core import ui_filtros, ui_rendimiento
         for name in ('PERIODS', 'filter_frame', 'performance_filters', 'safe_select'):
             self.assertIs(getattr(ui_filtros, name), getattr(ui_rendimiento, name))
+
+
+class DesignRegressionTests(TestCase):
+    def test_graphs_use_only_settled_known_benefits_and_keep_models_separate(self):
+        from core.graficas_rendimiento import chart_data
+        from core.ui_rendimiento import filter_frame
+        frame=pd.DataFrame([
+            dict(fecha='2026-10-02',market='OVER',model='a',result='GANADA',u=.9),
+            dict(fecha='2026-10-01',market='OVER',model='a',result='PERDIDA',u=-1),
+            dict(fecha='2026-10-03',market='OVER',model='a',result='PUSH',u=0),
+            dict(fecha='2026-10-03',market='OVER',model='a',result='GANADA',u=None),
+            dict(fecha='2026-10-03',market='OVER',model='a',result='PENDIENTE',u=9),
+            dict(fecha='2026-10-03',market='OVER',model='a',result='ANULADA',u=9),
+            dict(fecha='2026-10-03',market='OVER',model='a',result='GANADA',u=float('inf')),
+            dict(fecha='2026-10-03T02:00:00Z',market='OVER',model='b',result='GANADA',u=1.2),
+            dict(fecha='2026-10-03',market='UNDER',model='a',result='GANADA',u=1.5)])
+        original=frame.copy()
+        selected=filter_frame(frame,'fecha',market_col='market',market='OVER')
+        curve,roi,missing=chart_data(selected,date_col='fecha',profit_col='u',result_col='result',group_cols=('market','model'))
+        stats=roi.set_index('Mercado')
+        self.assertEqual(stats.loc['OVER · a','Muestra'],3)
+        self.assertAlmostEqual(stats.loc['OVER · a','ROI (%)'],-10/3)
+        self.assertAlmostEqual(curve[curve.Mercado.eq('OVER · a')].iloc[-1]['Unidades acumuladas'],-.1)
+        self.assertEqual(curve[curve.Mercado.eq('OVER · b')].iloc[0].Fecha,pd.Timestamp('2026-10-02'))
+        self.assertEqual(missing,0)
+        pd.testing.assert_frame_equal(frame,original)
+
+    def test_missing_dates_do_not_hide_known_roi_and_unknown_benefits_do_not_become_zero(self):
+        from core.graficas_rendimiento import chart_data
+        data=pd.DataFrame(dict(fecha=[None,'2026-10-01'],r=['GANADA','GANADA'],u=[.9,None]))
+        curve,roi,missing=chart_data(data,date_col='fecha',profit_col='u',result_col='r')
+        self.assertTrue(curve.empty)
+        self.assertEqual(missing,1)
+        self.assertEqual(roi.iloc[0].Muestra,1)
+        self.assertAlmostEqual(roi.iloc[0]['ROI (%)'],90)
+
+    def test_update_outcome_is_truthful_for_zero_changed_partial_and_calendar_counts(self):
+        from core.ui_actualizacion import update_message
+        def result(*steps):return {'steps':[dict(paso=label,ok=ok,detalle=detail) for label,ok,detail in steps]}
+        message=update_message(result(('Resultados NFL totales',True,'0 resultados NFL evaluados.'),
+                                      ('Liquidación de bankroll',True,'0 apuestas realizadas liquidadas.')))
+        self.assertIn('Sin cambios',message)
+        self.assertIn('3 resultados',update_message(result(('Resultados NFL props',True,'3 resultados NFL evaluados.'))))
+        self.assertIn('parcial',update_message(result(('Resultados NFL props',False,'Sin conexión'))))
+        self.assertNotIn('Sin cambios',update_message(result(('Resultados y calendario Liga MX',True,'Historial: 2490 partidos.'))))
+
+    def test_quote_capture_uses_original_source_and_never_prediction_time(self):
+        from core.ui_picks import nfl_pick,mlb_total_pick,quote_text,card_html
+        from tests.test_ui_picks import PickTests
+        row=PickTests().nfl_row()
+        prop=nfl_pick(dict(row,timestamp_captura='2026-10-10 20:30:00'),prop=True)
+        self.assertEqual(quote_text(prop),'10/10/2026 · 14:30 CDMX')
+        total=nfl_pick(dict(row,generado_en='2026-10-10 20:30:00'))
+        self.assertEqual(quote_text(total),'Hora no disponible')
+        html=card_html(prop,market='Props',details=[('Proyección','70.5'),('EV estimado','5%')])
+        self.assertIn('Captura de cuota: 10/10/2026 · 14:30 CDMX',html)
+        self.assertNotIn('Proyección',html.split('<details')[0])
+        self.assertIn('Proyección',html.split('<details')[1])
+        self.assertIn('<summary>Ver detalles</summary>',html)
+
+    def test_readable_model_names_never_merge_different_identifiers(self):
+        from core.modelos_legibles import model_names,label_models
+        frame=pd.DataFrame(dict(deporte=['MLB','MLB','NFL'],mercado=['Totales V2','Totales V2','Totales'],
+                                modelo=['a'*64,'b'*64,'totales_v2_seleccion_automatica']))
+        named=label_models(frame,model_names(frame))
+        self.assertEqual(named.modelo_visible.nunique(),3)
+        self.assertEqual(named.iloc[-1].modelo_visible,'Totales NFL · V2')
+        self.assertFalse(named.modelo_visible.str.contains('a'*64).any())
+        pd.testing.assert_series_equal(named.modelo,frame.modelo)
+
+    def test_empty_chart_sample_and_duplicate_indexes_do_not_break_rendering(self):
+        from core.graficas_rendimiento import chart_data
+        frame=pd.DataFrame(dict(date=['2026-10-01','2026-10-02'],market=['OVER','UNDER'],u=[.9,-1],r=['GANADA','PERDIDA']),index=[0,0])
+        curve,roi,_=chart_data(frame,date_col='date',profit_col='u',result_col='r',group_cols=('market',))
+        self.assertEqual(roi.Muestra.sum(),2)
+        self.assertAlmostEqual(roi.Unidades.sum(),-.1)
+        curve,roi,_=chart_data(frame.iloc[0:0],date_col='date',profit_col='u',result_col='r',group_cols=('market',))
+        self.assertTrue(curve.empty);self.assertTrue(roi.empty)

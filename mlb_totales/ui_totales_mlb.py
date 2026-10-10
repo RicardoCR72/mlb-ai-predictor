@@ -1,3 +1,4 @@
+from core.graficas_rendimiento import render_performance_charts
 from core.ui_controles import state_message, roi_sample, render_order
 from core.ui_unidades import render_model_equivalence
 from core.ui_rendimiento import performance_filters
@@ -47,7 +48,7 @@ def render_picks(connect):
     day=col1.date_input('Fecha de partidos',today,key='mlb_totales_fecha')
     max_age=col2.number_input('Antigüedad máxima de cuota (min)',15,1440,180,15,
                              key='mlb_totales_antiguedad')
-    if col3.button('Actualizar calendario y líneas',key='mlb_totales_refresh'):
+    if col3.button('Recargar calendario y cuotas guardadas',key='mlb_totales_refresh'):
         cached_calendar.clear();cached_predict.clear();st.rerun()
     st.caption('Selecciona otra fecha para consultar los partidos de mañana. '
                'Casa base: DraftKings. El EV utiliza su línea y sus cuotas OVER/UNDER.')
@@ -106,7 +107,7 @@ def render_picks(connect):
             issues=pd.concat([aligned[aligned.estado_mercado!='OK'],pred[~good]],ignore_index=True)
             diagnostics(issues)
     except Exception as exc:
-        state_message('No se pudo cargar Totales V2. Comprueba el modelo, los históricos y la conexión MySQL.',kind='offline')
+        state_message('No se pudo cargar Totales V2. Comprueba el modelo, los históricos y la conexión de datos.',kind='offline')
     finally:
         if connection is not None:connection.close()
 
@@ -119,9 +120,6 @@ def render_performance(connect):
         connection=connect()
         if not registro.tables_ready(connection):
             state_message('El registro de predicciones todavía no está preparado.',kind='blocked');return
-        if st.button('Actualizar resultados oficiales',key='mlb_totales_resultados_refresh'):
-            with st.spinner('Consultando resultados oficiales…'):
-                registro.refresh_results(connection)
         frame=registro.settle(only_base(registro.history(connection)))
         if frame.empty:
             state_message('Aún no hay predicciones de DraftKings registradas. Actions o Totales V2 las guardan antes de los partidos.',kind='empty');return
@@ -143,6 +141,8 @@ def render_performance(connect):
         st.caption(f"Ganadas {summary['ganadas']} · Perdidas {summary['perdidas']} · Push {summary['push']}. "
                    'Cuotas, probabilidades y EV originales de DraftKings.')
         render_model_equivalence(summary['apuestas'], summary['unidades'])
+        render_performance_charts(frame,date_col='fecha_oficial',profit_col='unidades',
+            result_col='resultado',group_cols=('seleccion',))
         frame=render_order(frame,'mlb_total_period',date_col='fecha_oficial',confidence_col='confianza_pct',profit_col='unidades')
         render_cards(frame,performance=True)
         if frame.empty:

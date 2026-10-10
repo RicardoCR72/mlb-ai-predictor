@@ -1,3 +1,5 @@
+from core.graficas_rendimiento import render_performance_charts
+from core.modelos_legibles import model_names,label_models
 """Comparador de rendimiento del modelo, separado de dinero apostado."""
 import pandas as pd
 import streamlit as st
@@ -14,7 +16,7 @@ def load_comparison():
     try:
         conn=get_db_connection()
         return read_models(conn)
-    except Exception:return pd.DataFrame(columns=COLUMNS),['MySQL']
+    except Exception:return pd.DataFrame(columns=COLUMNS),['Datos guardados']
     finally:
         if conn is not None:conn.close()
 
@@ -29,6 +31,8 @@ def render_comparison():
     if errors:state_message('No se pudieron consultar: '+', '.join(errors)+'. Las fuentes disponibles siguen visibles.',kind='offline')
     if frame.empty:
         state_message('Aún no hay picks guardados disponibles para comparar.');return
+    names=model_names(frame)
+    frame=label_models(frame,names)
     sport=safe_select('Deporte',['Todos']+sorted(frame.deporte.unique()),key='comparison_sport')
     if sport!='Todos':frame=frame[frame.deporte.eq(sport)]
     frame=performance_filters(frame,'fecha','comparison',season_col='Temporada',probability_col='probabilidad',probability_scale=100,
@@ -44,9 +48,20 @@ def render_comparison():
         if result.empty:state_message('Ningún mercado alcanza el tamaño de muestra seleccionado.',kind='filters')
         else:
             result=result.sort_values('ROI (%)',ascending=False,na_position='last',kind='stable')
-            st.dataframe(result,hide_index=True,use_container_width=True)
+            visible=result.copy()
+            visible['Modelo']=[names[(str(r.Deporte),str(r.Modelo))] for r in result.itertuples()]
+            st.dataframe(visible,hide_index=True,use_container_width=True)
             st.download_button('Descargar comparación filtrada',result.to_csv(index=False),'comparacion_modelos.csv','text/csv')
-    st.caption('Moneyline excluye fechas con dos juegos entre los mismos equipos porque el registro antiguo no permite '
-               'identificar cuál corresponde al pick. NFL conserva las versiones guardadas y no certifica hora de publicación. '
-               'Liga MX mantiene su evaluación estadística: sin cuotas históricas no se inventa un ROI. '
-               'Tus apuestas realizadas se consultan en Bankroll.')
+            identities=set(zip(result.Deporte,result.Mercado,result.Modelo,result.Procedencia))
+            graph_frame=frame[[tuple(row) in identities for row in frame[['deporte','mercado','modelo','procedencia']].itertuples(index=False,name=None)]]
+            render_performance_charts(graph_frame,date_col='fecha',profit_col='unidades',result_col='resultado',
+                group_cols=('deporte','mercado','modelo_visible','procedencia'))
+            with st.expander('Versiones e identificadores de los modelos'):
+                versions=frame[['deporte','modelo_visible','modelo']].drop_duplicates()
+                st.dataframe(versions.rename(columns={'deporte':'Deporte','modelo_visible':'Modelo','modelo':'Identificador original'}),
+                    hide_index=True,use_container_width=True)
+    with st.expander('Cómo interpretar la comparación'):
+        st.write('Procedencia distingue los registros verificados antes del inicio de aquellos cuya hora no podemos comprobar. '
+                 'Las versiones se mantienen separadas. Para comparar mercados completos, deja Resultado en Todos.')
+        st.caption('Moneyline excluye dobles carteleras ambiguas. NFL no certifica hora de publicación. '
+                   'Liga MX carece de cuotas históricas para calcular ROI. Tus apuestas realizadas están en Bankroll.')

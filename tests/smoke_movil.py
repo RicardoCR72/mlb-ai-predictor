@@ -41,6 +41,10 @@ with st.form('style_check'):
 st.page_link('https://github.com/RicardoCR72/mlb-ai-predictor',label='Ver proyecto')
 render_liga_matches(pd.DataFrame([dict(fecha='2099-10-10',inicio_utc='2099-10-11T01:00:00Z',
  visitante=f'Visitante {i}',local=f'Local {i}',p_over25=.58,p_under25=.42) for i in range(9)]))
+from core.ui_picks import render_pick
+render_pick(dict(fecha='2099-10-10',deporte='NFL',partido='Arizona Cardinals @ Seattle Seahawks',
+ seleccion='OVER 45.5',casa='DraftKings',cuota=1.9,probabilidad=.61,cuota_capturada_utc='2026-10-10T20:30:00Z'),
+ market='Total del partido',details=[('Proyección','48.5'),('EV estimado','5.1%')],allow_register=False)
 import core.ui_nfl_creditos as paid_ui
 paid_ui.consultar=lambda day: dict(fecha=day,eventos=[dict(id='demo',away_team='Arizona Cardinals',
  home_team='Seattle Seahawks',commence_time='2099-01-01T00:20:00Z')],max_creditos=6,restantes=500,reserva=120)
@@ -52,6 +56,13 @@ comparison_data=normalize(pd.DataFrame([dict(id=str(i),fecha='2026-10-01',modelo
  sport='MLB',market='Moneyline',identity=['id'])
 comparator_ui.load_comparison=lambda:(comparison_data,[])
 comparator_ui.render_comparison()
+from unittest.mock import patch
+from tests.test_resumen import SummaryTests
+from core.ui_resumen import render_home
+real_page_link=st.page_link
+with patch('core.ui_resumen.snapshot',return_value=SummaryTests().fixture()),patch('streamlit.page_link',
+    side_effect=lambda page,**kwargs:real_page_link('https://github.com/RicardoCR72/mlb-ai-predictor',**kwargs)):
+    render_home()
 ''')
         with socket.socket() as sock:
             sock.bind(('127.0.0.1',0));port=sock.getsockname()[1]
@@ -81,6 +92,15 @@ comparator_ui.render_comparison()
                     styles=controls.evaluate_all('(nodes)=>nodes.map(n=>{const s=getComputedStyle(n);return {border:s.borderTopColor,width:s.borderTopWidth,radius:s.borderTopLeftRadius,color:s.color}})')
                     assert len(styles)>=13,styles
                     assert all(s['border']=='rgb(183, 255, 60)' and s['width']=='1px' and s['radius']=='9px' and s['color']=='rgb(183, 255, 60)' for s in styles),styles
+                    page.get_by_text('Tus deportes',exact=True).wait_for(timeout=30000)
+                    assert page.get_by_text('Captura de cuota: Hora no disponible',exact=True).count()>=9
+                    details=page.locator('.oracle-details').first
+                    assert not details.evaluate('(e)=>e.open')
+                    details.locator('summary').click()
+                    assert details.evaluate('(e)=>e.open')
+                    assert details.locator('.oracle-detail').count()>=1
+                    details.locator('summary').click()
+                    assert page.locator('[data-testid="stVegaLiteChart"]').count()>=2
                     page.wait_for_function('document.body.scrollWidth <= innerWidth+2')
                     mobile=page.locator('.oracle-pick').evaluate_all('(cards)=>cards.map(c=>{const r=c.getBoundingClientRect();return {x:r.x,y:r.y,w:r.width,right:r.right}})')
                     assert all(c['x']>=0 and c['right']<=392 and c['w']>300 for c in mobile),mobile

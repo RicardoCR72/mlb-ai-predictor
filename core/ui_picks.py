@@ -18,6 +18,13 @@ CSS = '''<style>
 .oracle-values{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.7rem}
 .oracle-values span{display:block;color:#a8b4c5;font-size:.72rem}.oracle-values strong{font-size:.95rem;color:#eef3f8}
 .oracle-bar{height:5px;background:#273245;border-radius:5px;margin:.8rem 0}.oracle-bar i{display:block;height:5px;background:#b7ff3c;border-radius:5px}
+.oracle-odds{background:#1c2634;border-radius:7px;padding:.2rem .55rem;white-space:nowrap}
+.oracle-result{font-size:.78rem;font-weight:750;color:#a8b4c5;margin:.3rem 0}
+.oracle-details{border-top:1px solid #273245;padding-top:.65rem;margin-top:.65rem}
+.oracle-details summary{cursor:pointer;color:#b7ff3c;min-height:32px;font-size:.8rem;list-style:revert}
+.oracle-details summary:focus-visible{outline:2px solid #b7ff3c;outline-offset:3px}
+.oracle-detail{display:flex;justify-content:space-between;gap:1rem;padding:.35rem 0;font-size:.78rem}
+.oracle-detail span{color:#a8b4c5}.oracle-detail strong{font-weight:500;text-align:right}
 .oracle-pick.lost{border-top-color:#ff6b76}.oracle-pick.push{border-top-color:#f6c761}.oracle-pick.pending{border-top-color:#8994a5}
 @media(max-width:760px){.oracle-values{grid-template-columns:repeat(2,minmax(0,1fr))}.oracle-selection{flex-wrap:wrap}}
 </style>'''
@@ -50,20 +57,39 @@ def date_text(pick):
     return (date.strftime('%d/%m/%Y') if pd.notna(date) else 'Fecha pendiente') + ' · Hora no verificada'
 
 
+def quote_text(pick):
+    value = pick.get('cuota_capturada_utc')
+    if value is None or pd.isna(value): return 'Hora no disponible'
+    stamp = pd.to_datetime(value, errors='coerce')
+    if pd.isna(stamp): return 'Hora no disponible'
+    # Only adapters for sources with documented UTC timestamps set this field.
+    if stamp.tzinfo is None: stamp = stamp.tz_localize('UTC')
+    return stamp.tz_convert('America/Mexico_City').strftime('%d/%m/%Y · %H:%M CDMX')
+
+
 def card_html(pick, *, market, state='', details=()):
     safe = lambda v: escape(str(v), quote=True)
     probability = number(pick.get('probabilidad'))
     odds = number(pick.get('cuota'))
-    cells = [('Probabilidad', percent(probability)), ('Cuota decimal', f'{odds:.2f}' if odds and odds > 1 else 'Por confirmar')]
-    cells.extend(details)
-    values = ''.join(f'<div><span>{safe(k)}</span><strong>{safe(v)}</strong></div>' for k,v in cells)
-    width = min(max((probability or 0)*100, 0), 100)
+    odds_text = f'{odds:.2f}' if odds and odds > 1 else 'Por confirmar'
+    primary = [] if any(k=='Probabilidad Over 2.5' for k,v in details) else [('Confianza', percent(probability))]
+    # Historical results are immediately visible; projections live in details.
+    primary.extend((k, v) for k, v in details if k in ('Unidades', 'Profit simulado', 'Stake simulado', 'Beneficio', 'Monto apostado'))
+    # Liga MX has no market quote: keep both probabilities on its single card.
+    primary.extend((k, v) for k, v in details if k in ('Probabilidad Over 2.5', 'Probabilidad Under 2.5'))
+    values = ''.join(f'<div><span>{safe(k)}</span><strong>{safe(v)}</strong></div>' for k,v in primary)
+    secondary = [(k, v) for k, v in details if (k, v) not in primary]
+    detail_html = ''.join(f'<div class="oracle-detail"><span>{safe(k)}</span><strong>{safe(v)}</strong></div>' for k,v in secondary)
+    disclosure = f'<details class="oracle-details"><summary>Ver detalles</summary>{detail_html}</details>' if secondary else ''
     status = str(state).upper()
     css = 'lost' if 'PERDIDA' in status else 'push' if 'PUSH' in status else 'pending' if 'PENDIENTE' in status else ''
-    return (f'<div class="oracle-pick {css}"><div class="context">{safe(pick["deporte"])} · {safe(market)} · {safe(pick["casa"])} · {safe(state)}</div>'
-            f'<h3>{safe(pick["partido"])}</h3><div class="context">{safe(date_text(pick))}</div>'
-            f'<div class="oracle-selection">{safe(pick["seleccion"])}</div><div class="oracle-values">{values}</div>'
-            f'<div class="oracle-bar"><i style="width:{width:.1f}%"></i></div></div>')
+    width = min(max((probability or 0)*100, 0), 100)
+    return (f'<div class="oracle-pick {css}"><div class="context">{safe(pick["deporte"])} · {safe(market)} · {safe(pick["casa"])}</div>'
+        f'<h3>{safe(pick["partido"])}</h3><div class="context">{safe(date_text(pick))}</div>'
+        f'<div class="oracle-selection"><span>{safe(pick["seleccion"])}</span><span class="oracle-odds">{safe(odds_text)}</span></div>'
+        f'<div class="oracle-values">{values}</div><div class="oracle-bar"><i style="width:{width:.1f}%"></i></div>'
+        f'<div class="oracle-result">{safe(state)}</div><div class="context oracle-quote">Captura de cuota: {safe(quote_text(pick))}</div>'
+        f'{disclosure}</div>')
 
 
 def pick_key(pick):
@@ -82,7 +108,7 @@ def registration(pick):
     start = pick.get('referencia', {}).get('inicio_utc')
     if start and pd.Timestamp(start) <= pd.Timestamp.now(tz='UTC'):
         st.caption('El partido ya comenzó. Registra apuestas anteriores desde Bankroll.'); return
-    if st.button('Registrar en bankroll', key='open_'+key, icon='💼'):
+    if st.button('Registrar en bankroll', key='open_'+key, icon=None):
         st.session_state['pick_draft'] = dict(pick)
         st.session_state.setdefault('pick_receipt_'+key, str(uuid.uuid4()))
     draft = st.session_state.get('pick_draft')
@@ -115,7 +141,7 @@ def registration(pick):
         st.session_state.pop('pick_receipt_'+key, None)
         st.session_state.pop('bankroll_predictions', None)
         st.cache_data.clear()
-        st.page_link('pages/0_💼_Bankroll.py', label='Ver mi bankroll', icon='💼')
+        st.page_link('pages/0_💼_Bankroll.py', label='Ver mi bankroll', icon=None)
     except ValueError as exc:
         st.warning(str(exc))
     except Exception as exc:
@@ -137,7 +163,8 @@ def nfl_pick(row, prop=False):
     return dict(fecha=row['gameday'], deporte='NFL', partido=f"{row['away_team']} @ {row['home_team']}",
                 seleccion=label, casa=str(row.get('casa_apuestas') or 'DraftKings') if prop else 'DraftKings',
                 cuota=odds, probabilidad=number(row['probabilidad_pick'] if prop else row['prob_pick']),
-                origen='nfl_prop' if prop else 'nfl_total', referencia=reference)
+                origen='nfl_prop' if prop else 'nfl_total', referencia=reference,
+                cuota_capturada_utc=row.get('timestamp_captura') if prop else None)
 
 
 def mlb_total_pick(row):
@@ -145,6 +172,7 @@ def mlb_total_pick(row):
     return dict(fecha=row.get('fecha_oficial', row.get('fecha', pd.Timestamp(row['start_utc']).date())), deporte='MLB',
         partido=f"{row['visitante']} @ {row['local']}", seleccion=f"{side} {float(row['linea']):g}",
         casa='DraftKings', cuota=number(row['cuota_'+side.lower()]), probabilidad=number(row['prob_seleccion']),
+        cuota_capturada_utc=row.get('captured_utc'),
         origen='mlb_total', referencia=dict(game_id=str(row['game_id']),side=side,line=float(row['linea']),inicio_utc=kickoff(row['start_utc'])))
 
 
