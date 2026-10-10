@@ -150,3 +150,55 @@ st.session_state['visible_ids']=f.id.tolist()
             self.assertFalse(fresh.exception)
             self.assertEqual(fresh.session_state['visible_ids'],['a','b'])
             self.assertEqual(next(w for w in fresh.date_input if w.label=='Desde').value,date(2026,10,1))
+
+
+class DeploymentImportTests(TestCase):
+    def test_pages_and_comparator_work_with_old_filters_cached(self):
+        # A clean process reproduces a server that imported the old module
+        # before GitHub updated the page scripts on disk.
+        import subprocess
+        import sys
+        import textwrap
+        result = subprocess.run([sys.executable, '-c', textwrap.dedent(r"""
+            import ast
+            import sys
+            from pathlib import Path
+            from types import ModuleType
+            from unittest.mock import patch
+            import pandas as pd
+            from streamlit.testing.v1 import AppTest
+            old = ModuleType('core.ui_filtros')
+            def old_filters(frame, date_col, key):
+                raise AssertionError('The obsolete filters must not be used')
+            old.performance_filters = old_filters
+            sys.modules['core.ui_filtros'] = old
+            paths = ['core/ui_comparador.py', 'nfl/ui_totales.py', 'nfl/ui_props.py',
+                'mlb_totales/ui_totales_mlb.py', 'pages/0_💼_Bankroll.py',
+                'pages/1_⚾_MLB.py', 'pages/3_⚽_Liga_MX.py']
+            for path in paths:
+                tree = ast.parse(Path(path).read_text())
+                nodes = [n for n in tree.body if isinstance(n, ast.ImportFrom)
+                    and n.module in ('core.ui_filtros', 'core.ui_rendimiento')]
+                assert nodes, path
+                namespace = {}
+                exec(compile(ast.Module(body=nodes, type_ignores=[]), path, 'exec'), namespace)
+                assert namespace['performance_filters'].__module__ == 'core.ui_rendimiento', path
+            from core.comparador import normalize
+            frame = normalize(pd.DataFrame([dict(id='a', fecha='2026-10-01', modelo='v1',
+                resultado='GANADA', probabilidad=.7, cuota=-110)]),
+                sport='NFL', market='Totales', identity=['id'], american=True)
+            with patch('core.ui_comparador.load_comparison', return_value=(frame, [])):
+                app = AppTest.from_string('from core.ui_comparador import render_comparison\nrender_comparison()').run()
+                assert not app.exception, app.exception
+                assert any(w.label == 'Procedencia' for w in app.selectbox)
+                assert any(e.label == 'Favoritos de filtros' for e in app.expander)
+                assert len(app.dataframe[-1].value) == 1
+            assert sys.modules['core.ui_filtros'] is old
+        """)], capture_output=True, text=True, timeout=60,
+            cwd=Path(__file__).resolve().parents[1])
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_previous_import_path_keeps_the_same_public_functions(self):
+        from core import ui_filtros, ui_rendimiento
+        for name in ('PERIODS', 'filter_frame', 'performance_filters', 'safe_select'):
+            self.assertIs(getattr(ui_filtros, name), getattr(ui_rendimiento, name))

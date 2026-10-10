@@ -1,7 +1,7 @@
 from core.ui_controles import state_message, roi_sample, render_order
 from core.ui_unidades import render_model_equivalence
 from core.ui_picks import render_pick, nfl_pick
-from core.ui_filtros import performance_filters, safe_select
+from core.ui_rendimiento import performance_filters, safe_select
 import hmac
 import html
 from datetime import datetime

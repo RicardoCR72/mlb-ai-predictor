@@ -1,5 +1,5 @@
 from core.ui_controles import state_message
-from core.ui_filtros import performance_filters
+from core.ui_rendimiento import performance_filters
 from core.ui_bankroll import render_analytics, render_history
 from core.ui_actualizacion import render_update_button
 import json
