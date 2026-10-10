@@ -137,3 +137,14 @@ class SummaryTests(TestCase):
         self.assertEqual(len(links),5)
         self.assertEqual(len({link.proto.label for link in links}),5)
         self.assertFalse(any('sport-card' in m.value or 'Flujo operativo' in m.value for m in app.markdown))
+
+    def test_dashboard_bypasses_cached_old_home_renderer(self):
+        with patch('core.ui_resumen.render_home',side_effect=AssertionError('renderer anterior')), \
+             patch('core.ui_resumen.snapshot',return_value=self.fixture()):
+            app=AppTest.from_file(str(ROOT/'dashboard.py')).run()
+        self.assertFalse(app.exception)
+        self.assertEqual(app.radio(key='home_calendar_limit').options,
+                         ['5 partidos','10 partidos','20 partidos','Todos'])
+        html=''.join(m.value for m in app.markdown)
+        self.assertIn('agenda-match',html)
+        self.assertIn('availability-card',html)

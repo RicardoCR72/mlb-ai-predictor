@@ -58,7 +58,7 @@ comparator_ui.load_comparison=lambda:(comparison_data,[])
 comparator_ui.render_comparison()
 from unittest.mock import patch
 from tests.test_resumen import SummaryTests
-from core.ui_resumen import render_home
+from core.ui_inicio import render_home
 real_page_link=st.page_link
 home_data=SummaryTests().fixture()
 home_data['services']['liga_mx']['games']=[dict(Fecha=f'2026-10-{6+i//2:02}',Horario='22:00 CDMX',

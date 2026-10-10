@@ -1,5 +1,5 @@
 import streamlit as st
-from core.ui_resumen import render_home
+from core.ui_inicio import render_home
 
 st.set_page_config(page_title='Oráculo Sports AI', page_icon='◉', layout='wide', initial_sidebar_state='expanded')
 st.markdown('''<style>
