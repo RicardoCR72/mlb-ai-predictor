@@ -944,8 +944,8 @@ def main():
         resultado = agregar_lineas_y_probabilidades(proyecciones, lineas)
         resultado = evaluar_dependencia_recepcion(resultado, features, lineas)
         from nfl.publicaciones_props import save_publications
-        save_publications(conexion, resultado, juegos, MODELO_VERSION)
         guardar_proyecciones(conexion, resultado)
+        save_publications(conexion, resultado, juegos, MODELO_VERSION)
     finally:
         if conexion is not None and conexion.is_connected():
             conexion.close()
