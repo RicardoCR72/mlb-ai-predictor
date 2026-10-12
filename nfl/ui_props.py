@@ -655,6 +655,8 @@ def cargar_props_mysql():
         cursor = conexion.cursor(dictionary=True)
         cursor.execute(consulta)
         registros = cursor.fetchall()
+        from nfl.publicaciones_props import attach_publications
+        registros = attach_publications(conexion, registros)
     finally:
         if cursor is not None:
             cursor.close()
@@ -843,7 +845,8 @@ def mostrar_prop_compacto(fila):
     render_pick(pick, market=str(fila['mercado']), state=str(fila['estado_pick']),
         details=[('Proyección', formatear_porcentaje(fila['proyeccion']) if fila['tipo_prop']=='anytime_td' else formatear_numero(fila['proyeccion'], 2)),
                  ('Edge', formatear_numero(fila['edge'], 2)), ('EV estimado', formatear_porcentaje(fila['ev_estimado'])),
-                 ('Lesión', texto_seguro(fila.get('estado_lesion'), 'Sin alerta'))],
+                 ('Lesión', texto_seguro(fila.get('estado_lesion'), 'Sin alerta')),
+                 ('Contexto y escenarios', texto_seguro(fila.get('contexto_lesiones'), 'Sin alerta'))],
         allow_register=fila['seleccion'] in ('OVER','UNDER','ANOTA'))
 
 
@@ -859,7 +862,9 @@ def mostrar_resultado_prop(fila):
 def mostrar_lesion_compacta(fila):
     estado = texto_seguro(fila.get("estado_lesion"), "Por confirmar")
     contexto = texto_seguro(fila.get("contexto_lesiones"), "")
-    if len(contexto) > 180:
+    if "Dependencia de lesión:" in contexto:
+        estado = "Depende de compañeros en duda"
+    if len(contexto) > 180 and "Dependencia de lesión:" not in contexto:
         contexto = contexto[:177].rstrip() + "..."
     contexto_html = (
         f'<div class="injury-context">{html_seguro(contexto)}</div>'
@@ -1116,6 +1121,9 @@ if seccion_props == "📈 Rendimiento":
     resultados = performance_filters(resultados, 'gameday', 'nfl_prop_perf', season_col='season',
         probability_col='probabilidad_pick', probability_scale=100, market_col='mercado', result_col='resultado_pick',week_col='week',
         extra_keys={'partido':'props_perf_partido'})
+
+    from core.auditoria_nfl import render_receiving_audit
+    render_receiving_audit(resultados, historico)
 
     if resultados.empty:
         state_message('Todavía no hay candidatos evaluados. El panel se activará automáticamente cuando existan estadísticas oficiales.',kind='empty')

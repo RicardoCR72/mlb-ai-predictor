@@ -120,4 +120,34 @@ class TestRealMySQL(unittest.TestCase):
                 bank.save_bet(conn,bet,str(uuid.uuid4()))
         finally:conn.close()
 
+    def test_receiving_publication_is_immutable_across_connections(self):
+        import json
+        import pandas as pd
+        from datetime import datetime,timezone
+        from nfl.publicaciones_props import save_publications,attach_publications
+        self.assertEqual(os.environ.get('DB_NAME'),'bankroll_ci')
+        game='test-'+str(uuid.uuid4())
+        frame=pd.DataFrame([dict(game_id=game,player_id='p',tipo_prop='receiving_yards',
+            id_linea=123,linea=60.5,proyeccion=85,seleccion='OVER',probabilidad_pick=.65,
+            cuota_pick=-110,estado_pick='REVISAR LESION',dependencia_lesion=True)])
+        games=pd.DataFrame([dict(game_id=game,gameday='2099-10-11',gametime='13:00')])
+        conn=get_db_connection()
+        try:
+            save_publications(conn,frame,games,'v')
+            frame['proyeccion']=30
+            save_publications(conn,frame,games,'v')
+        finally:conn.close()
+        conn=get_db_connection()
+        try:
+            record=dict(id_juego=game,id_jugador='p',tipo_prop='receiving_yards',modelo_version='v',id_linea=123)
+            saved=attach_publications(conn,[record])[0]
+            self.assertEqual(json.loads(saved['auditoria_payload'])['proyeccion'],85)
+            # Otra línea o modelo no reutilizan el registro anterior.
+            self.assertIsNone(attach_publications(conn,[dict(record,id_linea=999)])[0]['auditoria_payload'])
+            self.assertIsNone(attach_publications(conn,[dict(record,modelo_version='other')])[0]['auditoria_payload'])
+            frame['id_linea']=124
+            save_publications(conn,frame,games,'v')
+            self.assertEqual(json.loads(attach_publications(conn,[dict(record,id_linea=124)])[0]['auditoria_payload'])['proyeccion'],30)
+        finally:conn.close()
+
 if __name__=='__main__':unittest.main()

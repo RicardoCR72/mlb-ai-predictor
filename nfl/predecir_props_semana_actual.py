@@ -2,6 +2,7 @@
 
 import json
 import argparse
+import sys
 from jornada import calendario_hoy
 from pathlib import Path
 
@@ -53,6 +54,8 @@ from predecir_semana_actual import (
 
 
 RAIZ_PROYECTO = Path(__file__).resolve().parents[1]
+if str(RAIZ_PROYECTO) not in sys.path:
+    sys.path.insert(0, str(RAIZ_PROYECTO))
 DIRECTORIO_MODELOS = RAIZ_PROYECTO / "modelos_nfl" / "props"
 DIRECTORIO_SALIDA = RAIZ_PROYECTO / "data" / "nfl" / "predictions"
 
@@ -792,6 +795,29 @@ def agregar_lineas_y_probabilidades(proyecciones, lineas):
     return resultado
 
 
+def evaluar_dependencia_recepcion(resultado, features, lineas):
+    from nfl.dependencia_lesiones import escenarios_companeros, marcar_dependencia
+    if features.empty or lineas.empty:
+        return resultado
+    juegan, ausentes, nombres = escenarios_companeros(features, cargar_lesiones())
+    mask = nombres.ne('')
+    if not mask.any():
+        return resultado
+    modelo = joblib.load(RUTA_MODELO_YARDAS)
+    escenarios = []
+    for frame in [juegan, ausentes]:
+        bloque = base_proyeccion(frame.loc[mask])
+        bloque['tipo_prop'] = 'receiving_yards'
+        bloque['player_carries_avg_5'] = 0.0
+        bloque['is_primary_rusher'] = 0
+        bloque['proyeccion'] = predecir_modelo(modelo, frame.loc[mask])
+        escenarios.append(agregar_lineas_y_probabilidades(bloque, lineas))
+    names = features.loc[mask,['game_id','player_id']].copy()
+    names['companeros_en_duda'] = nombres.loc[mask].values
+    result = resultado.merge(names,on=['game_id','player_id'],how='left',validate='many_to_one')
+    return marcar_dependencia(result,*escenarios)
+
+
 def guardar_proyecciones(conexion, df):
     if conexion is None:
         print("Sin credenciales MySQL: se guardará únicamente CSV.")
@@ -916,6 +942,9 @@ def main():
             sincronizar_catalogos(conexion, catalogo, juegos)
         lineas = cargar_lineas(conexion, juegos["game_id"].tolist())
         resultado = agregar_lineas_y_probabilidades(proyecciones, lineas)
+        resultado = evaluar_dependencia_recepcion(resultado, features, lineas)
+        from nfl.publicaciones_props import save_publications
+        save_publications(conexion, resultado, juegos, MODELO_VERSION)
         guardar_proyecciones(conexion, resultado)
     finally:
         if conexion is not None and conexion.is_connected():
