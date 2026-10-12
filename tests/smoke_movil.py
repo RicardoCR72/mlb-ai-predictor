@@ -56,6 +56,10 @@ comparison_data=normalize(pd.DataFrame([dict(id=str(i),fecha='2026-10-01',modelo
  sport='MLB',market='Moneyline',identity=['id'])
 comparator_ui.load_comparison=lambda:(comparison_data,[])
 comparator_ui.render_comparison()
+from core.auditoria_nfl import render_receiving_audit
+from tests.test_auditoria_nfl import AuditTests
+audit_data=AuditTests().fixture()
+render_receiving_audit(audit_data,audit_data)
 from unittest.mock import patch
 from tests.test_resumen import SummaryTests
 from core.ui_inicio import render_home
@@ -96,6 +100,9 @@ with patch('core.ui_resumen.snapshot',return_value=home_data),patch('streamlit.p
                     styles=controls.evaluate_all('(nodes)=>nodes.map(n=>{const s=getComputedStyle(n);return {border:s.borderTopColor,width:s.borderTopWidth,radius:s.borderTopLeftRadius,color:s.color}})')
                     assert len(styles)>=13,styles
                     assert all(s['border']=='rgb(183, 255, 60)' and s['width']=='1px' and s['radius']=='9px' and s['color']=='rgb(183, 255, 60)' for s in styles),styles
+                    page.get_by_text('Auditoría de yardas de recepción',exact=True).click()
+                    page.get_by_role('button',name='Descargar auditoría de yardas',exact=True).wait_for()
+                    page.wait_for_function('document.body.scrollWidth <= innerWidth+2')
                     page.get_by_text('Tus deportes',exact=True).wait_for(timeout=30000)
                     preview=page.locator('.agenda-match:visible')
                     preview.first.wait_for(timeout=30000)
