@@ -1,0 +1,187 @@
+{
+  "selection": {
+    "alpha": 0.25,
+    "cap": true,
+    "mae_2024": 23.10432166516037
+  },
+  "configuration_grid": [
+    {
+      "alpha": 0,
+      "cap": false,
+      "mae_2024": 23.4858844119941
+    },
+    {
+      "alpha": 0,
+      "cap": true,
+      "mae_2024": 23.211809761529924
+    },
+    {
+      "alpha": 0.25,
+      "cap": false,
+      "mae_2024": 23.382215260943788
+    },
+    {
+      "alpha": 0.25,
+      "cap": true,
+      "mae_2024": 23.10432166516037
+    },
+    {
+      "alpha": 0.5,
+      "cap": false,
+      "mae_2024": 23.429901869083057
+    },
+    {
+      "alpha": 0.5,
+      "cap": true,
+      "mae_2024": 23.126380072706542
+    },
+    {
+      "alpha": 0.75,
+      "cap": false,
+      "mae_2024": 23.634969233258243
+    },
+    {
+      "alpha": 0.75,
+      "cap": true,
+      "mae_2024": 23.298384291307414
+    },
+    {
+      "alpha": 1,
+      "cap": false,
+      "mae_2024": 24.012894845545798
+    },
+    {
+      "alpha": 1,
+      "cap": true,
+      "mae_2024": 23.649108423596267
+    }
+  ],
+  "calibration_selection": {
+    "prediccion": {
+      "cutoff": "2024-11-10",
+      "candidates": [
+        {
+          "mode": "1.0",
+          "players": 1180,
+          "cases": 8260,
+          "brier": 0.14914397103893992,
+          "logloss": 0.4604982771522606
+        },
+        {
+          "mode": "1.25",
+          "players": 1180,
+          "cases": 8260,
+          "brier": 0.14815195086097718,
+          "logloss": 0.4551381810963447
+        },
+        {
+          "mode": "1.5",
+          "players": 1180,
+          "cases": 8260,
+          "brier": 0.14938256503588307,
+          "logloss": 0.4595362885066165
+        },
+        {
+          "mode": "2.0",
+          "players": 1180,
+          "cases": 8260,
+          "brier": 0.15495616070902443,
+          "logloss": 0.4775758225875567
+        },
+        {
+          "mode": "platt",
+          "players": 1180,
+          "cases": 8260,
+          "brier": 0.14967654611024114,
+          "logloss": 0.4579804069429901
+        }
+      ]
+    },
+    "alternative": {
+      "cutoff": "2024-11-10",
+      "candidates": [
+        {
+          "mode": "1.0",
+          "players": 1180,
+          "cases": 8260,
+          "brier": 0.1484725473847842,
+          "logloss": 0.45762718861874196
+        },
+        {
+          "mode": "1.25",
+          "players": 1180,
+          "cases": 8260,
+          "brier": 0.14749607007806126,
+          "logloss": 0.45243630975127225
+        },
+        {
+          "mode": "1.5",
+          "players": 1180,
+          "cases": 8260,
+          "brier": 0.14872433971786714,
+          "logloss": 0.45705657720753834
+        },
+        {
+          "mode": "2.0",
+          "players": 1180,
+          "cases": 8260,
+          "brier": 0.15431065088925383,
+          "logloss": 0.47561694153218126
+        },
+        {
+          "mode": "platt",
+          "players": 1180,
+          "cases": 8260,
+          "brier": 0.1483120996825837,
+          "logloss": 0.4536034999816144
+        }
+      ]
+    }
+  },
+  "calibration_modes": {
+    "prediccion": "1.25",
+    "alternative": "1.25"
+  },
+  "probability_confirmation": {
+    "mode": "1.25",
+    "logloss_difference": -0.01003179071687979,
+    "game_bootstrap_95": [
+      -0.013316333351222523,
+      -0.0069302705611085655
+    ]
+  },
+  "confirmation_mae_difference": -0.08208992689883139,
+  "confirmation_game_bootstrap_95": [
+    -0.3309892753864763,
+    0.1549642723170262
+  ],
+  "point_upgrade_confirmed": false,
+  "historical_market_roi": null,
+  "historical_market_roi_reason": "No hay líneas/cuotas históricas verificadas de 2024–2025. La cuadrícula de líneas es sintética y no se usa para afirmar rentabilidad.",
+  "synthetic_lines": [
+    10.5,
+    20.5,
+    30.5,
+    40.5,
+    60.5,
+    80.5,
+    100.5
+  ],
+  "oos_2026_first": "2026-09-09",
+  "oos_2026_last": "2026-09-21",
+  "production_changed": false,
+  "sources": {
+    "nfl_props_recepcion_features_2012_2026.parquet": "4fdd1f84570e4b0a7a262015f9c746862bddddc366ffd5705a586d6611053e27",
+    "predicciones_validacion_recepcion.csv": "5ebf5a3109381d531d2b486b877961dfb6e6731ff2a6ff433167aa8800990da0"
+  },
+  "live_audit": {
+    "rows": 78,
+    "mode": "1.25",
+    "parameters_chosen_using_2026": false,
+    "original_publications_verified": false,
+    "brier_actual": 0.26253981038461527,
+    "brier_candidato": 0.2529194532906413,
+    "sha256": "fe73fb50cb88cb64d450ab31578842e3314bf850320e03253baf017bcd8366ac"
+  },
+  "source_ref": "e8e0392db28569c85d81e0192f1c7970ec815e40"
+}
