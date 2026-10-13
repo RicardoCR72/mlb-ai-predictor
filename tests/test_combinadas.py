@@ -90,4 +90,6 @@ class ParlayTests(TestCase):
             self.assertFalse(app.exception)
             self.assertTrue(any('al menos dos' in w.value for w in app.warning))
             app.multiselect(key='parlay_sports').set_value(['NFL']).run()
-            self.assertTrue(any('dos partidos' in i.value for i in app.info))
+            self.assertFalse(app.exception)
+            self.assertFalse(app.info)
+            self.assertTrue(any('oracle-state' in m.value and 'dos partidos' in m.value for m in app.markdown))

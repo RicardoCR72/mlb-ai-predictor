@@ -9,6 +9,7 @@ from core.combinadas_datos import read_candidates
 from core.combinadas import prepare_candidates,recommend,combination
 from core.ui_movil import apply_mobile_layout
 from core.ui_picks import render_pick
+from core.ui_controles import state_message
 
 ROOT=Path(__file__).resolve().parents[1]
 
@@ -38,6 +39,7 @@ def render_combinations():
 .parlay-hero{padding:1.1rem;border:1px solid #35462e;border-radius:14px;background:linear-gradient(130deg,#182719,#101722);margin-bottom:1rem}
 .parlay-kicker{font-size:.7rem;font-weight:800;letter-spacing:.13em;color:#b7ff3c}
 .parlay-hero p{color:#afbdcc;margin-bottom:0;line-height:1.5}
+.st-key-parlay_proposal .oracle-state{border-top:3px solid #b7ff3c!important}
 </style><div class="parlay-hero"><div class="parlay-kicker">MLB · NFL · LIGA MX</div><h2>Arma tu combinada</h2><p>Compara los picks guardados y elige selecciones de partidos distintos.</p></div>''',unsafe_allow_html=True)
     st.title('Combinadas')
     st.caption('Ordenadas por confianza del modelo. Las probabilidades de distintos modelos pueden tener distinta calibración.')
@@ -58,7 +60,7 @@ def render_combinations():
         st.subheader('Propuesta por confianza')
         st.caption('Una selección por partido; se excluyen inicios sin verificar, alertas de lesión y cuotas con fecha antigua conocida.')
         if len(suggested)<2:
-            st.info('Todavía no hay dos partidos distintos elegibles para proponer una combinada con estos filtros.')
+            state_message('Todavía no hay dos partidos distintos elegibles para proponer una combinada con estos filtros.',kind='filters')
         else:
             if len(suggested)<count:st.caption(f'Solo hay {len(suggested)} partidos elegibles; no se completan con picks de menor confianza.')
             lookup={p['id']:p for p in filtered if p['automatic']}
