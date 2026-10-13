@@ -71,6 +71,14 @@ home_data['services']['liga_mx']['games']=[dict(Fecha=f'2026-10-{6+i//2:02}',Hor
 with patch('core.ui_resumen.snapshot',return_value=home_data),patch('streamlit.page_link',
     side_effect=lambda page,**kwargs:real_page_link('https://github.com/RicardoCR72/mlb-ai-predictor',**kwargs)):
     render_home()
+from core.ui_combinadas import render_combinations
+from tests.test_combinadas import ParlayTests,NOW
+parlay_data=ParlayTests().fixture()
+# Nombres distintos para no contar estas tarjetas en la comprobación de Liga MX.
+parlay_data[2]['deporte']='MLB'
+with patch('core.ui_combinadas.load_candidates',return_value=(parlay_data,[])),patch('core.ui_combinadas.datetime') as clock:
+    clock.now.return_value=NOW
+    render_combinations()
 ''')
         with socket.socket() as sock:
             sock.bind(('127.0.0.1',0));port=sock.getsockname()[1]
@@ -96,6 +104,12 @@ with patch('core.ui_resumen.snapshot',return_value=home_data),patch('streamlit.p
                     liga=page.locator('.oracle-pick').filter(has_text='Liga MX')
                     liga.nth(8).wait_for(timeout=30000)
                     assert liga.count()==9,liga.count()
+                    proposal=page.locator('.st-key-parlay_proposal')
+                    proposal.get_by_text('42.0%',exact=True).wait_for(timeout=30000)
+                    assert proposal.locator('.oracle-pick').count()==3
+                    proposal.get_by_text('Por confirmar',exact=True).first.wait_for()
+                    proposal.get_by_role('button',name='Descargar propuesta',exact=True).wait_for()
+
                     controls=page.locator('[data-testid="stButton"] button,[data-testid="stDownloadButton"] button,[data-testid="stFormSubmitButton"] button,[data-testid="stPageLink"] a')
                     styles=controls.evaluate_all('(nodes)=>nodes.map(n=>{const s=getComputedStyle(n);return {border:s.borderTopColor,width:s.borderTopWidth,radius:s.borderTopLeftRadius,color:s.color}})')
                     assert len(styles)>=13,styles
