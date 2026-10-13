@@ -38,6 +38,14 @@ class ParlayTests(TestCase):
         picks[1]['casa']='DraftKings';picks[1]['casa_verificada']=False
         self.assertIsNone(combination(picks,NOW)['odds'])
 
+    def test_same_player_line_and_side_in_different_markets_are_distinct_picks(self):
+        original=dict(self.fixture()[0],jugador_id='player',tipo_prop='receiving_yards')
+        other=dict(original,tipo_prop='rushing_yards',probabilidad=.85)
+        ranked=prepare_candidates([original,other],NOW)
+        self.assertEqual(len(ranked),2)
+        self.assertNotEqual(ranked[0]['id'],ranked[1]['id'])
+        self.assertEqual(len(recommend(ranked,3)),1)
+
     def test_started_review_unknown_time_old_quotes_and_invalid_probabilities(self):
         original=self.fixture()[0]
         self.assertEqual(prepare_candidates([dict(original,inicio_utc=NOW)],NOW),[])

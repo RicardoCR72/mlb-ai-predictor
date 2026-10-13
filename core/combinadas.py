@@ -45,7 +45,8 @@ def prepare_candidates(options, now=None, days=1):
         captured=stamp(pick.get('cuota_capturada_utc'))
         odds=finite(pick.get('cuota'));odds=odds if odds is not None and odds>1 else None
         match=(normalized(pick['deporte']),str(day),*sorted([normalized(pick['local']),normalized(pick['visitante'])]))
-        identity=match+(pick['origen'],str(pick.get('jugador_id','')),normalized(pick['seleccion']))
+        identity=match+(pick['origen'],str(pick.get('jugador_id','')),
+                        normalized(pick.get('tipo_prop',pick.get('mercado',''))),normalized(pick['seleccion']))
         key=hashlib.sha256(json.dumps(identity,ensure_ascii=False).encode()).hexdigest()[:20]
         problems=[]
         if start is None:problems.append('Hora de inicio por confirmar')
