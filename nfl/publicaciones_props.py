@@ -28,10 +28,12 @@ def publication_rows(frame, games, model, now=None):
     fields = ['linea','proyeccion','seleccion','probabilidad_pick','cuota_pick','estado_pick',
         'contexto_lesiones','dependencia_lesion','proyeccion_juegan','proyeccion_no_juegan']
     for row in frame.to_dict('records'):
-        if (str(row['game_id']) not in future or row['tipo_prop'] != 'receiving_yards'
+        if (str(row['game_id']) not in future or row['tipo_prop'] not in {'receiving_yards','receptions','rushing_yards','passing_yards','passing_tds','anytime_td'}
                 or row['estado_pick'] not in ['CANDIDATO','REVISAR LESION'] or pd.isna(row.get('id_linea'))): continue
         payload = {key:row[key] for key in fields if key in row and pd.notna(row[key])}
-        payload['estado_lesion'] = row.get('player_injury_status','healthy_or_unlisted')
+        injury=row.get('player_injury_status')
+        payload['estado_lesion']=str(injury) if injury is not None and pd.notna(injury) else 'unknown'
+        payload['publicacion_utc']=True
         key = (row['game_id'],row['player_id'])
         if key in recs.index and pd.notna(recs.loc[key,'proyeccion']):
             payload['recepciones_proyectadas'] = float(recs.loc[key,'proyeccion'])
@@ -53,8 +55,8 @@ def save_publications(conn, frame, games, model, now=None):
             PRIMARY KEY(id_juego,id_jugador,tipo_prop,modelo_version,id_linea)
         )''')
         cursor.executemany('''INSERT INTO nfl_publicaciones_props
-            (id_juego,id_jugador,tipo_prop,modelo_version,id_linea,payload)
-            VALUES (%s,%s,%s,%s,%s,%s)
+            (id_juego,id_jugador,tipo_prop,modelo_version,id_linea,payload,publicada_en)
+            VALUES (%s,%s,%s,%s,%s,%s,UTC_TIMESTAMP())
             ON DUPLICATE KEY UPDATE id_linea=nfl_publicaciones_props.id_linea''',rows)
         conn.commit()
     finally:

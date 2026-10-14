@@ -1,6 +1,8 @@
 from core.graficas_rendimiento import render_performance_charts
 from core.modelos_legibles import model_names,label_models
 """Comparador de rendimiento del modelo, separado de dinero apostado."""
+import runpy
+from pathlib import Path
 import pandas as pd
 import streamlit as st
 from core.db import get_db_connection
@@ -15,7 +17,8 @@ def load_comparison():
     conn=None
     try:
         conn=get_db_connection()
-        return read_models(conn)
+        reader=runpy.run_path(str(Path(__file__).with_name('comparador.py')),run_name='comparison_reader')
+        return reader['read_models'](conn)
     except Exception:return pd.DataFrame(columns=COLUMNS),['Datos guardados']
     finally:
         if conn is not None:conn.close()

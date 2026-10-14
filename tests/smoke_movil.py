@@ -89,6 +89,10 @@ with st.container(key='lean_history_smoke'):
     render_performance_charts(history,date_col='fecha',profit_col='profit',result_col='estado')
     visible=history_window(history,'lean_smoke')
     st.caption(f'Vista resumida: {len(visible)} picks')
+from core.ui_confianza import render as render_confidence
+from tests.test_confianza import ConfidenceTests
+with st.container(key='confidence_smoke'),patch('core.ui_confianza.load',return_value=(ConfidenceTests().fixture(30),[])):
+    render_confidence()
 ''')
         with socket.socket() as sock:
             sock.bind(('127.0.0.1',0));port=sock.getsockname()[1]
@@ -201,6 +205,13 @@ with st.container(key='lean_history_smoke'):
                     lean.get_by_role('button',name='Ver 10 más',exact=True).click()
                     lean.get_by_text('Vista resumida: 20 picks',exact=True).wait_for()
                     assert lean.locator('[data-testid="stMetricValue"]').get_by_text('25',exact=True).count()==1
+                    page.wait_for_function('document.body.scrollWidth <= innerWidth+2')
+                    confidence=page.locator('.st-key-confidence_smoke')
+                    confidence.get_by_text('Calibración de confianza',exact=True).wait_for()
+                    confidence.get_by_role('button',name='Descargar diagnóstico por rangos',exact=True).wait_for()
+                    confidence.get_by_text('Prueba temporal de recalibración',exact=True).click()
+                    confidence.get_by_role('button',name='Descargar evaluación temporal',exact=True).wait_for()
+                    assert page.locator('[data-testid="stException"]').count()==0
                     page.wait_for_function('document.body.scrollWidth <= innerWidth+2')
                     browser.close()
                 print('Responsive OK: una columna a 390 px, dos a 1280 px, tabla sin desbordamiento, nueve tarjetas Liga MX y tarjetas alineadas y jerarquía visual de botones.')

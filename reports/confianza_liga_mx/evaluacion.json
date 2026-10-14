@@ -1,0 +1,22 @@
+{
+  "excluidos": {
+    "entrada": 306,
+    "probabilidad_invalida": 0,
+    "push_pendiente_o_revision": 0,
+    "identificacion_incompleta": 0,
+    "sin_fecha": 0,
+    "duplicados": 0
+  },
+  "pruebas": [
+    {
+      "deporte": "Liga MX",
+      "mercado": "Over 2.5",
+      "modelo": "Liga MX congelado · confirmación 2024-25",
+      "production_changed": false,
+      "status": "Datos insuficientes",
+      "total": 306,
+      "verificados": 0,
+      "partidos": 0
+    }
+  ]
+}

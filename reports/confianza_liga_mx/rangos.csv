@@ -1,0 +1,4 @@
+deporte,mercado,modelo,procedencia,rango,picks,partidos,confianza,acierto,diferencia,intervalo_inferior,intervalo_superior,evidencia,brier,logloss
+Liga MX,Over 2.5,Liga MX congelado · confirmación 2024-25,Confirmación histórica · reconstruida,40–50%,62,62,0.48871157893587513,0.4838709677419355,-0.004840611193939637,0.3548387096774194,0.5967741935483871,Muestra limitada,0.24902499857919577,0.6911920641200308
+Liga MX,Over 2.5,Liga MX congelado · confirmación 2024-25,Confirmación histórica · reconstruida,50–60%,237,237,0.5296592575611144,0.5611814345991561,0.03152217703804172,0.4977848101265823,0.6160337552742616,Muestra descriptiva amplia,0.2483684728487593,0.6898905112485753
+Liga MX,Over 2.5,Liga MX congelado · confirmación 2024-25,Confirmación histórica · reconstruida,60–70%,7,7,0.6170735597513889,0.5714285714285714,-0.04564498832281749,0.2857142857142857,0.8571428571428571,Muestra limitada,0.2543307879434059,0.7028733263919966
