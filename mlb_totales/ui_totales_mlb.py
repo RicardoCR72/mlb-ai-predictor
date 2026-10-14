@@ -1,7 +1,7 @@
 from core.graficas_rendimiento import render_performance_charts
 from core.ui_controles import state_message, roi_sample, render_order
 from core.ui_unidades import render_model_equivalence
-from core.ui_rendimiento import performance_filters
+from core.ui_rendimiento_simple import performance_filters
 """Panel de totales separado de moneyline; probabilidades V2 y snapshots previos."""
 from datetime import datetime,timezone,timedelta
 from pathlib import Path
