@@ -27,7 +27,7 @@ def render_performance_charts(frame, *, date_col, profit_col, result_col, group_
         st.caption('La curva aparecerá cuando haya picks liquidados con beneficio conocido.');return
     st.subheader('Unidades acumuladas')
     if not curve.empty:
-        st.altair_chart(alt.Chart(curve).mark_line(color='#b7ff3c').encode(
+        st.altair_chart(alt.Chart(curve).mark_line(color='#b7ff3c',point=True).encode(
             x=alt.X('Fecha:T',title='Fecha (CDMX)'),
             y=alt.Y('Unidades acumuladas:Q',title='Unidades (u)'),
             tooltip=[alt.Tooltip('Fecha:T',format='%d/%m/%Y'),alt.Tooltip('Unidades acumuladas:Q',format='+.2f')]),width='stretch')
