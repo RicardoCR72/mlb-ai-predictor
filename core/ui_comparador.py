@@ -5,7 +5,7 @@ import pandas as pd
 import streamlit as st
 from core.db import get_db_connection
 from core.comparador import read_models,comparison,COLUMNS
-from core.ui_rendimiento_simple import performance_filters,safe_select
+from core.ui_rendimiento_diseno import performance_filters,safe_select
 from core.ui_controles import state_message
 from core.ui_movil import apply_mobile_layout
 

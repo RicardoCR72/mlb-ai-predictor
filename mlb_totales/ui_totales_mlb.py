@@ -1,7 +1,7 @@
 from core.graficas_rendimiento import render_performance_charts
 from core.ui_controles import state_message, roi_sample, render_order
 from core.ui_unidades import render_model_equivalence
-from core.ui_rendimiento_simple import performance_filters
+from core.ui_rendimiento_diseno import performance_filters
 """Panel de totales separado de moneyline; probabilidades V2 y snapshots previos."""
 from datetime import datetime,timezone,timedelta
 from pathlib import Path
@@ -14,7 +14,7 @@ from mlb_totales.predecir_pitcheo import predict
 from mlb_totales.portable import load
 from mlb_totales import registro
 from mlb_totales.casa_base import only_base
-from mlb_totales.tarjetas_totales import render_cards
+from mlb_totales.tarjetas_actuales import render_cards
 
 ROOT=Path(__file__).resolve().parent/'modelos_pitcheo'
 

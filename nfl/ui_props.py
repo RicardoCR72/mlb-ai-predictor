@@ -1,8 +1,8 @@
 from core.graficas_rendimiento import render_performance_charts
 from core.ui_controles import state_message, roi_sample, render_order
 from core.ui_unidades import render_model_equivalence
-from core.ui_picks import render_pick, nfl_pick
-from core.ui_rendimiento_simple import performance_filters, safe_select
+from core.ui_tarjetas import render_pick, nfl_pick
+from core.ui_rendimiento_diseno import performance_filters, safe_select
 import hmac
 import html
 from datetime import datetime

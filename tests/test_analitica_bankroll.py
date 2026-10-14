@@ -76,7 +76,7 @@ class AnalyticsTests(TestCase):
     def app(self):
         return AppTest.from_string('''
 from tests.test_analitica_bankroll import AnalyticsTests
-from core.ui_bankroll import render_analytics, render_history
+from core.ui_bankroll_diseno import render_analytics, render_history
 from core.ui_movil import apply_mobile_layout
 apply_mobile_layout()
 ledger=AnalyticsTests().ledger()
@@ -118,7 +118,7 @@ class UnitsTests(TestCase):
     def test_cards_and_table_show_actual_mxn_and_configured_units(self):
         at=AppTest.from_string('''
 from tests.test_analitica_bankroll import AnalyticsTests
-from core.ui_bankroll import render_history
+from core.ui_bankroll_diseno import render_history
 render_history(AnalyticsTests().ledger(),250)
 ''').run()
         self.assertFalse(at.exception)

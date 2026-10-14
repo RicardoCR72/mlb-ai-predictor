@@ -7,16 +7,16 @@ from unittest.mock import Mock, patch
 import pandas as pd
 from streamlit.testing.v1 import AppTest
 from core.ui_filtros import filter_frame
-from core.ui_picks import nfl_pick, mlb_total_pick, liga_pick, card_html, pick_key
+from core.ui_tarjetas import nfl_pick, mlb_total_pick, liga_pick, card_html, pick_key
 from core import bankroll
 
 
 class PickTests(TestCase):
     def test_liga_nine_games_have_nine_cards_and_keep_selected_side_for_registration(self):
-        with patch('core.ui_picks.get_db_connection') as connect:
+        with patch('core.ui_tarjetas.get_db_connection') as connect:
             at=AppTest.from_string('''
 import pandas as pd
-from core.ui_picks import render_liga_matches
+from core.ui_tarjetas import render_liga_matches
 render_liga_matches(pd.DataFrame([dict(fecha='2099-10-10',inicio_utc='2099-10-11T01:00:00Z',
  visitante=f'Visitante {i}',local=f'Local {i}',p_over25=.58,p_under25=.42) for i in range(9)]))
 ''').run()
@@ -79,7 +79,7 @@ render_liga_matches(pd.DataFrame([dict(fecha='2099-10-10',inicio_utc='2099-10-11
 
     def app(self):
         return AppTest.from_string('''
-from core.ui_picks import render_pick
+from core.ui_tarjetas import render_pick
 pick = dict(fecha='2099-10-10',deporte='NFL',partido='A @ B',seleccion='OVER 45.5',
     casa='DraftKings',cuota=1.95,probabilidad=.61,origen='nfl_total',
     referencia=dict(game_id='g1',side='OVER',line=45.5))
@@ -88,7 +88,7 @@ render_pick(pick, market='Total', state='PICK')
 
     def test_registration_requires_confirmation_and_preserves_snapshot_on_retry(self):
         conn = Mock()
-        with patch('core.ui_picks.get_db_connection',return_value=conn) as connect, \
+        with patch('core.ui_tarjetas.get_db_connection',return_value=conn) as connect, \
              patch.object(bankroll,'prepare'), patch.object(bankroll,'save_bet') as save:
             at=self.app()
             self.assertFalse(at.exception)
@@ -118,12 +118,12 @@ render_pick(pick, market='Total', state='PICK')
             self.assertEqual(conn.close.call_count,2)
 
     def test_cancel_and_started_game_never_write(self):
-        with patch('core.ui_picks.get_db_connection') as connect:
+        with patch('core.ui_tarjetas.get_db_connection') as connect:
             at=self.app();at.button[0].click().run();at.button[2].click().run()
             self.assertFalse(at.exception)
             self.assertNotIn('pick_draft',at.session_state)
             at=AppTest.from_string('''
-from core.ui_picks import render_pick
+from core.ui_tarjetas import render_pick
 render_pick(dict(fecha='2000-01-01',deporte='MLB',partido='A @ B',seleccion='OVER 8.5',
  casa='DraftKings',cuota=1.9,probabilidad=.6,origen='mlb_total',
  referencia=dict(game_id='1',side='OVER',line=8.5,inicio_utc='2000-01-01T23:00:00Z')),market='Total')
@@ -193,7 +193,7 @@ class NFLTotalsFiltersTests(TestCase):
 import numpy as np
 import pandas as pd
 import streamlit as st
-from core.ui_picks import render_pick,nfl_pick
+from core.ui_tarjetas import render_pick,nfl_pick
 from core.ui_unidades import render_model_equivalence
 from core.ui_controles import state_message,roi_sample,render_order
 from core.graficas_rendimiento import render_performance_charts
@@ -215,7 +215,7 @@ st.session_state['visible_ids']=liquidados.id_juego.tolist()
     def test_real_totals_filters_update_metrics_market_comparison_and_cards(self):
         at=self.app()
         self.assertFalse(at.exception)
-        self.assertTrue(next(e for e in at.expander if e.label=='Filtros de rendimiento').proto.expanded)
+        self.assertFalse(next(e for e in at.expander if e.label=='Filtros de rendimiento').proto.expanded)
         def select(label,value):
             next(s for s in at.selectbox if s.label==label).select(value).run()
             self.assertFalse(at.exception)
@@ -285,7 +285,7 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 from core.ui_filtros import performance_filters,safe_select
-from core.ui_picks import render_pick
+from core.ui_tarjetas import render_pick
 from core.ui_unidades import render_model_equivalence
 from core.ui_controles import state_message,roi_sample,render_order
 from core.graficas_rendimiento import render_performance_charts
