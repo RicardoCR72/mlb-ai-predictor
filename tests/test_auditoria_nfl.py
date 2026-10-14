@@ -93,10 +93,22 @@ class AuditTests(TestCase):
     def test_publications_skip_started_unknown_time_and_no_line(self):
         data,games=self.publication_fixture();before=datetime(2026,10,11,16,tzinfo=timezone.utc)
         rows=publication_rows(data,games,'v',before)
-        self.assertEqual(len(rows),1)
+        self.assertEqual(len(rows),2)
         self.assertEqual(json.loads(rows[0][-1])['recepciones_proyectadas'],6)
         self.assertEqual(publication_rows(data,games,'v',datetime(2026,10,11,18,tzinfo=timezone.utc)),[])
         games['gametime']=None;self.assertEqual(publication_rows(data,games,'v',before),[])
+
+    def test_all_six_prop_markets_preserve_original_probabilities_with_unknown_injury(self):
+        data,games=self.publication_fixture()
+        markets=['receiving_yards','receptions','rushing_yards','passing_yards','passing_tds','anytime_td']
+        records=[dict(data.iloc[0],tipo_prop=market,player_injury_status=np.nan) for market in markets]
+        rows=publication_rows(pd.DataFrame(records),games,'v',datetime(2026,10,11,16,tzinfo=timezone.utc))
+        self.assertEqual(len(rows),6)
+        self.assertEqual({r[2] for r in rows},set(markets))
+        for row in rows:
+            payload=json.loads(row[-1])
+            self.assertEqual(payload['probabilidad_pick'],.65)
+            self.assertEqual(payload['estado_lesion'],'unknown')
 
     def test_audit_ui_displays_breakdown_and_export(self):
         data=self.fixture()

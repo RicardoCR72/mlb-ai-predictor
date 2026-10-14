@@ -55,7 +55,7 @@ def read_models(conn):
             AND j2.equipo_local=r.equipo_local AND j2.equipo_visitante=r.equipo_visitante)
         ORDER BY r.fecha DESC'''),
         ('NFL Totales','NFL','Totales',True,['id_juego'],'''
-        SELECT j.fecha,j.temporada,p.id_juego,p.modelo_version AS modelo,p.probabilidad_pick AS probabilidad,
+        SELECT j.fecha,j.temporada,p.id_juego,p.modelo_version AS modelo,p.probabilidad_pick/100 AS probabilidad,
           p.cuota_pick AS cuota,p.resultado_pick AS resultado
         FROM nfl_predicciones_totales p JOIN nfl_juegos j ON j.id_juego=p.id_juego
         WHERE p.estado_pick='PICK' ORDER BY p.actualizado_en DESC,p.id_prediccion DESC'''),
