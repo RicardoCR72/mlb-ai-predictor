@@ -1,4 +1,4 @@
-from core.graficas_rendimiento import render_performance_charts
+from core.ui_rendimiento_resumen import render_performance_charts, history_window
 from core.ui_controles import state_message, roi_sample, render_order
 from core.ui_unidades import render_model_equivalence
 from core.ui_tarjetas import render_pick, nfl_pick
@@ -729,15 +729,15 @@ if seccion_totales == "📈 Rendimiento":
 
         metricas = st.columns(4)
         metricas[0].metric(
-            "Balance",
-            f"{ganadas}-{perdidas}-{pushes}",
+            "Picks evaluados",
+            len(liquidados),
         )
         metricas[1].metric(
             "Acierto",
             formatear_porcentaje(accuracy),
         )
         metricas[2].metric(
-            "Beneficio",
+            "Unidades",
             f"{beneficio:+.2f} u",
         )
         metricas[3].metric(
@@ -745,101 +745,102 @@ if seccion_totales == "📈 Rendimiento":
             formatear_porcentaje(roi),
         )
 
-        roi_sample(muestra_roi)
-        render_model_equivalence(muestra_roi, beneficio)
+        with st.expander('Balance y equivalencia en pesos'):
+            st.caption(f'✅ {ganadas} ganadas · ❌ {perdidas} perdidas · {pushes} push.')
+            roi_sample(muestra_roi)
+            render_model_equivalence(muestra_roi, beneficio)
         render_performance_charts(liquidados,date_col='gameday',profit_col='beneficio_unidades',
             result_col='resultado_pick',group_cols=('pick',))
 
-        comparacion = (liquidados.assign(
-            unidades=pd.to_numeric(liquidados['beneficio_unidades'], errors='coerce'))
-            .groupby('pick', as_index=False)
-            .agg(Picks=('id_prediccion','count'), Muestra_ROI=('unidades','count'), Beneficio=('unidades','sum')))
-        comparacion['ROI (%)'] = comparacion['Beneficio'] / comparacion['Muestra_ROI'].replace(0,np.nan) * 100
-        comparacion = comparacion.rename(columns={'pick':'Mercado','Beneficio':'Beneficio (u)'})
-        st.write('**Rentabilidad por mercado**')
-        st.dataframe(comparacion.sort_values('ROI (%)',ascending=False), hide_index=True, use_container_width=True)
-        st.caption('OVER y UNDER: simulación de 1 unidad por pick. La comparación usa todos los filtros activos, incluido Resultado.')
+        with st.expander('Análisis por mercado y semana'):
+            comparacion = (liquidados.assign(
+                unidades=pd.to_numeric(liquidados['beneficio_unidades'], errors='coerce'))
+                .groupby('pick', as_index=False)
+                .agg(Picks=('id_prediccion','count'), Muestra_ROI=('unidades','count'), Beneficio=('unidades','sum')))
+            comparacion['ROI (%)'] = comparacion['Beneficio'] / comparacion['Muestra_ROI'].replace(0,np.nan) * 100
+            comparacion = comparacion.rename(columns={'pick':'Mercado','Beneficio':'Beneficio (u)'})
+            st.write('**Rentabilidad por mercado**')
+            st.dataframe(comparacion.sort_values('ROI (%)',ascending=False), hide_index=True, use_container_width=True)
+            st.caption('OVER y UNDER: simulación de 1 unidad por pick. La comparación usa todos los filtros activos, incluido Resultado.')
 
-        semanal = (
-            liquidados.assign(
-                ganada=(
-                    liquidados["resultado_pick"] == "GANADA"
-                ).astype(int),
-                perdida=(
-                    liquidados["resultado_pick"] == "PERDIDA"
-                ).astype(int),
-                push=(
-                    liquidados["resultado_pick"] == "PUSH"
-                ).astype(int),
-                unidades=pd.to_numeric(
-                    liquidados["beneficio_unidades"],
-                    errors="coerce",
-                ),
+            semanal = (
+                liquidados.assign(
+                    ganada=(
+                        liquidados["resultado_pick"] == "GANADA"
+                    ).astype(int),
+                    perdida=(
+                        liquidados["resultado_pick"] == "PERDIDA"
+                    ).astype(int),
+                    push=(
+                        liquidados["resultado_pick"] == "PUSH"
+                    ).astype(int),
+                    unidades=pd.to_numeric(
+                        liquidados["beneficio_unidades"],
+                        errors="coerce",
+                    ),
+                )
+                .groupby(["season", "week"], as_index=False)
+                .agg(
+                    picks=("id_prediccion", "count"),
+                    ganadas=("ganada", "sum"),
+                    perdidas=("perdida", "sum"),
+                    pushes=("push", "sum"),
+                    unidades=("unidades", "sum"),
+                    muestra_roi=("unidades", "count"),
+                )
             )
-            .groupby(["season", "week"], as_index=False)
-            .agg(
-                picks=("id_prediccion", "count"),
-                ganadas=("ganada", "sum"),
-                perdidas=("perdida", "sum"),
-                pushes=("push", "sum"),
-                unidades=("unidades", "sum"),
-                muestra_roi=("unidades", "count"),
+            semanal["acierto_pct"] = (
+                semanal["ganadas"]
+                / (semanal["ganadas"] + semanal["perdidas"])
+                * 100
             )
-        )
-        semanal["acierto_pct"] = (
-            semanal["ganadas"]
-            / (semanal["ganadas"] + semanal["perdidas"])
-            * 100
-        )
-        semanal["roi_pct"] = (
-            semanal["unidades"] / semanal["muestra_roi"].replace(0,np.nan) * 100
-        )
-        semanal = semanal.rename(
-            columns={
-                "season": "Temporada",
-                "week": "Semana",
-                "picks": "Picks",
-                "muestra_roi": "Muestra ROI",
-                "ganadas": "Ganadas",
-                "perdidas": "Perdidas",
-                "pushes": "Push",
-                "unidades": "Unidades",
-                "acierto_pct": "Acierto %",
-                "roi_pct": "ROI %",
-            }
-        )
-        st.write("**Rendimiento semanal**")
-        semanas_recientes = semanal.sort_values(
-            ["Temporada", "Semana"], ascending=False
-        ).head(6)
-        filas_semana = list(semanas_recientes.iterrows())
-        for inicio in range(0, len(filas_semana), 3):
-            columnas = st.columns(3, gap="medium")
-            for columna, (_, fila) in zip(
-                columnas, filas_semana[inicio:inicio + 3]
-            ):
-                with columna:
-                    st.markdown(
-                        f"""
-                        <div class="total-week-card">
-                            <div class="total-week-title">{int(fila['Temporada'])} · Semana {int(fila['Semana'])}</div>
-                            <div class="total-week-meta">{int(fila['Picks'])} picks · {int(fila['Ganadas'])}-{int(fila['Perdidas'])}-{int(fila['Push'])}</div>
-                            <div class="total-result-values">
-                                <div><span class="total-result-label">ACIERTOS</span><span class="total-result-value">{float(fila['Acierto %']):.1f}%</span></div>
-                                <div><span class="total-result-label">ROI</span><span class="total-result-value">{float(fila['ROI %']):+.1f}%</span></div>
-                                <div><span class="total-result-label">UNIDADES</span><span class="total-result-value">{float(fila['Unidades']):+.2f} u</span></div>
+            semanal["roi_pct"] = (
+                semanal["unidades"] / semanal["muestra_roi"].replace(0,np.nan) * 100
+            )
+            semanal = semanal.rename(
+                columns={
+                    "season": "Temporada",
+                    "week": "Semana",
+                    "picks": "Picks",
+                    "muestra_roi": "Muestra ROI",
+                    "ganadas": "Ganadas",
+                    "perdidas": "Perdidas",
+                    "pushes": "Push",
+                    "unidades": "Unidades",
+                    "acierto_pct": "Acierto %",
+                    "roi_pct": "ROI %",
+                }
+            )
+            st.write("**Rendimiento semanal**")
+            semanas_recientes = semanal.sort_values(
+                ["Temporada", "Semana"], ascending=False
+            ).head(6)
+            filas_semana = list(semanas_recientes.iterrows())
+            for inicio in range(0, len(filas_semana), 3):
+                columnas = st.columns(3, gap="medium")
+                for columna, (_, fila) in zip(
+                    columnas, filas_semana[inicio:inicio + 3]
+                ):
+                    with columna:
+                        st.markdown(
+                            f"""
+                            <div class="total-week-card">
+                                <div class="total-week-title">{int(fila['Temporada'])} · Semana {int(fila['Semana'])}</div>
+                                <div class="total-week-meta">{int(fila['Picks'])} picks · {int(fila['Ganadas'])}-{int(fila['Perdidas'])}-{int(fila['Push'])}</div>
+                                <div class="total-result-values">
+                                    <div><span class="total-result-label">ACIERTOS</span><span class="total-result-value">{float(fila['Acierto %']):.1f}%</span></div>
+                                    <div><span class="total-result-label">ROI</span><span class="total-result-value">{float(fila['ROI %']):+.1f}%</span></div>
+                                    <div><span class="total-result-label">UNIDADES</span><span class="total-result-value">{float(fila['Unidades']):+.2f} u</span></div>
+                                </div>
                             </div>
-                        </div>
-                        """,
-                        unsafe_allow_html=True,
-                    )
+                            """,
+                            unsafe_allow_html=True,
+                        )
 
         st.subheader("Historial liquidado")
-        filas_resultados = list(
-            render_order(liquidados, 'nfl_total_perf',date_col='gameday',confidence_col='prob_pick',profit_col='beneficio_unidades')
-            .head(20)
-            .iterrows()
-        )
+        with st.expander('Orden del historial'):
+            history=render_order(liquidados,'nfl_total_perf',date_col='gameday',confidence_col='prob_pick',profit_col='beneficio_unidades')
+        filas_resultados=list(history_window(history,'nfl_total_history').iterrows())
         for inicio in range(0, len(filas_resultados), 2):
             columnas = st.columns(2, gap="medium")
             for columna, (_, fila) in zip(

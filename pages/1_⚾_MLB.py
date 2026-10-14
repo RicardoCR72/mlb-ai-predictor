@@ -1,4 +1,4 @@
-from core.graficas_rendimiento import render_performance_charts
+from core.ui_rendimiento_resumen import render_performance_charts, history_window
 from core.ui_controles import state_message, roi_sample, render_order
 from core.ui_unidades import render_model_equivalence
 from core.ui_tarjetas import render_pick
@@ -866,22 +866,23 @@ if modelo is not None and (vista_mlb == "📈 Rendimiento" or not df.empty):
             "reconstrucciones históricas; los registros antiguos no verifican la hora de publicación."
         )
 
-        columna_filtro, columna_ayuda = st.columns([1, 3], gap="medium")
-        with columna_filtro:
-            filtro_confianza = st.selectbox(
-                "Confianza mínima para evaluar",
-                options=list(range(50, 96)),
-                index=13,
-                format_func=lambda valor: f"{valor}%",
-                key="filtro_confianza_roi",
-            )
-        with columna_ayuda:
-            st.caption(
-                "El ROI, el profit y el bankroll se recalculan con el "
-                "umbral seleccionado."
-            )
+        with st.expander('Confianza del historial'):
+            columna_filtro, columna_ayuda = st.columns([1, 3], gap="medium")
+            with columna_filtro:
+                filtro_confianza = st.selectbox(
+                    "Confianza mínima para evaluar",
+                    options=list(range(50, 96)),
+                    index=13,
+                    format_func=lambda valor: f"{valor}%",
+                    key="filtro_confianza_roi",
+                )
+            with columna_ayuda:
+                st.caption(
+                    "El ROI, el profit y el bankroll se recalculan con el "
+                    "umbral seleccionado."
+                )
         df_pasado = cargar_historial_xampp()
-        
+
         # NUEVO: registro_picks_ia = la confianza que Tab 1 ya calculó y guardó.
         df_registro = cargar_registro_picks_historico()
 
@@ -991,32 +992,33 @@ if modelo is not None and (vista_mlb == "📈 Rendimiento" or not df.empty):
             if df_todas.empty:
                 state_message('No hay registros para los filtros seleccionados.',kind='filters'); st.stop()
 
-            # 2. 🔥 LA MAGIA: EL ESCÁNER DE ROI ÓPTIMO
-            if st.button("Encontrar mejor umbral de ROI"):
-                mejores_escenarios = []
-                # Va a iterar desde el 50% al 95% de confianza probando los números
-                for t in np.arange(50.0, 95.0, 0.5):
-                    df_t = df_todas[df_todas['Confianza (%)'] >= t]
-                    if len(df_t) >= 5: # Filtro de seguridad: mínimo 5 apuestas para que el % sea real
-                        inv = df_t['Stake (u)'].sum()
-                        gan = df_t['Profit (u)'].sum()
-                        roi_t = (gan / inv) * 100 if inv > 0 else 0
-                        mejores_escenarios.append({"Confianza Mínima": t, "ROI (%)": roi_t, "Apuestas Realizadas": len(df_t)})
-                
-                if mejores_escenarios:
-                    df_optimo = pd.DataFrame(mejores_escenarios)
-                    mejor_escenario = df_optimo.loc[df_optimo['ROI (%)'].idxmax()]
-                    st.markdown(
-                        f"""
-                        <div class="mlb-roi-card">
-                            <div class="mlb-card-kicker">MEJOR UMBRAL HISTÓRICO</div>
-                            <div class="mlb-card-title">Confianza mínima: {float(mejor_escenario['Confianza Mínima']):.1f}%</div>
-                            <div class="mlb-card-meta">ROI {float(mejor_escenario['ROI (%)']):.2f}% en {int(mejor_escenario['Apuestas Realizadas'])} apuestas simuladas.</div>
-                        </div>
-                        """,
-                        unsafe_allow_html=True,
-                    )
-                    st.line_chart(df_optimo.set_index('Confianza Mínima')['ROI (%)'], use_container_width=True)
+            with st.expander('Explorar umbrales históricos'):
+                # 2. 🔥 LA MAGIA: EL ESCÁNER DE ROI ÓPTIMO
+                if st.button("Encontrar mejor umbral de ROI"):
+                    mejores_escenarios = []
+                    # Va a iterar desde el 50% al 95% de confianza probando los números
+                    for t in np.arange(50.0, 95.0, 0.5):
+                        df_t = df_todas[df_todas['Confianza (%)'] >= t]
+                        if len(df_t) >= 5: # Filtro de seguridad: mínimo 5 apuestas para que el % sea real
+                            inv = df_t['Stake (u)'].sum()
+                            gan = df_t['Profit (u)'].sum()
+                            roi_t = (gan / inv) * 100 if inv > 0 else 0
+                            mejores_escenarios.append({"Confianza Mínima": t, "ROI (%)": roi_t, "Apuestas Realizadas": len(df_t)})
+
+                    if mejores_escenarios:
+                        df_optimo = pd.DataFrame(mejores_escenarios)
+                        mejor_escenario = df_optimo.loc[df_optimo['ROI (%)'].idxmax()]
+                        st.markdown(
+                            f"""
+                            <div class="mlb-roi-card">
+                                <div class="mlb-card-kicker">MEJOR UMBRAL HISTÓRICO</div>
+                                <div class="mlb-card-title">Confianza mínima: {float(mejor_escenario['Confianza Mínima']):.1f}%</div>
+                                <div class="mlb-card-meta">ROI {float(mejor_escenario['ROI (%)']):.2f}% en {int(mejor_escenario['Apuestas Realizadas'])} apuestas simuladas.</div>
+                            </div>
+                            """,
+                            unsafe_allow_html=True,
+                        )
+                        st.line_chart(df_optimo.set_index('Confianza Mínima')['ROI (%)'], use_container_width=True)
 
             # 3. FILTRADO FINAL Y GRÁFICAS (Usando tu Slider)
             df_filtrado = df_todas[df_todas['Confianza (%)'] >= filtro_confianza]
@@ -1027,17 +1029,20 @@ if modelo is not None and (vista_mlb == "📈 Rendimiento" or not df.empty):
             roi = (ganancia_neta / inversion_total) * 100 if inversion_total > 0 else 0
 
             col1, col2, col3, col4 = st.columns(4)
-            col1.metric("Apuestas Realizadas", f"{apuestas_realizadas} de {len(df_todas)}")
-            col2.metric("Unidades apostadas", f"{inversion_total:,.2f} u")
+            col1.metric("Picks evaluados", apuestas_realizadas)
+            decididos=df_filtrado['Resultado'].str.contains('Ganada|Perdida',case=False)
+            acierto=df_filtrado.loc[decididos,'Resultado'].str.contains('Ganada',case=False).mean()
+            col2.metric('Acierto',f'{acierto:.1%}' if decididos.any() else 'N/D')
             col3.metric("Beneficio simulado", f"{ganancia_neta:+,.2f} u")
             col4.metric("ROI", f"{roi:.2f}%")
-            roi_sample(apuestas_realizadas)
-            render_model_equivalence(inversion_total, ganancia_neta)
+            with st.expander('Balance y equivalencia en pesos'):
+                roi_sample(apuestas_realizadas)
+                render_model_equivalence(inversion_total, ganancia_neta)
 
             render_performance_charts(df_filtrado,date_col='Fecha',profit_col='Profit (u)',
                 result_col='Resultado',default_group='Moneyline')
 
-            st.subheader("Libro de auditoría")
+            st.subheader("Historial de picks")
             st.caption("Detalle de las apuestas incluidas en el cálculo.")
             if not df_todas.empty:
                 auditoria_base = df_todas.copy()
@@ -1048,15 +1053,12 @@ if modelo is not None and (vista_mlb == "📈 Rendimiento" or not df.empty):
                     "Fecha", ascending=False
                 ).reset_index(drop=True)
 
-                controles_auditoria = st.columns([1,1,1,2])
-                with controles_auditoria[0]:
-                    limite_auditoria = st.selectbox('Registros a mostrar', [10,20,50,'Todos'], index=1, key='limite_auditoria_mlb')
-                auditoria_filtrada = render_order(df_filtrado, 'mlb_ml_perf', date_col='Fecha',
-                    confidence_col='Confianza (%)', profit_col='Profit (u)').reset_index(drop=True)
+                with st.expander('Orden del historial'):
+                    auditoria_filtrada=render_order(df_filtrado,'mlb_ml_perf',date_col='Fecha',confidence_col='Confianza (%)',profit_col='Profit (u)').reset_index(drop=True)
                 umbral_auditoria = float(filtro_confianza)
                 st.caption('Las tarjetas y la descarga usan la misma muestra que el ROI. El límite solo cambia las tarjetas visibles.')
 
-                with controles_auditoria[3]:
+                with st.expander('Descargar historial completo'):
                     csv_auditoria = auditoria_filtrada.assign(
                         Fecha=auditoria_filtrada["Fecha"].dt.date
                     ).to_csv(index=False).encode("utf-8")
@@ -1073,12 +1075,7 @@ if modelo is not None and (vista_mlb == "📈 Rendimiento" or not df.empty):
                     f"con confianza mínima de {umbral_auditoria:.0f}%."
                 )
 
-                if limite_auditoria == "Todos":
-                    auditoria_visible = auditoria_filtrada
-                else:
-                    auditoria_visible = auditoria_filtrada.head(
-                        int(limite_auditoria)
-                    )
+                auditoria_visible=history_window(auditoria_filtrada,'mlb_ml_history')
 
                 filas_auditoria = list(auditoria_visible.iterrows())
                 if not filas_auditoria:

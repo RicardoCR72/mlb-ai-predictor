@@ -1,4 +1,4 @@
-from core.graficas_rendimiento import render_performance_charts
+from core.ui_rendimiento_resumen import render_performance_charts, history_window
 from core.ui_controles import state_message, roi_sample, render_order
 from core.ui_unidades import render_model_equivalence
 from core.ui_tarjetas import render_pick, nfl_pick
@@ -1125,7 +1125,6 @@ if seccion_props == "📈 Rendimiento":
         extra_keys={'partido':'props_perf_partido'})
 
     from core.auditoria_nfl import render_receiving_audit
-    render_receiving_audit(resultados, historico)
 
     if resultados.empty:
         state_message('Todavía no hay candidatos evaluados. El panel se activará automáticamente cuando existan estadísticas oficiales.',kind='empty')
@@ -1154,150 +1153,139 @@ if seccion_props == "📈 Rendimiento":
         acierto = ganadas / decididas if decididas else np.nan
         roi = unidades / apuestas_roi if apuestas_roi else np.nan
 
-        metricas_roi = st.columns(6)
-        metricas_roi[0].metric("Picks evaluados", len(resultados))
-        metricas_roi[1].metric("Ganadas", ganadas)
-        metricas_roi[2].metric("Perdidas", perdidas)
-        metricas_roi[3].metric("Pushes", pushes)
-        metricas_roi[4].metric(
-            "Unidades", f"{unidades:+.2f} u"
-        )
-        metricas_roi[5].metric("ROI", formatear_porcentaje(roi))
-        roi_sample(apuestas_roi)
-        st.caption(
-            "Acierto sobre picks decididos: "
-            + formatear_porcentaje(acierto)
-        )
-
-        render_model_equivalence(apuestas_roi, unidades)
-
-        st.write("**Resultados por mercado**")
-        por_mercado = (
-            resultados.groupby("mercado", as_index=False)
-            .agg(
-                Picks=("id_proyeccion", "size"),
-                Ganadas=("es_ganada", "sum"),
-                Perdidas=("es_perdida", "sum"),
-                Pushes=("es_push", "sum"),
-                Apuestas_ROI=("tiene_unidad", "sum"),
-                Unidades=("beneficio_unidades", "sum"),
+        metricas_roi=st.columns(4)
+        metricas_roi[0].metric('Picks evaluados',len(resultados))
+        metricas_roi[1].metric('Acierto',formatear_porcentaje(acierto))
+        metricas_roi[2].metric('Unidades',f'{unidades:+.2f} u')
+        metricas_roi[3].metric('ROI',formatear_porcentaje(roi))
+        with st.expander('Balance y equivalencia en pesos'):
+            st.caption(f'✅ {ganadas} ganadas · ❌ {perdidas} perdidas · {pushes} push.')
+            roi_sample(apuestas_roi)
+            st.caption(
+                "Acierto sobre picks decididos: "
+                + formatear_porcentaje(acierto)
             )
-        )
-        decididas_mercado = (
-            por_mercado["Ganadas"] + por_mercado["Perdidas"]
-        )
-        por_mercado["Acierto"] = np.where(
-            decididas_mercado > 0,
-            por_mercado["Ganadas"] / decididas_mercado,
-            np.nan,
-        )
-        por_mercado["ROI"] = np.where(
-            por_mercado["Apuestas_ROI"] > 0,
-            por_mercado["Unidades"] / por_mercado["Apuestas_ROI"],
-            np.nan,
-        )
-        por_mercado = por_mercado.rename(
-            columns={"mercado": "Mercado"}
-        )[
-            [
-                "Mercado", "Picks", "Ganadas", "Perdidas", "Pushes",
-                "Acierto", "Unidades", "ROI",
-            ]
-        ].sort_values("ROI", ascending=False)
-        filas_mercado = list(por_mercado.iterrows())
-        for inicio in range(0, len(filas_mercado), 3):
-            columnas = st.columns(3, gap="medium")
-            for columna, (_, fila) in zip(
-                columnas, filas_mercado[inicio:inicio + 3]
-            ):
-                with columna:
-                    st.markdown(
-                        f"""
-                        <div class="market-result-card">
-                            <div class="market-result-title">{html_seguro(fila['Mercado'])}</div>
-                            <div class="market-result-meta">{int(fila['Picks'])} picks · {int(fila['Ganadas'])}-{int(fila['Perdidas'])}-{int(fila['Pushes'])}</div>
-                            <div class="market-result-values">
-                                <div><span class="result-label">ACIERTOS</span><span class="result-value">{html_seguro(formatear_porcentaje(fila['Acierto']))}</span></div>
-                                <div><span class="result-label">ROI</span><span class="result-value">{html_seguro(formatear_porcentaje(fila['ROI']))}</span></div>
-                                <div><span class="result-label">UNIDADES</span><span class="result-value">{float(fila['Unidades']):+.2f} u</span></div>
-                            </div>
-                        </div>
-                        """,
-                        unsafe_allow_html=True,
-                    )
+
+            render_model_equivalence(apuestas_roi, unidades)
 
         render_performance_charts(resultados,date_col='gameday',profit_col='beneficio_unidades',
             result_col='resultado_pick',group_cols=('mercado',))
+        render_receiving_audit(resultados,historico)
 
-        st.write("**Evolución por semana**")
-        por_semana = (
-            resultados.groupby(["season", "week"], as_index=False)
-            .agg(
-                Picks=("id_proyeccion", "size"),
-                Ganadas=("es_ganada", "sum"),
-                Perdidas=("es_perdida", "sum"),
-                Pushes=("es_push", "sum"),
-                Apuestas_ROI=("tiene_unidad", "sum"),
-                Unidades=("beneficio_unidades", "sum"),
+        with st.expander('Análisis por mercado y semana'):
+            st.write("**Resultados por mercado**")
+            por_mercado = (
+                resultados.groupby("mercado", as_index=False)
+                .agg(
+                    Picks=("id_proyeccion", "size"),
+                    Ganadas=("es_ganada", "sum"),
+                    Perdidas=("es_perdida", "sum"),
+                    Pushes=("es_push", "sum"),
+                    Apuestas_ROI=("tiene_unidad", "sum"),
+                    Unidades=("beneficio_unidades", "sum"),
+                )
             )
-            .sort_values(["season", "week"])
-        )
-        por_semana["Semana"] = (
-            por_semana["season"].astype(int).astype(str)
-            + "-S"
-            + por_semana["week"].astype(int).astype(str)
-        )
-        por_semana["ROI"] = np.where(
-            por_semana["Apuestas_ROI"] > 0,
-            por_semana["Unidades"] / por_semana["Apuestas_ROI"],
-            np.nan,
-        )
-        por_semana["Unidades acumuladas"] = (
-            por_semana["Unidades"].fillna(0.0).cumsum()
-        )
-        semanas_recientes = por_semana.sort_values(
-            ["season", "week"], ascending=False
-        ).head(6)
-        filas_semana = list(semanas_recientes.iterrows())
-        for inicio in range(0, len(filas_semana), 3):
-            columnas = st.columns(3, gap="medium")
-            for columna, (_, fila) in zip(
-                columnas, filas_semana[inicio:inicio + 3]
-            ):
-                with columna:
-                    st.markdown(
-                        f"""
-                        <div class="market-result-card">
-                            <div class="market-result-title">{html_seguro(fila['Semana'])}</div>
-                            <div class="market-result-meta">{int(fila['Picks'])} picks · {int(fila['Ganadas'])}-{int(fila['Perdidas'])}-{int(fila['Pushes'])}</div>
-                            <div class="market-result-values">
-                                <div><span class="result-label">ROI</span><span class="result-value">{html_seguro(formatear_porcentaje(fila['ROI']))}</span></div>
-                                <div><span class="result-label">UNIDADES</span><span class="result-value">{float(fila['Unidades']):+.2f} u</span></div>
-                                <div><span class="result-label">ACUMULADO</span><span class="result-value">{float(fila['Unidades acumuladas']):+.2f} u</span></div>
+            decididas_mercado = (
+                por_mercado["Ganadas"] + por_mercado["Perdidas"]
+            )
+            por_mercado["Acierto"] = np.where(
+                decididas_mercado > 0,
+                por_mercado["Ganadas"] / decididas_mercado,
+                np.nan,
+            )
+            por_mercado["ROI"] = np.where(
+                por_mercado["Apuestas_ROI"] > 0,
+                por_mercado["Unidades"] / por_mercado["Apuestas_ROI"],
+                np.nan,
+            )
+            por_mercado = por_mercado.rename(
+                columns={"mercado": "Mercado"}
+            )[
+                [
+                    "Mercado", "Picks", "Ganadas", "Perdidas", "Pushes",
+                    "Acierto", "Unidades", "ROI",
+                ]
+            ].sort_values("ROI", ascending=False)
+            filas_mercado = list(por_mercado.iterrows())
+            for inicio in range(0, len(filas_mercado), 3):
+                columnas = st.columns(3, gap="medium")
+                for columna, (_, fila) in zip(
+                    columnas, filas_mercado[inicio:inicio + 3]
+                ):
+                    with columna:
+                        st.markdown(
+                            f"""
+                            <div class="market-result-card">
+                                <div class="market-result-title">{html_seguro(fila['Mercado'])}</div>
+                                <div class="market-result-meta">{int(fila['Picks'])} picks · {int(fila['Ganadas'])}-{int(fila['Perdidas'])}-{int(fila['Pushes'])}</div>
+                                <div class="market-result-values">
+                                    <div><span class="result-label">ACIERTOS</span><span class="result-value">{html_seguro(formatear_porcentaje(fila['Acierto']))}</span></div>
+                                    <div><span class="result-label">ROI</span><span class="result-value">{html_seguro(formatear_porcentaje(fila['ROI']))}</span></div>
+                                    <div><span class="result-label">UNIDADES</span><span class="result-value">{float(fila['Unidades']):+.2f} u</span></div>
+                                </div>
                             </div>
-                        </div>
-                        """,
-                        unsafe_allow_html=True,
-                    )
+                            """,
+                            unsafe_allow_html=True,
+                        )
+
+
+            st.write("**Evolución por semana**")
+            por_semana = (
+                resultados.groupby(["season", "week"], as_index=False)
+                .agg(
+                    Picks=("id_proyeccion", "size"),
+                    Ganadas=("es_ganada", "sum"),
+                    Perdidas=("es_perdida", "sum"),
+                    Pushes=("es_push", "sum"),
+                    Apuestas_ROI=("tiene_unidad", "sum"),
+                    Unidades=("beneficio_unidades", "sum"),
+                )
+                .sort_values(["season", "week"])
+            )
+            por_semana["Semana"] = (
+                por_semana["season"].astype(int).astype(str)
+                + "-S"
+                + por_semana["week"].astype(int).astype(str)
+            )
+            por_semana["ROI"] = np.where(
+                por_semana["Apuestas_ROI"] > 0,
+                por_semana["Unidades"] / por_semana["Apuestas_ROI"],
+                np.nan,
+            )
+            por_semana["Unidades acumuladas"] = (
+                por_semana["Unidades"].fillna(0.0).cumsum()
+            )
+            semanas_recientes = por_semana.sort_values(
+                ["season", "week"], ascending=False
+            ).head(6)
+            filas_semana = list(semanas_recientes.iterrows())
+            for inicio in range(0, len(filas_semana), 3):
+                columnas = st.columns(3, gap="medium")
+                for columna, (_, fila) in zip(
+                    columnas, filas_semana[inicio:inicio + 3]
+                ):
+                    with columna:
+                        st.markdown(
+                            f"""
+                            <div class="market-result-card">
+                                <div class="market-result-title">{html_seguro(fila['Semana'])}</div>
+                                <div class="market-result-meta">{int(fila['Picks'])} picks · {int(fila['Ganadas'])}-{int(fila['Perdidas'])}-{int(fila['Pushes'])}</div>
+                                <div class="market-result-values">
+                                    <div><span class="result-label">ROI</span><span class="result-value">{html_seguro(formatear_porcentaje(fila['ROI']))}</span></div>
+                                    <div><span class="result-label">UNIDADES</span><span class="result-value">{float(fila['Unidades']):+.2f} u</span></div>
+                                    <div><span class="result-label">ACUMULADO</span><span class="result-value">{float(fila['Unidades acumuladas']):+.2f} u</span></div>
+                                </div>
+                            </div>
+                            """,
+                            unsafe_allow_html=True,
+                        )
 
         st.write("**Historial de picks evaluados**")
 
         st.download_button('Descargar rendimiento filtrado', resultados.to_csv(index=False), 'nfl_props_rendimiento.csv', 'text/csv', key='props_perf_csv')
-        historial_filtrado = render_order(resultados,'nfl_prop_perf',date_col='gameday',
-            confidence_col='probabilidad_pick',profit_col='beneficio_unidades')
-        cantidad_historial = safe_select('Mostrar', ['20','50','100','Todos'], index=1, key='props_historial_cantidad')
-        st.caption('El límite de tarjetas no modifica las métricas de la muestra.')
-
-        total_filtrado = len(historial_filtrado)
-        if cantidad_historial != "Todos":
-            historial_filtrado = historial_filtrado.head(
-                int(cantidad_historial)
-            )
-
-        st.caption(
-            f"Mostrando {len(historial_filtrado)} de "
-            f"{total_filtrado} picks que coinciden con los filtros."
-        )
+        with st.expander('Orden del historial'):
+            historial_filtrado=render_order(resultados,'nfl_prop_perf',date_col='gameday',confidence_col='probabilidad_pick',profit_col='beneficio_unidades')
+        historial_filtrado=history_window(historial_filtrado,'nfl_prop_history')
 
         if historial_filtrado.empty:
             state_message('No existen picks evaluados que coincidan con esos filtros.',kind='filters')

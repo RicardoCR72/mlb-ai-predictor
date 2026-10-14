@@ -196,7 +196,7 @@ import streamlit as st
 from core.ui_tarjetas import render_pick,nfl_pick
 from core.ui_unidades import render_model_equivalence
 from core.ui_controles import state_message,roi_sample,render_order
-from core.graficas_rendimiento import render_performance_charts
+from core.ui_rendimiento_resumen import render_performance_charts, history_window
 from core.ui_filtros import performance_filters,safe_select
 rows=[]
 for i,(week,pick,result,profit,p) in enumerate([(1,'OVER','GANADA',.9,.6),
@@ -219,15 +219,15 @@ st.session_state['visible_ids']=liquidados.id_juego.tolist()
         def select(label,value):
             next(s for s in at.selectbox if s.label==label).select(value).run()
             self.assertFalse(at.exception)
-        self.assertEqual(at.metric[0].value,'2-1-1')
-        comparison=at.dataframe[0].value
+        self.assertEqual(at.metric[0].value,'4')
+        comparison=next(d.value for d in at.dataframe if 'Muestra_ROI' in d.value.columns)
         self.assertEqual(comparison.Mercado.tolist(),['OVER','UNDER'])
         self.assertAlmostEqual(comparison.iloc[0]['ROI (%)'],45)
         select('Mercado','UNDER')
-        self.assertEqual(at.metric[0].value,'1-1-0')
+        self.assertEqual(at.metric[0].value,'2')
         self.assertEqual(at.metric[3].value,'10.00%')
         select('Semana','1')
-        self.assertEqual(at.metric[0].value,'0-1-0')
+        self.assertEqual(at.metric[0].value,'1')
         self.assertEqual(at.metric[3].value,'-100.00%')
         self.assertEqual(at.session_state['visible_ids'],['g1'])
         cards=[m.value for m in at.markdown if '<div class="oracle-pick ' in m.value]
@@ -240,6 +240,35 @@ st.session_state['visible_ids']=liquidados.id_juego.tolist()
         self.assertEqual(at.session_state['visible_ids'],[])
         self.assertEqual(len(at.metric),0)
         self.assertTrue(any('No hay picks oficiales liquidados' in m.value for m in at.markdown))
+
+
+class PerformanceSummaryTests(TestCase):
+    def test_more_cards_never_truncates_metrics_and_filter_change_resets_limit(self):
+        app=AppTest.from_string('''
+import pandas as pd
+import streamlit as st
+from core.ui_rendimiento_resumen import history_window,render_performance_charts
+frame=pd.DataFrame([dict(id=i,fecha='2099-10-10',estado='GANADA',profit=1) for i in range(25)])
+if st.checkbox('Solo cinco'):frame=frame.head(5)
+st.metric('Picks evaluados',len(frame))
+render_performance_charts(frame,date_col='fecha',profit_col='profit',result_col='estado')
+visible=history_window(frame,'summary_test')
+st.session_state['cards']=len(visible)
+''').run()
+        self.assertFalse(app.exception)
+        self.assertEqual(app.session_state['cards'],10)
+        self.assertEqual(app.metric[0].value,'25')
+        self.assertFalse(next(e for e in app.expander if e.label=='Comparar mercados').proto.expanded)
+        app.button(key='summary_test_more').click().run()
+        self.assertEqual(app.session_state['cards'],20)
+        self.assertEqual(app.metric[0].value,'25')
+        app.button(key='summary_test_more').click().run()
+        self.assertEqual(app.session_state['cards'],25)
+        app.checkbox[0].check().run()
+        self.assertFalse(app.exception)
+        self.assertEqual(app.session_state['cards'],5)
+        self.assertEqual(app.metric[0].value,'5')
+        self.assertFalse(app.button)
 
 
 class MLBTodayFiltersTests(TestCase):
@@ -288,7 +317,7 @@ from core.ui_filtros import performance_filters,safe_select
 from core.ui_tarjetas import render_pick
 from core.ui_unidades import render_model_equivalence
 from core.ui_controles import state_message,roi_sample,render_order
-from core.graficas_rendimiento import render_performance_charts
+from core.ui_rendimiento_resumen import render_performance_charts, history_window
 from unittest.mock import patch
 RUTA_DATA_MLB = Path('.')
 class Model:
@@ -333,8 +362,8 @@ def normalizar_equipo(name): return name
         self.assertFalse(at.exception)
         self.assertFalse(at.error)
         self.assertNotIn('consulto_hoy', at.session_state)
-        self.assertEqual(at.metric[0].value, '2 de 2')
-        self.assertEqual(at.metric[1].value, '2.00 u')
+        self.assertEqual(at.metric[0].value, '2')
+        self.assertEqual(at.metric[1].value, '50.0%')
         self.assertEqual(at.metric[2].value, '-0.10 u')
         self.assertEqual(at.metric[3].value, '-5.00%')
         cards = [m.value for m in at.markdown if '<div class="oracle-pick ' in m.value]
@@ -344,7 +373,7 @@ def normalizar_equipo(name): return name
         self.assertTrue(all('1.00 u' in card for card in cards))
         next(s for s in at.selectbox if s.label == 'Resultado').select('✅ Ganada').run()
         self.assertFalse(at.exception)
-        self.assertEqual(at.metric[0].value, '1 de 1')
+        self.assertEqual(at.metric[0].value, '1')
         self.assertEqual(len([m for m in at.markdown if '<div class="oracle-pick ' in m.value]), 1)
 
     def test_empty_today_uses_neutral_mlb_style_and_preserves_history_navigation(self):
@@ -373,7 +402,7 @@ def normalizar_equipo(name): return name
         self.assertTrue(any('Guardado · hora no verificable' in card for card in cards))
         next(w for w in at.selectbox if w.label=='Procedencia').select('Reconstruido').run()
         self.assertFalse(at.exception)
-        self.assertEqual(at.metric[0].value,'1 de 1')
+        self.assertEqual(at.metric[0].value,'1')
         cards=[m.value for m in at.markdown if '<div class="oracle-pick ' in m.value]
         self.assertEqual(len(cards),1)
         self.assertIn('Reconstruido',cards[0])
