@@ -1,4 +1,4 @@
-from core.graficas_rendimiento import render_performance_charts
+from core.ui_rendimiento_resumen import render_performance_charts, history_window
 from core.ui_controles import state_message, roi_sample, render_order
 from core.ui_unidades import render_model_equivalence
 from core.ui_rendimiento_diseno import performance_filters
@@ -118,25 +118,27 @@ def render_performance(connect):
         frame['temporada'] = pd.to_datetime(frame['fecha_oficial']).dt.year
         frame = performance_filters(frame, 'fecha_oficial', 'mlb_total_period', season_col='temporada', result_col='resultado',
             extra_keys={'confidence_total':'mlb_totales_perf_conf','candidates':'mlb_totales_perf_ev'})
-        cols=st.columns(2)
-        confidence=cols[0].slider('Probabilidad registrada mínima (%)',0,95,0,key='mlb_totales_perf_conf')
-        candidates=cols[1].checkbox('Solo candidatos originales con EV positivo',value=True,key='mlb_totales_perf_ev')
+        with st.expander('Confianza y valor'):
+            cols=st.columns(2)
+            confidence=cols[0].slider('Probabilidad registrada mínima (%)',0,95,0,key='mlb_totales_perf_conf')
+            candidates=cols[1].checkbox('Solo candidatos originales con EV positivo',value=True,key='mlb_totales_perf_ev')
         frame=frame[frame.confianza_pct>=confidence]
         if candidates:frame=frame[frame.candidato==1]
         summary=registro.summary(frame)
         cols=st.columns(4)
         cols[0].metric('Pronósticos resueltos',summary['apuestas'])
-        cols[1].metric('Ganancia simulada',f"{summary['unidades']:+.2f} u")
-        cols[2].metric('ROI simulado',f"{summary['roi']:+.1f}%")
-        roi_sample(summary['apuestas'])
-        cols[3].metric('Acierto sin push',f"{summary['acierto']:.1f}%")
-        st.caption(f"Ganadas {summary['ganadas']} · Perdidas {summary['perdidas']} · Push {summary['push']}. "
-                   'Cuotas, probabilidades y EV originales de DraftKings.')
-        render_model_equivalence(summary['apuestas'], summary['unidades'])
+        cols[1].metric('Acierto sin push',f"{summary['acierto']:.1f}%")
+        cols[2].metric('Unidades',f"{summary['unidades']:+.2f} u")
+        cols[3].metric('ROI simulado',f"{summary['roi']:+.1f}%")
+        with st.expander('Balance y equivalencia en pesos'):
+            st.caption(f"Ganadas {summary['ganadas']} · Perdidas {summary['perdidas']} · Push {summary['push']}. "
+                       'Cuotas, probabilidades y EV originales de DraftKings.')
+            render_model_equivalence(summary['apuestas'], summary['unidades'])
         render_performance_charts(frame,date_col='fecha_oficial',profit_col='unidades',
             result_col='resultado',group_cols=('seleccion',))
-        frame=render_order(frame,'mlb_total_period',date_col='fecha_oficial',confidence_col='confianza_pct',profit_col='unidades')
-        render_cards(frame,performance=True)
+        with st.expander('Orden del historial'):
+            frame=render_order(frame,'mlb_total_period',date_col='fecha_oficial',confidence_col='confianza_pct',profit_col='unidades')
+        render_cards(history_window(frame,'mlb_total_history'),performance=True)
         if frame.empty:
             state_message('No hay registros de DraftKings que cumplan los filtros seleccionados.',kind='filters')
         if not frame.empty:

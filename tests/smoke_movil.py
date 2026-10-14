@@ -82,6 +82,13 @@ if st.checkbox('Probar aviso sin partidos',key='smoke_parlay_empty'):parlay_data
 with patch('core.ui_combinadas_diseno.load_candidates',return_value=(parlay_data,[])),patch('core.ui_combinadas_diseno.datetime') as clock:
     clock.now.return_value=NOW
     render_combinations()
+from core.ui_rendimiento_resumen import history_window,render_performance_charts
+with st.container(key='lean_history_smoke'):
+    history=pd.DataFrame([dict(id=i,fecha='2099-10-10',estado='GANADA',profit=1) for i in range(25)])
+    st.metric('Picks evaluados',len(history))
+    render_performance_charts(history,date_col='fecha',profit_col='profit',result_col='estado')
+    visible=history_window(history,'lean_smoke')
+    st.caption(f'Vista resumida: {len(visible)} picks')
 ''')
         with socket.socket() as sock:
             sock.bind(('127.0.0.1',0));port=sock.getsockname()[1]
@@ -187,6 +194,13 @@ with patch('core.ui_combinadas_diseno.load_candidates',return_value=(parlay_data
                     assert proposal.locator('[data-testid="stAlert"]').count()==0
                     style=empty.evaluate('(e)=>{const s=getComputedStyle(e);return {background:s.backgroundColor,border:s.borderTopColor,color:s.color}}')
                     assert style==dict(background='rgb(15, 21, 30)',border='rgb(183, 255, 60)',color='rgb(168, 180, 197)'),style
+                    page.wait_for_function('document.body.scrollWidth <= innerWidth+2')
+                    lean=page.locator('.st-key-lean_history_smoke')
+                    lean.get_by_text('Vista resumida: 10 picks',exact=True).wait_for()
+                    assert lean.locator('[data-testid="stVegaLiteChart"]:visible').count()==1
+                    lean.get_by_role('button',name='Ver 10 más',exact=True).click()
+                    lean.get_by_text('Vista resumida: 20 picks',exact=True).wait_for()
+                    assert lean.locator('[data-testid="stMetricValue"]').get_by_text('25',exact=True).count()==1
                     page.wait_for_function('document.body.scrollWidth <= innerWidth+2')
                     browser.close()
                 print('Responsive OK: una columna a 390 px, dos a 1280 px, tabla sin desbordamiento, nueve tarjetas Liga MX y tarjetas alineadas y jerarquía visual de botones.')

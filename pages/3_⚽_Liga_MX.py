@@ -1,3 +1,4 @@
+from core.ui_rendimiento_resumen import history_window
 from core.ui_controles import state_message, render_order
 from core.ui_tarjetas import render_pick, render_liga_matches
 from core.ui_rendimiento_diseno import performance_filters
@@ -271,26 +272,28 @@ elif vista == "⚽ Resultados Históricos":
         df_partidos = df_probabilidades.copy()
         if df_partidos.empty:
             state_message('No hay partidos para los filtros seleccionados.',kind='filters'); st.stop()
-        # Métricas generales arriba
-        ultimos = df_partidos.sort_values(by="fecha", ascending=False)
-        m1, m2, m3, m4 = st.columns(4)
-        with m1:
-            st.metric("Total Partidos Registrados", f"{len(df_partidos):,}")
-        with m2:
-            prom_goles = (df_partidos['goles_local'] + df_partidos['goles_visitante']).mean()
-            st.metric("Media Goles / Partido", f"{prom_goles:.2f}")
-        with m3:
-            over_rate = ((df_partidos['goles_local'] + df_partidos['goles_visitante']) > 2.5).mean()
-            st.metric("Tasa Histórica Over 2.5", f"{over_rate * 100:.1f}%")
-        with m4:
-            st.metric("Temporada Activa", str(df_partidos.season.max()))
+        st.metric('Partidos evaluados',len(df_partidos))
+        with st.expander('Estadísticas históricas de goles'):
+            # Métricas generales arriba
+            ultimos = df_partidos.sort_values(by="fecha", ascending=False)
+            m1, m2, m3, m4 = st.columns(4)
+            with m1:
+                st.metric("Total Partidos Registrados", f"{len(df_partidos):,}")
+            with m2:
+                prom_goles = (df_partidos['goles_local'] + df_partidos['goles_visitante']).mean()
+                st.metric("Media Goles / Partido", f"{prom_goles:.2f}")
+            with m3:
+                over_rate = ((df_partidos['goles_local'] + df_partidos['goles_visitante']) > 2.5).mean()
+                st.metric("Tasa Histórica Over 2.5", f"{over_rate * 100:.1f}%")
+            with m4:
+                st.metric("Temporada Activa", str(df_partidos.season.max()))
 
         st.markdown("### Partidos Recientes y Proyecciones")
         df_filtrado = render_order(df_probabilidades,'liga_hist',date_col='fecha',confidence_col='p_over25').reset_index(drop=True)
-        st.caption('Se muestran hasta 15 partidos de la muestra según el orden seleccionado. Evaluación histórica, sin dinero apostado.')
+        st.caption('Evaluación histórica sin cuotas: no se calcula ROI ni beneficio en unidades.')
 
         # Mostrar los partidos
-        for idx, row in df_filtrado.head(15).iterrows():
+        for idx, row in history_window(df_filtrado,'liga_history').iterrows():
             total_goles = row['goles_local'] + row['goles_visitante']
             es_over = total_goles > 2.5
             fecha_str = row['fecha'].strftime("%d/%m/%Y")
