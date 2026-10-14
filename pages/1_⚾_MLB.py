@@ -31,6 +31,7 @@ RUTA_DATA_MLB = RAIZ / "data" / "mlb"
 
 from core.constants import ZONA_MX, MLB_TEAMS_ABBR, MLB_STADIUM_TIMEZONES
 from core.db import get_db_connection
+from mlb.publicaciones_moneyline import prepare as prepare_moneyline, TODAY_SQL, save as save_moneyline, fingerprint
 
 def hoy_mx():
     return datetime.now(ZONA_MX).date()
@@ -415,16 +416,11 @@ def normalizar_equipo(nombre):
 @st.cache_data(ttl=60)
 def cargar_datos_hoy():
     conexion = conectar_bd()
-    consulta = """
-        SELECT j.id_juego, j.fecha AS 'Fecha', j.equipo_local AS 'Equipo Local', j.equipo_visitante AS 'Equipo Visitante',
-               MAX(c.cuota_local) AS 'Paga Local', MAX(c.cuota_visitante) AS 'Paga Visitante'
-        FROM juegos j
-        JOIN cuotas_moneyline c ON j.id_juego = c.id_juego
-        WHERE j.marcador_local IS NULL AND DATE(j.fecha) = %s
-        GROUP BY j.id_juego
-    """
-    df = pd.read_sql(consulta, conexion, params=(hoy_mx(),))
-    conexion.close()
+    try:
+        prepare_moneyline(conexion)
+        df = pd.read_sql(TODAY_SQL, conexion, params=(hoy_mx(),))
+    finally:
+        conexion.close()
     if not df.empty:
         df = df.drop_duplicates(subset=['id_juego'], keep='last').reset_index(drop=True)
     return df
@@ -659,21 +655,32 @@ def obtener_metricas_avanzadas_fecha(df_metricas_hist, equipo, fecha_objetivo):
 # confianza. Tab 1 la escribe al calcular cada pick; Tab 2 la
 # LEE (no recalcula) cuando el juego ya tiene resultado.
 # ==========================================================
-def guardar_pick_ia(fecha, equipo_local, equipo_visitante, pick_ia, confianza, cuota):
-    """Guarda/actualiza el pick del día en registro_picks_ia."""
+def guardar_pick_ia(fecha, equipo_local, equipo_visitante, pick_ia, confianza, cuota, *, game_id, model_id, home_odds, away_odds):
+    """Conserva el original verificable y mantiene el registro de compatibilidad."""
+    conexion = None
+    cursor = None
     try:
         conexion = conectar_bd()
+        saved = save_moneyline(conexion, game_id=game_id, model_id=model_id, day=fecha,
+            home=equipo_local, away=equipo_visitante, pick=pick_ia, confidence=confianza,
+            home_odds=home_odds, away_odds=away_odds)
+        # No crear registros después del inicio ni con una captura que cambió durante el cálculo.
+        if not saved:
+            return
         cursor = conexion.cursor()
         cursor.execute("""
             INSERT INTO registro_picks_ia (fecha, equipo_local, equipo_visitante, pick_ia, confianza, cuota)
             VALUES (%s, %s, %s, %s, %s, %s)
-            ON DUPLICATE KEY UPDATE pick_ia = VALUES(pick_ia), confianza = VALUES(confianza), cuota = VALUES(cuota)
+            ON DUPLICATE KEY UPDATE fecha = registro_picks_ia.fecha
         """, (fecha, equipo_local, equipo_visitante, pick_ia, float(confianza), float(cuota)))
         conexion.commit()
-        cursor.close()
-        conexion.close()
     except Exception:
-        pass  # No tumbar el dashboard si falla el guardado del registro
+        if conexion is not None:
+            conexion.rollback()
+        st.caption("No se pudo completar el registro de Moneyline. Vuelve a intentarlo antes del inicio.")
+    finally:
+        if cursor is not None: cursor.close()
+        if conexion is not None: conexion.close()
 
 @st.cache_data(ttl=300)
 def cargar_registro_picks_historico():
@@ -740,6 +747,8 @@ if modelo is not None and (vista_mlb == "📈 Rendimiento" or not df.empty):
     df_metricas_adv = cargar_metricas_avanzadas()
 
     if vista_mlb == "⚾ Picks de hoy":
+        version_moneyline = fingerprint(modelo, scaler, columnas_v4,
+            [limpiar_cuotas_v4, aplicar_filtro_medico, aplicar_filtro_pitchers])
         resultados = []
         for i in range(len(df)):
             local_api = df.loc[i, 'Equipo Local']
@@ -806,7 +815,9 @@ if modelo is not None and (vista_mlb == "📈 Rendimiento" or not df.empty):
             # NUEVO: persistimos el pick de moneyline en registro_picks_ia.
             # Esto es lo que Tab 2 va a leer más adelante cuando el juego termine,
             # en vez de recalcularlo con otra lógica.
-            guardar_pick_ia(hoy_mx(), local_api, visita_api, favorito, confianza_final, paga)
+            guardar_pick_ia(pd.Timestamp(df.loc[i, "Fecha"]).date(), local_api, visita_api, favorito, confianza_final, paga,
+                game_id=df.loc[i, "id_juego"], model_id=version_moneyline,
+                home_odds=df.loc[i, "Paga Local"], away_odds=df.loc[i, "Paga Visitante"])
 
             resultados.append({
                 "id_juego": df.loc[i, "id_juego"],

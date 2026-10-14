@@ -95,3 +95,34 @@ confirmación histórica. 40–50%: 62 casos, confianza media 48.87%, acierto 48
 50–60%: 237, confianza 52.97%, acierto 56.12%; 60–70%: 7, confianza 61.71%,
 acierto 57.14%. No se reajusta ese modelo a partir de siete casos ni se considera
 esta reconstrucción una publicación verificada.
+
+
+## Publicaciones Moneyline verificables
+
+El scraper existente conserva el identificador exacto del evento, inicio UTC y la pareja
+Moneyline de DraftKings con `last_update` explícito del proveedor. Se reutiliza la misma
+respuesta h2h/totals; no se hacen consultas adicionales ni se consumen créditos extra.
+La pestaña Picks de hoy calcula con esa pareja completa, sin mezclar máximos de capturas
+anteriores. Solo ofrece eventos pendientes cuyo inicio UTC aún no ocurrió.
+
+Al generar los picks en esa pestaña se guarda la primera publicación por evento y versión,
+con probabilidad final, selección y cuota originales. MySQL certifica `publicada_utc` con
+`UTC_TIMESTAMP(6)` y comprueba que el partido no haya iniciado y que ambas cuotas sigan
+siendo las usadas por la IA. Los reintentos no sobrescriben ese original. La versión es una
+huella de los pesos efectivamente cargados, scaler, columnas y ajustes de cuotas, lesiones
+y pitchers. Un cambio de esos elementos separa las muestras por modelo.
+
+Calibración liquida esa selección original con los marcadores del mismo `id_juego` y la
+muestra como **Previo al inicio verificado**. Se retira el duplicado legacy de ese partido;
+el resto del historial permanece como **Guardado · hora no verificable**, sin backfill ni
+certificación retrospectiva. Doble cartelera usa eventos distintos. La hora guardada es
+el inicio programado conocido al publicar; aplazamientos/reanudaciones requieren revisión.
+La certificación temporal no demuestra ausencia de fuga en el entrenamiento original.
+
+Las tablas se crean automáticamente por el scraper o la página, sin migración manual.
+Tras desplegar es necesaria una ejecución del scraper existente para disponer de las
+nuevas capturas. Moneyline **se publica al abrir Picks de hoy antes del partido**; el
+workflow actual captura mercado pero no ejecuta el modelo Moneyline. Si nadie abre la
+pestaña antes del inicio, no se inventa una publicación. Totales conserva su automatización.
+No se recalibran porcentajes de producción por este cambio: el ensayo temporal y sus
+mínimos de datos siguen siendo experimentales.
