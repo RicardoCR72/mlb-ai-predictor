@@ -101,55 +101,41 @@ f=performance_filters(frame,'fecha','favorite_test',probability_col='p',probabil
 st.session_state['visible_ids']=f.id.tolist()
 '''
 
-    def test_favorite_survives_new_session_and_reset_restores_full_sample(self):
-        stored={}
-        def save(scope,name,values):stored[name]=json.loads(json.dumps(values,default=str))
-        with patch('core.preferencias.save',side_effect=save),patch('core.preferencias.load',side_effect=lambda scope:stored.copy()):
+    def test_no_favorites_and_reset_restores_full_sample(self):
+        with patch('core.preferencias.save') as save,patch('core.preferencias.load') as load:
             at=AppTest.from_string(self.source()).run()
+            self.assertFalse(any(e.label=='Favoritos de filtros' for e in at.expander))
+            self.assertFalse(at.text_input)
             at.slider[0].set_value(60).run()
             next(w for w in at.selectbox if w.label=='Mercado').select('UNDER').run()
             next(w for w in at.selectbox if w.label=='Semana').select('2').run()
-            at.text_input(key='favorite_test_fav_name').set_value('NFL Under')
-            at.button(key='favorite_test_fav_save').click().run()
-            self.assertFalse(at.exception)
-            self.assertEqual(stored['NFL Under']['confidence'],60)
-            fresh=AppTest.from_string(self.source()).run()
-            self.assertEqual(fresh.session_state['visible_ids'],['a','b','c'])
-            fresh.button(key='favorite_test_fav_load').click().run()
-            fresh.button(key='favorite_test_fav_apply').click().run()
-            self.assertFalse(fresh.exception)
-            self.assertEqual(fresh.session_state['visible_ids'],['b'])
-            fresh.button(key='favorite_test_reset').click().run()
-            self.assertFalse(fresh.exception)
-            self.assertEqual(fresh.session_state['visible_ids'],['a','b','c'])
-
-    def test_stale_favorite_values_do_not_break_new_week_or_markets(self):
-        with patch('core.preferencias.load',return_value={'Viejo':{'week':'99','market':'REMOVED','period':'Unknown'}}):
-            at=AppTest.from_string(self.source()).run()
-            at.button(key='favorite_test_fav_load').click().run()
-            at.button(key='favorite_test_fav_apply').click().run()
+            self.assertEqual(at.session_state['visible_ids'],['b'])
+            at.button(key='favorite_test_reset').click().run()
             self.assertFalse(at.exception)
             self.assertEqual(at.session_state['visible_ids'],['a','b','c'])
+            save.assert_not_called();load.assert_not_called()
 
+    def test_stale_widget_values_do_not_break_new_week_or_markets(self):
+        at=AppTest.from_string(self.source())
+        at.session_state['favorite_test_week']='99'
+        at.session_state['favorite_test_market']='REMOVED'
+        at.session_state['favorite_test_period']='Unknown'
+        at.run()
+        self.assertFalse(at.exception)
+        self.assertEqual(at.session_state['visible_ids'],['a','b','c'])
 
-    def test_date_range_favorite_restores_date_widgets_in_new_session(self):
+    def test_reset_clears_custom_date_range(self):
         from datetime import date
-        stored={}
-        def save(scope,name,values):stored[name]=json.loads(json.dumps(values,default=str))
-        with patch('core.preferencias.save',side_effect=save),patch('core.preferencias.load',side_effect=lambda scope:stored.copy()):
-            at=AppTest.from_string(self.source()).run()
-            next(w for w in at.selectbox if w.label=='Periodo').select('Rango personalizado').run()
-            next(w for w in at.date_input if w.label=='Desde').set_value(date(2026,10,1))
-            next(w for w in at.date_input if w.label=='Hasta').set_value(date(2026,10,2))
-            at.run()
-            at.text_input(key='favorite_test_fav_name').set_value('Octubre')
-            at.button(key='favorite_test_fav_save').click().run()
-            fresh=AppTest.from_string(self.source()).run()
-            fresh.button(key='favorite_test_fav_load').click().run()
-            fresh.button(key='favorite_test_fav_apply').click().run()
-            self.assertFalse(fresh.exception)
-            self.assertEqual(fresh.session_state['visible_ids'],['a','b'])
-            self.assertEqual(next(w for w in fresh.date_input if w.label=='Desde').value,date(2026,10,1))
+        at=AppTest.from_string(self.source()).run()
+        next(w for w in at.selectbox if w.label=='Periodo').select('Rango personalizado').run()
+        next(w for w in at.date_input if w.label=='Desde').set_value(date(2026,10,1))
+        next(w for w in at.date_input if w.label=='Hasta').set_value(date(2026,10,2))
+        at.run()
+        self.assertEqual(at.session_state['visible_ids'],['a','b'])
+        at.button(key='favorite_test_reset').click().run()
+        self.assertFalse(at.exception)
+        self.assertEqual(at.session_state['visible_ids'],['a','b','c'])
+        self.assertFalse(at.date_input)
 
 
 class DeploymentImportTests(TestCase):
@@ -178,11 +164,11 @@ class DeploymentImportTests(TestCase):
             for path in paths:
                 tree = ast.parse(Path(path).read_text())
                 nodes = [n for n in tree.body if isinstance(n, ast.ImportFrom)
-                    and n.module in ('core.ui_filtros', 'core.ui_rendimiento')]
+                    and n.module in ('core.ui_filtros', 'core.ui_rendimiento_simple')]
                 assert nodes, path
                 namespace = {}
                 exec(compile(ast.Module(body=nodes, type_ignores=[]), path, 'exec'), namespace)
-                assert namespace['performance_filters'].__module__ == 'core.ui_rendimiento', path
+                assert namespace['performance_filters'].__module__ == 'core.ui_rendimiento_simple', path
             from core.comparador import normalize
             frame = normalize(pd.DataFrame([dict(id='a', fecha='2026-10-01', modelo='v1',
                 resultado='GANADA', probabilidad=.7, cuota=-110)]),
@@ -191,7 +177,8 @@ class DeploymentImportTests(TestCase):
                 app = AppTest.from_string('from core.ui_comparador import render_comparison\nrender_comparison()').run()
                 assert not app.exception, app.exception
                 assert any(w.label == 'Procedencia' for w in app.selectbox)
-                assert any(e.label == 'Favoritos de filtros' for e in app.expander)
+                assert not any(e.label == 'Favoritos de filtros' for e in app.expander)
+                assert any(w.label == 'Restablecer filtros' for w in app.button)
                 assert len(app.dataframe[-1].value) == 1
             assert sys.modules['core.ui_filtros'] is old
         """)], capture_output=True, text=True, timeout=60,
