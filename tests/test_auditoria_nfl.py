@@ -109,6 +109,7 @@ class AuditTests(TestCase):
             payload=json.loads(row[-1])
             self.assertEqual(payload['probabilidad_pick'],.65)
             self.assertEqual(payload['estado_lesion'],'unknown')
+            self.assertIs(payload['publicacion_utc'],True)
 
     def test_audit_ui_displays_breakdown_and_export(self):
         data=self.fixture()

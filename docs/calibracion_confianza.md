@@ -29,7 +29,7 @@ con línea entera se excluye porque no conserva una masa push explícita.
 
 Los seis mercados NFL guardan ahora publicaciones inmutables; las capturas anteriores siguen disponibles cuando existen. Se
 comprueba `publicada_en < inicio` contra el calendario guardado; las horas SQL de
-publicación se interpretan UTC. Resultado, lado y probabilidad proceden del
+publicación se interpretan UTC. Las nuevas capturas usan UTC_TIMESTAMP() y una marca explícita publicacion_utc en el payload; las anteriores sin esa marca no se certifican para ajustar el calibrador. Resultado, lado y probabilidad proceden del
 payload original y valor oficial del jugador. Se conserva la primera captura
 por jugador, partido y versión, y se sustituye el registro mutable correspondiente.
 Si falta calendario o publicación, el registro permanece como no verificable.

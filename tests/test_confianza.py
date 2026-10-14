@@ -77,7 +77,7 @@ class ConfidenceTests(TestCase):
             self.assertTrue(sql.strip().startswith('SELECT'))
             if 'nfl_publicaciones_props' in sql:return pd.DataFrame([dict(id_juego='g',id_jugador='p',tipo_prop='receiving_yards',
                 modelo='m',publicada_en='2099-01-01T18:00Z',fecha='2099-01-01',valor_real=40,
-                payload='{"linea":30.5,"seleccion":"OVER","probabilidad_pick":0.7,"cuota_pick":-110,"estado_pick":"CANDIDATO"}')])
+                payload='{"linea":30.5,"seleccion":"OVER","probabilidad_pick":0.7,"cuota_pick":-110,"estado_pick":"CANDIDATO","publicacion_utc":true}')])
             return pd.DataFrame(columns=['linea_total'])
         with patch('core.confianza_datos.read_models',return_value=(pd.DataFrame(columns=COLUMNS),[])), \
              patch('core.confianza_datos.registro.history',return_value=raw),patch('core.confianza_datos.registro.settle',side_effect=lambda f:f), \

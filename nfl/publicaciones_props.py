@@ -33,6 +33,7 @@ def publication_rows(frame, games, model, now=None):
         payload = {key:row[key] for key in fields if key in row and pd.notna(row[key])}
         injury=row.get('player_injury_status')
         payload['estado_lesion']=str(injury) if injury is not None and pd.notna(injury) else 'unknown'
+        payload['publicacion_utc']=True
         key = (row['game_id'],row['player_id'])
         if key in recs.index and pd.notna(recs.loc[key,'proyeccion']):
             payload['recepciones_proyectadas'] = float(recs.loc[key,'proyeccion'])
@@ -54,8 +55,8 @@ def save_publications(conn, frame, games, model, now=None):
             PRIMARY KEY(id_juego,id_jugador,tipo_prop,modelo_version,id_linea)
         )''')
         cursor.executemany('''INSERT INTO nfl_publicaciones_props
-            (id_juego,id_jugador,tipo_prop,modelo_version,id_linea,payload)
-            VALUES (%s,%s,%s,%s,%s,%s)
+            (id_juego,id_jugador,tipo_prop,modelo_version,id_linea,payload,publicada_en)
+            VALUES (%s,%s,%s,%s,%s,%s,UTC_TIMESTAMP())
             ON DUPLICATE KEY UPDATE id_linea=nfl_publicaciones_props.id_linea''',rows)
         conn.commit()
     finally:

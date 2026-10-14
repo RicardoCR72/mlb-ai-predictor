@@ -56,6 +56,7 @@ def read_confidence(conn,root):
                 published=published.tz_localize('UTC') if published.tzinfo is None else published.tz_convert('UTC')
                 if start is None or pd.isna(published) or published>=pd.Timestamp(start):continue
                 saved=json.loads(r['payload']) if isinstance(r['payload'],str) else r['payload']
+                if saved.get('publicacion_utc') is not True:continue
                 real=float(r['valor_real']) if r['valor_real'] is not None else np.nan
                 side=saved['seleccion'];line=float(saved.get('linea',.5)) if side=='ANOTA' else float(saved['linea'])
                 if not np.isfinite(real) or side not in ('OVER','UNDER','ANOTA'):continue
