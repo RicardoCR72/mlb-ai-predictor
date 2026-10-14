@@ -7,6 +7,7 @@ from core.comparador import read_models,normalize,COLUMNS,VERIFIED
 from core.bankroll import rows
 from mlb_totales import registro
 from core.combinadas_datos import nfl_starts
+from mlb.publicaciones_moneyline import HISTORY_SQL
 
 
 def read_confidence(conn,root):
@@ -16,6 +17,20 @@ def read_confidence(conn,root):
         # Releer totales con su masa push; no usar confianza incondicional como binaria.
         base=base[~((base.deporte=='MLB')&base.mercado.eq('Totales V2'))].copy()
         frames.append(base)
+        try:
+            raw=rows(conn,HISTORY_SQL)
+            verified=normalize(raw,sport='MLB',market='Moneyline',identity=['id_juego'],verified=True)
+            if not verified.empty:
+                # Retirar solo el duplicado legacy del mismo partido; no certificar el resto.
+                legacy_ids=set(pd.to_datetime(raw.fecha).dt.strftime('%Y-%m-%d')+'|'+raw.equipo_local+'|'+raw.equipo_visitante)
+                legacy=frames[0]
+                mask=legacy.deporte.eq('MLB')&legacy.mercado.eq('Moneyline')&legacy.identidad.isin(legacy_ids)
+                frames[0]=legacy[~mask].copy()
+                verified['evento']='MLB|'+verified.identidad
+                verified['apto_ajuste']=True
+                frames.append(verified)
+        except Exception:errors.append('Moneyline MLB: todavía no hay publicaciones originales verificables disponibles.')
+
         try:
             raw=registro.settle(registro.history(conn))
             if raw.empty:raw=pd.DataFrame(columns=['candidato','recorded_utc','quote_captured_utc','start_utc','p_push','confianza','fecha_oficial','model_id','cuota_seleccion','game_pk','resultado'])

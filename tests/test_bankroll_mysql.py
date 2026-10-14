@@ -49,6 +49,32 @@ class TestRealMySQL(unittest.TestCase):
         finally:
             first.close();second.close()
 
+    def test_mlb_original_publication_is_immutable_and_rejects_started_games(self):
+        from datetime import date
+        from mlb import publicaciones_moneyline as pub
+        conn=get_db_connection()
+        try:
+            pub.prepare(conn);game='mlb-'+str(uuid.uuid4());cur=conn.cursor()
+            cur.execute(pub.MARKET_SQL,(game,'2099-01-02 01:00:00','A','B',1.9,2.1,'2020-01-01 00:00:00'))
+            conn.commit()
+            args=dict(game_id=game,model_id='a'*64,day=date(2099,1,1),home='A',away='B',pick='A',
+                      confidence=70,home_odds=1.9,away_odds=2.1)
+            self.assertTrue(pub.save(conn,**args))
+            self.assertFalse(pub.save(conn,**{**args,'confidence':99,'pick':'B'}))
+            cur.execute('SELECT probabilidad,pick_ia,publicada_utc,start_utc FROM mlb_publicaciones_moneyline WHERE id_juego=%s',(game,))
+            original=cur.fetchone();conn.commit()
+            self.assertEqual(original[:2],(.7,'A'));self.assertLess(original[2],original[3])
+            # Otra versión conserva su propia primera publicación.
+            self.assertTrue(pub.save(conn,**{**args,'model_id':'b'*64}))
+            # Una captura que cambia durante el cálculo no se certifica.
+            cur.execute('UPDATE mlb_moneyline_mercado SET cuota_local=1.8 WHERE id_juego=%s',(game,));conn.commit()
+            self.assertFalse(pub.save(conn,**{**args,'model_id':'c'*64}))
+            cur.execute('UPDATE mlb_moneyline_mercado SET start_utc=UTC_TIMESTAMP()-INTERVAL 1 SECOND WHERE id_juego=%s',(game,));conn.commit()
+            self.assertFalse(pub.save(conn,**{**args,'model_id':'d'*64,'home_odds':1.8}))
+            cur.execute('SELECT COUNT(*) FROM mlb_publicaciones_moneyline WHERE id_juego=%s',(game,))
+            self.assertEqual(cur.fetchone()[0],2);cur.close()
+        finally:conn.close()
+
     def test_persistence_duplicate_audit_and_balance(self):
         self.assertEqual(os.environ.get('DB_NAME'),'bankroll_ci')
         conn = get_db_connection()

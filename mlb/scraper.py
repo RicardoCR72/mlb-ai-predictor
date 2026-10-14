@@ -11,6 +11,7 @@ if str(RAIZ) not in sys.path:
 from core.constants import ZONA_MX
 from core.db import get_db_connection
 from core.cache import cached_get_json
+from mlb.publicaciones_moneyline import prepare, market_values, MARKET_SQL
 
 
 def conectar_bd():
@@ -40,6 +41,7 @@ def descargar_mlb():
 
 
 def guardar_todo(conexion, datos):
+    prepare(conexion)
     cursor = conexion.cursor()
     ZONA_MX = ZoneInfo("America/Mazatlan")
     fecha_actual = datetime.now(ZONA_MX).strftime('%Y-%m-%d %H:%M:%S')
@@ -66,6 +68,9 @@ def guardar_todo(conexion, datos):
             ON DUPLICATE KEY UPDATE equipo_local=VALUES(equipo_local)
         """, (id_juego, fecha_limpia, equipo_local, equipo_visitante))
         contador_juegos += 1
+        original = market_values(partido)
+        if original is not None:
+            cursor.execute(MARKET_SQL, original)
 
         # 2. RECORRER CASAS DE APUESTAS
         for bookmaker in partido.get('bookmakers', []):
@@ -133,3 +138,4 @@ if __name__ == "__main__":
         if datos_api:
             guardar_todo(db, datos_api)
         db.close()
+
