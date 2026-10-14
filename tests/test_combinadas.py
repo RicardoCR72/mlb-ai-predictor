@@ -79,9 +79,9 @@ class ParlayTests(TestCase):
 
     def test_ui_proposal_and_edit_conflicts_and_missing_quotes(self):
         options=self.fixture()
-        with patch('core.ui_combinadas.load_candidates',return_value=(options,[])),patch('core.ui_combinadas.datetime') as clock:
+        with patch('core.ui_combinadas_vista.load_candidates',return_value=(options,[])),patch('core.ui_combinadas_vista.datetime') as clock:
             clock.now.return_value=NOW
-            app=AppTest.from_string('from core.ui_combinadas import render_combinations\nrender_combinations()').run()
+            app=AppTest.from_file('pages/5_🎯_Combinadas.py').run()
             self.assertFalse(app.exception)
             self.assertEqual(app.metric[0].value,'3')
             self.assertEqual(app.metric[1].value,'42.0%')

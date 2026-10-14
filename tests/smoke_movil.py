@@ -71,12 +71,13 @@ home_data['services']['liga_mx']['games']=[dict(Fecha=f'2026-10-{6+i//2:02}',Hor
 with patch('core.ui_resumen.snapshot',return_value=home_data),patch('streamlit.page_link',
     side_effect=lambda page,**kwargs:real_page_link('https://github.com/RicardoCR72/mlb-ai-predictor',**kwargs)):
     render_home()
-from core.ui_combinadas import render_combinations
+from core.ui_combinadas_vista import render_combinations
 from tests.test_combinadas import ParlayTests,NOW
 parlay_data=ParlayTests().fixture()
 # Nombres distintos para no contar estas tarjetas en la comprobación de Liga MX.
 parlay_data[2]['deporte']='MLB'
-with patch('core.ui_combinadas.load_candidates',return_value=(parlay_data,[])),patch('core.ui_combinadas.datetime') as clock:
+if st.checkbox('Probar aviso sin partidos',key='smoke_parlay_empty'):parlay_data=[]
+with patch('core.ui_combinadas_vista.load_candidates',return_value=(parlay_data,[])),patch('core.ui_combinadas_vista.datetime') as clock:
     clock.now.return_value=NOW
     render_combinations()
 ''')
@@ -173,6 +174,14 @@ with patch('core.ui_combinadas.load_candidates',return_value=(parlay_data,[])),p
                     page.get_by_text('Predicciones de prueba actualizadas · Consumo: 6 · Restantes: 494',exact=True).first.wait_for()
                     page.wait_for_function('document.body.scrollWidth <= innerWidth+2')
                     assert page.locator('[data-testid="stException"]').count()==0
+                    page.get_by_text('Probar aviso sin partidos',exact=True).click()
+                    empty=page.locator('.st-key-parlay_proposal .oracle-state')
+                    empty.wait_for(timeout=30000)
+                    assert 'dos partidos distintos' in empty.inner_text()
+                    assert proposal.locator('[data-testid="stAlert"]').count()==0
+                    style=empty.evaluate('(e)=>{const s=getComputedStyle(e);return {background:s.backgroundColor,border:s.borderTopColor,color:s.color}}')
+                    assert style==dict(background='rgb(15, 21, 30)',border='rgb(183, 255, 60)',color='rgb(168, 180, 197)'),style
+                    page.wait_for_function('document.body.scrollWidth <= innerWidth+2')
                     browser.close()
                 print('Responsive OK: una columna a 390 px, dos a 1280 px, tabla sin desbordamiento, nueve tarjetas Liga MX y botones/enlaces con contorno MLB.')
             finally:
