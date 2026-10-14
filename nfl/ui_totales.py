@@ -519,7 +519,9 @@ def mostrar_partido(fila):
 
 
 def mostrar_resultado_total(fila):
-    render_pick(nfl_pick(fila), market='Total del partido · Simulación 1 u', state=str(fila.get('resultado_pick','PENDIENTE')),
+    result=str(fila.get('resultado_pick','PENDIENTE'))
+    label={'GANADA':'✅ Ganada','PERDIDA':'❌ Perdida'}.get(result.upper(),result)
+    render_pick(nfl_pick(fila), market='Total del partido · Simulación 1 u', state=label,
         details=[('Total real',formatear_numero(fila.get('total_real'),1)),
                  ('Unidades', 'N/D' if pd.isna(fila.get('beneficio_unidades')) else f"{float(fila['beneficio_unidades']):+.2f} u")],
         allow_register=False)

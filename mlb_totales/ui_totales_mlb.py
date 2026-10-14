@@ -43,15 +43,11 @@ def diagnostics(frame):
 
 
 def render_picks(connect):
-    today=datetime.now(MX).date()
-    col1,col2,col3=st.columns([2,2,2])
-    day=col1.date_input('Fecha de partidos',today,key='mlb_totales_fecha')
-    max_age=col2.number_input('Antigüedad máxima de cuota (min)',15,1440,180,15,
-                             key='mlb_totales_antiguedad')
-    if col3.button('Recargar calendario y cuotas guardadas',key='mlb_totales_refresh'):
+    day=datetime.now(MX).date()
+    minimum=st.slider('Confianza mínima (%)',0,95,50,key='mlb_totales_confianza_hoy')
+    if st.button('Recargar calendario y cuotas guardadas',key='mlb_totales_refresh'):
         cached_calendar.clear();cached_predict.clear();st.rerun()
-    st.caption('Selecciona otra fecha para consultar los partidos de mañana. '
-               'Casa base: DraftKings. El EV utiliza su línea y sus cuotas OVER/UNDER.')
+    st.caption('Partidos de hoy · Casa base: DraftKings.')
     connection=None
     try:
         connection=connect()
@@ -61,7 +57,7 @@ def render_picks(connect):
                 state_message('No hay partidos pendientes para esta fecha.',kind='empty');return
             quotes=only_base(registro.quote_rows(connection,day))
             zone=str(st.secrets.get('mlb_odds_capture_timezone','America/Mazatlan'))
-            aligned=match(games,quotes,max_age_minutes=int(max_age),quote_timezone=zone)
+            aligned=match(games,quotes,max_age_minutes=180,quote_timezone=zone)
             if aligned.empty:
                 state_message('Los partidos de esta fecha ya comenzaron.');return
             ready=only_base(aligned[aligned.estado_mercado=='OK']).reset_index(drop=True)
@@ -90,16 +86,12 @@ def render_picks(connect):
                 metrics[0].metric('Pronósticos',len(display))
                 metrics[1].metric('Candidatos con EV positivo',int((display.estado_valor=='CANDIDATO').sum()))
                 metrics[2].metric('Historial consultado hasta',str(display.iloc[0].historial_hasta))
-            filters=st.columns(2)
-            only=filters[0].checkbox('Solo candidatos con EV positivo',value=False,key='mlb_totales_only')
-            minimum=filters[1].slider('Probabilidad mínima (%)',0,90,0,key='mlb_totales_min')
-            if only:display=display[display.estado_valor=='CANDIDATO']
             display=display[display.prob_seleccion*100>=minimum]
             if display.empty:
                 state_message('No hay pronósticos que cumplan los filtros seleccionados.',kind='filters')
             else:
                 display['ev_seleccion']=np.where(display.seleccion=='OVER',display.ev_over,display.ev_under)
-                display=render_order(display,'mlb_total_picks',date_col='start_utc',confidence_col='prob_seleccion',ev_col='ev_seleccion',upcoming=True)
+                display=display.sort_values('prob_seleccion',ascending=False,kind='stable')
                 st.caption('Modelo en evaluación. El EV es una estimación; playoffs tiene una muestra histórica pequeña.')
                 render_cards(display)
                 st.download_button('Descargar predicciones actuales',display.to_csv(index=False),
@@ -107,7 +99,7 @@ def render_picks(connect):
             issues=pd.concat([aligned[aligned.estado_mercado!='OK'],pred[~good]],ignore_index=True)
             diagnostics(issues)
     except Exception as exc:
-        state_message('No se pudo cargar Totales V2. Comprueba el modelo, los históricos y la conexión de datos.',kind='offline')
+        state_message('No se pudo cargar Totales. Comprueba el modelo, los históricos y la conexión de datos.',kind='offline')
     finally:
         if connection is not None:connection.close()
 
@@ -122,7 +114,7 @@ def render_performance(connect):
             state_message('El registro de predicciones todavía no está preparado.',kind='blocked');return
         frame=registro.settle(only_base(registro.history(connection)))
         if frame.empty:
-            state_message('Aún no hay predicciones de DraftKings registradas. Actions o Totales V2 las guardan antes de los partidos.',kind='empty');return
+            state_message('Aún no hay predicciones de DraftKings registradas. Actions o Totales las guardan antes de los partidos.',kind='empty');return
         frame['temporada'] = pd.to_datetime(frame['fecha_oficial']).dt.year
         frame = performance_filters(frame, 'fecha_oficial', 'mlb_total_period', season_col='temporada', result_col='resultado',
             extra_keys={'confidence_total':'mlb_totales_perf_conf','candidates':'mlb_totales_perf_ev'})

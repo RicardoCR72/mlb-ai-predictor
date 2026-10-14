@@ -852,7 +852,9 @@ def mostrar_prop_compacto(fila):
 
 
 def mostrar_resultado_prop(fila):
-    render_pick(nfl_pick(fila, prop=True), market=str(fila['mercado'])+' · Simulación 1 u', state=str(fila.get('resultado_pick','PENDIENTE')),
+    result=str(fila.get('resultado_pick','PENDIENTE'))
+    label={'GANADA':'✅ Ganada','PERDIDA':'❌ Perdida'}.get(result.upper(),result)
+    render_pick(nfl_pick(fila, prop=True), market=str(fila['mercado'])+' · Simulación 1 u', state=label,
         details=[('Resultado real',formatear_numero(fila.get('valor_real'),1)),
                  ('Unidades', 'N/D' if pd.isna(fila.get('beneficio_unidades')) else f"{float(fila['beneficio_unidades']):+.2f} u"),
                  ('Publicación',str(fila.get('estado_pick','')))], allow_register=False)
