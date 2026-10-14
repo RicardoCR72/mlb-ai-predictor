@@ -5,6 +5,7 @@ from core.ui_picks import render_pick
 from core.ui_rendimiento import performance_filters
 from core.ui_actualizacion import render_update_button
 import os
+import runpy
 import html
 import streamlit as st
 import pandas as pd
@@ -343,7 +344,7 @@ st.markdown(
             <h1>MLB Oráculo</h1>
             <div class="mlb-subtitle">Edge matemático, fatiga de viaje, splits, abridores y bullpen.</div>
         </div>
-        <div class="mlb-live"><span class="mlb-live-dot"></span>Moneyline V4 · Totales V2</div>
+        <div class="mlb-live"><span class="mlb-live-dot"></span>Moneyline V4 · Totales</div>
     </div>
     """,
     unsafe_allow_html=True,
@@ -705,20 +706,23 @@ def obtener_confianza_registrada(df_registro, fecha_juego, equipo_local, equipo_
     return float(fila['confianza']), fila['pick_ia'], float(fila['cuota'])
 
 # ---------------- FLUJO PRINCIPAL ----------------
+if st.session_state.get('mlb_vista_principal') == '⚾ Totales V2':
+    st.session_state['mlb_vista_principal'] = '⚾ Totales'
 vista_mlb = st.radio(
     "Sección MLB",
-    ["⚾ Picks de hoy", "📈 Rendimiento", "⚾ Totales V2", "📊 Rendimiento Totales"],
+    ["⚾ Picks de hoy", "📈 Rendimiento", "⚾ Totales", "📊 Rendimiento Totales"],
     horizontal=True,
     format_func=lambda value: value.lstrip("🔥📋📈⚾🏈📊⚽🔮💼 "), label_visibility="collapsed", key="mlb_vista_principal",
 )
 render_update_button("mlb", compact=True)
 
-if vista_mlb in ("⚾ Totales V2", "📊 Rendimiento Totales"):
-    from mlb_totales.ui_totales_mlb import render_picks, render_performance
-    if vista_mlb == "⚾ Totales V2":
-        render_picks(conectar_bd)
+if vista_mlb in ("⚾ Totales", "📊 Rendimiento Totales"):
+    # Leer la presentación actual en cada ejecución, como en la página NFL.
+    total_ui = runpy.run_path(str(RAIZ / 'mlb_totales/ui_totales_mlb.py'),run_name='mlb_totales_ui')
+    if vista_mlb == "⚾ Totales":
+        total_ui['render_picks'](conectar_bd)
     else:
-        render_performance(conectar_bd)
+        total_ui['render_performance'](conectar_bd)
     st.stop()
 
 modelo, scaler, columnas_v4 = cargar_oraculo()
@@ -828,9 +832,9 @@ if modelo is not None and (vista_mlb == "📈 Rendimiento" or not df.empty):
             filtro_hoy = st.selectbox(
                 "Confianza mínima",
                 options=list(range(50, 91)),
-                index=24,
+                index=0,
                 format_func=lambda valor: f"{valor}%",
-                key="filtro_confianza_hoy",
+                key="filtro_confianza_hoy_actual",
             )
         with columna_ayuda:
             st.caption(

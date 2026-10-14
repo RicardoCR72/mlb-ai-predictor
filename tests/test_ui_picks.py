@@ -233,12 +233,41 @@ st.session_state['visible_ids']=liquidados.id_juego.tolist()
         cards=[m.value for m in at.markdown if '<div class="oracle-pick ' in m.value]
         self.assertEqual(len(cards),1)
         self.assertIn('UNDER 45.5',cards[0])
+        self.assertIn('❌ Perdida',cards[0])
         select('Resultado','PERDIDA')
         self.assertEqual(at.session_state['visible_ids'],['g1'])
         select('Resultado','GANADA')
         self.assertEqual(at.session_state['visible_ids'],[])
         self.assertEqual(len(at.metric),0)
         self.assertTrue(any('No hay picks oficiales liquidados' in m.value for m in at.markdown))
+
+
+class MLBTodayFiltersTests(TestCase):
+    def test_totals_starts_at_fifty_and_only_exposes_confidence_filter(self):
+        import mlb_totales.ui_totales_mlb as ui
+        ready=pd.DataFrame([dict(casa_apuestas='DraftKings',odds_game_id=str(i),
+            start_utc='2099-10-11T23:00:00Z',captured_utc='2099-10-11T22:00:00Z',
+            estado_mercado='OK',abridor_local='A',abridor_visitante='B',age_minutes=10) for i in range(2)])
+        pred=pd.DataFrame([dict(estado='EXPERIMENTAL',p_over=p,prob_seleccion=p,
+            estado_valor='SIN VALOR',historial_hasta='2099-10-10',seleccion='OVER',
+            ev_over=-.1,ev_under=-.2) for p in [.5,.74]])
+        shown=[]
+        with patch.object(ui,'cached_calendar',return_value=ready),patch.object(ui.registro,'quote_rows',return_value=ready), \
+             patch.object(ui,'match',return_value=ready),patch.object(ui,'cached_predict',side_effect=lambda *a:pred.copy()), \
+             patch.object(ui,'stamp',return_value=()),patch.object(ui.registro,'tables_ready',return_value=False), \
+             patch.object(ui,'render_cards',side_effect=lambda f:shown.append(f.copy())),patch('streamlit.secrets',{}):
+            at=AppTest.from_string('from unittest.mock import Mock\nfrom mlb_totales.ui_totales_mlb import render_picks\nrender_picks(Mock())').run()
+            self.assertFalse(at.exception)
+            self.assertEqual(len(at.slider),1)
+            self.assertEqual(at.slider[0].value,50)
+            self.assertFalse(at.date_input)
+            self.assertFalse(at.number_input)
+            self.assertFalse(at.checkbox)
+            self.assertFalse(at.selectbox)
+            self.assertEqual(len(shown[-1]),2)  # Sin exigir EV positivo.
+            at.slider[0].set_value(60).run()
+            self.assertFalse(at.exception)
+            self.assertEqual(shown[-1].prob_seleccion.tolist(),[.74])
 
 
 class MLBHistoryVisibilityTests(TestCase):
