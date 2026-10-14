@@ -19,16 +19,18 @@ def main():
         app=Path(folder)/'app.py'
         app.write_text(f"import sys\nsys.path.insert(0,{str(ROOT)!r})\n"+'''
 import streamlit as st
+from core.ui_diseno import apply_design
 from tests.test_analitica_bankroll import AnalyticsTests
 from core.ui_bankroll import render_analytics,render_history
 from core.ui_movil import apply_mobile_layout
 from core.ui_filtros import performance_filters
-from core.ui_picks import render_liga_matches
+from core.ui_tarjetas import render_liga_matches
 import pandas as pd
 import core.ui_comparador as comparator_ui
 from core.comparador import normalize
 st.set_page_config(layout='wide')
 apply_mobile_layout()
+apply_design()
 ledger=AnalyticsTests().ledger()
 ledger['partido']='New England Patriots @ Jacksonville Jaguars'
 render_analytics(ledger,1000)
@@ -41,7 +43,7 @@ with st.form('style_check'):
 st.page_link('https://github.com/RicardoCR72/mlb-ai-predictor',label='Ver proyecto')
 render_liga_matches(pd.DataFrame([dict(fecha='2099-10-10',inicio_utc='2099-10-11T01:00:00Z',
  visitante=f'Visitante {i}',local=f'Local {i}',p_over25=.58,p_under25=.42) for i in range(9)]))
-from core.ui_picks import render_pick
+from core.ui_tarjetas import render_pick
 render_pick(dict(fecha='2099-10-10',deporte='NFL',partido='Arizona Cardinals @ Seattle Seahawks',
  seleccion='OVER 45.5',casa='DraftKings',cuota=1.9,probabilidad=.61,cuota_capturada_utc='2026-10-10T20:30:00Z'),
  market='Total del partido',details=[('Proyección','48.5'),('EV estimado','5.1%')],allow_register=False)
@@ -114,7 +116,8 @@ with patch('core.ui_combinadas_vista.load_candidates',return_value=(parlay_data,
                     controls=page.locator('[data-testid="stButton"] button,[data-testid="stDownloadButton"] button,[data-testid="stFormSubmitButton"] button,[data-testid="stPageLink"] a')
                     styles=controls.evaluate_all('(nodes)=>nodes.map(n=>{const s=getComputedStyle(n);return {border:s.borderTopColor,width:s.borderTopWidth,radius:s.borderTopLeftRadius,color:s.color}})')
                     assert len(styles)>=13,styles
-                    assert all(s['border']=='rgb(183, 255, 60)' and s['width']=='1px' and s['radius']=='9px' and s['color']=='rgb(183, 255, 60)' for s in styles),styles
+                    assert all(s['border'] in ('rgb(69, 84, 106)','rgb(183, 255, 60)') and s['width']=='1px' and s['radius']=='9px' and s['color'] in ('rgb(198, 209, 223)','rgb(7, 16, 6)') for s in styles),styles
+                    assert any(s['color']=='rgb(7, 16, 6)' for s in styles),styles
                     page.get_by_text('Auditoría de yardas de recepción',exact=True).click()
                     page.get_by_role('button',name='Descargar auditoría de yardas',exact=True).wait_for()
                     page.wait_for_function('document.body.scrollWidth <= innerWidth+2')
@@ -150,6 +153,8 @@ with patch('core.ui_combinadas_vista.load_candidates',return_value=(parlay_data,
                     page.set_viewport_size({'width':1280,'height':900})
                     page.wait_for_function('document.body.scrollWidth <= innerWidth+2')
                     page.wait_for_function("(()=>{const c=document.querySelectorAll('.oracle-pick');return c.length>1 && Math.abs(c[0].getBoundingClientRect().y-c[1].getBoundingClientRect().y)<2})()")
+                    first_cards=page.locator('.oracle-pick').evaluate_all('(nodes)=>nodes.slice(0,2).map(n=>n.getBoundingClientRect().height)')
+                    assert abs(first_cards[0]-first_cards[1])<2,first_cards
                     # The cards follow the tallest content in each row; their links share a baseline.
                     for selector,number in [('.st-key-home_sports [class*="st-key-home_sport_"]',3),
                                             ('.st-key-home_bankroll_card,.st-key-home_comparator_card',2)]:
@@ -165,6 +170,7 @@ with patch('core.ui_combinadas_vista.load_candidates',return_value=(parlay_data,
                     page.set_viewport_size({'width':390,'height':844})
                     page.get_by_text('Comparador de rendimiento',exact=True).wait_for()
                     assert page.get_by_text('Mínimo de picks con beneficio conocido',exact=True).count()==1
+                    page.locator('[data-testid="stExpander"]').filter(has_text='Filtros de rendimiento').last.locator('summary').click()
                     page.get_by_text('Tabla',exact=True).click()
                     page.get_by_text('Columnas visibles',exact=True).wait_for()
                     page.wait_for_function('document.body.scrollWidth <= innerWidth+2')
@@ -183,7 +189,7 @@ with patch('core.ui_combinadas_vista.load_candidates',return_value=(parlay_data,
                     assert style==dict(background='rgb(15, 21, 30)',border='rgb(183, 255, 60)',color='rgb(168, 180, 197)'),style
                     page.wait_for_function('document.body.scrollWidth <= innerWidth+2')
                     browser.close()
-                print('Responsive OK: una columna a 390 px, dos a 1280 px, tabla sin desbordamiento, nueve tarjetas Liga MX y botones/enlaces con contorno MLB.')
+                print('Responsive OK: una columna a 390 px, dos a 1280 px, tabla sin desbordamiento, nueve tarjetas Liga MX y tarjetas alineadas y jerarquía visual de botones.')
             finally:
                 process.terminate()
                 try: process.wait(timeout=10)

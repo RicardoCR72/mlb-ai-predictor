@@ -95,7 +95,7 @@ def render_cards(frame,performance=False):
         for column,(_,row) in zip(columns,frame.iloc[start:start+2].iterrows()):
             with column:
                 if performance:
-                    from core.ui_picks import render_pick
+                    from core.ui_tarjetas import render_pick
                     pick = dict(fecha=row['fecha_oficial'], deporte='MLB',
                         partido=f"{row['equipo_visitante']} @ {row['equipo_local']}",
                         seleccion=f"{row['seleccion']} {float(row['linea']):g}", casa='DraftKings',
@@ -105,7 +105,7 @@ def render_cards(frame,performance=False):
                         details=[('Unidades', f"{float(row['unidades']):+.2f} u" if pd.notna(row['unidades']) else 'Pendiente'),
                                  ('EV original', f"{float(row['ev']):+.1%}")], allow_register=False)
                 else:
-                    from core.ui_picks import render_pick, mlb_total_pick
+                    from core.ui_tarjetas import render_pick, mlb_total_pick
                     side=str(row['seleccion']).lower()
                     render_pick(mlb_total_pick(row), market='Total del partido', state=str(row['estado_valor']),
                         details=[('Proyección', f"{float(row['total_proyectado']):.2f}"),

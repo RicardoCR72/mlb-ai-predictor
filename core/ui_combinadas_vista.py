@@ -8,7 +8,7 @@ from core.db import get_db_connection
 from core.combinadas_datos import read_candidates
 from core.combinadas import prepare_candidates,recommend,combination
 from core.ui_movil import apply_mobile_layout
-from core.ui_picks import render_pick
+from core.ui_tarjetas import render_pick
 from core.ui_controles import state_message
 
 ROOT=Path(__file__).resolve().parents[1]
@@ -40,8 +40,7 @@ def render_combinations():
 .parlay-kicker{font-size:.7rem;font-weight:800;letter-spacing:.13em;color:#b7ff3c}
 .parlay-hero p{color:#afbdcc;margin-bottom:0;line-height:1.5}
 .st-key-parlay_proposal .oracle-state{border-top:3px solid #b7ff3c!important}
-</style><div class="parlay-hero"><div class="parlay-kicker">MLB · NFL · LIGA MX</div><h2>Arma tu combinada</h2><p>Compara los picks guardados y elige selecciones de partidos distintos.</p></div>''',unsafe_allow_html=True)
-    st.title('Combinadas')
+</style><div class="parlay-hero"><div class="parlay-kicker">MLB · NFL · LIGA MX</div><h1>Combinadas</h1><p>Compara los picks guardados y elige selecciones de partidos distintos.</p></div>''',unsafe_allow_html=True)
     st.caption('Ordenadas por confianza del modelo. Las probabilidades de distintos modelos pueden tener distinta calibración.')
     if st.button('Recargar picks guardados',key='parlay_reload',help='Lee los datos existentes. No genera predicciones ni consulta cuotas.'):
         load_candidates.clear();st.rerun()

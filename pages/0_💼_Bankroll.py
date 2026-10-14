@@ -1,5 +1,5 @@
 from core.ui_controles import state_message
-from core.ui_rendimiento_simple import performance_filters
+from core.ui_rendimiento_diseno import performance_filters
 from core.ui_bankroll import render_analytics, render_history
 from core.ui_actualizacion import render_update_button
 import json
@@ -18,6 +18,9 @@ st.set_page_config(
     page_icon="💼",
     layout="wide",
 )
+from core.ui_diseno import apply_design
+apply_design()
+
 
 RAIZ = Path(__file__).resolve().parents[1]
 
@@ -104,6 +107,7 @@ st.markdown(
         font-size: 0.85rem;
     }
     </style>
+    <div class="bankroll-hero"><div class="bankroll-eyebrow">BANCA · APUESTAS · RENDIMIENTO</div><h1>Bankroll</h1><p>Tu saldo, exposición y resultados en un solo lugar.</p></div>
     <div class="bankroll-shell">
         <div class="bankroll-brand">
             <span class="bankroll-logo">💼</span>

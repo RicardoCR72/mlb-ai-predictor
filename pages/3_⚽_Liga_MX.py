@@ -1,6 +1,6 @@
 from core.ui_controles import state_message, render_order
-from core.ui_picks import render_pick, render_liga_matches
-from core.ui_rendimiento_simple import performance_filters
+from core.ui_tarjetas import render_pick, render_liga_matches
+from core.ui_rendimiento_diseno import performance_filters
 from core.ui_actualizacion import render_update_button
 import json
 from pathlib import Path
@@ -17,6 +17,9 @@ st.set_page_config(
     page_icon="⚽",
     layout="wide",
 )
+from core.ui_diseno import apply_design
+apply_design()
+
 
 RAIZ = Path(__file__).resolve().parents[1]
 RUTA_FUTBOL = RAIZ / "futbol_liga_mx"

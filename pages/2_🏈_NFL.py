@@ -11,6 +11,9 @@ st.set_page_config(
     page_icon="🏈",
     layout="wide",
 )
+from core.ui_diseno import apply_design
+apply_design()
+
 
 st.markdown(
     """

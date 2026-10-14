@@ -164,11 +164,11 @@ class DeploymentImportTests(TestCase):
             for path in paths:
                 tree = ast.parse(Path(path).read_text())
                 nodes = [n for n in tree.body if isinstance(n, ast.ImportFrom)
-                    and n.module in ('core.ui_filtros', 'core.ui_rendimiento_simple')]
+                    and n.module in ('core.ui_filtros', 'core.ui_rendimiento_diseno')]
                 assert nodes, path
                 namespace = {}
                 exec(compile(ast.Module(body=nodes, type_ignores=[]), path, 'exec'), namespace)
-                assert namespace['performance_filters'].__module__ == 'core.ui_rendimiento_simple', path
+                assert namespace['performance_filters'].__module__ == 'core.ui_rendimiento_diseno', path
             from core.comparador import normalize
             frame = normalize(pd.DataFrame([dict(id='a', fecha='2026-10-01', modelo='v1',
                 resultado='GANADA', probabilidad=.7, cuota=-110)]),
@@ -236,7 +236,7 @@ class DesignRegressionTests(TestCase):
         self.assertNotIn('Sin cambios',update_message(result(('Resultados y calendario Liga MX',True,'Historial: 2490 partidos.'))))
 
     def test_quote_capture_uses_original_source_and_never_prediction_time(self):
-        from core.ui_picks import nfl_pick,mlb_total_pick,quote_text,card_html
+        from core.ui_tarjetas import nfl_pick,mlb_total_pick,quote_text,card_html
         from tests.test_ui_picks import PickTests
         row=PickTests().nfl_row()
         prop=nfl_pick(dict(row,timestamp_captura='2026-10-10 20:30:00'),prop=True)

@@ -3,7 +3,7 @@ import pandas as pd
 import streamlit as st
 from core import bankroll as bank
 from core.analitica_bankroll import balance_curve,exposure,reference
-from core.ui_picks import render_pick
+from core.ui_tarjetas import render_pick
 from core.ui_controles import state_message, render_order
 
 
