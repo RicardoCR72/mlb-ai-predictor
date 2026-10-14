@@ -42,6 +42,8 @@ class ConfidenceTests(TestCase):
         reports=temporal_trial(f)
         self.assertEqual(reports[0]['verificados'],0)
         self.assertFalse(reports[0]['production_changed'])
+        f['procedencia']=VERIFIED;f['apto_ajuste']='False'
+        self.assertEqual(temporal_trial(f)[0]['verificados'],0)
 
     def test_chronological_selection_does_not_use_test_outcomes(self):
         f,_=prepare(self.fixture());report=temporal_trial(f)[0]

@@ -54,21 +54,25 @@ def read_confidence(conn,root):
             for r in publications.to_dict('records'):
                 start=starts.get(str(r['id_juego']));published=pd.Timestamp(r['publicada_en'])
                 published=published.tz_localize('UTC') if published.tzinfo is None else published.tz_convert('UTC')
-                if start is None or pd.isna(published) or published>=pd.Timestamp(start):continue
                 saved=json.loads(r['payload']) if isinstance(r['payload'],str) else r['payload']
-                if saved.get('publicacion_utc') is not True:continue
+                clock_known=saved.get('publicacion_utc') is True
+                if clock_known and start is not None and pd.notna(published) and published>=pd.Timestamp(start):continue
+                clock_verified=clock_known and start is not None and pd.notna(published) and published<pd.Timestamp(start)
                 real=float(r['valor_real']) if r['valor_real'] is not None else np.nan
                 side=saved['seleccion'];line=float(saved.get('linea',.5)) if side=='ANOTA' else float(saved['linea'])
                 if not np.isfinite(real) or side not in ('OVER','UNDER','ANOTA'):continue
                 result=('GANADA' if real>0 else 'PERDIDA') if side=='ANOTA' else 'PUSH' if real==line else 'GANADA' if ((real>line)==(side=='OVER')) else 'PERDIDA'
                 records.append(dict(r,mercado=r['tipo_prop'],probabilidad=saved['probabilidad_pick'],
-                                    cuota=saved.get('cuota_pick'),resultado=result,estado_publicacion=saved.get('estado_pick','DESCONOCIDO')))
+                                    cuota=saved.get('cuota_pick'),resultado=result,estado_publicacion=saved.get('estado_pick','DESCONOCIDO'),clock_verified=bool(clock_verified)))
             verified=normalize(pd.DataFrame(records),sport='NFL',market=None,identity=['id_juego','id_jugador','tipo_prop'],american=True,verified=True)
             if not verified.empty:
-                statuses={}
-                for r in records:statuses.setdefault((r['modelo'],str(r['id_juego'])+'|'+str(r['id_jugador'])+'|'+r['tipo_prop']),r['estado_publicacion'])
+                statuses={};clocks={}
+                for r in records:
+                    key=(r['modelo'],str(r['id_juego'])+'|'+str(r['id_jugador'])+'|'+r['tipo_prop'])
+                    statuses.setdefault(key,r['estado_publicacion']);clocks.setdefault(key,r['clock_verified'])
                 verified['estado_publicacion']=[statuses[(r.modelo,r.identidad)] for r in verified.itertuples()]
                 verified['apto_ajuste']=verified.estado_publicacion.eq('CANDIDATO')
+                verified['procedencia']=[VERIFIED if clocks[(r.modelo,r.identidad)] else 'Publicación inmutable · hora no certificada' for r in verified.itertuples()]
                 ids=set(zip(verified.deporte,verified.mercado,verified.modelo,verified.identidad))
                 frames[0]=frames[0][[tuple(r) not in ids for r in frames[0][['deporte','mercado','modelo','identidad']].itertuples(index=False,name=None)]]
                 frames.append(verified)

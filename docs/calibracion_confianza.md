@@ -1,6 +1,6 @@
 # Calibración de confianza
 
-La página **Calibración** evalúa probabilidades originales por deporte, mercado,
+La página **Calibración** evalúa probabilidades guardadas, usando originales inmutables cuando existen, por deporte, mercado,
 versión y procedencia. No tiene un filtro Ganada/Perdida: seleccionar solamente
 ganadas produciría un acierto engañoso del 100%. Los rangos son de diez puntos,
 incluyen probabilidades 0 y 1 y muestran picks, partidos, probabilidad media,
@@ -32,7 +32,7 @@ comprueba `publicada_en < inicio` contra el calendario guardado; las horas SQL d
 publicación se interpretan UTC. Las nuevas capturas usan UTC_TIMESTAMP() y una marca explícita publicacion_utc en el payload; las anteriores sin esa marca no se certifican para ajustar el calibrador. Resultado, lado y probabilidad proceden del
 payload original y valor oficial del jugador. Se conserva la primera captura
 por jugador, partido y versión, y se sustituye el registro mutable correspondiente.
-Si falta calendario o publicación, el registro permanece como no verificable.
+Si falta calendario o certificación UTC, la publicación inmutable sirve solo para diagnóstico. Si no existe publicación, se conserva el registro mutable como no verificable.
 La falta de la tabla se informa y no se certifica el historial anterior.
 
 Liga MX usa el CSV de confirmación 2024–25 del modelo congelado, sin reentrenarlo.

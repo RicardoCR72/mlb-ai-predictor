@@ -29,7 +29,7 @@ def load():
 def render():
     apply_mobile_layout();apply_design()
     st.title('Calibración de confianza')
-    st.caption('Compara probabilidades originales con resultados. Una muestra grande no demuestra calibración ni rentabilidad.')
+    st.caption('Compara probabilidades guardadas con resultados. Una muestra grande no demuestra calibración ni rentabilidad.')
     if st.button('Recargar historial guardado',key='confidence_refresh'):
         load.clear();st.rerun()
     raw,errors=load()
@@ -59,7 +59,7 @@ def render():
     st.download_button('Descargar diagnóstico por rangos',table.to_csv(index=False),'calibracion_rangos.csv','text/csv')
     with st.expander('Probabilidad y cuota guardada'):
         prices=price_comparison(f)
-        st.caption('Probabilidad implícita = 1 / cuota. Ventaja y EV usan la estimación original, sin probar una ventaja rentable ni ajustar el margen de la casa. Sin cuota válida no se calculan.')
+        st.caption('Probabilidad implícita = 1 / cuota. Ventaja y EV usan la estimación guardada, sin probar una ventaja rentable ni ajustar el margen de la casa. Sin cuota válida no se calculan.')
         columns=['fecha','deporte','mercado','modelo','procedencia','identidad','probabilidad','cuota','probabilidad_implicita','ventaja_estimacion','ev_estimado']
         st.dataframe(prices[columns],hide_index=True,width='stretch')
     with st.expander('Prueba temporal de recalibración'):

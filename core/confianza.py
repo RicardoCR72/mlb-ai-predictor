@@ -76,7 +76,7 @@ def temporal_trial(frame):
     if frame.empty:return reports
     for keys,g in frame.groupby(['deporte','mercado','modelo'],dropna=False):
         report=dict(zip(['deporte','mercado','modelo'],keys))|{'production_changed':False,'status':'Datos insuficientes'}
-        eligible=g.get('apto_ajuste',pd.Series(True,index=g.index)).fillna(True).astype(bool)
+        eligible=g.get('apto_ajuste',pd.Series(True,index=g.index)).map(lambda v:True if pd.isna(v) else str(v).casefold()=='true')
         verified=g[g.procedencia.eq(VERIFIED)&eligible].copy();dates=sorted(verified.fecha.unique())
         report.update(total=len(g),verificados=len(verified),partidos=int(verified.evento.nunique()))
         if len(dates)<10 or verified.groupby('evento').fecha.nunique().gt(1).any():reports.append(report);continue
