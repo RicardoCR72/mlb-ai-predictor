@@ -88,8 +88,9 @@ TODAY_SQL="""
 SELECT j.id_juego,j.fecha AS Fecha,j.equipo_local AS `Equipo Local`,
  j.equipo_visitante AS `Equipo Visitante`,m.cuota_local AS `Paga Local`,
  m.cuota_visitante AS `Paga Visitante`
-FROM juegos j JOIN mlb_moneyline_mercado m ON m.id_juego=j.id_juego
- AND m.equipo_local=j.equipo_local AND m.equipo_visitante=j.equipo_visitante
+FROM juegos j JOIN mlb_moneyline_mercado m ON CAST(m.id_juego AS BINARY)=CAST(j.id_juego AS BINARY)
+ AND CAST(m.equipo_local AS BINARY)=CAST(j.equipo_local AS BINARY)
+ AND CAST(m.equipo_visitante AS BINARY)=CAST(j.equipo_visitante AS BINARY)
 WHERE j.marcador_local IS NULL AND j.marcador_visitante IS NULL
  AND DATE(j.fecha)=%s AND m.start_utc>UTC_TIMESTAMP(6)
  AND m.quote_utc<=UTC_TIMESTAMP(6) AND m.captured_utc<=UTC_TIMESTAMP(6)
@@ -140,8 +141,9 @@ SELECT s.*,CASE WHEN j.marcador_local IS NULL OR j.marcador_visitante IS NULL TH
  WHEN (s.pick_ia=s.equipo_local AND j.marcador_local>j.marcador_visitante)
  OR (s.pick_ia=s.equipo_visitante AND j.marcador_visitante>j.marcador_local)
  THEN 'GANADA' ELSE 'PERDIDA' END AS resultado
-FROM mlb_publicaciones_moneyline s JOIN juegos j ON j.id_juego=s.id_juego
- AND j.equipo_local=s.equipo_local AND j.equipo_visitante=s.equipo_visitante
+FROM mlb_publicaciones_moneyline s JOIN juegos j ON CAST(j.id_juego AS BINARY)=CAST(s.id_juego AS BINARY)
+ AND CAST(j.equipo_local AS BINARY)=CAST(s.equipo_local AS BINARY)
+ AND CAST(j.equipo_visitante AS BINARY)=CAST(s.equipo_visitante AS BINARY)
 WHERE s.publicada_utc<s.start_utc AND s.quote_utc<s.start_utc
  AND s.captured_utc<s.start_utc AND s.quote_utc<=s.publicada_utc
  AND s.captured_utc<=s.publicada_utc

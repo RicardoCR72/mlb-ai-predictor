@@ -49,6 +49,35 @@ class TestRealMySQL(unittest.TestCase):
         finally:
             first.close();second.close()
 
+    def test_mlb_join_handles_legacy_collations_and_settles_exact_event(self):
+        from datetime import date
+        from mlb import publicaciones_moneyline as pub
+        conn=get_db_connection()
+        try:
+            pub.prepare(conn);cur=conn.cursor()
+            # Legacy y tablas nuevas tienen distintas reglas para comparar texto.
+            cur.execute("CREATE TABLE IF NOT EXISTS juegos (id_juego VARCHAR(128) PRIMARY KEY, fecha DATETIME, equipo_local VARCHAR(128), equipo_visitante VARCHAR(128), marcador_local INT NULL, marcador_visitante INT NULL) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci")
+            cur.execute("ALTER TABLE mlb_moneyline_mercado CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci")
+            cur.execute("ALTER TABLE mlb_publicaciones_moneyline CONVERT TO CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci")
+            game='join-'+str(uuid.uuid4())
+            cur.execute("INSERT INTO juegos VALUES (%s,'2099-01-01 19:00:00','A','B',NULL,NULL)",(game,))
+            cur.execute(pub.MARKET_SQL,(game,'2099-01-02 01:00:00','A','B',1.9,2.1,'2020-01-01 00:00:00'));conn.commit()
+            import mysql.connector
+            with self.assertRaises(mysql.connector.Error) as incompatible:
+                cur.execute("SELECT j.id_juego FROM juegos j JOIN mlb_moneyline_mercado m ON j.id_juego=m.id_juego")
+            self.assertEqual(incompatible.exception.errno,1267)
+            conn.rollback()
+            cur.execute(pub.TODAY_SQL,(date(2099,1,1),))
+            self.assertIn(game,[r[0] for r in cur.fetchall()]);conn.commit()
+            pub.save(conn,game_id=game,model_id='a'*64,day=date(2099,1,1),home='A',away='B',pick='B',confidence=70,home_odds=1.9,away_odds=2.1)
+            cur.execute('UPDATE juegos SET marcador_local=2,marcador_visitante=4 WHERE id_juego=%s',(game,));conn.commit()
+            cur.execute(pub.HISTORY_SQL);columns=[r[0] for r in cur.description]
+            saved=[dict(zip(columns,r)) for r in cur.fetchall()]
+            self.assertEqual(next(r for r in saved if r['id_juego']==game)['resultado'],'GANADA')
+            cur.execute(pub.TODAY_SQL,(date(2099,1,1),));self.assertNotIn(game,[r[0] for r in cur.fetchall()])
+            cur.close()
+        finally:conn.close()
+
     def test_mlb_original_publication_is_immutable_and_rejects_started_games(self):
         from datetime import date
         from mlb import publicaciones_moneyline as pub

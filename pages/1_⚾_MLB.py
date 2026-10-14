@@ -7,6 +7,7 @@ from core.ui_actualizacion import render_update_button
 import os
 import runpy
 import html
+import logging
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -736,7 +737,12 @@ if vista_mlb in ("⚾ Totales", "📊 Rendimiento Totales"):
     st.stop()
 
 modelo, scaler, columnas_v4 = cargar_oraculo()
-df = cargar_datos_hoy() if vista_mlb == "⚾ Picks de hoy" else pd.DataFrame()
+try:
+    df = cargar_datos_hoy() if vista_mlb == "⚾ Picks de hoy" else pd.DataFrame()
+except (mysql.connector.Error, pd.errors.DatabaseError) as error:
+    logging.getLogger(__name__).warning("Consulta Moneyline no disponible; código MySQL: %s", getattr(error, 'errno', 'N/D'))
+    state_message("No se pudieron consultar los partidos MLB. Vuelve a intentarlo en unos momentos.", kind="offline")
+    st.stop()
 if not df.empty: df = df.drop_duplicates(subset=['id_juego']).reset_index(drop=True)
 
 # El historial no depende de que existan partidos pendientes hoy.
