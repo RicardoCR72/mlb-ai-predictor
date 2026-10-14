@@ -21,7 +21,7 @@ def main():
 import streamlit as st
 from core.ui_diseno import apply_design
 from tests.test_analitica_bankroll import AnalyticsTests
-from core.ui_bankroll import render_analytics,render_history
+from core.ui_bankroll_diseno import render_analytics,render_history
 from core.ui_movil import apply_mobile_layout
 from core.ui_filtros import performance_filters
 from core.ui_tarjetas import render_liga_matches
@@ -73,13 +73,13 @@ home_data['services']['liga_mx']['games']=[dict(Fecha=f'2026-10-{6+i//2:02}',Hor
 with patch('core.ui_resumen.snapshot',return_value=home_data),patch('streamlit.page_link',
     side_effect=lambda page,**kwargs:real_page_link('https://github.com/RicardoCR72/mlb-ai-predictor',**kwargs)):
     render_home()
-from core.ui_combinadas_vista import render_combinations
+from core.ui_combinadas_diseno import render_combinations
 from tests.test_combinadas import ParlayTests,NOW
 parlay_data=ParlayTests().fixture()
 # Nombres distintos para no contar estas tarjetas en la comprobación de Liga MX.
 parlay_data[2]['deporte']='MLB'
 if st.checkbox('Probar aviso sin partidos',key='smoke_parlay_empty'):parlay_data=[]
-with patch('core.ui_combinadas_vista.load_candidates',return_value=(parlay_data,[])),patch('core.ui_combinadas_vista.datetime') as clock:
+with patch('core.ui_combinadas_diseno.load_candidates',return_value=(parlay_data,[])),patch('core.ui_combinadas_diseno.datetime') as clock:
     clock.now.return_value=NOW
     render_combinations()
 ''')

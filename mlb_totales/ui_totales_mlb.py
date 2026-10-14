@@ -14,7 +14,7 @@ from mlb_totales.predecir_pitcheo import predict
 from mlb_totales.portable import load
 from mlb_totales import registro
 from mlb_totales.casa_base import only_base
-from mlb_totales.tarjetas_totales import render_cards
+from mlb_totales.tarjetas_actuales import render_cards
 
 ROOT=Path(__file__).resolve().parent/'modelos_pitcheo'
 

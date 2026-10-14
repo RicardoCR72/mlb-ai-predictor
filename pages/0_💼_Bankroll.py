@@ -1,6 +1,6 @@
 from core.ui_controles import state_message
 from core.ui_rendimiento_diseno import performance_filters
-from core.ui_bankroll import render_analytics, render_history
+from core.ui_bankroll_diseno import render_analytics, render_history
 from core.ui_actualizacion import render_update_button
 import json
 from pathlib import Path
