@@ -11,4 +11,4 @@ st.markdown('''<style>
 st.title('Tu día deportivo')
 render_home()
 with st.sidebar:
-    st.caption('MLB, NFL, Liga MX, Comparador y Bankroll')
+    st.caption('MLB, NFL, Liga MX y Rendimiento')

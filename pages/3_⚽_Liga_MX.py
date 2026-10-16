@@ -158,9 +158,11 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+if st.session_state.get('ligamx_vista') == '📊 Métricas de Validación':
+    st.session_state.pop('ligamx_vista')
 vista = st.radio(
     "Sección Liga MX",
-    ["🔮 Próximos Partidos", "⚽ Resultados Históricos", "📊 Métricas de Validación", "📋 Historial y Cobertura"],
+    ["🔮 Próximos Partidos", "⚽ Resultados Históricos", "📋 Historial y Cobertura"],
     horizontal=True,
     format_func=lambda value: value.lstrip("🔥📋📈⚾🏈📊⚽🔮💼 "),
     label_visibility="collapsed",
@@ -243,8 +245,8 @@ if vista == "🔮 Próximos Partidos":
         state_message('No hay partidos habilitados para predecir en los próximos siete días.',kind='empty')
     else:
         st.metric("Próximos partidos", len(futuros))
-        st.caption("Probabilidades del modelo validado. Registra la cuota tomada en Bankroll para calcular EV.")
-        st.caption('Una tarjeta por partido con ambas probabilidades. Elige Over o Under antes de registrar tu apuesta.')
+        st.caption("Probabilidades Over/Under 2.5 del modelo validado.")
+        st.caption('Una tarjeta por partido con ambas probabilidades.')
         futuros=render_order(futuros,'liga_picks',date_col='inicio_utc',confidence_col='p_over25',upcoming=True)
         render_liga_matches(futuros)
 
@@ -268,7 +270,8 @@ elif vista == "⚽ Resultados Históricos":
     if df_partidos.empty or df_probabilidades.empty:
         state_message('Todavía no hay partidos históricos disponibles.',kind='empty')
     else:
-        df_probabilidades = performance_filters(df_probabilidades, 'fecha', 'liga_hist', season_col='season')
+        df_probabilidades['resultado'] = np.where((df_probabilidades.goles_local+df_probabilidades.goles_visitante)>2.5,'GANADA','PERDIDA')
+        df_probabilidades = performance_filters(df_probabilidades, 'fecha', 'liga_hist', season_col='season', probability_col='p_over25', probability_scale=100, result_col='resultado')
         df_partidos = df_probabilidades.copy()
         if df_partidos.empty:
             state_message('No hay partidos para los filtros seleccionados.',kind='filters'); st.stop()
@@ -309,56 +312,6 @@ elif vista == "⚽ Resultados Históricos":
 
 # ==========================================================
 # VISTA 2: MÉTRICAS DE VALIDACIÓN
-# ==========================================================
-elif vista == "📊 Métricas de Validación":
-    st.markdown(
-        """
-        <div class="soccer-view-hero">
-            <div>
-                <div class="soccer-eyebrow">AUDITORÍA ESTADÍSTICA</div>
-                <h1>Validación del Modelo Liga MX</h1>
-                <div class="soccer-subtitle">Rendimiento riguroso medido por Brier Score y Log Loss frente al baseline de mercado.</div>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    if metricas:
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            st.markdown("#### Confirmación 2024–25")
-            conf = metricas.get("confirmation", {}).get("calibrated", {})
-            st.metric("Brier Score", f"{conf.get('brier', 0):.4f}")
-            st.metric("Log Loss", f"{conf.get('logloss', 0):.4f}")
-            st.metric("Probabilidad Media", f"{conf.get('prob_media', 0)*100:.1f}%")
-        with c2:
-            st.markdown("#### Baseline de Comparación")
-            base = metricas.get("confirmation", {}).get("baseline", {})
-            st.metric("Brier Baseline", f"{base.get('brier', 0):.4f}")
-            st.metric("Log Loss Baseline", f"{base.get('logloss', 0):.4f}")
-            st.metric("Tasa Real Over", f"{base.get('real_over', 0)*100:.1f}%")
-        with c3:
-            st.markdown("#### Estado de Congelamiento")
-            st.info(
-                f"**Modelo:** Calibrado\n\n"
-                f"**Muestra de entrenamiento:** {metricas.get('train_games', 0)} partidos\n\n"
-                f"**Temporadas base:** 2018–19 a 2021–22\n\n"
-                f"**Selección:** 2023–24\n\n"
-                f"**Evaluación ciega:** 2024–25"
-            )
-
-        st.markdown("---")
-        st.markdown("#### Cobertura Histórica de Partidos por Temporada")
-        cobertura = metricas.get("coverage", {})
-        if cobertura:
-            df_cob = pd.DataFrame(list(cobertura.items()), columns=["Temporada", "Partidos"])
-            st.dataframe(df_cob, use_container_width=True, hide_index=True)
-    else:
-        state_message("Las métricas de validación de Liga MX no están disponibles.",kind="blocked")
-
-# ==========================================================
-# VISTA 3: HISTORIAL Y COBERTURA
 # ==========================================================
 else:
     st.markdown(

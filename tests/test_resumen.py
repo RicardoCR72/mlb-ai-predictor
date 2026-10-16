@@ -134,8 +134,8 @@ class SummaryTests(TestCase):
             app=AppTest.from_file(str(ROOT/'dashboard.py')).run()
         self.assertFalse(app.exception)
         links=app.get('page_link')
-        self.assertEqual(len(links),5)
-        self.assertEqual(len({link.proto.label for link in links}),5)
+        self.assertEqual(len(links),4)
+        self.assertEqual(len({link.proto.label for link in links}),4)
         self.assertFalse(any('sport-card' in m.value or 'Flujo operativo' in m.value for m in app.markdown))
 
     def test_dashboard_bypasses_cached_old_home_renderer(self):

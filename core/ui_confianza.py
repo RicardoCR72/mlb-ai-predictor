@@ -67,7 +67,7 @@ def render():
         st.caption('Solo publicaciones verificadas y candidatos sin alerta de lesión: primeras fechas para ajuste (60%), posteriores para selección (20%) y últimas para prueba (20%). Cada versión y mercado se evalúa por separado.')
         st.caption('Mínimos: 200/100/100 picks y 30/20/20 partidos; al menos 20 ganadas y 20 perdidas por bloque. Se comparan identidad, temperatura y Platt sin consultar el bloque de prueba al seleccionar.')
         st.json(trials,expanded=False)
-        st.caption('El ajuste es experimental. No cambia la confianza publicada, los picks, Combinadas ni Bankroll. Una validación favorable requiere mejora de log-loss y un intervalo de la diferencia Brier completamente bajo cero.')
+        st.caption('El ajuste es experimental. No cambia la confianza publicada, los picks ni Combinadas. Una validación favorable requiere mejora de log-loss y un intervalo de la diferencia Brier completamente bajo cero.')
         st.download_button('Descargar evaluación temporal',json.dumps(trials,ensure_ascii=False,allow_nan=False,indent=2),'calibracion_temporal.json','application/json')
     with st.expander('Datos, límites y metodología'):
         st.json(excluded)

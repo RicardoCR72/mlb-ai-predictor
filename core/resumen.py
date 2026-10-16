@@ -74,7 +74,7 @@ def prediction_summary(frame, now, *, keys, candidate, utc=False):
     return picks,pending,items
 
 
-def read_summary(conn, root, now=None):
+def read_summary(conn, root, now=None, *, include_bankroll=True):
     now = now or datetime.now(timezone.utc)
     if now.tzinfo is None: raise ValueError('El resumen requiere una hora con zona horaria.')
     today = now.astimezone(ZoneInfo('America/Mexico_City')).date()
@@ -196,16 +196,17 @@ def read_summary(conn, root, now=None):
         item['errors'].append('Cobertura o calendario: '+type(exc).__name__)
         item['detail']='Revisa o actualiza el calendario y su cobertura; las predicciones se mantienen suspendidas.'
 
-    item=output['bankroll']
-    try:
-        if conn is None: raise ConnectionError('offline')
-        ledger=bank.load_ledger(conn)
-        capital=bank.rows(conn,'SELECT capital_inicial FROM bankroll_config WHERE id=1')
-        if capital.empty: raise ValueError('Sin capital configurado')
-        item['finance']=bank.metrics(ledger,float(capital.iloc[0,0]))
-        item['pending']=int(ledger.estado.eq('Pendiente').sum())
-        item['pending_items']=ledger.loc[ledger.estado.eq('Pendiente'),['fecha','partido','seleccion']].rename(columns={'fecha':'Fecha','partido':'Partido','seleccion':'Selección'}).to_dict('records')
-        item['last_data']=maximum(bank.rows(conn,'SELECT MAX(actualizado_en) AS fecha FROM bankroll_apuestas'),'fecha')
-        item['detail']='Apuestas pendientes de cualquier fecha; saldo y disponible de toda la banca. No se liquida al abrir el resumen.'
-    except Exception as exc: item['errors'].append('Banca: '+type(exc).__name__)
+    if include_bankroll:
+        item=output['bankroll']
+        try:
+            if conn is None: raise ConnectionError('offline')
+            ledger=bank.load_ledger(conn)
+            capital=bank.rows(conn,'SELECT capital_inicial FROM bankroll_config WHERE id=1')
+            if capital.empty: raise ValueError('Sin capital configurado')
+            item['finance']=bank.metrics(ledger,float(capital.iloc[0,0]))
+            item['pending']=int(ledger.estado.eq('Pendiente').sum())
+            item['pending_items']=ledger.loc[ledger.estado.eq('Pendiente'),['fecha','partido','seleccion']].rename(columns={'fecha':'Fecha','partido':'Partido','seleccion':'Selección'}).to_dict('records')
+            item['last_data']=maximum(bank.rows(conn,'SELECT MAX(actualizado_en) AS fecha FROM bankroll_apuestas'),'fecha')
+            item['detail']='Apuestas pendientes de cualquier fecha; saldo y disponible de toda la banca. No se liquida al abrir el resumen.'
+        except Exception as exc: item['errors'].append('Banca: '+type(exc).__name__)
     return dict(at=now.isoformat(),today=today.isoformat(),services=output)

@@ -159,7 +159,7 @@ class DeploymentImportTests(TestCase):
             old.performance_filters = old_filters
             sys.modules['core.ui_filtros'] = old
             paths = ['core/ui_comparador.py', 'nfl/ui_totales.py', 'nfl/ui_props.py',
-                'mlb_totales/ui_totales_mlb.py', 'pages/0_💼_Bankroll.py',
+                'mlb_totales/ui_totales_mlb.py', 'core/ui_rendimiento_centro.py',
                 'pages/1_⚾_MLB.py', 'pages/3_⚽_Liga_MX.py']
             for path in paths:
                 tree = ast.parse(Path(path).read_text())
