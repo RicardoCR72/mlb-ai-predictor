@@ -94,4 +94,4 @@ def render_combinations():
         Disponibilidad=' · '.join(p['notes']) or ('Elegible · cuota pendiente' if p['cuota'] is None else 'Elegible')) for p in filtered])
     st.dataframe(table,hide_index=True,width='stretch',
                  column_config={'Confianza':st.column_config.NumberColumn(format='percent',help='Probabilidad estimada por el modelo.')})
-    st.caption('El ranking puede incluir picks que requieren revisión. Solo los elegibles entran en la propuesta automática. Esta sección no registra apuestas ni modifica tu bankroll.')
+    st.caption('El ranking puede incluir picks que requieren revisión. Solo los elegibles entran en la propuesta automática. Las selecciones se elaboran con predicciones guardadas.')

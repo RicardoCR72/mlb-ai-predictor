@@ -16,11 +16,10 @@ def render_home():
         summary.load_snapshot.clear(); st.rerun()
     services=data['services']
     sports=[services[k] for k in ('mlb','mlb_total','nfl_totales','nfl_props','liga_mx')]
-    finance=services['bankroll'].get('finance')
     cols=st.columns(3)
     cols[0].metric('Picks disponibles hoy',partial_count(sports,'picks_today'))
     cols[1].metric('Registros por revisar',partial_count(sports,'pending'))
-    cols[2].metric('Banca disponible',f"${finance['disponible']:,.2f} MXN" if finance else 'No disponible')
+    cols[2].metric('Deportes disponibles',sum(any(not services[k]['errors'] for k in keys) for keys in [('mlb','mlb_total'),('nfl_totales','nfl_props'),('liga_mx',)]))
     st.markdown('''<style>
 .st-key-home_sports [data-testid="stHorizontalBlock"],.st-key-home_tools [data-testid="stHorizontalBlock"]{align-items:stretch}
 .st-key-home_sports [data-testid="stColumn"] > [data-testid="stVerticalBlock"],.st-key-home_tools [data-testid="stColumn"] > [data-testid="stVerticalBlock"]{height:100%;flex:1}
@@ -44,18 +43,10 @@ def render_home():
                 st.page_link(page,label='Abrir '+name,use_container_width=True)
     st.caption('Liga MX cuenta ambas opciones O/U por encuentro. MLB Moneyline y NFL no verifican la hora de inicio.')
     with st.container(key='home_tools'):
-        left,right=st.columns(2)
-        with left,st.container(border=True,height='stretch',key='home_bankroll_card'):
-            st.markdown('### Bankroll')
-            if finance:
-                st.markdown(rf"Saldo: **\${finance['saldo']:,.2f} MXN** · Comprometido: **\${finance['pendientes']:,.2f} MXN**")
-                st.caption(f"{count(services['bankroll']['pending'])} apuestas pendientes")
-            else:state_message('Tu banca no está disponible en este momento.',kind='offline')
-            st.page_link('pages/0_💼_Bankroll.py',label='Abrir Bankroll',use_container_width=True)
-        with right,st.container(border=True,height='stretch',key='home_comparator_card'):
-            st.markdown('### Comparador')
-            st.write('Compara mercados y modelos con una simulación de 1 u por pick.')
-            st.page_link('pages/4_📊_Comparador.py',label='Abrir Comparador',use_container_width=True)
+        with st.container(border=True,key='home_performance_card'):
+            st.markdown('### Rendimiento')
+            st.write('Evolución, comparación de mercados y validación de los modelos en un solo lugar.')
+            st.page_link('pages/4_📊_Rendimiento.py',label='Abrir Rendimiento',use_container_width=True)
     st.subheader('Próximos partidos')
     games=[]
     for source,sport in [('mlb','MLB'),('nfl_totales','NFL'),('liga_mx','Liga MX')]:

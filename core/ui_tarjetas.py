@@ -107,54 +107,12 @@ def render_pick(pick, *, market, state='', details=(), allow_register=True):
     st.markdown(CSS, unsafe_allow_html=True)
     apply_design()
     st.markdown(card_html(pick, market=market, state=state, details=details), unsafe_allow_html=True)
-    if allow_register: registration(pick)
+
 
 
 def registration(pick):
-    key = pick_key(pick)
-    start = pick.get('referencia', {}).get('inicio_utc')
-    if start and pd.Timestamp(start) <= pd.Timestamp.now(tz='UTC'):
-        st.caption('El partido ya comenzó. Registra apuestas anteriores desde Bankroll.'); return
-    if st.button('Registrar en bankroll', key='open_'+key, icon=None):
-        st.session_state['pick_draft'] = dict(pick)
-        st.session_state.setdefault('pick_receipt_'+key, str(uuid.uuid4()))
-    draft = st.session_state.get('pick_draft')
-    if not draft or pick_key(draft) != key: return
-    st.caption('Registra únicamente una apuesta que realizaste. Se conservará la confianza de esta tarjeta.')
-    if not start: st.caption('La fuente no proporciona una hora verificada. Confirma que corresponde a tu apuesta.')
-    with st.form('bet_'+key):
-        st.write(draft['partido']+' · '+draft['seleccion'])
-        odds = number(draft.get('cuota'))
-        taken = st.number_input('Cuota decimal tomada', min_value=1.01, value=odds if odds and odds>1 else None, step=.01)
-        amount = st.number_input('Monto apostado (MXN)', min_value=1.0, value=None, step=10.0)
-        house = st.text_input('Casa donde apostaste', value=draft['casa'])
-        ticket = st.text_input('Ticket o referencia (opcional)')
-        confirm = st.checkbox('Confirmo que realicé esta apuesta con la cuota y el monto indicados')
-        save = st.form_submit_button('Guardar apuesta realizada')
-        cancel = st.form_submit_button('Cancelar')
-    if cancel:
-        st.session_state.pop('pick_draft', None); st.rerun()
-    if not save: return
-    if not confirm or taken is None or amount is None:
-        st.warning('Introduce cuota y monto, y confirma la apuesta realizada.'); return
-    conn = None
-    try:
-        conn = get_db_connection()
-        bank.prepare(conn)
-        bet = dict(draft, cuota=taken, monto=amount, casa=house, ticket=ticket.strip(), estado='Pendiente')
-        bank.save_bet(conn, bet, st.session_state['pick_receipt_'+key])
-        st.success('Apuesta guardada en Bankroll.')
-        st.session_state.pop('pick_draft', None)
-        st.session_state.pop('pick_receipt_'+key, None)
-        st.session_state.pop('bankroll_predictions', None)
-        st.cache_data.clear()
-        st.page_link('pages/0_💼_Bankroll.py', label='Ver mi bankroll', icon=None)
-    except ValueError as exc:
-        st.warning(str(exc))
-    except Exception as exc:
-        st.error(f'No se pudo guardar la apuesta ({type(exc).__name__}). Puedes reintentar.')
-    finally:
-        if conn is not None: conn.close()
+    """Compatibilidad para vistas antiguas: el registro de apuestas fue retirado."""
+    return None
 
 
 def nfl_pick(row, prop=False):
@@ -192,15 +150,12 @@ def liga_pick(row, side):
 
 
 def render_liga_matches(frame):
-    """Una tarjeta por encuentro, conservando ambas opciones de registro."""
+    """Una tarjeta por encuentro, con ambas probabilidades y sin registro de apuestas."""
     for offset in range(0, len(frame), 2):
         columns = st.columns(2)
         for column, (_, row) in zip(columns, frame.iloc[offset:offset+2].iterrows()):
             with column:
-                over = liga_pick(row, 'OVER')
-                side = st.selectbox('Selección para registrar', ('OVER', 'UNDER'),
-                    index=0 if row['p_over25'] >= row['p_under25'] else 1,
-                    format_func=lambda value: value+' 2.5', key='liga_side_'+pick_key(over))
+                side = 'OVER' if row['p_over25'] >= row['p_under25'] else 'UNDER'
                 render_pick(liga_pick(row, side), market='Total de goles', state='Modelo congelado',
                     details=[('Probabilidad Over 2.5', percent(row['p_over25'])),
                              ('Probabilidad Under 2.5', percent(row['p_under25']))])

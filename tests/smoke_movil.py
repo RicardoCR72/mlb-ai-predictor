@@ -28,6 +28,7 @@ from core.ui_tarjetas import render_liga_matches
 import pandas as pd
 import core.ui_comparador as comparator_ui
 from core.comparador import normalize
+from unittest.mock import patch
 st.set_page_config(layout='wide')
 apply_mobile_layout()
 apply_design()
@@ -58,6 +59,9 @@ comparison_data=normalize(pd.DataFrame([dict(id=str(i),fecha='2026-10-01',modelo
  sport='MLB',market='Moneyline',identity=['id'])
 comparator_ui.load_comparison=lambda:(comparison_data,[])
 comparator_ui.render_comparison()
+from core.ui_rendimiento_centro import render_center
+with patch('core.ui_rendimiento_centro.load_comparison',return_value=(comparison_data,[])),patch('core.ui_rendimiento_centro.nfl_games',return_value=pd.DataFrame()):
+    render_center()
 from core.auditoria_nfl import render_receiving_audit
 from tests.test_auditoria_nfl import AuditTests
 audit_data=AuditTests().fixture()
@@ -168,7 +172,7 @@ with st.container(key='confidence_smoke'),patch('core.ui_confianza.load',return_
                     assert abs(first_cards[0]-first_cards[1])<2,first_cards
                     # The cards follow the tallest content in each row; their links share a baseline.
                     for selector,number in [('.st-key-home_sports [class*="st-key-home_sport_"]',3),
-                                            ('.st-key-home_bankroll_card,.st-key-home_comparator_card',2)]:
+                                            ('.st-key-home_performance_card',1)]:
                         cards=page.locator(selector)
                         assert cards.count()==number
                         page.wait_for_function("""(selector)=>{const cards=[...document.querySelectorAll(selector)];
@@ -176,8 +180,9 @@ with st.container(key='confidence_smoke'),patch('core.ui_confianza.load',return_
                             const links=cards.map(c=>c.querySelector('[data-testid="stPageLink"]').getBoundingClientRect().bottom);
                             return Math.max(...heights)-Math.min(...heights)<2 && Math.max(...links)-Math.min(...links)<2}
                             """,arg=selector)
-                    assert page.locator('.st-key-home_bankroll_card .katex').count()==0
-                    assert '$10,000.00 MXN' in page.locator('.st-key-home_bankroll_card').inner_text()
+                    assert page.locator('.st-key-home_bankroll_card').count()==0
+                    assert page.get_by_role('button',name='Registrar en bankroll',exact=True).count()==0
+                    assert 'Abrir Rendimiento' in page.locator('.st-key-home_performance_card').inner_text()
                     page.set_viewport_size({'width':390,'height':844})
                     page.get_by_text('Comparador de rendimiento',exact=True).wait_for()
                     assert page.get_by_text('Mínimo de picks con beneficio conocido',exact=True).count()==1

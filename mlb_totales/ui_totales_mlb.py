@@ -1,6 +1,5 @@
-from core.ui_rendimiento_resumen import render_performance_charts, history_window
+from core.ui_rendimiento_resumen import history_window
 from core.ui_controles import state_message, roi_sample, render_order
-from core.ui_unidades import render_model_equivalence
 from core.ui_rendimiento_diseno import performance_filters
 """Panel de totales separado de moneyline; probabilidades V2 y snapshots previos."""
 from datetime import datetime,timezone,timedelta
@@ -35,13 +34,6 @@ def stamp():
         'historial_modelo.coverage.json','modelo_portable.json'))
 
 
-def diagnostics(frame):
-    if frame.empty:return
-    with st.expander('Partidos pendientes de datos o revisión'):
-        columns=[c for c in ('local','visitante','casa_apuestas','estado_mercado','estado') if c in frame]
-        st.dataframe(frame[columns],hide_index=True,use_container_width=True)
-
-
 def render_picks(connect):
     day=datetime.now(MX).date()
     minimum=st.slider('Confianza mínima (%)',0,95,50,key='mlb_totales_confianza_hoy')
@@ -63,7 +55,7 @@ def render_picks(connect):
             ready=only_base(aligned[aligned.estado_mercado=='OK']).reset_index(drop=True)
             if ready.empty:
                 state_message('No hay líneas recientes y verificadas de DraftKings. Actualiza la captura de cuotas de MLB.',kind='empty')
-                diagnostics(aligned);return
+                return
             with st.spinner('Calculando probabilidades con los abridores anunciados…'):
                 pred=cached_predict(ready.to_csv(index=False),stamp())
             # Predicción devuelve filas en el mismo orden; anexar exclusivamente metadata de mercado.
@@ -96,8 +88,6 @@ def render_picks(connect):
                 render_cards(display)
                 st.download_button('Descargar predicciones actuales',display.to_csv(index=False),
                     'mlb_totales_actuales.csv','text/csv',key='mlb_totales_csv')
-            issues=pd.concat([aligned[aligned.estado_mercado!='OK'],pred[~good]],ignore_index=True)
-            diagnostics(issues)
     except Exception as exc:
         state_message('No se pudo cargar Totales. Comprueba el modelo, los históricos y la conexión de datos.',kind='offline')
     finally:
@@ -116,26 +106,14 @@ def render_performance(connect):
         if frame.empty:
             state_message('Aún no hay predicciones de DraftKings registradas. Actions o Totales las guardan antes de los partidos.',kind='empty');return
         frame['temporada'] = pd.to_datetime(frame['fecha_oficial']).dt.year
-        frame = performance_filters(frame, 'fecha_oficial', 'mlb_total_period', season_col='temporada', result_col='resultado',
-            extra_keys={'confidence_total':'mlb_totales_perf_conf','candidates':'mlb_totales_perf_ev'})
-        with st.expander('Confianza y valor'):
-            cols=st.columns(2)
-            confidence=cols[0].slider('Probabilidad registrada mínima (%)',0,95,0,key='mlb_totales_perf_conf')
-            candidates=cols[1].checkbox('Solo candidatos originales con EV positivo',value=True,key='mlb_totales_perf_ev')
-        frame=frame[frame.confianza_pct>=confidence]
-        if candidates:frame=frame[frame.candidato==1]
+        frame = performance_filters(frame, 'fecha_oficial', 'mlb_total_period', season_col='temporada', probability_col='confianza_pct', result_col='resultado', market_col='seleccion',candidate_col='candidato')
+        st.caption('Confianza y cuotas originales guardadas.')
         summary=registro.summary(frame)
         cols=st.columns(4)
         cols[0].metric('Pronósticos resueltos',summary['apuestas'])
         cols[1].metric('Acierto sin push',f"{summary['acierto']:.1f}%")
         cols[2].metric('Unidades',f"{summary['unidades']:+.2f} u")
         cols[3].metric('ROI simulado',f"{summary['roi']:+.1f}%")
-        with st.expander('Balance y equivalencia en pesos'):
-            st.caption(f"Ganadas {summary['ganadas']} · Perdidas {summary['perdidas']} · Push {summary['push']}. "
-                       'Cuotas, probabilidades y EV originales de DraftKings.')
-            render_model_equivalence(summary['apuestas'], summary['unidades'])
-        render_performance_charts(frame,date_col='fecha_oficial',profit_col='unidades',
-            result_col='resultado',group_cols=('seleccion',))
         with st.expander('Orden del historial'):
             frame=render_order(frame,'mlb_total_period',date_col='fecha_oficial',confidence_col='confianza_pct',profit_col='unidades')
         render_cards(history_window(frame,'mlb_total_history'),performance=True)

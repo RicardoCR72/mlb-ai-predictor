@@ -17,7 +17,7 @@ def load_snapshot(day):
     try:
         try: conn=get_db_connection()
         except Exception: pass
-        return read_summary(conn,ROOT)
+        return read_summary(conn,ROOT,include_bankroll=False)
     finally:
         if conn is not None: conn.close()
 

@@ -24,9 +24,10 @@ def load_comparison():
         if conn is not None:conn.close()
 
 
-def render_comparison():
+def render_comparison(show_title=True):
     apply_mobile_layout()
-    st.title('Comparador de rendimiento')
+    if show_title:st.title('Comparador de rendimiento')
+    else:st.subheader('Comparación de mercados y modelos')
     st.caption('Simulación de 1 u por pick con cuotas guardadas. La procedencia y el modelo se comparan por separado.')
     if st.button('Actualizar comparador',key='comparison_refresh'):
         load_comparison.clear()
@@ -67,4 +68,4 @@ def render_comparison():
         st.write('Procedencia distingue los registros verificados antes del inicio de aquellos cuya hora no podemos comprobar. '
                  'Las versiones se mantienen separadas. Para comparar mercados completos, deja Resultado en Todos.')
         st.caption('Moneyline excluye dobles carteleras ambiguas. NFL no certifica hora de publicación. '
-                   'Liga MX carece de cuotas históricas para calcular ROI. Tus apuestas realizadas están en Bankroll.')
+                   'Liga MX carece de cuotas históricas para calcular ROI; su validación se consulta en Rendimiento.')

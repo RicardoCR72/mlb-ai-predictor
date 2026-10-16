@@ -37,10 +37,12 @@ def filter_frame(frame, date_col, *, period='Todo el historial', today=None, sta
 
 
 def performance_filters(frame, date_col, key, *, season_col=None, probability_col=None,
-                        probability_scale=1, market_col=None, result_col=None, week_col=None, provenance_col=None, expanded=False, extra_keys=None):
+                        probability_scale=1, market_col=None, result_col=None, week_col=None, provenance_col=None, expanded=False, extra_keys=None, candidate_col=None):
     from core.ui_diseno import apply_design
     apply_design()
     week = None
+    candidates = False
+    if candidate_col:extra_keys = (extra_keys or {}) | {'candidates':key+'_candidates'}
     with st.expander('Filtros de rendimiento', expanded=False):
         st.button('Restablecer filtros',key=key+'_reset',on_click=restore,args=({},managed(key,extra_keys)))
         period = safe_select('Periodo', PERIODS, key=key+'_period')
@@ -61,6 +63,8 @@ def performance_filters(frame, date_col, key, *, season_col=None, probability_co
         minimum = 0
         if probability_col:
             minimum = st.slider('Confianza mínima (%)',0,100,0,key=key+'_confidence')
+        if candidate_col and candidate_col in frame:
+            candidates=st.checkbox('Solo candidatos originales con EV positivo',value=True,key=key+'_candidates')
         if week_col and week_col in frame:
             weeks = sorted(frame[week_col].dropna().astype(str).unique(),
                            key=lambda value: float(value), reverse=True)
@@ -78,6 +82,7 @@ def performance_filters(frame, date_col, key, *, season_col=None, probability_co
         probability_col=probability_col,probability_scale=probability_scale,minimum=minimum,
         market_col=market_col,market=selected.get('market'),result_col=result_col,result=selected.get('result'),
         week_col=week_col,week=week,provenance_col=provenance_col,provenance=selected.get('provenance'))
+    if candidates:filtered=filtered[filtered[candidate_col].eq(1)]
     summary=[period]
     if start and end:summary.append(f'{start:%d/%m}–{end:%d/%m}')
     if season:summary.append('Temporada '+str(season))

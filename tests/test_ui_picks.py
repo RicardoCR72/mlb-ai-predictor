@@ -12,7 +12,7 @@ from core import bankroll
 
 
 class PickTests(TestCase):
-    def test_liga_nine_games_have_nine_cards_and_keep_selected_side_for_registration(self):
+    def test_liga_nine_games_have_nine_cards_without_registration_controls(self):
         with patch('core.ui_tarjetas.get_db_connection') as connect:
             at=AppTest.from_string('''
 import pandas as pd
@@ -23,21 +23,9 @@ render_liga_matches(pd.DataFrame([dict(fecha='2099-10-10',inicio_utc='2099-10-11
             self.assertFalse(at.exception)
             cards=lambda: [m.value for m in at.markdown if '<div class="oracle-pick ' in m.value]
             self.assertEqual(len(cards()),9)
-            self.assertEqual(len(at.button),9)
+            self.assertFalse(at.button)
+            self.assertFalse(at.selectbox)
             self.assertTrue(all('58.0%' in card and '42.0%' in card for card in cards()))
-            at.selectbox[0].select('UNDER').run()
-            self.assertEqual(len(cards()),9)
-            at.button[0].click().run()
-            draft=at.session_state['pick_draft']
-            self.assertEqual(draft['seleccion'],'UNDER 2.5')
-            self.assertEqual(draft['referencia']['side'],'UNDER')
-            self.assertEqual(draft['referencia']['local'],'Local 0')
-            self.assertEqual(draft['probabilidad'],.42)
-            at.button[2].click().run()
-            at.selectbox[0].select('OVER').run()
-            at.button[0].click().run()
-            self.assertEqual(at.session_state['pick_draft']['probabilidad'],.58)
-            self.assertFalse(at.exception)
             connect.assert_not_called()
 
     def nfl_row(self):
@@ -86,51 +74,16 @@ pick = dict(fecha='2099-10-10',deporte='NFL',partido='A @ B',seleccion='OVER 45.
 render_pick(pick, market='Total', state='PICK')
 ''').run()
 
-    def test_registration_requires_confirmation_and_preserves_snapshot_on_retry(self):
-        conn = Mock()
-        with patch('core.ui_tarjetas.get_db_connection',return_value=conn) as connect, \
-             patch.object(bankroll,'prepare'), patch.object(bankroll,'save_bet') as save:
+    def test_cards_no_longer_offer_bankroll_registration(self):
+        with patch('core.ui_tarjetas.get_db_connection') as connect, patch.object(bankroll,'save_bet') as save:
             at=self.app()
             self.assertFalse(at.exception)
-            connect.assert_not_called()
-            at.button[0].click().run()
-            at.number_input[0].set_value(2.1)
-            at.number_input[1].set_value(250)
-            at.button[1].click().run()
-            self.assertTrue(at.warning)
-            save.assert_not_called()
-            at.checkbox[0].check()
-            save.side_effect=RuntimeError('no secrets in UI')
-            at.button[1].click().run()
-            first_receipt=save.call_args.args[2]
-            self.assertTrue(at.error)
-            self.assertNotIn('no secrets',at.error[0].value)
-            save.side_effect=None
-            at.button[1].click().run()
-            self.assertFalse(at.exception)
-            self.assertEqual(save.call_args.args[2],first_receipt)
-            bet=save.call_args.args[1]
-            self.assertEqual((bet['cuota'],bet['monto'],bet['probabilidad']),(2.1,250,.61))
-            self.assertEqual(bet['estado'],'Pendiente')
-            self.assertEqual(bet['referencia']['line'],45.5)
-            self.assertTrue(at.success)
-            self.assertNotIn('pick_draft',at.session_state)
-            self.assertEqual(conn.close.call_count,2)
+            self.assertFalse(at.button)
+            self.assertFalse(at.number_input)
+            self.assertFalse(at.checkbox)
+            self.assertFalse(at.get('form'))
+            connect.assert_not_called();save.assert_not_called()
 
-    def test_cancel_and_started_game_never_write(self):
-        with patch('core.ui_tarjetas.get_db_connection') as connect:
-            at=self.app();at.button[0].click().run();at.button[2].click().run()
-            self.assertFalse(at.exception)
-            self.assertNotIn('pick_draft',at.session_state)
-            at=AppTest.from_string('''
-from core.ui_tarjetas import render_pick
-render_pick(dict(fecha='2000-01-01',deporte='MLB',partido='A @ B',seleccion='OVER 8.5',
- casa='DraftKings',cuota=1.9,probabilidad=.6,origen='mlb_total',
- referencia=dict(game_id='1',side='OVER',line=8.5,inicio_utc='2000-01-01T23:00:00Z')),market='Total')
-''').run()
-            self.assertFalse(at.exception)
-            self.assertEqual(len(at.button),0)
-            connect.assert_not_called()
 
 
 class FilterTests(TestCase):
@@ -220,9 +173,8 @@ st.session_state['visible_ids']=liquidados.id_juego.tolist()
             next(s for s in at.selectbox if s.label==label).select(value).run()
             self.assertFalse(at.exception)
         self.assertEqual(at.metric[0].value,'4')
-        comparison=next(d.value for d in at.dataframe if 'Muestra_ROI' in d.value.columns)
-        self.assertEqual(comparison.Mercado.tolist(),['OVER','UNDER'])
-        self.assertAlmostEqual(comparison.iloc[0]['ROI (%)'],45)
+        self.assertFalse(any(e.label in ('Balance y equivalencia en pesos','Análisis por mercado y semana','Comparar mercados') for e in at.expander))
+        self.assertFalse(at.get('vega_lite_chart'))
         select('Mercado','UNDER')
         self.assertEqual(at.metric[0].value,'2')
         self.assertEqual(at.metric[3].value,'10.00%')

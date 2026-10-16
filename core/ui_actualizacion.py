@@ -36,7 +36,7 @@ def render_update_button(service, *, compact=True):
     from core.ui_movil import apply_mobile_layout
     apply_mobile_layout()
     key=f'actualizacion_manual_{service}'
-    help_text='Consulta resultados oficiales y revisa tus apuestas pendientes. No consume créditos de cuotas.'
+    help_text='Consulta resultados oficiales y actualiza los historiales. No consume créditos de cuotas.'
     if service=='liga_mx':help_text+=' La verificación del historial puede tardar unos minutos.'
     if not st.button(LABELS[service],key=key,help=help_text):return
     with st.spinner('Actualizando resultados oficiales…'):
