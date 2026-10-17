@@ -45,7 +45,11 @@ def performance_filters(frame, date_col, key, *, season_col=None, probability_co
     if candidate_col:extra_keys = (extra_keys or {}) | {'candidates':key+'_candidates'}
     with st.expander('Filtros de rendimiento', expanded=False):
         st.button('Restablecer filtros',key=key+'_reset',on_click=restore,args=({},managed(key,extra_keys)))
-        period = safe_select('Periodo', PERIODS, key=key+'_period')
+        compact=st.columns(2)
+        with compact[0]:period = safe_select('Periodo', PERIODS, key=key+'_period')
+        minimum=0
+        if probability_col:
+            with compact[1]:minimum=st.slider('Confianza mínima (%)',0,100,0,key=key+'_confidence')
         start = end = season = None
         if period == 'Temporada':
             if season_col and season_col in frame:
@@ -60,9 +64,6 @@ def performance_filters(frame, date_col, key, *, season_col=None, probability_co
             start = cols[0].date_input('Desde', today-timedelta(days=30), key=key+'_start')
             end = cols[1].date_input('Hasta', today, key=key+'_end')
             if start > end: st.warning('La fecha inicial debe ser anterior o igual a la final.')
-        minimum = 0
-        if probability_col:
-            minimum = st.slider('Confianza mínima (%)',0,100,0,key=key+'_confidence')
         if candidate_col and candidate_col in frame:
             candidates=st.checkbox('Solo candidatos originales con EV positivo',value=True,key=key+'_candidates')
         if week_col and week_col in frame:

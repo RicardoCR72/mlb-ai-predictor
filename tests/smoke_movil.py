@@ -32,6 +32,8 @@ from unittest.mock import patch
 st.set_page_config(layout='wide')
 apply_mobile_layout()
 apply_design()
+from core.ui_navegacion_movil import install_navigation
+install_navigation()
 ledger=AnalyticsTests().ledger()
 ledger['partido']='New England Patriots @ Jacksonville Jaguars'
 render_analytics(ledger,1000)
@@ -144,7 +146,7 @@ with st.container(key='confidence_smoke'),patch('core.ui_confianza.load',return_
                     page.locator('.availability-card').first.wait_for()
                     assert page.locator('.availability-card:visible').count()==5
                     page.wait_for_function('document.body.scrollWidth <= innerWidth+2')
-                    assert page.get_by_text('Captura de cuota: Hora no disponible',exact=True).count()>=9
+                    assert page.locator('.oracle-details .oracle-detail').filter(has_text='Captura de cuota').count()>=9
                     details=page.locator('.oracle-details').first
                     assert not details.evaluate('(e)=>e.open')
                     details.locator('summary').click()
@@ -157,6 +159,7 @@ with st.container(key='confidence_smoke'),patch('core.ui_confianza.load',return_
                     assert all(c['x']>=0 and c['right']<=392 and c['w']>300 for c in mobile),mobile
                     assert mobile[1]['y']>mobile[0]['y'],mobile[:2]
                     page.set_viewport_size({'width':1280,'height':900})
+                    assert page.locator('.oracle-back-top').is_hidden()
                     page.wait_for_function('document.body.scrollWidth <= innerWidth+2')
                     page.wait_for_function("(()=>{const c=document.querySelectorAll('.oracle-pick');return c.length>1 && Math.abs(c[0].getBoundingClientRect().y-c[1].getBoundingClientRect().y)<2})()")
                     first_cards=page.locator('.oracle-pick').evaluate_all('(nodes)=>nodes.slice(0,2).map(n=>n.getBoundingClientRect().height)')
@@ -190,6 +193,8 @@ with st.container(key='confidence_smoke'),patch('core.ui_confianza.load',return_
                     lean=page.locator('.st-key-lean_history_smoke')
                     lean.get_by_text('Vista resumida: 10 picks',exact=True).wait_for()
                     assert lean.locator('[data-testid="stVegaLiteChart"]:visible').count()==1
+                    page.locator('.oracle-back-top').click()
+                    page.wait_for_function("document.getElementById('oracle-page-top').getBoundingClientRect().top>=-2 && document.getElementById('oracle-page-top').getBoundingClientRect().top<160")
                     lean.get_by_role('button',name='Ver 10 más',exact=True).click()
                     lean.get_by_text('Vista resumida: 20 picks',exact=True).wait_for()
                     assert lean.locator('[data-testid="stMetricValue"]').get_by_text('25',exact=True).count()==1

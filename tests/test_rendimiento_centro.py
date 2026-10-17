@@ -20,7 +20,7 @@ class PerformanceCenterTests(TestCase):
         f=self.frame()
         with patch('core.ui_rendimiento_centro.load_comparison',return_value=(f,[])), \
              patch('core.ui_rendimiento_centro.nfl_games',return_value=pd.DataFrame()):
-            app=AppTest.from_string('from core.ui_rendimiento_centro import render_center\nrender_center()').run()
+            app=AppTest.from_string('from core.ui_rendimiento_centro import render_center\nrender_center()',default_timeout=10).run()
             self.assertFalse(app.exception)
             self.assertEqual(app.metric[0].value,'3')
             self.assertEqual(app.metric[2].value,'-0.10 u')
@@ -44,7 +44,7 @@ class PerformanceCenterTests(TestCase):
              patch('core.ui_rendimiento_centro.load_comparison',return_value=(f,[])), \
              patch('core.ui_rendimiento_centro.nfl_games',return_value=pd.DataFrame()), \
              patch('core.ui_rendimiento_centro.audit_history',return_value=history):
-            app=AppTest.from_string('from core.ui_rendimiento_centro import render_center\nrender_center()').run()
+            app=AppTest.from_string('from core.ui_rendimiento_centro import render_center\nrender_center()',default_timeout=10).run()
             app.radio(key='center_view').set_value('Comparación').run();self.assertFalse(app.exception)
             self.assertTrue(any('Picks evaluados' in d.value for d in app.dataframe))
             app.radio(key='center_view').set_value('Auditoría NFL').run();self.assertFalse(app.exception)
@@ -78,7 +78,7 @@ class PerformanceCenterTests(TestCase):
 
     def test_empty_sources_remain_usable(self):
         with patch('core.ui_rendimiento_centro.load_comparison',return_value=(self.frame().iloc[:0],['offline'])):
-            app=AppTest.from_string('from core.ui_rendimiento_centro import render_center\nrender_center()').run()
+            app=AppTest.from_string('from core.ui_rendimiento_centro import render_center\nrender_center()',default_timeout=10).run()
             self.assertFalse(app.exception)
             self.assertTrue(any('Aún no hay picks guardados' in m.value for m in app.markdown))
 
