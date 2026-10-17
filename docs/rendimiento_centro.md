@@ -38,3 +38,17 @@ principal omite las consultas financieras al preparar su resumen.
 
 No cambian modelos, probabilidades, workflows, capturas de cuotas ni créditos de APIs.
 La actualización de Rendimiento solo relee registros guardados.
+
+## Presentación visual
+
+Combinadas se retira de la navegación. El panorama y la comparación muestran primero
+un pastel de resultados, barras de ROI por grupo y una curva del beneficio acumulado.
+El panorama añade barras de retorno semanal ponderadas por la cantidad de picks con
+beneficio conocido. Las tablas quedan en detalles desplegables.
+
+El pastel cuenta todas las ganadas, perdidas y push liquidados; el acierto excluye push.
+ROI y unidades excluyen beneficios desconocidos. Pendientes, anulados y otros estados
+no se convierten en pérdidas ni ganancias. Cada gráfica aclara su denominador. Los
+picks sin fecha válida participan en el ROI, pero no en la curva. ROI negativo se
+representa por debajo de cero, nunca como proporción de un pastel. Los filtros, las
+cuotas originales y la separación de versiones/procedencias se mantienen.

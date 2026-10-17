@@ -8,7 +8,7 @@ from core.db import get_db_connection
 from core.bankroll import rows
 from core.ui_controles import state_message,roi_sample
 from core.ui_rendimiento_diseno import performance_filters,safe_select
-from core.ui_rendimiento_resumen import render_performance_charts
+from core.ui_graficas_claras import render_visual_performance,render_weekly_roi
 from core.modelos_legibles import model_names,label_models
 from core.ui_comparador import load_comparison,render_comparison
 from core.comparador import comparison
@@ -22,7 +22,7 @@ def weekly_summary(frame):
     if f.empty:return pd.DataFrame()
     date=pd.to_datetime(f.fecha,errors='coerce')
     iso=date.dt.isocalendar()
-    default=iso.year.astype('string')+' · ISO '+iso.week.astype('string')
+    default=iso.year.astype('string')+' · ISO '+iso.week.astype('string').str.zfill(2)
     f['Semana']=f.get('semana_nfl',pd.Series(index=f.index,dtype='object')).fillna(default)
     f['Ganadas']=f.resultado.eq('GANADA').astype(int)
     f['Perdidas']=f.resultado.eq('PERDIDA').astype(int)
@@ -92,8 +92,10 @@ def render_overview():
     metrics[3].metric('ROI',f'{100*profit/n:+.1f}%' if n else 'N/D')
     st.caption('Simulación de 1 u por pick. Los resultados agregados dependen de los mercados y versiones seleccionados; no son apuestas realizadas.')
     roi_sample(n)
-    render_performance_charts(frame,date_col='fecha',profit_col='unidades',result_col='resultado',
-        group_cols=('deporte','mercado','modelo_visible','procedencia'))
+    render_visual_performance(frame,date_col='fecha',profit_col='unidades',result_col='resultado',
+        group_cols=('deporte','mercado','modelo_visible','procedencia'),key='center_visual')
+    week=weekly_summary(frame)
+    render_weekly_roi(week)
     with st.expander('Balance y equivalencia en pesos'):
         st.write(f'✅ {int(settled.resultado.eq("GANADA").sum())} ganadas · ❌ {int(settled.resultado.eq("PERDIDA").sum())} perdidas · {int(settled.resultado.eq("PUSH").sum())} push')
         value=st.number_input('Valor ilustrativo de 1 u (MXN)',min_value=1.0,value=100.0,step=10.0,key='center_unit')
@@ -102,7 +104,6 @@ def render_overview():
         st.caption('Conversión local ilustrativa; no guarda movimientos ni modifica las métricas del modelo.')
     with st.expander('Análisis por mercado y semana'):
         st.dataframe(comparison(frame),hide_index=True,width='stretch')
-        week=weekly_summary(frame)
         if not week.empty:
             st.dataframe(week,hide_index=True,width='stretch')
             st.download_button('Descargar análisis semanal',week.to_csv(index=False),'rendimiento_semanal.csv','text/csv')

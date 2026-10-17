@@ -77,15 +77,6 @@ home_data['services']['liga_mx']['games']=[dict(Fecha=f'2026-10-{6+i//2:02}',Hor
 with patch('core.ui_resumen.snapshot',return_value=home_data),patch('streamlit.page_link',
     side_effect=lambda page,**kwargs:real_page_link('https://github.com/RicardoCR72/mlb-ai-predictor',**kwargs)):
     render_home()
-from core.ui_combinadas_diseno import render_combinations
-from tests.test_combinadas import ParlayTests,NOW
-parlay_data=ParlayTests().fixture()
-# Nombres distintos para no contar estas tarjetas en la comprobación de Liga MX.
-parlay_data[2]['deporte']='MLB'
-if st.checkbox('Probar aviso sin partidos',key='smoke_parlay_empty'):parlay_data=[]
-with patch('core.ui_combinadas_diseno.load_candidates',return_value=(parlay_data,[])),patch('core.ui_combinadas_diseno.datetime') as clock:
-    clock.now.return_value=NOW
-    render_combinations()
 from core.ui_rendimiento_resumen import history_window,render_performance_charts
 with st.container(key='lean_history_smoke'):
     history=pd.DataFrame([dict(id=i,fecha='2099-10-10',estado='GANADA',profit=1) for i in range(25)])
@@ -122,11 +113,11 @@ with st.container(key='confidence_smoke'),patch('core.ui_confianza.load',return_
                     liga=page.locator('.oracle-pick').filter(has_text='Liga MX')
                     liga.nth(8).wait_for(timeout=30000)
                     assert liga.count()==9,liga.count()
-                    proposal=page.locator('.st-key-parlay_proposal')
-                    proposal.get_by_text('42.0%',exact=True).wait_for(timeout=30000)
-                    assert proposal.locator('.oracle-pick').count()==3
-                    proposal.get_by_text('Por confirmar',exact=True).first.wait_for()
-                    proposal.get_by_role('button',name='Descargar propuesta',exact=True).wait_for()
+                    visuals=page.locator('.st-key-center_visual_charts')
+                    visuals.get_by_text('Cómo terminaron los picks',exact=True).wait_for()
+                    visuals.get_by_text('ROI por mercado',exact=True).wait_for()
+                    assert visuals.locator('[data-testid="stVegaLiteChart"]').count()==3
+                    assert page.get_by_role('button',name='Descargar propuesta',exact=True).count()==0
 
                     controls=page.locator('[data-testid="stButton"] button,[data-testid="stDownloadButton"] button,[data-testid="stFormSubmitButton"] button,[data-testid="stPageLink"] a')
                     styles=controls.evaluate_all('(nodes)=>nodes.map(n=>{const s=getComputedStyle(n);return {border:s.borderTopColor,width:s.borderTopWidth,radius:s.borderTopLeftRadius,color:s.color}})')
@@ -196,14 +187,6 @@ with st.container(key='confidence_smoke'),patch('core.ui_confianza.load',return_
                     page.get_by_text('Predicciones de prueba actualizadas · Consumo: 6 · Restantes: 494',exact=True).first.wait_for()
                     page.wait_for_function('document.body.scrollWidth <= innerWidth+2')
                     assert page.locator('[data-testid="stException"]').count()==0
-                    page.get_by_text('Probar aviso sin partidos',exact=True).click()
-                    empty=page.locator('.st-key-parlay_proposal .oracle-state')
-                    empty.wait_for(timeout=30000)
-                    assert 'dos partidos distintos' in empty.inner_text()
-                    assert proposal.locator('[data-testid="stAlert"]').count()==0
-                    style=empty.evaluate('(e)=>{const s=getComputedStyle(e);return {background:s.backgroundColor,border:s.borderTopColor,color:s.color}}')
-                    assert style==dict(background='rgb(15, 21, 30)',border='rgb(183, 255, 60)',color='rgb(168, 180, 197)'),style
-                    page.wait_for_function('document.body.scrollWidth <= innerWidth+2')
                     lean=page.locator('.st-key-lean_history_smoke')
                     lean.get_by_text('Vista resumida: 10 picks',exact=True).wait_for()
                     assert lean.locator('[data-testid="stVegaLiteChart"]:visible').count()==1
