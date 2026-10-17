@@ -72,6 +72,7 @@ def render_picks(connect):
                 state_message('El registro histórico todavía no está preparado. Consulta la guía de instalación.',kind='empty')
             if (pred.estado=='ACTUALIZAR_HISTORIAL').any():
                 state_message('Actualiza el historial de pitcheo hasta el último día completo antes de utilizar estas predicciones.',kind='blocked')
+            pred['model_id']=load(ROOT)['model_id'] if (ROOT/'modelo_portable.json').exists() else None
             display=pred[good].copy()
             if not display.empty:
                 metrics=st.columns(3)

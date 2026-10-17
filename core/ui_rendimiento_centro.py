@@ -78,6 +78,7 @@ def render_overview():
     if sport!='Todos':frame=frame[frame.deporte.eq(sport)]
     with cols[1]:model=safe_select('Modelo',['Todos']+sorted(frame.modelo_visible.unique()),key='center_model')
     if model!='Todos':frame=frame[frame.modelo_visible.eq(model)]
+    comparison_history=frame.copy()
     frame=performance_filters(frame,'fecha','center',season_col='Temporada',probability_col='probabilidad',
         probability_scale=100,market_col='mercado',result_col='resultado',provenance_col='procedencia')
     if frame.empty:state_message('No hay registros para estos filtros.',kind='filters');return
@@ -96,6 +97,8 @@ def render_overview():
         group_cols=('deporte','mercado','modelo_visible','procedencia'),key='center_visual')
     week=weekly_summary(frame)
     render_weekly_roi(week)
+    from core.comparacion_periodos import render as render_period_comparison
+    render_period_comparison(comparison_history)
     with st.expander('Balance y equivalencia en pesos'):
         st.write(f'✅ {int(settled.resultado.eq("GANADA").sum())} ganadas · ❌ {int(settled.resultado.eq("PERDIDA").sum())} perdidas · {int(settled.resultado.eq("PUSH").sum())} push')
         value=st.number_input('Valor ilustrativo de 1 u (MXN)',min_value=1.0,value=100.0,step=10.0,key='center_unit')

@@ -37,6 +37,8 @@ def hoy_mx():
     return datetime.now(ZONA_MX).date()
 
 st.set_page_config(page_title="MLB Oráculo", page_icon="⚾", layout="wide")
+from core.ui_navegacion_movil import install_navigation
+install_navigation()
 from core.ui_diseno import apply_design
 apply_design()
 
@@ -363,6 +365,7 @@ def mostrar_pick_mlb(fila):
     pick = dict(fecha=fila['Fecha'], deporte='MLB', partido=fila['Partido'],
         seleccion=fila['Pick de la IA'], casa='DraftKings', cuota=float(fila['Paga del Favorito']),
         probabilidad=float(fila['Confianza (%)'])/100, origen='mlb_ml',
+        modelo=fila.get('Modelo'),mercado_confianza='Moneyline',
         referencia=dict(game_id=str(fila['id_juego']), side=fila['Pick de la IA'], line=None))
     render_pick(pick, market='Moneyline', state='Pronóstico', details=[('Abridores',fila['Abridores'])])
 
@@ -826,6 +829,7 @@ if modelo is not None and (vista_mlb == "📈 Rendimiento" or not df.empty):
 
             resultados.append({
                 "id_juego": df.loc[i, "id_juego"],
+                "Modelo": version_moneyline,
                 "Fecha": df.loc[i, "Fecha"],
                 "Partido": f"{local_api} vs {visita_api}",
                 "Abridores": f"{p_local} vs {p_visita}",

@@ -1,4 +1,4 @@
-"""Tarjetas y registro explícito de apuestas realizadas, sin consultar cuotas."""
+"""Tarjetas de pronóstico y contexto verificable, sin formularios de apuestas."""
 from html import escape
 import hashlib
 import json
@@ -21,7 +21,7 @@ CSS = '''<style>
 .oracle-odds{background:#1c2634;border-radius:7px;padding:.2rem .55rem;white-space:nowrap}
 .oracle-result{font-size:.78rem;font-weight:750;color:#a8b4c5;margin:.3rem 0}
 .oracle-details{border-top:1px solid #273245;padding-top:.65rem;margin-top:.65rem}
-.oracle-details summary{cursor:pointer;color:#b7ff3c;min-height:32px;font-size:.8rem;list-style:revert}
+.oracle-details summary{cursor:pointer;color:#b7ff3c;min-height:44px;font-size:.8rem;list-style:revert}
 .oracle-details summary:focus-visible{outline:2px solid #b7ff3c;outline-offset:3px}
 .oracle-detail{display:flex;justify-content:space-between;gap:1rem;padding:.35rem 0;font-size:.78rem}
 .oracle-detail span{color:#a8b4c5}.oracle-detail strong{font-weight:500;text-align:right}
@@ -79,6 +79,7 @@ def card_html(pick, *, market, state='', details=()):
     primary.extend((k, v) for k, v in details if k in ('Probabilidad Over 2.5', 'Probabilidad Under 2.5'))
     values = ''.join(f'<div><span>{safe(k)}</span><strong>{safe(v)}</strong></div>' for k,v in primary)
     secondary = [(k, v) for k, v in details if (k, v) not in primary]
+    secondary.append(('Captura de cuota',quote_text(pick)))
     detail_html = ''.join(f'<div class="oracle-detail"><span>{safe(k)}</span><strong>{safe(v)}</strong></div>' for k,v in secondary)
     disclosure = f'<details class="oracle-details"><summary>Ver detalles</summary>{detail_html}</details>' if secondary else ''
     status = str(state).upper()
@@ -91,9 +92,10 @@ def card_html(pick, *, market, state='', details=()):
     width = min(max((probability or 0)*100, 0), 100)
     return (f'<div class="oracle-pick {css}"><div class="context">{safe(pick["deporte"])} · {safe(market)} · {safe(pick["casa"])}</div>'
         f'<h3>{safe(pick["partido"])}</h3><div class="context">{safe(date_text(pick))}</div>'
-        f'<div class="oracle-selection"><span>{safe(pick["seleccion"])}</span><span class="oracle-odds">{safe(odds_text)}</span></div>'
+        f'<div class="oracle-selection"><span>{safe(pick["seleccion"])}</span><span class="oracle-odds">Cuota {safe(odds_text)}</span></div>'
         f'<div class="oracle-values">{values}</div><div class="oracle-bar"><i style="width:{width:.1f}%"></i></div>'
-        f'<div class="oracle-result">{safe(status_label)}</div><div class="context oracle-quote">Captura de cuota: {safe(quote_text(pick))}</div>'
+        f'<div class="oracle-result">{safe(status_label)}</div>'
+        + (f'<div class="context oracle-confidence-context">{safe(pick["contexto_confianza"])}</div>' if pick.get('contexto_confianza') else '') +
         f'{disclosure}</div>')
 
 
@@ -106,6 +108,9 @@ def render_pick(pick, *, market, state='', details=(), allow_register=True):
     from core.ui_diseno import apply_design
     st.markdown(CSS, unsafe_allow_html=True)
     apply_design()
+    if allow_register:
+        from core.contexto_confianza import for_pick,text
+        pick=dict(pick,contexto_confianza=text(for_pick(pick)))
     st.markdown(card_html(pick, market=market, state=state, details=details), unsafe_allow_html=True)
 
 
@@ -129,6 +134,7 @@ def nfl_pick(row, prop=False):
                 seleccion=label, casa=str(row.get('casa_apuestas') or 'DraftKings') if prop else 'DraftKings',
                 cuota=odds, probabilidad=number(row['probabilidad_pick'] if prop else row['prob_pick']),
                 origen='nfl_prop' if prop else 'nfl_total', referencia=reference,
+                modelo=row.get('modelo_version'),mercado_confianza=row.get('tipo_prop') if prop else 'Totales',
                 cuota_capturada_utc=row.get('timestamp_captura') if prop else None)
 
 
@@ -137,7 +143,7 @@ def mlb_total_pick(row):
     return dict(fecha=row.get('fecha_oficial', row.get('fecha', pd.Timestamp(row['start_utc']).date())), deporte='MLB',
         partido=f"{row['visitante']} @ {row['local']}", seleccion=f"{side} {float(row['linea']):g}",
         casa='DraftKings', cuota=number(row['cuota_'+side.lower()]), probabilidad=number(row['prob_seleccion']),
-        cuota_capturada_utc=row.get('captured_utc'),
+        cuota_capturada_utc=row.get('captured_utc'),modelo=row.get('model_id'),p_push=row.get('p_push'),mercado_confianza='Totales',
         origen='mlb_total', referencia=dict(game_id=str(row['game_id']),side=side,line=float(row['linea']),inicio_utc=kickoff(row['start_utc'])))
 
 

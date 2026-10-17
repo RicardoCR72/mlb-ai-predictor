@@ -136,9 +136,9 @@ def read_summary(conn, root, now=None, *, include_bankroll=True):
             if source=='mlb':
                 # Un registro por pareja no identifica el juego de una doble cartelera.
                 if not frame.empty: frame=frame[~frame.duplicated(['fecha','local','visitante'],keep=False)]
-                item['picks_today']=prediction_summary(frame,now,keys=['game_id'],candidate=lambda r:float(r['confianza'])>=74 and float(r['cuota'])>1)[0] if not frame.empty else 0
+                item['picks_today']=prediction_summary(frame,now,keys=['game_id'],candidate=lambda r:float(r['confianza'])>=50 and float(r['cuota'])>1)[0] if not frame.empty else 0
                 item['last_data']=maximum(frame,'fecha')
-                item['detail']='Picks de hoy con confianza ≥74%. Fecha de picks; hora de inicio no verificada.'
+                item['detail']='Picks de hoy con confianza ≥50%. Fecha de picks; hora de inicio no verificada.'
             else:
                 if source=='mlb_total':
                     if not frame.empty:

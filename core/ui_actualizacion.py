@@ -38,18 +38,33 @@ def render_update_button(service, *, compact=True):
     key=f'actualizacion_manual_{service}'
     help_text='Consulta resultados oficiales y actualiza los historiales. No consume créditos de cuotas.'
     if service=='liga_mx':help_text+=' La verificación del historial puede tardar unos minutos.'
-    if not st.button(LABELS[service],key=key,help=help_text):return
-    with st.spinner('Actualizando resultados oficiales…'):
-        result=run_update(service,ROOT)
-    if result['busy']:
-        st.toast('Ya hay una actualización de este servicio en curso.')
+    from core.ui_estado_actualizacion import save_status,render_status
+    clicked=st.button(LABELS[service],key=key,help=help_text)
+    slot=st.empty()
+    if not clicked:
+        render_status(key,slot,previous=True)
+        return
+    save_status(key,'running','Consultando resultados oficiales…')
+    render_status(key,slot)
+    try:
+        with st.spinner('Actualizando resultados oficiales…'):
+            result=run_update(service,ROOT)
+    except Exception:
+        save_status(key,'error','No se completó la actualización. Puedes reintentar.')
+        render_status(key,slot)
         return
     st.session_state[key+'_result']=result
+    if result['busy']:
+        save_status(key,'busy','El servicio informó de otra ejecución. Este aviso no confirma que siga activa; vuelve a consultar antes de reintentar.')
+        render_status(key,slot)
+        return
     st.cache_data.clear()
     st.session_state.pop('bankroll_predictions',None)
     label=update_message(result)
-    st.toast(label)
-    st.caption(label)
     failures=[item for item in result['steps'] if not item['ok']]
+    phase='partial' if failures and any(item['ok'] for item in result['steps']) else 'error' if failures else 'success'
+    save_status(key,phase,label)
+    render_status(key,slot)
+    st.toast(label)
     if failures:
         st.warning(' · '.join(item['paso']+': '+item['detalle'] for item in failures))

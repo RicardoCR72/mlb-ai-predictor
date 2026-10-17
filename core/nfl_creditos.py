@@ -46,7 +46,7 @@ def plan_hoy(now=None):
 
 def run_predictions(root, plan, on_step=None):
     if not LOCK.acquire(blocking=False):
-        return dict(ok=False, detalle='Ya hay una actualización NFL en curso.', reporte=None)
+        return dict(ok=False, busy=True, detalle='Ya hay una actualización NFL en curso.', reporte=None)
     report = None
     steps = []
     try:
