@@ -77,5 +77,6 @@ def partial_count(items, field):
 
 def render_home():
     """Compatibilidad para las vistas que todavía usan esta entrada."""
-    from core.ui_inicio import render_home as render
-    return render()
+    import runpy
+    view=runpy.run_path(str(Path(__file__).with_name('ui_inicio.py')),run_name='inicio_actual')
+    return view['render_home']()
