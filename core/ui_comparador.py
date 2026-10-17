@@ -1,4 +1,4 @@
-from core.graficas_rendimiento import render_performance_charts
+from core.ui_graficas_claras import render_visual_performance
 from core.modelos_legibles import model_names,label_models
 """Comparador de rendimiento del modelo, separado de dinero apostado."""
 import runpy
@@ -54,12 +54,13 @@ def render_comparison(show_title=True):
             result=result.sort_values('ROI (%)',ascending=False,na_position='last',kind='stable')
             visible=result.copy()
             visible['Modelo']=[names[(str(r.Deporte),str(r.Modelo))] for r in result.itertuples()]
-            st.dataframe(visible,hide_index=True,use_container_width=True)
+            with st.expander('Ver tabla de comparación'):
+                st.dataframe(visible,hide_index=True,use_container_width=True)
             st.download_button('Descargar comparación filtrada',result.to_csv(index=False),'comparacion_modelos.csv','text/csv')
             identities=set(zip(result.Deporte,result.Mercado,result.Modelo,result.Procedencia))
             graph_frame=frame[[tuple(row) in identities for row in frame[['deporte','mercado','modelo','procedencia']].itertuples(index=False,name=None)]]
-            render_performance_charts(graph_frame,date_col='fecha',profit_col='unidades',result_col='resultado',
-                group_cols=('deporte','mercado','modelo_visible','procedencia'))
+            render_visual_performance(graph_frame,date_col='fecha',profit_col='unidades',result_col='resultado',
+                group_cols=('deporte','mercado','modelo_visible','procedencia'),key='comparison_visual')
             with st.expander('Versiones e identificadores de los modelos'):
                 versions=frame[['deporte','modelo_visible','modelo']].drop_duplicates()
                 st.dataframe(versions.rename(columns={'deporte':'Deporte','modelo_visible':'Modelo','modelo':'Identificador original'}),

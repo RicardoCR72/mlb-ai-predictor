@@ -81,3 +81,47 @@ class PerformanceCenterTests(TestCase):
             app=AppTest.from_string('from core.ui_rendimiento_centro import render_center\nrender_center()').run()
             self.assertFalse(app.exception)
             self.assertTrue(any('Aún no hay picks guardados' in m.value for m in app.markdown))
+
+
+class ClearChartsTests(TestCase):
+    def frame(self):
+        return pd.DataFrame(dict(fecha=['2026-10-01']*6,
+            resultado=['GANADA','PERDIDA','PUSH','GANADA','PENDIENTE','ANULADA'],
+            unidades=[.9,-1,0,float('nan'),99,99],mercado=['A']*6))
+
+    def test_donut_counts_results_while_roi_requires_known_profit(self):
+        from core.ui_graficas_claras import visual_data
+        f=self.frame()
+        data=visual_data(f,date_col='fecha',profit_col='unidades',result_col='resultado',group_cols=['mercado'])
+        self.assertEqual(data['total'],4)
+        self.assertEqual(data['distribution'].Picks.tolist(),[2,1,1])
+        self.assertAlmostEqual(data['distribution'].Porcentaje.sum(),1)
+        self.assertEqual(data['roi'].Muestra.iloc[0],3)
+        self.assertAlmostEqual(data['roi']['ROI (%)'].iloc[0],-100/30)
+        self.assertAlmostEqual(data['curve']['Unidades acumuladas'].iloc[-1],-.1)
+        self.assertTrue((data['distribution'].Picks>=0).all())
+
+    def test_no_date_still_counts_in_roi_and_sources_are_not_merged(self):
+        from core.ui_graficas_claras import visual_data
+        f=self.frame().iloc[:2].copy();f['modelo']=['v1','v2'];f.loc[0,'fecha']='invalid'
+        data=visual_data(f,date_col='fecha',profit_col='unidades',result_col='resultado',group_cols=['mercado','modelo'])
+        self.assertEqual(data['missing'],1)
+        self.assertEqual(len(data['roi']),2)
+        self.assertEqual(data['roi'].Muestra.sum(),2)
+        self.assertEqual(data['curve']['Unidades acumuladas'].tolist(),[-1])
+
+    def test_weekly_roi_weights_by_stakes_not_mean_of_percentages(self):
+        from core.ui_graficas_claras import weekly_roi
+        week=pd.DataFrame(dict(Semana=['2026 · NFL 05']*3,Muestra_ROI=[10,100,0],Unidades=[5,10,float('nan')]))
+        table=weekly_roi(week)
+        self.assertEqual(table['Picks con beneficio'].iloc[0],110)
+        self.assertAlmostEqual(table['ROI (%)'].iloc[0],1500/110)
+        week['Muestra_ROI']=0;week['Unidades']=float('nan')
+        self.assertTrue(pd.isna(weekly_roi(week)['ROI (%)'].iloc[0]))
+
+    def test_empty_visuals_and_removed_combined_page(self):
+        from core.ui_graficas_claras import visual_data
+        data=visual_data(self.frame().iloc[:0],date_col='fecha',profit_col='unidades',result_col='resultado')
+        self.assertEqual(data['total'],0)
+        self.assertTrue(data['roi'].empty)
+        self.assertFalse((ROOT/'pages/5_🎯_Combinadas.py').exists())

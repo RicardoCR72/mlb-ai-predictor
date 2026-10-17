@@ -77,20 +77,3 @@ class ParlayTests(TestCase):
         self.assertEqual(len(picks),1);self.assertNotIn('secret',str(errors));self.assertEqual(len(calls),4)
         self.assertAlmostEqual(picks[0]['cuota'],1+100/110)
         self.assertEqual(picks[0]['probabilidad'],.7)
-
-    def test_ui_proposal_and_edit_conflicts_and_missing_quotes(self):
-        options=self.fixture()
-        with patch('core.ui_combinadas_diseno.load_candidates',return_value=(options,[])),patch('core.ui_combinadas_diseno.datetime') as clock:
-            clock.now.return_value=NOW
-            app=AppTest.from_file(str(Path(__file__).resolve().parents[1]/'pages/5_🎯_Combinadas.py')).run()
-            self.assertFalse(app.exception)
-            self.assertEqual(app.metric[0].value,'3')
-            self.assertEqual(app.metric[1].value,'42.0%')
-            self.assertEqual(app.metric[2].value,'Por confirmar')
-            app.multiselect(key='parlay_legs').set_value([]).run()
-            self.assertFalse(app.exception)
-            self.assertTrue(any('al menos dos' in w.value for w in app.warning))
-            app.multiselect(key='parlay_sports').set_value(['NFL']).run()
-            self.assertFalse(app.exception)
-            self.assertFalse(app.info)
-            self.assertTrue(any('oracle-state' in m.value and 'dos partidos' in m.value for m in app.markdown))
