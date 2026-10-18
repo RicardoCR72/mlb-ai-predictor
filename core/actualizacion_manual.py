@@ -42,27 +42,28 @@ def run_script(service,root):
     return f"{match.group(1) if match else '0'} resultados NFL evaluados. Los partidos sin resultado oficial siguen pendientes."
 
 
-def exact_mlb_starts(pending,games):
-    """Correspondencia uno a uno por hora exacta, sin aproximar ni ordenar juegos.
+def verified_mlb_starts(pending,games):
+    """Correspondencia única por horario, con hasta 90 segundos entre fuentes.
 
     El scraper guarda juegos.fecha como commence_time UTC menos seis horas.
+    No elegir el más cercano: cada lado debe tener un único candidato posible.
     Una fecha sin hora no es evidencia suficiente para una doble cartelera.
     """
-    matches={}
+    edges=[]
     for game in games:
         try:
             start=pd.Timestamp(game['gameDate'])
             if start.tzinfo is None:continue
-            ids=[]
             for _,row in pending.iterrows():
                 stamp=pd.Timestamp(row.fecha)
                 if pd.isna(stamp) or stamp==stamp.normalize():continue
                 if stamp.tzinfo is None:stamp=stamp.tz_localize('Etc/GMT+6')
-                if stamp.tz_convert('UTC')==start.tz_convert('UTC'):ids.append(str(row.id_juego))
-            if len(ids)==1:matches[str(game['gamePk'])]=ids[0]
+                if abs((stamp.tz_convert('UTC')-start.tz_convert('UTC')).total_seconds())<=90:
+                    edges.append((str(game['gamePk']),str(row.id_juego)))
         except (KeyError,ValueError,TypeError):continue
-    counts=Counter(matches.values())
-    return {pk:id for pk,id in matches.items() if counts[id]==1}
+    official_counts=Counter(pk for pk,id in edges)
+    stored_counts=Counter(id for pk,id in edges)
+    return {pk:id for pk,id in edges if official_counts[pk]==1 and stored_counts[id]==1}
 
 
 def refresh_mlb_games(conn,now=None,on_ambiguity=None):
@@ -94,7 +95,7 @@ def refresh_mlb_games(conn,now=None,on_ambiguity=None):
                 if h.get('score') is None or a.get('score') is None:continue
                 if counts[(home,away)]!=1 or len(matching)>1:
                     official=[g for g in games if pair(g)==(home,away)]
-                    exact=exact_mlb_starts(matching,official)
+                    exact=verified_mlb_starts(matching,official)
                     identity=exact.get(str(game['gamePk']))
                     unresolved=matching[~matching.id_juego.astype(str).isin(exact.values())]
                     # Solo contar registros nuestros, una vez por pareja/fecha.

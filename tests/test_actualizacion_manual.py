@@ -104,7 +104,7 @@ class TestManualUpdates(unittest.TestCase):
         self.assertEqual([g['game_pk'] for g in report.call_args.args[0]['oficiales']],[1,2])
         conn.cursor.return_value.execute.assert_not_called()
 
-    def test_doubleheader_uses_exact_distinct_starts_and_never_nearest_or_date_only(self):
+    def test_doubleheader_uses_unique_nearby_starts_and_never_nearest_or_date_only(self):
         pending=pd.DataFrame([
             dict(id_juego='early',fecha='2026-09-22 11:05:00',equipo_local='H',equipo_visitante='A'),
             dict(id_juego='late',fecha='2026-09-22 17:05:00',equipo_local='H',equipo_visitante='A')])
@@ -112,12 +112,16 @@ class TestManualUpdates(unittest.TestCase):
             status=dict(abstractGameState='Final'),teams=dict(home=dict(team=dict(name='H'),score=score),
             away=dict(team=dict(name='A'),score=1)))
         games=[game(1,'17',2),game(2,'23',4)]
-        self.assertEqual(update.exact_mlb_starts(pending,games),{'1':'early','2':'late'})
+        self.assertEqual(update.verified_mlb_starts(pending,games),{'1':'early','2':'late'})
         date_only=pending.assign(fecha='2026-09-22')
-        self.assertEqual(update.exact_mlb_starts(date_only,games),{})
+        self.assertEqual(update.verified_mlb_starts(date_only,games),{})
         shifted=pending.copy();shifted['fecha']=pd.to_datetime(shifted.fecha)+pd.Timedelta(minutes=1)
-        self.assertEqual(update.exact_mlb_starts(shifted,games),{})
-        self.assertEqual(update.exact_mlb_starts(pd.concat([pending,pending]),games),{})
+        self.assertEqual(update.verified_mlb_starts(shifted,games),{'1':'early','2':'late'})
+        shifted['fecha']+=pd.Timedelta(minutes=2)
+        self.assertEqual(update.verified_mlb_starts(shifted,games),{})
+        conflicting=[games[0],{**games[0],'gamePk':3,'gameDate':'2026-09-22T17:06:00Z'}]
+        self.assertEqual(update.verified_mlb_starts(pending,conflicting),{})
+        self.assertEqual(update.verified_mlb_starts(pd.concat([pending,pending]),games),{})
         conn=Mock();conn.cursor.return_value.rowcount=1;report=Mock()
         with patch.object(bank,'rows',return_value=pending), \
              patch('mlb_totales.descargar_pitcheo.fetch_json',return_value={'dates':[{'games':games}]}):
