@@ -1,0 +1,33 @@
+name: Publicar predicciones MLB guardadas
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ['Oráculo diario MLB V2']
+    types: [completed]
+permissions:
+  contents: read
+concurrency:
+  group: mlb-v2-produccion
+  cancel-in-progress: false
+jobs:
+  publicar:
+    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main' && github.event.workflow_run.head_repository.full_name == github.repository)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DB_HOST: ${{ secrets.DB_HOST }}
+      DB_PORT: ${{ secrets.DB_PORT }}
+      DB_USER: ${{ secrets.DB_USER }}
+      DB_PASS: ${{ secrets.DB_PASS }}
+      DB_NAME: ${{ secrets.DB_NAME }}
+      MLB_ODDS_CAPTURE_TIMEZONE: America/Mazatlan
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r requirements.txt
+      - name: Publicar usando cuotas guardadas, sin The Odds API
+        run: python scripts/generar_mlb.py

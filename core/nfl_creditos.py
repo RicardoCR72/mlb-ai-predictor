@@ -44,7 +44,9 @@ def plan_hoy(now=None):
                 max_creditos=len(events)*len(MERCADOS_PROPS), restantes=remaining, reserva=RESERVA)
 
 
-def run_predictions(root, plan, on_step=None):
+def run_predictions(root, plan, on_step=None,*,admin_token=None):
+    from core.permisos import require_admin
+    require_admin(admin_token)
     if not LOCK.acquire(blocking=False):
         return dict(ok=False, busy=True, detalle='Ya hay una actualización NFL en curso.', reporte=None)
     report = None

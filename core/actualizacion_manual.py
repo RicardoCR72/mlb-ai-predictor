@@ -143,7 +143,9 @@ def settle_bank(conn,root):
     return f'{count} apuestas realizadas liquidadas con los resultados disponibles.'
 
 
-def run_update(service,root,on_step=None):
+def run_update(service,root,on_step=None,*,admin_token=None):
+    from core.permisos import require_admin
+    require_admin(admin_token)
     if service not in SERVICES:raise ValueError('Servicio inválido.')
     # Mismo candado para todas las sesiones de este proceso Streamlit.
     if not LOCKS[service].acquire(blocking=False):
@@ -191,7 +193,7 @@ def run_update(service,root,on_step=None):
             except Exception as exc:
                 output.append({'paso':'Leer apuestas pendientes','ok':False,'detalle':type(exc).__name__})
         else:sport(service)
-        step('Liquidación de bankroll',lambda:settle_bank(db(),root))
+        if service=='bankroll':step('Liquidación de bankroll',lambda:settle_bank(db(),root))
     finally:
         try:
             if conn is not None:conn.close()

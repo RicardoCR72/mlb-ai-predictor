@@ -1,242 +1,120 @@
-# 🏆 Oráculo Sports AI
+# Oráculo Sports AI
 
-Sistema cuantitativo y predictivo multideporte para análisis de valor, proyección de resultados, seguimiento de cuotas y auditoría de rendimiento en **MLB**, **NFL** y **Fútbol (Liga MX)**.
+Panel Streamlit para consultar publicaciones MLB, NFL y Liga MX, resultados,
+rendimiento simulado y calibración. Los registros originales y los históricos
+sin hora verificable se distinguen explícitamente.
 
----
+## Ejecutar
 
-## 📁 Estructura del Proyecto
+Python 3.12:
 
-El proyecto está organizado siguiendo principios de arquitectura modular por dominio deportivo:
-
-```text
-deporte_definitivo/
-│
-├── .github/workflows/          # Automatizaciones CI/CD (GitHub Actions)
-│   ├── bot_diario.yml          # Pipeline diario MLB, NFL y Telegram
-│   ├── bot_flash.yml           # Actualización rápida de pitchers y lesiones
-│   ├── bot_nfl_props.yml       # Captura de líneas y props NFL
-│   ├── consultar_creditos.yml  # Consulta de saldos y marcadores
-│   ├── nfl_predicciones.yml    # Proyección semanal de totales NFL
-│   └── nfl_props.yml           # Modelo de jugadores / props NFL
-│
-├── .streamlit/                 # Configuración y secretos de la interfaz web
-│
-├── dashboard.py                # Entrada principal de la aplicación Web (Streamlit Hub)
-│
-├── core/                       # Núcleo de servicios compartidos
-│   ├── __init__.py
-│   ├── db.py                   # Conexión unificada MySQL/Aiven con soporte SSL
-│   ├── constants.py            # Equipos, husos horarios y códigos estandarizados
-│   ├── cache.py                # Caché local con TTL para The Odds API
-│   └── alerts.py               # Envío de alertas y señales a Telegram
-│
-├── pages/                      # Vistas multipágina de la aplicación
-│   ├── 0_💼_Bankroll.py        # Portafolio, Criterio de Kelly y auditoría de apuestas
-│   ├── 1_⚾_MLB.py             # Centro de operaciones y predicciones MLB
-│   ├── 2_🏈_NFL.py             # Centro de operaciones y props NFL
-│   └── 3_⚽_Liga_MX.py         # Centro de análisis y modelos Liga MX
-│
-├── mlb/                        # Módulo principal de MLB (Moneyline, abridores, escáneres)
-│   ├── __init__.py
-│   ├── scraper.py              # Captura de cuotas Moneyline y Totales (DraftKings)
-│   ├── actualizar_marcadores.py# Actualización de scores y memoria histórica
-│   ├── escaner_pitchers.py     # Análisis de abridores (ERA global y últimas 3 salidas)
-│   ├── escaner_lesiones.py     # Monitor médico de jugadores lesionados
-│   ├── escaner_equipos.py      # Splits zurdos/derechos y fatiga de bullpen
-│   ├── analista.py             # Detección de edges y mejores cuotas
-│   ├── calcular_variables.py   # Ingeniería de características (rachas y descanso)
-│   ├── preparar_datos.py       # Preparación y preprocesamiento del dataset histórico
-│   ├── entrenar_v4.py          # Entrenamiento de red neuronal profunda V4
-│   ├── oraculo.py              # Motor de inferencia y prueba de predicción
-│   └── limpiar_y_recalcular_dataset.py # Limpieza y depuración del dataset
-│
-├── mlb_totales/                # Paquete especializado en Totales y Pitcheo MLB (V2)
-│   ├── automatizar.py          # CLI de orquestación de tareas de totales
-│   ├── core.py                 # Lógica de cálculo y modelos matemáticos
-│   ├── ui_totales_mlb.py       # Componentes visuales de Totales MLB
-│   ├── mercado.py              # Conexión con cuotas de mercado
-│   └── ...
-│
-├── nfl/                        # Módulo especializado en NFL (Totales y Props)
-│   ├── ui_totales.py           # Dashboard de Totales NFL
-│   ├── ui_props.py             # Dashboard de Props de jugadores NFL
-│   ├── actualizar_lineas_props.py # Extracción de líneas de jugadores
-│   ├── predecir_semana_actual.py  # Predicción de partidos
-│   ├── predecir_props_semana_actual.py # Predicción de props de jugadores
-│   ├── evaluar_resultados.py   # Auditoría de resultados
-│   └── ...
-│
-├── futbol_liga_mx/             # Módulo especializado en Fútbol (Liga MX)
-│   ├── continuidad.py          # Evaluación de modelos y continuidad de temporada
-│   ├── proveedor_api.py        # Conector con API-Football
-│   └── modelo.py               # Lógica de estimación
-│
-├── data/                       # Almacenamiento centralizado de datos
-│   ├── mlb/                    # Datasets históricos y procesados de MLB
-│   │   ├── mlb_dataset_ia.csv
-│   │   ├── mlb_dataset_ia_limpio.csv
-│   │   ├── mlb_historial_22_26.csv
-│   │   └── mlb_historico.csv
-│   └── nfl/                    # Datos crudos, procesados, caché y predicciones NFL
-│
-├── modelos_mlb/                # Pesos y transformadores serializados de MLB
-│   ├── pesos_mlb_v4.weights.h5 # Pesos de la red neuronal V4
-│   ├── scaler_v4.pkl           # Escalador de variables continuas
-│   └── columnas_v4.pkl         # Vector de características
-│
-├── modelos_nfl/                # Modelos calibrados y serializados de NFL
-│
-├── scripts/                    # Scripts de utilidad, reportes y respaldos
-│   ├── reporte_deportes.py     # Envío de reporte consolidado a Telegram
-│   └── respaldo_nube.py        # Volcado de BD y copia a la nube
-│
-├── requirements/               # Requerimientos segmentados por entorno
-│   ├── requirements_futbol.txt
-│   ├── requirements_mlb_actions.txt
-│   ├── requirements_mlb_totales.txt
-│   ├── requirements_mlb_v2_actions.txt
-│   └── requirements_nfl_actions.txt
-│
-└── requirements.txt            # Dependencias principales del entorno raíz
-```
-
----
-
-## 🚀 Puesta en Marcha
-
-### 1. Entorno Virtual e Instalación
 ```bash
 python -m venv venv
-# En Windows:
-.\venv\Scripts\activate
-# En Linux/Mac:
-source venv/bin/activate
-
 pip install -r requirements.txt
-```
-
-### 2. Ejecutar la Aplicación Web (Streamlit)
-```bash
 streamlit run dashboard.py
 ```
-El panel estará disponible en `http://localhost:8501`, permitiendo navegar fluidamente entre el Hub Central, el módulo de **MLB** y el módulo de **NFL**.
 
-### 3. Tareas CLI Principales
+## Acceso y configuración
 
-#### MLB
-- **Capturar cuotas del día:** `python mlb/scraper.py`
-- **Actualizar marcadores:** `python mlb/actualizar_marcadores.py`
-- **Escanear abridores:** `python mlb/escaner_pitchers.py`
-- **Escanear lesiones:** `python mlb/escaner_lesiones.py`
-- **Reentrenar modelo V4:** `python mlb/entrenar_v4.py`
+MySQL utiliza `core/db.py`: Secrets de Streamlit, sección `mysql` o variables
+`DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`/`DB_PASS`, `DB_NAME`. Los certificados
+Aiven existentes siguen admitidos. No deben incluirse credenciales en Git.
 
-#### MLB Totales V2
-- **Orquestación completa:** `python -m mlb_totales.automatizar --help`
+La consulta está disponible sin acceso de operación. Para habilitar escrituras
+y acciones que consumen créditos, configura **ORACLE_ADMIN_PASSWORD** en Secrets
+y abre **Acceso administrativo** en la barra lateral. Se admiten como
+compatibilidad `NFL_ADMIN_PASSWORD` y `nfl_admin_password` ya configurados.
+Sin contraseña administrativa se mantiene el modo consulta; no hay contraseña
+predeterminada. La comprobación se repite en el servidor antes de ejecutar.
 
-#### NFL
-- **Predecir semana actual:** `python nfl/predecir_semana_actual.py`
-- **Actualizar props:** `python nfl/actualizar_lineas_props.py`
+El acceso administrativo no sustituye autenticación de suscriptores. Antes de
+vender acceso se necesita una identidad por usuario y control de suscripción.
 
-#### Notificaciones
-- **Reporte diario en Telegram:** `python scripts/reporte_deportes.py`
+## Navegación
 
+- Inicio: agenda y disponibilidad de datos guardados.
+- MLB: picks publicados, totales y rendimiento por mercado.
+- NFL: totales, props, lesiones y rendimiento.
+- Liga MX: próximos partidos, resultados y cobertura histórica.
+- Rendimiento: comparación y análisis avanzado.
+- Calibración: confianza frente a acierto, muestra y evaluación temporal.
 
+Bankroll, Comparador independiente y Combinadas no forman parte de la navegación.
+Los registros y utilidades históricas de esas funciones se conservan; actualizar
+resultados deportivos no liquida Bankroll como efecto secundario.
 
-## Integración de apuestas realizadas y correcciones
+## Arquitectura
 
-- Bankroll usa `bankroll_apuestas` y `bankroll_config` en el mismo MySQL del panel. Las tablas se crean de forma aditiva al abrir la página o ejecutar `python scripts/actualizar_bankroll.py`. El usuario de MySQL necesita permiso `CREATE TABLE` para la primera ejecución.
-- Registra manualmente una apuesta o selecciona una predicción de MLB (moneyline/totales), NFL (totales/props) o Liga MX. Confirma el monto y la cuota decimal realmente tomada. Las predicciones por sí solas no cuentan como apuestas ni modifican tu saldo.
-- Cada apuesta conserva su cuota, línea, confianza y referencia del partido. Las liquidaciones usan la selección original aunque el modelo se actualice. Puedes cambiar el estado de una apuesta en «Registrar / Gestionar»; un resultado manual cerrado no se sobrescribe automáticamente.
-- El saldo es capital inicial más beneficio liquidado; el disponible descuenta montos pendientes. El ROI se calcula sobre montos liquidados (ganadas, perdidas y push); pendientes y anuladas quedan fuera.
-- El CSV anterior contenía ejemplos y ya no se usa como banca real. Si tienes apuestas reales guardadas allí, conserva una copia y regístralas en el portafolio MySQL. No se importan ejemplos ni se descartan apuestas existentes en MySQL.
-- Los workflows MLB y NFL liquidan las apuestas registradas después de actualizar resultados. También se liquidan al abrir Bankroll. Juegos MLB que requieren revisión de reglas y props sin estadísticas oficiales permanecen pendientes para revisión manual.
-- NFL usa DraftKings exclusivamente para captura y selección de props. El workflow manual consulta cuotas únicamente con `actualizar_odds=true`, una vez, con reserva de 120 créditos.
-- Liga MX comparte variables e inferencia entre pantalla y CLI; su historial no usa resultados futuros. El workflow intenta recuperar 2025–26 desde fuentes gratuitas, conserva resultados ante respuestas parciales y refresca eventos no finalizados. Si la temporada sigue incompleta, muestra el motivo del bloqueo sin generar recomendaciones ni consumir cuotas. No se reentrena el modelo congelado.
-- Las pruebas de integración corren en pull requests y cambios en `main`, sin credenciales ni solicitudes a APIs deportivas.
+- `pages/`: composición y navegación.
+- `core/confianza_datos.py`: lectura común de publicaciones/resultados.
+- `core/comparador.py`: normalización y registros legacy identificados.
+- `core/ui_historial_publicado.py`: filtros, métricas y tarjetas de rendimiento.
+- `mlb/moneyline_service.py`: generación Moneyline fuera de la interfaz.
+- `nfl/repositorio.py`: consultas y normalización SQL NFL.
+- `futbol_liga_mx/repositorio.py`: CSV con invalidación por versión del archivo.
+- `core/trabajos.py`: ejecuciones manuales persistidas y exclusión MySQL.
+- `core/permisos.py`: autorización de operación.
+- `assets/ui.css` y `.streamlit/config.toml`: tema y componentes comunes.
 
-### Estado, auditoría y evaluación (octubre 2026)
+Consultar MLB no ejecuta TensorFlow ni guarda nuevas predicciones. **Generar
+predicciones MLB con cuotas guardadas** ejecuta Moneyline y Totales sin pedir
+cuotas nuevas. Requiere modelos, históricos y líneas válidas ya disponibles.
+El workflow `mlb_publicaciones.yml` hace lo mismo después del proceso diario
+MLB exitoso de `main`; también puede ejecutarse manualmente. No usa The Odds API.
+Los pesos y calibradores permanecen congelados. La huella Moneyline incorpora
+el código del servicio, por lo que la extracción del servicio puede producir
+una nueva versión técnica aun cuando sus pesos y fórmulas no cambien.
 
-- El estado de los datos se consulta en el inicio y dentro de cada deporte. La página independiente **Estado y Modelos** se retiró de la navegación.
-- Se recuperaron **306 resultados de fase regular 2025–26** de ESPN: 153 Apertura, 153 Clausura, 18 equipos y 17 rivales por equipo y torneo. Cada resultado conserva su identificador de evento. Se excluyen play-in, liguilla, partidos sin marcador válido y resultados pendientes. `cobertura_2025_26.json` contiene la auditoría y `confirmacion_2025_26.json` la evaluación adicional, sin reentrenar ni cambiar el modelo.
-- El proveedor no inventa números de jornada a partir de fechas cercanas. La cobertura actual se valida con un escaneo desde el inicio del torneo, sin días fallidos ni eventos pendientes vencidos, y una huella de los resultados. El gate solo acepta esa evidencia si coincide con los datos y está vigente; conserva el bloqueo si falta. La actualización ESPN corre diariamente a las 06:00 CDMX.
-- Bankroll prepara tablas **aditivas** de recibos, auditoría y migraciones. Las apuestas previas se conservan y se indexan una vez; no se inventa una bitácora retrospectiva. El registro y el cambio de estado se guardan en la misma transacción que su auditoría. El cambio de estado exige motivo, conserva monto/cuota/confianza y usa bloqueo de fila para no sobrescribir una liquidación concurrente.
-- El control de duplicados compara fecha, selección, casa, monto, cuota e identidad del mercado. Un ticket distinto permite dos apuestas reales idénticas. Un reenvío con el mismo recibo no modifica la apuesta. **Exportar banca completa** descarga apuestas, auditoría, recibos y capital inicial en ZIP.
-- Las evaluaciones conservan la distinción entre registros con hora y zona verificables anteriores al inicio e históricos sin esa evidencia. NFL actualmente almacena fecha de partido sin hora; se muestra como no verificable. Las métricas de apuestas dependen de los registros del usuario y no representan todas las predicciones del modelo. MLB V2 tiene además métricas de sus snapshots previos: ROI **teórico** de 1u, separado del ROI de dinero realmente apostado. La calibración MLB usa líneas de media carrera; los push no se convierten en derrotas.
-- Prueba MySQL real del CI: base efímera `bankroll_ci` en MySQL 8; verifica reconexión, persistencia, idempotencia, duplicados, correcciones, rollback, exportación y saldo. **Validar conexión MySQL de producción** usa los secretos existentes en main y solo realiza consultas de lectura. No imprime credenciales ni registra apuestas ficticias en Aiven. Las tablas se crean al abrir Bankroll o ejecutar `scripts/actualizar_bankroll.py`; se requieren permisos CREATE/SELECT/INSERT/UPDATE.
+## Publicaciones y resultados
 
-Pruebas adicionales: `python -m unittest tests.test_integracion_deportes tests.test_observabilidad -v`. La prueba `tests.test_bankroll_mysql` solo se activa con `BANKROLL_MYSQL_TEST=1` y exige `DB_NAME=bankroll_ci`; no debe apuntarse a producción.
+Rendimiento y Calibración comparten originales cuando existen. Los registros
+legacy se mantienen con hora no verificable; no se reconstruyen picks al abrir
+el historial. Cada juego/modelo conserva su primera publicación. Totales MLB
+usa su probabilidad original en rendimiento y probabilidad condicionada a no
+push para el diagnóstico binario; ambos cálculos se identifican.
 
-Aiven se comprobó desde Actions: conexión real MySQL 8.4.8 y TLS activo. El workflow **Preparar tablas aditivas de Bankroll** aplica la preparación e indexación de recibos, verifica que apuestas y capital previos se conserven y ejecuta el diagnóstico de lectura. Se dispara al publicar su archivo en main o manualmente; no inserta apuestas de prueba. La suite valida además que los entornos de job no usen contextos que GitHub todavía no ha inicializado (por ejemplo `runner`); la ruta del certificado NFL se exporta desde el paso de preparación mediante `GITHUB_ENV`.
+Las nuevas publicaciones de Totales NFL guardan selección, línea, confianza,
+cuota del predictor, inicio UTC y reloj de publicación MySQL. Se rechazan
+publicaciones posteriores al inicio y los reintentos no sobrescriben originales.
+No se certifican retrospectivamente registros viejos. La cuota NFL Totales es
+la del predictor/nflverse, no una nueva captura de DraftKings por The Odds API.
 
-### Actualizar resultados desde cada pestaña
+El día operativo es CDMX; instantes conocidos se almacenan/interpretan en UTC.
+Las zonas históricas de captura de cuotas conservan su interpretación original,
+en particular `MLB_ODDS_CAPTURE_TIMEZONE=America/Mazatlan`.
 
-Cada módulo tiene un botón de actualización manual: MLB (moneyline y Totales V2), NFL totales, NFL props, Liga MX y Bankroll. El botón consulta resultados oficiales, guarda los cambios, liquida las apuestas relacionadas y borra la caché de lectura antes de volver a mostrar las tablas. No captura nuevas cuotas, no consume créditos de TheOddsAPI, no reentrena modelos y no envía Telegram. NFL ejecuta únicamente sus evaluadores mediante procesos separados; reciben la configuración MySQL de la app sin modificar las variables globales del servidor ni mostrar credenciales.
+## Actualizaciones manuales
 
-El botón de Bankroll primero actualiza las fuentes de sus apuestas de modelo pendientes y después las liquida; las apuestas manuales conservan su gestión manual. Una actualización fallida aparece como parcial, con el paso afectado; los pasos ya guardados no se presentan como perdidos. Un candado por servicio evita ejecuciones simultáneas entre sesiones del mismo proceso Streamlit. El botón puede tardar mientras la fuente oficial publica y entrega resultados; los juegos en curso y jugadores sin estadística oficial siguen pendientes.
+`oracle_trabajos` es una tabla aditiva creada al solicitar la primera ejecución
+autorizada. Requiere CREATE/SELECT/INSERT/UPDATE. Conserva identificador, servicio,
+estados, pasos y respuesta; no almacena contraseñas ni claves de API.
 
-Liga MX consulta ESPN con hasta cuatro peticiones simultáneas, reutiliza el caché de finales y revisa hasta los próximos 14 días. Permite traer también partidos de hoy que ya finalizaron. La cobertura identifica el día en curso como parcial y esa evidencia caduca al cambiar de día: nunca se declara completo un día con partidos pendientes. Los CSV se actualizan en el servidor de la app; los workflows siguen manteniendo su copia en GitHub. MLB moneyline conserva sin liquidar las coincidencias ambiguas de doble cartelera; Totales V2 usa sus identificadores oficiales.
+Una clave única evita dos solicitudes activas del mismo servicio. Un candado
+MySQL protege el worker entre procesos. El navegador puede recargarse mientras
+se ejecuta. El estado se consulta desde MySQL y solo se sondea periódicamente
+mientras hay trabajo activo. Al completar, se invalidan las lecturas afectadas.
 
+Los workers viven en el proceso Streamlit: un reinicio puede interrumpirlos.
+Si una ejecución queda huérfana, se identifica después de cinco minutos sin
+candado. No se reintentan cuotas automáticamente: revisar resultados y consumo
+antes de solicitar otra ejecución. Para escalar a varios servidores se puede
+reemplazar este ejecutor conservando el contrato persistente.
 
-### Tarjetas, registro desde picks y filtros de rendimiento
+La captura pagada NFL mantiene el alcance del día CDMX, DraftKings, reserva y
+candado de crédito existente. Cada nueva solicitud manual puede consumir
+créditos; los workflows conservan su deduplicación diaria por partido.
 
-Las tarjetas de MLB (moneyline y Totales V2), NFL (totales y props) y Liga MX comparten el orden partido/fecha, selección, probabilidad y cuota decimal. Cuando no hay hora verificada se indica explícitamente; las horas conocidas se muestran en CDMX.
+## Pruebas y entornos
 
-El botón **Registrar en bankroll** abre un formulario, conserva la línea, selección y probabilidad de la tarjeta y requiere cuota tomada, monto y confirmación de la apuesta realizada. La casa se puede corregir y el ticket distingue dos apuestas reales iguales. Cancelar no guarda; un reintento conserva el recibo y la base impide duplicados. Liga MX requiere introducir la cuota. Los resultados históricos no ofrecen registro desde su tarjeta. Este flujo no solicita cuotas ni consume créditos.
+El CI ejecuta unittest/AppTest, MySQL desechable y navegador a varios tamaños.
+Los fixtures de navegación no solicitan APIs deportivas ni usan datos privados.
+`tests/test_arquitectura.py` verifica permisos antes de conectar, vistas reales,
+fuente original compartida, estado persistente y corte CDMX.
 
-Rendimiento admite todo el historial, hoy, últimos siete días (hoy y seis días anteriores), mes, temporada y rango inclusivo personalizado. Confianza, mercado y resultado se ofrecen donde la fuente contiene esos campos. En MLB y Bankroll la temporada se agrupa por año del partido; NFL y Liga MX usan su temporada propia. Los filtros se aplican antes de calcular métricas y exportar el historial; los límites de tarjetas solo afectan la presentación. En Bankroll el saldo y disponible globales se mantienen separados del beneficio y ROI de la muestra filtrada. La evaluación histórica de Liga MX sigue separada de las apuestas realizadas.
+MySQL de pruebas exige `BANKROLL_MYSQL_TEST=1` y `DB_NAME=bankroll_ci`; nunca debe
+apuntar a producción. No se insertan apuestas ficticias en Aiven.
 
-
-### Inicio y estado de datos en cada pestaña
-
-El inicio muestra partidos registrados para hoy, picks guardados disponibles hoy, registros de deportes pendientes de revisión y banca disponible, además del calendario de siete días incluido hoy. NFL no tiene hora verificada y sus partidos se filtran por fecha/estado; MLB V2 y Liga MX usan sus horas UTC conocidas para excluir partidos iniciados. Moneyline MLB cuenta picks con confianza mínima de 74% y omite parejas ambiguas; NFL usa PICK/CANDIDATO; MLB V2 usa candidatos guardados; Liga MX cuenta sus dos selecciones O/U habilitadas, con cuotas por confirmar.
-
-El panel junto a cada botón de actualizar muestra la fecha del último dato, la cantidad pendiente y hasta diez registros que requieren revisar resultados/calendario. Los pendientes de deportes corresponden a fechas anteriores o partidos marcados finalizados sin evaluación; Bankroll incluye todas las apuestas pendientes. No se suman esos registros como partidos únicos. Una fuente sin conexión aparece no disponible o parcial, y las demás permanecen visibles. La última modificación SQL sin zona verificada se identifica como tal; las horas UTC conocidas se convierten a CDMX. Antigüedad no equivale a fallo: puede haber días sin partidos.
-
-El resumen se almacena en caché hasta 60 segundos y se vuelve a leer tras una actualización manual. «Volver a consultar el resumen» limpia únicamente esa caché. Abrir el inicio/estado solo consulta MySQL y archivos locales: no genera predicciones, no actualiza resultados, no liquida apuestas, no modifica capital y no consume créditos ni solicita cuotas. Los botones manuales de cada servicio conservan su función anterior.
-
-
-### Evolución, exposición y presentación móvil
-
-En Bankroll → Portafolio, las vistas «Evolución del saldo» y «Exposición pendiente» usan toda la banca. La curva suma beneficios de ganadas/perdidas/push por fecha del partido sobre el capital inicial actual, con pico y caída máxima absoluta/porcentual entre cierres diarios. No reconstruye movimientos intradía, depósitos, retiros ni fechas reales de liquidación; corregir estados o capital recalcula la curva. Pendientes y anuladas no suman beneficio. Si no hay liquidadas no se inventa una curva; porcentajes con saldo/pico no positivo se marcan no calculables.
-
-La exposición muestra monto pendiente por deporte y encuentro, concentración sobre todo el dinero comprometido y porcentaje del saldo. Totales y props NFL se agrupan por game_id común. MLB moneyline y V2 conservan sus identificadores de origen y las dobles carteleras se distinguen; apuestas sin id se agrupan aproximadamente por fecha y nombre exacto, con etiqueta visible. No se interpreta esa concentración como probabilidad conjunta o correlación. Las descargas incluyen toda la exposición aunque la lista visible esté limitada.
-
-El historial de Bankroll abre en tarjetas, con límite de presentación y opción de tabla/columnas visibles; la descarga mantiene la muestra filtrada completa. Los filtros de rendimiento están en un panel plegable y conservan sus valores. A 760 px o menos, columnas de tarjetas/métricas se apilan, los botones tienen área táctil y las pestañas permiten desplazamiento. Inicio presenta disponibilidad y calendario en tarjetas, dejando las tablas completas como opción. No cambia modelos, cuotas, registros ni la forma de liquidar.
-
-CI comprueba cálculos y controles con unittest/AppTest y ejecuta una prueba de navegador Chrome a 390 y 1280 px con datos sintéticos, sin credenciales ni acceso a APIs: tarjetas en una/dos columnas y vista de tabla sin desbordar la página.
-
-
-### NFL: predicciones del día y créditos
-
-El botón «Actualizar predicciones NFL de hoy» consulta primero el calendario de eventos (0 créditos), muestra los partidos sin iniciar y el consumo máximo, y actualiza totales y props del día de Ciudad de México. DraftKings es la única casa; los seis mercados de props cuestan hasta 6 créditos por evento (domingo: hasta 6 × partidos dominicales aún sin iniciar). Totales sigue usando las líneas del calendario NFL/nflverse, sin una consulta adicional de cuotas de The Odds API. Cada pulsación puede pagar otra captura; el botón de resultados conserva su operación gratuita. La clave se configura como `ODDS_API_KEY` u `odds_api_key` en los secretos de la página, además de los secretos de Actions.
-
-Los workflows de cuotas deciden si capturar mediante `github.event.schedule`, no mediante el día UTC del runner. TNF/MNF se intentan a las 14:00 y 16:00 CDMX; domingo a las 06:00, 10:00 y 16:00, incluyendo partidos internacionales tempranos. Los retrasos de GitHub Actions pueden hacer que un intento llegue después del kickoff: esos partidos se omiten para no registrar cuotas en vivo como prepartido. Viernes y martes liquidan sin pedir cuotas.
-
-Toda consulta pagada filtra por fecha México e inicio verificado antes de pagar; también verifica que el evento y el juego NFL coincidan en equipos y fecha. La captura automática es una por partido **en ese día**, no una por toda su historia. Una línea de un jueves anterior no bloquea la captura del domingo. `nfl_capturas_odds` conserva consultas solicitadas/recibidas y créditos reportados, incluso si la línea no cambia; un candado MySQL evita capturas simultáneas entre Actions y la web. Si una petición falla y no puede confirmarse el cobro, no se informa falsamente un consumo de cero ni se reintenta automáticamente. Se respeta la reserva de 120 créditos. Los presupuestos mostrados son máximos; el consumo real usa `x-requests-last` y el saldo usa `x-requests-remaining`.
-
-Incidente TNF del 8 de octubre de 2026: el cron de las 22:00 UTC arrancó a las 01:50 UTC del 9 de octubre (19:50 CDMX del jueves). La decisión anterior por `date -u` seleccionó viernes y `HORAS=0`, por lo que omitió la captura aunque regeneró 725 proyecciones. Totales sí se ejecutó antes, a las 13:07 CDMX, pero regeneró los 15 partidos pendientes de la semana. La selección diaria nueva corrige ambas rutas. Las predicciones nuevas del día no sobrescriben el CSV semanal previo.
-
-
-### Rendimiento de totales NFL
-
-Los filtros de rendimiento se muestran abiertos y permiten combinar periodo, temporada, confianza, semana, mercado (OVER/UNDER), resultado (GANADA/PERDIDA/PUSH) y partido. Todos se aplican antes de balance, acierto, beneficio, ROI, comparación por mercado, resumen semanal, tarjetas y descarga del rendimiento. La comparación por mercado ordena OVER y UNDER por ROI de la muestra filtrada y usa una unidad por pick; no representa apuestas reales. Si se filtra solo Ganada o Perdida, las métricas describen solo ese subconjunto. La página Estado y Modelos y sus enlaces se retiraron; los indicadores de datos permanecen en el inicio y en cada deporte.
-
-
-### Rendimiento en unidades y banca real
-
-MLB Moneyline, MLB Totales V2 y NFL Totales/Props simulan **1 unidad por pick**. Moneyline ya no pondera el monto según la confianza: ganada aporta cuota decimal menos 1, perdida −1 u. Tarjetas, métricas, curva y CSV de Moneyline usan esa misma simulación; la curva muestra beneficio acumulado, no saldo de dinero real. Los filtros de confianza se conservan.
-
-En **Bankroll → Portafolio → Valor de 1 unidad (MXN)** se guarda una denominación común (valor inicial 100 MXN) en la tabla aditiva `bankroll_unidad`, con auditoría transaccional. No cambia capital, montos, cuotas ni beneficios de apuestas anteriores. Las equivalencias de toda la banca se calculan con el valor actual: monto/unidad y beneficio/unidad. Historial y CSV muestran pesos y unidades; la exportación completa conserva los pesos originales y el valor de la unidad en `config.json`.
-
-Las equivalencias monetarias de las simulaciones MLB/NFL usan ese mismo valor mediante una consulta de lectura. Si no está disponible, se mantienen las unidades y no se inventa una conversión en pesos. Cambiar la unidad no cambia el ROI. Liga MX mantiene su evaluación estadística sin fabricar rentabilidad donde faltan cuotas históricas; sus apuestas realizadas sí aparecen en pesos y unidades en Bankroll.
-
-
-### Comparador, procedencia y controles de rendimiento
-
-**Comparador** reúne registros guardados de MLB Moneyline, MLB Totales V2 y NFL Totales/Props con el mismo periodo y simulación de 1u. Agrupa por deporte, mercado, modelo y procedencia; muestra picks evaluados, picks con beneficio conocido, ganadas/perdidas/push, acierto, unidades y ROI. Los resultados pendientes no participan, y un beneficio desconocido no se convierte en cero. MLB V2 verifica registro y captura anteriores al inicio; los registros MLB Moneyline/NFL antiguos se identifican como guardados con hora no verificable. Moneyline excluye doble cartelera ambigua en el comparador. Liga MX sigue sin ROI inventado cuando no hay cuotas históricas. Esta vista es de modelos, no de apuestas reales ni una prueba de validación prospectiva de registros modificables.
-
-El rendimiento de Moneyline conserva y permite filtrar **Guardado · hora no verificable** frente a **Reconstruido**; las tarjetas y CSV incluyen procedencia. Cada ROI principal identifica el tamaño de su muestra. El historial del bankroll identifica apuestas reales con montos variables.
-
-Los filtros de rendimiento permiten **guardar, cargar, aplicar y eliminar favoritos** en MySQL (`oracle_filtros_favoritos`), compartidos por esta aplicación, recuperables en otra sesión. La tabla se crea únicamente al guardar el primer favorito. No modifica apuestas ni modelos. Los favoritos incluyen periodo/rango, confianza, mercado, resultado, semana/procedencia cuando existen, controles adicionales y orden. **Restablecer filtros** recupera sus valores iniciales. Las opciones que desaparecen al cambiar de temporada se restablecen automáticamente.
-
-Picks e históricos ofrecen orden por fecha, confianza y EV/beneficio cuando la fuente dispone de esas columnas. El orden solo afecta presentación; los límites de tarjetas no alteran métricas. Los estados vacíos, filtros sin coincidencias y fuentes no disponibles comparten un aviso neutro con texto específico, sin confundir falta de partidos con un error de conexión.
+Streamlit está fijado a la versión comprobada 1.66.0. Las dependencias MLB V2
+usan sklearn 1.8.0; el entorno web/NFL usa 1.9.1 según sus artefactos existentes.
+Son entornos separados: no se cambia la versión de un modelo serializado sin
+verificar compatibilidad. El entorno virtual local no se versiona.

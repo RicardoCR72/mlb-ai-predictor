@@ -11,6 +11,8 @@ from core import bankroll as bank
 ROOT=Path(__file__).resolve().parents[1]
 
 class TestManualUpdates(unittest.TestCase):
+    def setUp(self):
+        self.enterContext(patch("core.permisos.require_admin"))
     def test_nfl_uses_fixed_evaluator_and_private_environment_without_notifications(self):
         creds={'host':'database','port':1234,'user':'user','password':'private','database':'sports','ssl_ca':'/tmp/ca.pem'}
         with patch.object(update,'get_db_credentials',return_value=creds),patch.dict(update.os.environ,{'ODDS_API_KEY':'secret','TELEGRAM_BOT_TOKEN':'secret'}),patch.object(update.subprocess,'run',return_value=Mock(returncode=0)) as run:
@@ -38,8 +40,8 @@ class TestManualUpdates(unittest.TestCase):
         conn=Mock()
         with patch.object(update,'get_db_connection',return_value=conn),patch.object(update,'run_script',side_effect=RuntimeError('Evaluador falló')),patch.object(update,'settle_bank',return_value='0 apuestas'):
             result=update.run_update('nfl_totales',ROOT)
-        self.assertEqual([r['ok'] for r in result['steps']],[False,True])
-        self.assertFalse(update.LOCKS['nfl_totales'].locked());conn.close.assert_called_once()
+        self.assertEqual([r['ok'] for r in result['steps']],[False])
+        self.assertFalse(update.LOCKS['nfl_totales'].locked());conn.close.assert_not_called()
 
     def test_bankroll_fetches_only_sources_of_pending_model_bets(self):
         ledger=pd.DataFrame([{'estado':'Pendiente','origen':'nfl_prop'},{'estado':'Ganada','origen':'mlb_total'},{'estado':'Pendiente','origen':'manual'}])
@@ -133,7 +135,7 @@ class TestManualUpdates(unittest.TestCase):
     def test_moneyline_history_includes_today_only_with_both_scores(self):
         import ast
         from datetime import date
-        source=ast.parse((ROOT/'pages/1_⚾_MLB.py').read_text())
+        source=ast.parse((ROOT/'mlb/moneyline_service.py').read_text())
         fn=next(n for n in source.body if isinstance(n,ast.FunctionDef) and n.name=='cargar_historial_xampp')
         fn.decorator_list=[]
         conn=Mock();read=Mock(return_value=pd.DataFrame())
@@ -197,12 +199,15 @@ render_update_button('nfl_totales')
 st.write('Tabla actualizada')
 '''
         result={'busy':False,'steps':[{'paso':'Resultados','ok':True,'detalle':'1 resultado'},{'paso':'Bankroll','ok':False,'detalle':'Sin conexión'}],'at':'2026-10-06T07:30:00-06:00'}
-        with patch('core.ui_actualizacion.run_update',return_value=result) as run,patch('streamlit.cache_data.clear') as clear:
+        from datetime import datetime
+        job=dict(id='demo',estado='parcial',creado_utc=datetime(2026,10,1),iniciado_utc=None,terminado_utc=datetime(2026,10,1),resultado=result)
+        with patch('core.ui_trabajos.session_token',return_value='test'),patch('core.ui_trabajos.submit',return_value='demo') as run, \
+             patch('core.ui_trabajos.latest',return_value=job),patch('core.ui_trabajos.invalidate_readers'):
             app=AppTest.from_string(text).run()
             app.button[0].click().run()
         self.assertEqual(len(app.exception),0)
-        run.assert_called_once();clear.assert_called_once()
-        self.assertTrue(any('Sin conexión' in w.value for w in app.warning))
+        run.assert_called_once()
+        self.assertTrue(any('parcial' in c.value for c in app.caption))
 
 class TestPublicationAudit(unittest.TestCase):
     def original(self):

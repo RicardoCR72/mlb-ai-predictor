@@ -10,24 +10,8 @@ from core import bankroll as bank
 from core.db import get_db_connection
 
 
-CSS = '''<style>
-.oracle-pick{background:#111720;border:1px solid #273245;border-top:3px solid #b7ff3c;border-radius:14px;padding:1rem;margin:.4rem 0;overflow-wrap:anywhere;color:#eef3f8}
-.oracle-pick .context{color:#a8b4c5;font-size:.82rem;line-height:1.5}
-.oracle-pick h3{font-size:1.15rem;margin:.35rem 0 .6rem;color:#eef3f8}
-.oracle-selection{display:flex;justify-content:space-between;gap:1rem;font-size:1.1rem;font-weight:800;margin:.65rem 0}
-.oracle-values{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.7rem}
-.oracle-values span{display:block;color:#a8b4c5;font-size:.72rem}.oracle-values strong{font-size:.95rem;color:#eef3f8}
-.oracle-bar{height:5px;background:#273245;border-radius:5px;margin:.8rem 0}.oracle-bar i{display:block;height:5px;background:#b7ff3c;border-radius:5px}
-.oracle-odds{background:#1c2634;border-radius:7px;padding:.2rem .55rem;white-space:nowrap}
-.oracle-result{font-size:.78rem;font-weight:750;color:#a8b4c5;margin:.3rem 0}
-.oracle-details{border-top:1px solid #273245;padding-top:.65rem;margin-top:.65rem}
-.oracle-details summary{cursor:pointer;color:#b7ff3c;min-height:44px;font-size:.8rem;list-style:revert}
-.oracle-details summary:focus-visible{outline:2px solid #b7ff3c;outline-offset:3px}
-.oracle-detail{display:flex;justify-content:space-between;gap:1rem;padding:.35rem 0;font-size:.78rem}
-.oracle-detail span{color:#a8b4c5}.oracle-detail strong{font-weight:500;text-align:right}
-.oracle-pick.lost{border-top-color:#ff6b76}.oracle-pick.push{border-top-color:#f6c761}.oracle-pick.pending{border-top-color:#8994a5}
-@media(max-width:760px){.oracle-values{grid-template-columns:repeat(2,minmax(0,1fr))}.oracle-selection{flex-wrap:wrap}}
-</style>'''
+from core.ui_diseno import CSS
+
 
 
 def number(value):
@@ -72,7 +56,7 @@ def card_html(pick, *, market, state='', details=()):
     probability = number(pick.get('probabilidad'))
     odds = number(pick.get('cuota'))
     odds_text = f'{odds:.2f}' if odds and odds > 1 else 'Por confirmar'
-    primary = [] if any(k=='Probabilidad Over 2.5' for k,v in details) else [('Confianza', percent(probability))]
+    primary = [] if any(k=='Probabilidad Over 2.5' for k,v in details) else [('Probabilidad estimada', percent(probability))]
     # Historical results are immediately visible; projections live in details.
     primary.extend((k, v) for k, v in details if k in ('Unidades', 'Profit simulado', 'Stake simulado', 'Beneficio', 'Monto apostado'))
     # Liga MX has no market quote: keep both probabilities on its single card.

@@ -587,6 +587,9 @@ def guardar_predicciones_mysql(predicciones):
 
 
 
+        from nfl.publicaciones_totales import save as save_original_totals
+        save_original_totals(conexion,filas_validas,MODELO_VERSION,Path(__file__).resolve().parents[1])
+
         conexion.commit()
 
 

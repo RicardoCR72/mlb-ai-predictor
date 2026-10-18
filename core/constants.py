@@ -5,7 +5,7 @@ from zoneinfo import ZoneInfo
 # ==============================================================================
 # 1. HUSOS HORARIOS DEL PROYECTO
 # ==============================================================================
-ZONA_MX = ZoneInfo("America/Mazatlan")        # Zona principal para corte de jornada
+ZONA_MX = ZoneInfo("America/Mexico_City")        # Zona principal para corte de jornada
 ZONA_CDMX = ZoneInfo("America/Mexico_City")   # Hora centro de México
 ZONA_UTC = ZoneInfo("UTC")
 

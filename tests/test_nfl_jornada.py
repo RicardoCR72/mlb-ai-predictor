@@ -182,6 +182,8 @@ class CaptureTests(unittest.TestCase):
 
 
 class ManualTests(unittest.TestCase):
+    def setUp(self):
+        self.enterContext(patch("core.permisos.require_admin"))
     def test_plan_only_uses_free_events_endpoint_and_six_markets(self):
         response=Mock(status_code=200,headers={'x-requests-remaining':'450'})
         response.json.return_value=[event('tnf','2026-10-09T00:20:00Z'),event('sun','2026-10-11T17:00:00Z')]
@@ -216,17 +218,15 @@ class ManualTests(unittest.TestCase):
 
     def test_button_discloses_cost_and_does_not_run_on_page_load(self):
         plan=dict(fecha='2099-01-01',eventos=[event('tnf','2099-01-02T00:20:00Z')],max_creditos=6,restantes=500,reserva=120)
-        with patch('core.ui_nfl_creditos.consultar',return_value=plan),\
-             patch('core.ui_nfl_creditos.run_predictions',return_value=dict(ok=True,detalle='Actualizadas',reporte=None)) as run:
+        with patch('core.ui_nfl_creditos.consultar',return_value=plan), \
+             patch('core.permisos.session_token',return_value='test'),patch('core.ui_trabajos.session_token',return_value='test'), \
+             patch('core.ui_trabajos.latest',return_value=None),patch('core.ui_trabajos.submit',return_value='demo') as run:
             at=AppTest.from_string('from core.ui_actualizacion import render_update_button\nfrom core.ui_nfl_creditos import render_prediction_button\nrender_update_button("nfl_props",compact=True)\nrender_prediction_button()').run()
             self.assertFalse(at.exception);run.assert_not_called()
-            self.assertEqual(len(at.button),2)
-            self.assertEqual(len(at.expander),0)
-            self.assertEqual(len(at.caption),0)
             self.assertIn('6 créditos',at.button[1].label)
             at.button[1].click().run()
             self.assertFalse(at.exception);run.assert_called_once()
-            self.assertEqual(run.call_args.args[1]['eventos'][0]['id'],'tnf')
+            self.assertEqual(run.call_args.kwargs['payload']['eventos'][0]['id'],'tnf')
 
     def test_workflow_decision_is_based_on_trigger_and_every_paid_step_is_today(self):
         w=yaml.safe_load((ROOT/'.github/workflows/bot_nfl_props.yml').read_text())

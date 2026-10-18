@@ -62,12 +62,12 @@ class UsageTests(TestCase):
 
     def test_update_status_survives_rerun_and_interrupted_state_is_not_forever_running(self):
         result=dict(busy=False,steps=[dict(paso='Resultados',ok=True,detalle='2 resultados')],at='2026-10-10T00:00Z')
-        with patch('core.ui_actualizacion.run_update',return_value=result) as run:
+        job=dict(id='demo',estado='completada',creado_utc='2026-10-10 00:00:00',iniciado_utc=None,terminado_utc='2026-10-10 00:00:01',resultado=result)
+        with patch('core.ui_trabajos.latest',return_value=job),patch('core.ui_trabajos.invalidate_readers'):
             app=AppTest.from_string("from core.ui_actualizacion import render_update_button\nrender_update_button('mlb')").run()
-            app.button[0].click().run();self.assertFalse(app.exception)
-            app.run();self.assertFalse(app.exception);self.assertEqual(run.call_count,1)
-            html=' '.join(m.value for m in app.markdown)
-            self.assertIn('Completado',html);self.assertIn('CDMX',html)
+            app.run();self.assertFalse(app.exception)
+            captions=' '.join(c.value for c in app.caption)
+            self.assertIn('completada',captions);self.assertIn('CDMX',captions)
         app=AppTest.from_string('''
 import streamlit as st
 from core.ui_estado_actualizacion import save_status,render_status

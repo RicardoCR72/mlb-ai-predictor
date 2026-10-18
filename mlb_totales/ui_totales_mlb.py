@@ -96,34 +96,5 @@ def render_picks(connect):
 
 
 def render_performance(connect):
-    st.caption('DraftKings · Seguimiento desde la primera predicción registrada por partido y modelo. '
-               'La probabilidad y cuota originales se conservan. Simulación de 1 unidad por pronóstico.')
-    connection=None
-    try:
-        connection=connect()
-        if not registro.tables_ready(connection):
-            state_message('El registro de predicciones todavía no está preparado.',kind='blocked');return
-        frame=registro.settle(only_base(registro.history(connection)))
-        if frame.empty:
-            state_message('Aún no hay predicciones de DraftKings registradas. Actions o Totales las guardan antes de los partidos.',kind='empty');return
-        frame['temporada'] = pd.to_datetime(frame['fecha_oficial']).dt.year
-        frame = performance_filters(frame, 'fecha_oficial', 'mlb_total_period', season_col='temporada', probability_col='confianza_pct', result_col='resultado', market_col='seleccion',candidate_col='candidato')
-        st.caption('Confianza y cuotas originales guardadas.')
-        summary=registro.summary(frame)
-        cols=st.columns(4)
-        cols[0].metric('Pronósticos resueltos',summary['apuestas'])
-        cols[1].metric('Acierto sin push',f"{summary['acierto']:.1f}%")
-        cols[2].metric('Unidades',f"{summary['unidades']:+.2f} u")
-        cols[3].metric('ROI simulado',f"{summary['roi']:+.1f}%")
-        with st.expander('Orden del historial'):
-            frame=render_order(frame,'mlb_total_period',date_col='fecha_oficial',confidence_col='confianza_pct',profit_col='unidades')
-        render_cards(history_window(frame,'mlb_total_history'),performance=True)
-        if frame.empty:
-            state_message('No hay registros de DraftKings que cumplan los filtros seleccionados.',kind='filters')
-        if not frame.empty:
-            st.download_button('Descargar rendimiento',frame.to_csv(index=False),'mlb_totales_rendimiento.csv',
-                               'text/csv',key='mlb_totales_performance_csv')
-    except Exception as exc:
-        state_message('No se pudo cargar el rendimiento de totales. Reintenta cuando vuelva la conexión.',kind='offline')
-    finally:
-        if connection is not None:connection.close()
+    from core.ui_historial_publicado import render_history
+    render_history('MLB','Totales',key='mlb_total_period')

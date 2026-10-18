@@ -36,13 +36,14 @@ def normalize(frame,*,sport,market,identity,american=False,verified=False):
         np.where(out['resultado'].eq('GANADA') & valid,out['cuota']-1,np.nan)))
     out['identidad']=out[identity].astype(str).agg('|'.join,axis=1)
     out=out.drop_duplicates(['modelo','identidad'],keep='first')
-    return out.reindex(columns=COLUMNS)
+    details=['seleccion','linea','linea_total','equipo_local','equipo_visitante','start_utc','publicada_utc','quote_utc','captured_utc','jugador','candidato']
+    return out.reindex(columns=COLUMNS+[c for c in details if c in out and c not in COLUMNS])
 
 
-def read_models(conn):
+def read_legacy_models(conn):
     frames=[];errors=[]
     queries=[('MLB Moneyline','MLB','Moneyline',False,['fecha','equipo_local','equipo_visitante'],'''
-        SELECT r.fecha,r.equipo_local,r.equipo_visitante,'MLB V4' AS modelo,r.confianza/100 AS probabilidad,r.cuota,
+        SELECT r.fecha,r.equipo_local,r.equipo_visitante,r.pick_ia AS seleccion,'MLB V4' AS modelo,r.confianza/100 AS probabilidad,r.cuota,
           CASE WHEN j.marcador_local IS NULL OR j.marcador_visitante IS NULL THEN 'PENDIENTE'
                WHEN j.marcador_local=j.marcador_visitante THEN 'REVISAR'
                WHEN (r.pick_ia=j.equipo_local AND j.marcador_local>j.marcador_visitante)
@@ -56,13 +57,15 @@ def read_models(conn):
         ORDER BY r.fecha DESC'''),
         ('NFL Totales','NFL','Totales',True,['id_juego'],'''
         SELECT j.fecha,j.temporada,p.id_juego,p.modelo_version AS modelo,p.probabilidad_pick/100 AS probabilidad,
-          p.cuota_pick AS cuota,p.resultado_pick AS resultado
+          p.cuota_pick AS cuota,p.resultado_pick AS resultado,p.seleccion,p.linea_total,j.equipo_local,j.equipo_visitante
         FROM nfl_predicciones_totales p JOIN nfl_juegos j ON j.id_juego=p.id_juego
         WHERE p.estado_pick='PICK' ORDER BY p.actualizado_en DESC,p.id_prediccion DESC'''),
         ('NFL Props','NFL',None,True,['id_juego','id_jugador','tipo_prop'],'''
         SELECT j.fecha,j.temporada,p.id_juego,p.id_jugador,p.tipo_prop,p.tipo_prop AS mercado,p.modelo_version AS modelo,
-          p.probabilidad_pick AS probabilidad,p.cuota_pick AS cuota,p.resultado_pick AS resultado
+          p.probabilidad_pick AS probabilidad,p.cuota_pick AS cuota,p.resultado_pick AS resultado,
+          p.seleccion,p.linea,j.equipo_local,j.equipo_visitante,u.nombre AS jugador
         FROM nfl_proyecciones_props p JOIN nfl_juegos j ON j.id_juego=p.id_juego
+        LEFT JOIN nfl_jugadores u ON u.id_jugador=p.id_jugador
         WHERE p.estado_pick IN ('CANDIDATO','REVISAR LESION')
         ORDER BY p.actualizado_en DESC,p.id_proyeccion DESC''')]
     for label,sport,market,american,identity,sql in queries:
@@ -97,3 +100,10 @@ def comparison(frame):
                        'Acierto (%)':100*group.resultado.eq('GANADA').sum()/decided.sum() if decided.sum() else np.nan,
                        'Unidades':units if n else np.nan,'ROI (%)':100*units/n if n else np.nan})
     return pd.DataFrame(output)
+
+
+def read_models(conn):
+    """Contrato común del rendimiento: originales cuando existen, legacy identificado."""
+    from core.confianza_datos import read_history
+    from pathlib import Path
+    return read_history(conn,Path(__file__).resolve().parents[1],include_liga=False)

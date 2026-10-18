@@ -43,7 +43,7 @@ def performance_filters(frame, date_col, key, *, season_col=None, probability_co
     week = None
     candidates = False
     if candidate_col:extra_keys = (extra_keys or {}) | {'candidates':key+'_candidates'}
-    with st.expander('Filtros de rendimiento', expanded=False):
+    with st.expander('Filtros de rendimiento', expanded=expanded):
         st.button('Restablecer filtros',key=key+'_reset',on_click=restore,args=({},managed(key,extra_keys)))
         compact=st.columns(2)
         with compact[0]:period = safe_select('Periodo', PERIODS, key=key+'_period')
@@ -92,6 +92,8 @@ def performance_filters(frame, date_col, key, *, season_col=None, probability_co
     if minimum:summary.append(f'Confianza ≥ {minimum}%')
     st.caption(' · '.join(summary))
     st.caption(f'Muestra filtrada: {len(filtered):,} registros. Fechas en CDMX; las métricas usan esta selección.')
+    if selected.get('result') in ('GANADA','PERDIDA','Ganada','Perdida'):
+        st.caption('Resultado filtrado: el ROI describe solo ese subconjunto, no el rendimiento completo.')
     return filtered
 
 

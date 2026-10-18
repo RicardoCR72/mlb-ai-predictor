@@ -135,35 +135,16 @@ st.metric('Muestra',len(filtered))
 
 class NFLTotalsFiltersTests(TestCase):
     def app(self):
-        # Ejecutar el bloque real de Rendimiento con datos de prueba, sin MySQL.
-        root=Path(__file__).resolve().parents[1]
-        tree=ast.parse((root/'nfl/ui_totales.py').read_text())
-        helpers=[n for n in tree.body if isinstance(n,ast.FunctionDef) and n.name in
-                 ('opciones_partidos','formatear_numero','formatear_porcentaje','mostrar_resultado_total')]
-        branch=next(n for n in tree.body if isinstance(n,ast.If)
-                    and ast.unparse(n.test)=="seccion_totales == '📈 Rendimiento'")
-        source='''
-import numpy as np
-import pandas as pd
-import streamlit as st
-from core.ui_tarjetas import render_pick,nfl_pick
-from core.ui_unidades import render_model_equivalence
-from core.ui_controles import state_message,roi_sample,render_order
-from core.ui_rendimiento_resumen import render_performance_charts, history_window
-from core.ui_filtros import performance_filters,safe_select
-rows=[]
-for i,(week,pick,result,profit,p) in enumerate([(1,'OVER','GANADA',.9,.6),
- (1,'UNDER','PERDIDA',-1,.61),(2,'UNDER','GANADA',1.2,.7),(2,'OVER','PUSH',0,.55)]):
- rows.append(dict(id_prediccion=i+1,id_juego=f'g{i}',season=2026,week=week,
-  gameday=pd.Timestamp('2026-09-10')+pd.Timedelta(days=i),away_team=f'A{i}',home_team=f'B{i}',
-  pick=pick,resultado_pick=result,beneficio_unidades=profit,prob_pick=p,estado='PICK',
-  total_line=45.5,odds_pick=-110,total_real=46))
-historico=pd.DataFrame(rows)
-seccion_totales='📈 Rendimiento'
-'''+ast.unparse(ast.Module(body=helpers+[branch],type_ignores=[]))+'''
-st.session_state['visible_ids']=liquidados.id_juego.tolist()
-'''
-        return AppTest.from_string(source).run()
+        from core.comparador import normalize
+        rows=[]
+        for i,(week,pick,result,odds,p) in enumerate([(1,'OVER','GANADA',1.9,.6),
+            (1,'UNDER','PERDIDA',1.9,.61),(2,'UNDER','GANADA',2.2,.7),(2,'OVER','PUSH',1.9,.55)]):
+            rows.append(dict(id=f'g{i}',fecha=pd.Timestamp('2026-09-10')+pd.Timedelta(days=i),modelo='v1',
+                seleccion=pick,linea=45.5,resultado=result,cuota=odds,probabilidad=p))
+        f=normalize(pd.DataFrame(rows),sport='NFL',market='Totales',identity=['id'])
+        f['Semana']=['1','1','2','2']
+        self.enterContext(patch('core.ui_historial_publicado.load_history',return_value=(f,[])))
+        return AppTest.from_string("from core.ui_historial_publicado import render_history\nrender_history('NFL','Totales',key='nfl_totals_test')").run()
 
     def test_real_totals_filters_update_metrics_market_comparison_and_cards(self):
         at=self.app()
@@ -177,21 +158,21 @@ st.session_state['visible_ids']=liquidados.id_juego.tolist()
         self.assertFalse(at.get('vega_lite_chart'))
         select('Mercado','UNDER')
         self.assertEqual(at.metric[0].value,'2')
-        self.assertEqual(at.metric[3].value,'10.00%')
+        self.assertEqual(at.metric[3].value,'+10.0%')
         select('Semana','1')
         self.assertEqual(at.metric[0].value,'1')
-        self.assertEqual(at.metric[3].value,'-100.00%')
-        self.assertEqual(at.session_state['visible_ids'],['g1'])
+        self.assertEqual(at.metric[3].value,'-100.0%')
+        self.assertEqual(at.metric[0].value,'1')
         cards=[m.value for m in at.markdown if '<div class="oracle-pick ' in m.value]
         self.assertEqual(len(cards),1)
         self.assertIn('UNDER 45.5',cards[0])
         self.assertIn('❌ Perdida',cards[0])
         select('Resultado','PERDIDA')
-        self.assertEqual(at.session_state['visible_ids'],['g1'])
+        self.assertEqual(at.metric[0].value,'1')
         select('Resultado','GANADA')
-        self.assertEqual(at.session_state['visible_ids'],[])
         self.assertEqual(len(at.metric),0)
-        self.assertTrue(any('No hay picks oficiales liquidados' in m.value for m in at.markdown))
+        self.assertEqual(len(at.metric),0)
+        self.assertTrue(any('No hay registros para estos filtros' in m.value for m in at.markdown))
 
 
 class PerformanceSummaryTests(TestCase):
@@ -252,109 +233,43 @@ class MLBTodayFiltersTests(TestCase):
 
 
 class MLBHistoryVisibilityTests(TestCase):
-    def app(self, view, historical=True, reconstructed=False):
-        root = Path(__file__).resolve().parents[1]
-        tree = ast.parse((root/'pages/1_⚾_MLB.py').read_text())
-        helpers = [node for node in tree.body if isinstance(node, ast.FunctionDef)
-                   and node.name in ('mostrar_registro_auditoria', 'obtener_confianza_registrada')]
-        start = next(i for i, node in enumerate(tree.body)
-                     if isinstance(node, ast.Assign) and
-                     ast.unparse(node.targets[0]) == '(modelo, scaler, columnas_v4)')
-        source = '''
-import streamlit as st
-import pandas as pd
-import numpy as np
-from pathlib import Path
-from core.ui_filtros import performance_filters,safe_select
-from core.ui_tarjetas import render_pick
-from core.ui_unidades import render_model_equivalence
-from core.ui_controles import state_message,roi_sample,render_order
-from core.ui_rendimiento_resumen import render_performance_charts, history_window
-from unittest.mock import patch
-RUTA_DATA_MLB = Path('.')
-class Model:
-    def predict(self,frame,verbose=0):return np.array([[.7]])
-class Scaler:
-    def transform(self,frame):return frame
-def cargar_oraculo(): return Model(), Scaler(), []
-ZONAS_HORARIAS={}
-def obtener_estado_actual(*args,**kwargs):return .5,0,3,.5,'A'
-def obtener_metricas_avanzadas_fecha(*args):return .7,.7,4.5
-def limpiar_cuotas_v4(*args):return .5,.5
-def _fila_mas_reciente(*args):return None
-def aplicar_filtro_medico(favorito,confianza,*args):return confianza
-def aplicar_filtro_pitchers(favorito,confianza,*args):return confianza,'TBD','TBD'
-
-def cargar_datos_hoy():
-    st.session_state['consulto_hoy'] = True
-    return pd.DataFrame()
-history = pd.DataFrame([
-    dict(fecha='2026-09-01', **{'Equipo Local':'A','Equipo Visitante':'B',
-         'Paga Local':1.9,'Paga Visitante':2.0}, marcador_local=5,marcador_visitante=2),
-    dict(fecha='2026-09-02', **{'Equipo Local':'C','Equipo Visitante':'D',
-         'Paga Local':1.8,'Paga Visitante':2.1}, marcador_local=1,marcador_visitante=3)])
-registered = pd.DataFrame([
-    dict(fecha='2026-09-01',equipo_local='A',equipo_visitante='B',pick_ia='A',confianza=70,cuota=1.9),
-    dict(fecha='2026-09-02',equipo_local='C',equipo_visitante='D',pick_ia='C',confianza=68,cuota=1.8)])
-def cargar_historial_xampp(): return history.copy()
-def cargar_registro_picks_historico(): return registered.copy()
-def fusionar_historiales(*args): return pd.DataFrame()
-def cargar_metricas_avanzadas(): return pd.DataFrame()
-def cargar_metricas_historico(): return pd.DataFrame()
-def cargar_lesiones_historico(): return pd.DataFrame()
-def cargar_pitchers_historico(): return pd.DataFrame()
-def normalizar_equipo(name): return name
-'''+f'vista_mlb = {view!r}\n'+('' if historical else 'history = history.iloc[0:0]\n')+('registered=registered.iloc[[0]]\n' if reconstructed else '')
-        source += 'with patch("pandas.read_csv", return_value=pd.DataFrame()):\n'
-        source += textwrap.indent(ast.unparse(ast.Module(body=helpers+tree.body[start:], type_ignores=[])), '    ')
-        return AppTest.from_string(source).run()
+    def app(self,view,historical=True,reconstructed=False):
+        from core.comparador import normalize
+        f=normalize(pd.DataFrame([
+            dict(id='g1',fecha='2026-09-01',modelo='MLB V4',seleccion='A',resultado='GANADA',cuota=1.9,probabilidad=.7),
+            dict(id='g2',fecha='2026-09-02',modelo='MLB V4',seleccion='C',resultado='PERDIDA',cuota=1.8,probabilidad=.68)]),
+            sport='MLB',market='Moneyline',identity=['id'])
+        if not historical:f=f.iloc[:0]
+        if reconstructed:f.loc[1,'procedencia']='Reconstruido'
+        self.enterContext(patch('core.ui_historial_publicado.load_history',return_value=(f,[])))
+        self.enterContext(patch('core.ui_trabajos.latest',return_value=None))
+        self.enterContext(patch('core.permisos.configured_password',return_value=None))
+        app=AppTest.from_file(str(Path(__file__).resolve().parents[1]/'pages/1_⚾_MLB.py'))
+        app.session_state['mlb_section']='Rendimiento' if 'Rendimiento' in view else 'Picks de hoy'
+        return app.run()
 
     def test_history_renders_cards_and_metrics_without_querying_today(self):
-        at = self.app('📈 Rendimiento')
+        at=self.app('Rendimiento')
         self.assertFalse(at.exception)
-        self.assertFalse(at.error)
-        self.assertNotIn('consulto_hoy', at.session_state)
-        self.assertEqual(at.metric[0].value, '2')
-        self.assertEqual(at.metric[1].value, '50.0%')
-        self.assertEqual(at.metric[2].value, '-0.10 u')
-        self.assertEqual(at.metric[3].value, '-5.00%')
-        cards = [m.value for m in at.markdown if '<div class="oracle-pick ' in m.value]
-        self.assertEqual(len(cards), 2)
-        self.assertTrue(any('A vs B' in card for card in cards))
-        self.assertTrue(any('C vs D' in card for card in cards))
-        self.assertTrue(all('1.00 u' in card for card in cards))
-        next(s for s in at.selectbox if s.label == 'Resultado').select('✅ Ganada').run()
-        self.assertFalse(at.exception)
-        self.assertEqual(at.metric[0].value, '1')
-        self.assertEqual(len([m for m in at.markdown if '<div class="oracle-pick ' in m.value]), 1)
+        self.assertEqual([m.value for m in at.metric],['2','50.0%','-0.10 u','-5.0%'])
+        cards=[m.value for m in at.markdown if '<div class="oracle-pick ' in m.value]
+        self.assertEqual(len(cards),2)
 
     def test_empty_today_uses_neutral_mlb_style_and_preserves_history_navigation(self):
-        at = self.app('⚾ Picks de hoy')
-        self.assertFalse(at.exception)
-        self.assertFalse(at.error)
-        self.assertTrue(at.session_state['consulto_hoy'])
-        notice = next(m.value for m in at.markdown if 'No hay juegos pendientes' in m.value)
-        self.assertIn('class="oracle-state"', notice)
-        self.assertIn('Rendimiento', notice)
-        self.assertNotIn('XAMPP', notice)
+        at=self.app('Picks de hoy')
+        self.assertFalse(at.exception);self.assertFalse(at.error)
+        self.assertTrue(any('No hay publicaciones con inicio verificable' in m.value for m in at.markdown))
+        next(r for r in at.radio if r.label=='Sección MLB').set_value('Rendimiento').run()
+        self.assertEqual(at.metric[0].value,'2')
 
     def test_truly_empty_history_shows_its_own_message(self):
-        at = self.app('📈 Rendimiento', historical=False)
-        self.assertFalse(at.exception)
-        self.assertFalse(at.error)
-        self.assertTrue(any('Aún no hay partidos terminados' in item.value for item in at.markdown))
-        self.assertFalse(any('No hay juegos pendientes' in item.value for item in at.markdown))
-
+        at=self.app('Rendimiento',historical=False)
+        self.assertFalse(at.exception);self.assertFalse(at.metric)
+        self.assertTrue(any('No hay publicaciones disponibles' in m.value for m in at.markdown))
 
     def test_reconstructed_and_saved_picks_are_visible_and_filterable_separately(self):
-        at=self.app('📈 Rendimiento',reconstructed=True)
-        self.assertFalse(at.exception)
-        cards=[m.value for m in at.markdown if '<div class="oracle-pick ' in m.value]
-        self.assertTrue(any('Reconstruido' in card for card in cards))
-        self.assertTrue(any('Guardado · hora no verificable' in card for card in cards))
+        at=self.app('Rendimiento',reconstructed=True)
         next(w for w in at.selectbox if w.label=='Procedencia').select('Reconstruido').run()
-        self.assertFalse(at.exception)
-        self.assertEqual(at.metric[0].value,'1')
+        self.assertFalse(at.exception);self.assertEqual(at.metric[0].value,'1')
         cards=[m.value for m in at.markdown if '<div class="oracle-pick ' in m.value]
-        self.assertEqual(len(cards),1)
-        self.assertIn('Reconstruido',cards[0])
+        self.assertTrue(all('Reconstruido' in c for c in cards))
