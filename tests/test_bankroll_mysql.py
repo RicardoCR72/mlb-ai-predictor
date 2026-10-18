@@ -7,6 +7,36 @@ from core import bankroll as bank
 
 @unittest.skipUnless(os.environ.get('BANKROLL_MYSQL_TEST')=='1','Requiere MySQL de pruebas')
 class TestRealMySQL(unittest.TestCase):
+    def test_mlb_totals_retry_keeps_original_and_settlement_is_one_row_per_game(self):
+        import pandas as pd
+        from datetime import datetime
+        from mlb_totales import registro
+        from mlb_totales.test_integracion import TestIntegration
+        self.assertEqual(os.environ.get('DB_NAME'),'bankroll_ci')
+        conn=get_db_connection()
+        try:
+            registro.prepare(conn)
+            row=TestIntegration().snapshot()
+            row['game_id']=int(uuid.uuid4().hex[:12],16)
+            model=uuid.uuid4().hex*2
+            self.assertEqual(registro.save_snapshots(conn,pd.DataFrame([row]),model,now='2026-09-30T18:00:00Z'),1)
+            changed={**row,'linea':7.5,'p_over':.8,'p_under':.2,'cuota_over':2.2}
+            self.assertEqual(registro.save_snapshots(conn,pd.DataFrame([changed]),model,now='2026-09-30T18:10:00Z'),0)
+            cur=conn.cursor(dictionary=True)
+            cur.execute('SELECT linea,confianza,cuota_seleccion FROM mlb_totales_predicciones WHERE game_pk=%s AND model_id=%s',(row['game_id'],model))
+            self.assertEqual(cur.fetchone(),dict(linea=8.5,confianza=.6,cuota_seleccion=1.91))
+            cur.close();cur=conn.cursor()
+            for _ in range(2):cur.execute(registro.RESULT_SQL,(row['game_id'],5,4,9,0,datetime(2026,10,1)))
+            conn.commit()
+            cur.execute('SELECT COUNT(*) FROM mlb_totales_resultados WHERE game_pk=%s',(row['game_id'],))
+            self.assertEqual(cur.fetchone()[0],1)
+            frame=registro.settle(registro.history(conn))
+            pick=frame[(frame.game_pk==row['game_id']) & frame.model_id.eq(model)]
+            self.assertEqual(len(pick),1)
+            self.assertAlmostEqual(pick.iloc[0].unidades,.91)
+            cur.close()
+        finally:conn.close()
+
     def test_favorites_persist_update_and_delete_without_touching_bankroll(self):
         from core import preferencias
         self.assertEqual(os.environ.get('DB_NAME'),'bankroll_ci')

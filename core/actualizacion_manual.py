@@ -42,7 +42,7 @@ def run_script(service,root):
     return f"{match.group(1) if match else '0'} resultados NFL evaluados. Los partidos sin resultado oficial siguen pendientes."
 
 
-def refresh_mlb_games(conn,now=None):
+def refresh_mlb_games(conn,now=None,on_ambiguity=None):
     from mlb_totales.descargar_pitcheo import fetch_json,TYPES
     now=now or datetime.now(ZoneInfo('America/Mexico_City'))
     pending=bank.rows(conn,"""SELECT id_juego,fecha,equipo_local,equipo_visitante FROM juegos
@@ -52,6 +52,7 @@ def refresh_mlb_games(conn,now=None):
     pending['dia']=pd.to_datetime(pending.fecha).dt.date
     days=sorted(set(pending.dia),reverse=True)[:15]
     changed,ambiguous=0,0
+    reported=set()
     cursor=conn.cursor()
     try:
         for day in days:
@@ -65,11 +66,20 @@ def refresh_mlb_games(conn,now=None):
                 if game.get('status',{}).get('abstractGameState')!='Final':continue
                 home,away=pair(game)
                 matching=pending[(pending.dia==day)&pending.equipo_local.eq(home)&pending.equipo_visitante.eq(away)]
-                if counts[(home,away)]!=1 or len(matching)>1:
-                    ambiguous+=1;continue  # no liquidar ambos juegos de una doble cartelera con el mismo marcador
                 if matching.empty:continue
                 h,a=game['teams']['home'],game['teams']['away']
-                if 'score' not in h or 'score' not in a:continue
+                if h.get('score') is None or a.get('score') is None:continue
+                if counts[(home,away)]!=1 or len(matching)>1:
+                    # Solo contar registros nuestros, una vez por pareja/fecha.
+                    # Una doble cartelera ajena al historial no es un pendiente.
+                    key=(day,home,away)
+                    if key not in reported:
+                        reported.add(key)
+                        ambiguous+=len(matching)
+                        if on_ambiguity:on_ambiguity(dict(fecha=str(day),local=home,visitante=away,
+                            pendientes=matching.id_juego.astype(str).tolist(),
+                            oficiales=[g['gamePk'] for g in games if pair(g)==(home,away)]))
+                    continue  # Sin identidad verificable, no asignar un marcador.
                 cursor.execute("""UPDATE juegos SET marcador_local=%s,marcador_visitante=%s,estado='finalizado'
                     WHERE id_juego=%s AND LOWER(estado)='programado'""",
                     (int(h['score']),int(a['score']),matching.iloc[0].id_juego))
