@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 from core.db import get_db_connection
-from core.bankroll import rows
+from core.infrastructure.queries import rows
 from core.ui_controles import state_message,roi_sample
 from core.ui_rendimiento_diseno import performance_filters,safe_select
 from core.ui_graficas_claras import render_visual_performance,render_weekly_roi

@@ -191,7 +191,9 @@ class CaptureTests(unittest.TestCase):
         sql,args=conn.cursor.return_value.execute.call_args.args
         self.assertIn('timestamp_captura >= %s',sql)
         self.assertIn('nfl_capturas_odds',sql)
-        self.assertEqual(args[1:3],(datetime(2026,10,11,6),datetime(2026,10,12,6)))
+        self.assertEqual(args[1:3],(datetime(2026,10,11,13),datetime(2026,10,12,6)))
+        self.assertIn("estado='solicitada'",sql)
+        self.assertEqual(args[-1],datetime(2026,10,11,13))
 
 
 class ManualTests(unittest.TestCase):

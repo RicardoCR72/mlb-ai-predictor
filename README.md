@@ -82,17 +82,24 @@ en particular `MLB_ODDS_CAPTURE_TIMEZONE=America/Mazatlan`.
 manual. Requiere CREATE/SELECT/INSERT/UPDATE. Conserva identificador, servicio,
 estados, pasos y respuesta; no almacena contraseñas ni claves de API.
 
-Una clave única evita dos solicitudes activas del mismo servicio. Cada servicio
-obtiene un candado MySQL incluso mientras espera turno; como máximo tres tareas
-ejecutan trabajo pesado simultáneamente. El navegador puede recargarse mientras
-se ejecuta. El estado se consulta desde MySQL y solo se sondea periódicamente
-mientras hay trabajo activo. Al completar, se invalidan las lecturas afectadas.
+Una clave única evita dos solicitudes activas del mismo servicio. La solicitud y
+su payload se guardan en MySQL. Cada tarea se ejecuta en un proceso separado de
+Streamlit; el navegador y sus reruns no son propietarios del trabajo. Candados
+MySQL por servicio y tres permisos de capacidad global coordinan los procesos.
 
-Los workers viven en el proceso Streamlit: un reinicio puede interrumpirlos.
-Si una ejecución queda huérfana, se identifica después de cinco minutos sin
-candado. No se reintentan cuotas automáticamente: revisar resultados y consumo
-antes de solicitar otra ejecución. Para escalar a varios servidores se puede
-reemplazar este ejecutor conservando el contrato persistente.
+Por defecto se lanza un proceso independiente por solicitud. Para un servidor
+supervisado, configurar `ORACLE_WORKER_MODE=external` en la web y ejecutar
+`python -m core.application.job_worker` como servicio separado. `--once` procesa
+un lote; `--job ID` procesa una solicitud. No se reejecutan trabajos que ya
+pasaron a `ejecutando`: una captura interrumpida requiere revisar el consumo.
+Un reinicio del contenedor puede terminar procesos locales; para continuidad
+ante reemplazos del host se necesita desplegar el worker externo. La cola
+permanece en MySQL. No se almacenan credenciales en el payload ni en Git.
+
+Migraciones aditivas: `python -m scripts.migrate`. Los esquemas operativos NFL y
+de trabajos tienen registro de versiones, checksum y candado MySQL. Las
+instalaciones anteriores incorporan la columna payload sin borrar sus tareas.
+No se modifican pesos ni versiones de los modelos al aplicar migraciones.
 
 La captura pagada NFL mantiene el alcance del día CDMX, DraftKings, reserva y
 candado de crédito existente. El botón selecciona por defecto solo juegos que inician en las próximas dos horas,
@@ -101,8 +108,11 @@ partidos de hoy» permite ampliar explícitamente el alcance. La lista previa
 muestra horarios y presupuesto. Totales y props respetan la misma ventana.
 La ejecución vuelve a validar las horas antes de pedir cuotas. Los procesos
 automáticos también usan dos horas, incluyendo una captura dominical intermedia.
-Web y workflows omiten capturas previas del día por partido (incluso solicitudes
-con cobro incierto), evitando repetir créditos por un segundo clic.
+Web y workflows omiten capturas exitosas de las últimas dos horas por partido.
+Las capturas anteriores pueden renovarse. Una solicitud con cobro incierto se
+bloquea durante el día y necesita revisión; nunca se reintenta automáticamente.
+La inferencia y los candidatos activos rechazan cuotas con más de dos horas,
+con fecha futura o sin hora verificable.
 Los picks ya guardados continúan visibles; el alcance controla qué se actualiza.
 Totales usa la línea de nflverse, no cuotas nuevas de The Odds API.
 
@@ -120,3 +130,33 @@ Streamlit está fijado a la versión comprobada 1.66.0. Las dependencias MLB V2
 usan sklearn 1.8.0; el entorno web/NFL usa 1.9.1 según sus artefactos existentes.
 Son entornos separados: no se cambia la versión de un modelo serializado sin
 verificar compatibilidad. El entorno virtual local no se versiona.
+
+## Capas y contratos
+
+- `core/domain/`: contratos, probabilidades en 0–1, cuotas y vigencia; sin UI ni SQL.
+- `core/infrastructure/`: conexión MySQL, consultas y migraciones.
+- `core/application/`: solicitudes, ejecución y orquestación NFL.
+- `nfl/services/`: elegibilidad, calendario y cálculo del modelo.
+- `nfl/persistence/`: calendario local y escrituras de totales/props.
+- `nfl/providers/`: adaptadores HTTP.
+- `pages/` y módulos `ui_`: presentación mediante funciones `render()`.
+
+`core.db`, `core.trabajos` y `core.nfl_creditos` son fachadas de compatibilidad:
+conservan importaciones existentes sin duplicar implementaciones. Las tarjetas
+usan primitivas de cuotas independientes de Bankroll. Los repositorios NFL leen
+una temporada (seleccionable) y limitan publicaciones a los juegos consultados;
+los históricos completos de Rendimiento conservan su lector separado.
+
+La base histórica conserva el formato original: totales NFL en porcentaje,
+props NFL en fracción. Los adaptadores declaran la escala explícitamente, sin
+inferirla por la mediana. Un contrato validado impide publicar totales fuera de
+0–1, con cuota inválida o después del inicio. Horarios desconocidos no se
+presentan como oportunidades prepartido verificadas.
+
+`bot_nfl_props.yml` es el único propietario de la programación NFL y liquida
+resultados de totales y props. Los workflows anteriores quedan disponibles solo
+manualmente; no son otros planificadores automáticos. La web mantiene sus
+acciones explícitas. El entorno virtual MLB se reconstruye con sus requirements
+y ya no forma parte del seguimiento de Git.
+
+Ver [detalle de los 15 cambios](docs/arquitectura_15_mejoras.md).

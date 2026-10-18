@@ -140,7 +140,6 @@ class SummaryTests(TestCase):
 
     def test_dashboard_bypasses_cached_old_home_renderer(self):
         with patch('core.ui_resumen.render_home',side_effect=AssertionError('renderer anterior')), \
-             patch('core.ui_inicio.render_home',side_effect=AssertionError('módulo anterior con enlace a Bankroll eliminado')), \
              patch('core.ui_resumen.snapshot',return_value=self.fixture()):
             app=AppTest.from_file(str(ROOT/'dashboard.py')).run()
         self.assertFalse(app.exception)

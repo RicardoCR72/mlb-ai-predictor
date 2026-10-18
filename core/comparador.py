@@ -1,7 +1,8 @@
 """Comparación de registros guardados; nunca reconstruye picks ni consulta cuotas actuales."""
 import numpy as np
 import pandas as pd
-from core.bankroll import rows, decimal_odds
+from core.infrastructure.queries import rows
+from core.domain.odds import decimal_odds
 from mlb_totales import registro
 
 COLUMNS=['fecha','deporte','mercado','modelo','procedencia','resultado','probabilidad','cuota','unidades','identidad','Temporada']

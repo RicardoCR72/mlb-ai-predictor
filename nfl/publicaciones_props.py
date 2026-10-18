@@ -1,5 +1,7 @@
+from core.infrastructure.migrations import ensure_schema
 """Registro inmutable de nuevas publicaciones antes del inicio del partido."""
 import json
+from core.domain.contracts import require_columns, probabilities
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 import pandas as pd
@@ -22,6 +24,10 @@ def future_game_ids(games, now=None):
 
 
 def publication_rows(frame, games, model, now=None):
+    require_columns(frame, ['game_id','player_id','tipo_prop','estado_pick','id_linea'], source='Publicación props')
+    frame = frame.copy()
+    frame['probabilidad_pick'] = probabilities(frame['probabilidad_pick'], scale=1)
+    frame = frame[frame['probabilidad_pick'].notna()]
     future = future_game_ids(games,now)
     recs = frame[frame.tipo_prop.eq('receptions')].drop_duplicates(['game_id','player_id']).set_index(['game_id','player_id'])
     rows = []
@@ -47,13 +53,7 @@ def save_publications(conn, frame, games, model, now=None):
     if not rows: return
     cursor = conn.cursor()
     try:
-        cursor.execute('''CREATE TABLE IF NOT EXISTS nfl_publicaciones_props (
-            id_juego VARCHAR(64) NOT NULL, id_jugador VARCHAR(64) NOT NULL,
-            tipo_prop VARCHAR(40) NOT NULL, modelo_version VARCHAR(100) NOT NULL,
-            id_linea BIGINT NOT NULL, publicada_en DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            payload JSON NOT NULL,
-            PRIMARY KEY(id_juego,id_jugador,tipo_prop,modelo_version,id_linea)
-        )''')
+        ensure_schema(conn, 'prop_publications')
         cursor.executemany('''INSERT INTO nfl_publicaciones_props
             (id_juego,id_jugador,tipo_prop,modelo_version,id_linea,payload,publicada_en)
             VALUES (%s,%s,%s,%s,%s,%s,UTC_TIMESTAMP())
@@ -67,7 +67,11 @@ def attach_publications(conn, records):
     """Consulta opcional: la tabla puede no existir antes de la primera publicación."""
     cursor = conn.cursor(dictionary=True)
     try:
-        cursor.execute('SELECT id_juego,id_jugador,tipo_prop,modelo_version,id_linea,payload FROM nfl_publicaciones_props')
+        ids = sorted({r['id_juego'] for r in records})
+        if not ids:
+            return records
+        markers = ','.join(['%s'] * len(ids))
+        cursor.execute('SELECT id_juego,id_jugador,tipo_prop,modelo_version,id_linea,payload FROM nfl_publicaciones_props WHERE id_juego IN (' + markers + ')', tuple(ids))
         saved = {(r['id_juego'],r['id_jugador'],r['tipo_prop'],r['modelo_version'],r['id_linea']):r['payload'] for r in cursor.fetchall()}
     except mysql.connector.Error as exc:
         if exc.errno != 1146: raise

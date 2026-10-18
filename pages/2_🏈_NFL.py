@@ -1,7 +1,6 @@
 from core.ui_actualizacion import render_update_button
 from core.ui_nfl_creditos import render_prediction_button
 from pathlib import Path
-import runpy
 
 import streamlit as st
 
@@ -38,14 +37,8 @@ with prediction_action:
     render_prediction_button()
 
 if vista == "🏈 Totales":
+    from nfl.ui_totales import render
     st.subheader('Totales NFL')
-    runpy.run_path(
-        str(raiz / "nfl" / "ui_totales.py"),
-        run_name="nfl_totales_ui",
-    )
 else:
-    runpy.run_path(
-        str(raiz / "nfl" / "ui_props.py"),
-        run_name="nfl_props_ui",
-    )
-
+    from nfl.ui_props import render
+render()

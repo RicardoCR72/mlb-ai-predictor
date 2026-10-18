@@ -17,21 +17,8 @@ ZONA_MEXICO = ZoneInfo("America/Mexico_City")
 
 
 def filtrar_partidos_pendientes(datos):
-    """Conserva props de hoy o posteriores que todavía no tienen resultado."""
-    if datos.empty:
-        return datos.copy()
-
-    hoy_mexico = pd.Timestamp(datetime.now(ZONA_MEXICO).date())
-    fechas = pd.to_datetime(datos["gameday"], errors="coerce").dt.normalize()
-    resultados = (
-        datos["resultado_pick"]
-        .fillna("PENDIENTE")
-        .astype(str)
-        .str.strip()
-        .str.upper()
-    )
-    sin_resultado = ~resultados.isin(["GANADA", "PERDIDA", "PUSH"])
-    return datos[(fechas >= hoy_mexico) & sin_resultado].copy()
+    from nfl.services.eligibility import upcoming
+    return upcoming(datos)
 
 
 def opciones_partidos(datos):
@@ -57,12 +44,6 @@ def opciones_partidos(datos):
     return opciones
 
 
-st.markdown(
-    """
-
-    """,
-    unsafe_allow_html=True,
-)
 
 
 NOMBRES_MERCADOS = {
@@ -359,345 +340,346 @@ def insertar_linea_draftea(
 # Carga y filtros
 # ---------------------------------------------------------------------------
 
-try:
-    with st.spinner("Consultando props guardados…"):
-        historico = cargar_props_mysql()
-except Exception as error:
-    state_message("No fue posible consultar las proyecciones de props. Reintenta cuando vuelva la conexión.",kind="offline")
-    st.stop()
 
-if historico.empty:
-    state_message('Todavía no existen proyecciones NFL Props guardadas.',kind='empty')
-    st.stop()
+def render():
+    try:
+        with st.spinner("Consultando props guardados…"):
+            historico = cargar_props_mysql()
+    except Exception as error:
+        state_message("No fue posible consultar las proyecciones de props. Reintenta cuando vuelva la conexión.",kind="offline")
+        st.stop()
 
-temporada = int(historico["season"].max())
-semana = int(
-    historico.loc[historico["season"] == temporada, "week"].max()
-)
-df = historico[
-    (historico["season"] == temporada)
-    & (historico["week"] == semana)
-].copy()
-
-st.sidebar.caption(f"NFL {temporada} · Semana {semana}")
-
-filtrado = df.sort_values(
-    ["ev_estimado", "probabilidad_pick"],
-    ascending=[False, False],
-    na_position="last",
-).copy()
-
-# Las oportunidades activas excluyen partidos de días anteriores. El
-# histórico completo se conserva para calcular resultados, unidades y ROI.
-pendientes = filtrar_partidos_pendientes(df)
-candidatos = pendientes[
-    pendientes["estado_pick"] == "CANDIDATO"
-].copy()
-revisar_lesion = pendientes[
-    pendientes["estado_pick"] == "REVISAR LESION"
-].copy()
-con_linea = df[df["linea"].notna()].copy()
-jugadores = df["id_jugador"].nunique()
-prob_media = candidatos["probabilidad_pick"].mean()
-
-# Resumen histórico para las tarjetas y el pulso de rendimiento.
-resultados_resumen = historico[
-    historico["estado_pick"].isin(ESTADOS_APUESTA_EVALUABLE)
-    & historico["resultado_pick"].isin(["GANADA", "PERDIDA", "PUSH"])
-].copy()
-resultados_resumen = (
-    resultados_resumen.sort_values(
-        ["evaluado_en", "actualizado_en", "id_proyeccion"],
-        ascending=[False, False, False],
+    if historico.empty:
+        state_message('Todavía no existen proyecciones NFL Props guardadas.',kind='empty')
+        st.stop()
+    temporada = int(historico["season"].max())
+    semana = int(
+        historico.loc[historico["season"] == temporada, "week"].max()
     )
-    .drop_duplicates(
-        ["id_juego", "id_jugador", "tipo_prop"], keep="first"
-    )
-)
-ganadas_resumen = int(
-    (resultados_resumen["resultado_pick"] == "GANADA").sum()
-)
-perdidas_resumen = int(
-    (resultados_resumen["resultado_pick"] == "PERDIDA").sum()
-)
-pushes_resumen = int(
-    (resultados_resumen["resultado_pick"] == "PUSH").sum()
-)
-apuestas_roi_resumen = int(
-    resultados_resumen["beneficio_unidades"].notna().sum()
-)
-unidades_resumen = float(
-    resultados_resumen["beneficio_unidades"].fillna(0.0).sum()
-)
-roi_resumen = (
-    unidades_resumen / apuestas_roi_resumen
-    if apuestas_roi_resumen
-    else np.nan
-)
+    df = historico[
+        (historico["season"] == temporada)
+        & (historico["week"] == semana)
+    ].copy()
 
-ultima = historico["actualizado_en"].max()
-ultima_texto = (
-    ultima.strftime("%d/%m/%Y · %H:%M")
-    if pd.notna(ultima)
-    else "Sin sincronización"
-)
-seccion_props = st.radio(
-    "Sección de props",
-    ["🔥 Candidatos", "📈 Rendimiento", "🏥 Lesiones"],
-    horizontal=True,
-    format_func=lambda value: value.lstrip("🔥📋📈⚾🏈📊⚽🔮💼 "),
-    label_visibility="collapsed",
-    key="nfl_props_seccion",
-)
+    st.sidebar.caption(f"NFL {temporada} · Semana {semana}")
 
-st.subheader('Props de jugadores')
-st.caption('Último registro: '+ultima_texto)
-
-if seccion_props != "📈 Rendimiento":st.metric("Candidatos", len(candidatos))
-
-
-# ---------------------------------------------------------------------------
-# Navegación interna: solamente las tres vistas operativas.
-# Capturar Draftea vive en la barra lateral; las proyecciones completas se
-# consultan mediante los filtros y la metodología ya no ocupa una pestaña.
-# ---------------------------------------------------------------------------
-
-if seccion_props == "🔥 Candidatos":
-    candidatos_mostrar = pendientes[
-        pendientes["estado_pick"] == "CANDIDATO"
-    ].sort_values(
+    filtrado = df.sort_values(
         ["ev_estimado", "probabilidad_pick"],
         ascending=[False, False],
         na_position="last",
-    )
-    with st.container():
-        st.subheader(f"Oportunidades · Semana {semana}")
-        st.caption(
-            "Solo partidos pendientes de hoy en adelante. Confirma "
-            "participación, lesión y movimiento de la línea antes de "
-            "utilizarlos."
+    ).copy()
+
+    # Las oportunidades activas excluyen partidos de días anteriores. El
+    # histórico completo se conserva para calcular resultados, unidades y ROI.
+    pendientes = filtrar_partidos_pendientes(df)
+    candidatos = pendientes[
+        pendientes["estado_pick"] == "CANDIDATO"
+    ].copy()
+    revisar_lesion = pendientes[
+        pendientes["estado_pick"] == "REVISAR LESION"
+    ].copy()
+    con_linea = df[df["linea"].notna()].copy()
+    jugadores = df["id_jugador"].nunique()
+    prob_media = candidatos["probabilidad_pick"].mean()
+
+    # Resumen histórico para las tarjetas y el pulso de rendimiento.
+    resultados_resumen = historico[
+        historico["estado_pick"].isin(ESTADOS_APUESTA_EVALUABLE)
+        & historico["resultado_pick"].isin(["GANADA", "PERDIDA", "PUSH"])
+    ].copy()
+    resultados_resumen = (
+        resultados_resumen.sort_values(
+            ["evaluado_en", "actualizado_en", "id_proyeccion"],
+            ascending=[False, False, False],
         )
-        selector_partido, selector_mercado = st.columns(2, gap="medium")
-        with selector_partido:
-            partidos_candidatos = opciones_partidos(candidatos_mostrar)
-            partido_candidato = safe_select(
-                "Partido",
-                list(partidos_candidatos),
-                key="props_partido_candidatos",
-            )
-        with selector_mercado:
-            mercado_candidatos = safe_select(
-                "Mercado",
-                ["Todos los mercados"]
-                + list(NOMBRES_MERCADOS.values()),
-                key="props_mercado_candidatos",
-            )
+        .drop_duplicates(
+            ["id_juego", "id_jugador", "tipo_prop"], keep="first"
+        )
+    )
+    ganadas_resumen = int(
+        (resultados_resumen["resultado_pick"] == "GANADA").sum()
+    )
+    perdidas_resumen = int(
+        (resultados_resumen["resultado_pick"] == "PERDIDA").sum()
+    )
+    pushes_resumen = int(
+        (resultados_resumen["resultado_pick"] == "PUSH").sum()
+    )
+    apuestas_roi_resumen = int(
+        resultados_resumen["beneficio_unidades"].notna().sum()
+    )
+    unidades_resumen = float(
+        resultados_resumen["beneficio_unidades"].fillna(0.0).sum()
+    )
+    roi_resumen = (
+        unidades_resumen / apuestas_roi_resumen
+        if apuestas_roi_resumen
+        else np.nan
+    )
 
-        if partidos_candidatos[partido_candidato] is not None:
-            candidatos_mostrar = candidatos_mostrar[
-                candidatos_mostrar["id_juego"] == partidos_candidatos[partido_candidato]
-            ]
-        if mercado_candidatos != "Todos los mercados":
-            candidatos_mostrar = candidatos_mostrar[
-                candidatos_mostrar["mercado"] == mercado_candidatos
-            ]
+    ultima = historico["actualizado_en"].max()
+    ultima_texto = (
+        ultima.strftime("%d/%m/%Y · %H:%M")
+        if pd.notna(ultima)
+        else "Sin sincronización"
+    )
+    seccion_props = st.radio(
+        "Sección de props",
+        ["🔥 Candidatos", "📈 Rendimiento", "🏥 Lesiones"],
+        horizontal=True,
+        format_func=lambda value: value.lstrip("🔥📋📈⚾🏈📊⚽🔮💼 "),
+        label_visibility="collapsed",
+        key="nfl_props_seccion",
+    )
 
-        if candidatos_mostrar.empty:
-            state_message('No quedan candidatos pendientes para ese partido y mercado en la semana actual.',kind='filters')
-        else:
-            filas_candidatos = list(render_order(candidatos_mostrar,'nfl_prop_picks',date_col='gameday',
-                confidence_col='probabilidad_pick',ev_col='ev_estimado',upcoming=True).iterrows())
-            for inicio in range(0, len(filas_candidatos), 2):
-                columnas_picks = st.columns(2, gap="medium")
+    st.subheader('Props de jugadores')
+    st.caption('Último registro: '+ultima_texto)
+
+    if seccion_props != "📈 Rendimiento":st.metric("Candidatos", len(candidatos))
+
+
+    # ---------------------------------------------------------------------------
+    # Navegación interna: solamente las tres vistas operativas.
+    # Capturar Draftea vive en la barra lateral; las proyecciones completas se
+    # consultan mediante los filtros y la metodología ya no ocupa una pestaña.
+    # ---------------------------------------------------------------------------
+
+    if seccion_props == "🔥 Candidatos":
+        candidatos_mostrar = pendientes[
+            pendientes["estado_pick"] == "CANDIDATO"
+        ].sort_values(
+            ["ev_estimado", "probabilidad_pick"],
+            ascending=[False, False],
+            na_position="last",
+        )
+        with st.container():
+            st.subheader(f"Oportunidades · Semana {semana}")
+            st.caption(
+                "Solo partidos pendientes de hoy en adelante. Confirma "
+                "participación, lesión y movimiento de la línea antes de "
+                "utilizarlos."
+            )
+            selector_partido, selector_mercado = st.columns(2, gap="medium")
+            with selector_partido:
+                partidos_candidatos = opciones_partidos(candidatos_mostrar)
+                partido_candidato = safe_select(
+                    "Partido",
+                    list(partidos_candidatos),
+                    key="props_partido_candidatos",
+                )
+            with selector_mercado:
+                mercado_candidatos = safe_select(
+                    "Mercado",
+                    ["Todos los mercados"]
+                    + list(NOMBRES_MERCADOS.values()),
+                    key="props_mercado_candidatos",
+                )
+
+            if partidos_candidatos[partido_candidato] is not None:
+                candidatos_mostrar = candidatos_mostrar[
+                    candidatos_mostrar["id_juego"] == partidos_candidatos[partido_candidato]
+                ]
+            if mercado_candidatos != "Todos los mercados":
+                candidatos_mostrar = candidatos_mostrar[
+                    candidatos_mostrar["mercado"] == mercado_candidatos
+                ]
+
+            if candidatos_mostrar.empty:
+                state_message('No quedan candidatos pendientes para ese partido y mercado en la semana actual.',kind='filters')
+            else:
+                filas_candidatos = list(render_order(candidatos_mostrar,'nfl_prop_picks',date_col='gameday',
+                    confidence_col='probabilidad_pick',ev_col='ev_estimado',upcoming=True).iterrows())
+                for inicio in range(0, len(filas_candidatos), 2):
+                    columnas_picks = st.columns(2, gap="medium")
+                    for columna, (_, fila) in zip(
+                        columnas_picks, filas_candidatos[inicio:inicio + 2]
+                    ):
+                        with columna:
+                            mostrar_prop_compacto(fila)
+
+    if seccion_props == "📈 Rendimiento":
+        from core.ui_historial_publicado import render_history
+        render_history("NFL",None,key='nfl_prop_perf')
+    if seccion_props == "🏥 Lesiones":
+        st.subheader("Lesiones y disponibilidad")
+        st.caption(
+            "Jugadores que requieren confirmación y contexto ofensivo que puede "
+            "redistribuir volumen hacia sus compañeros."
+        )
+        selecciones_revisar = df[df["estado_pick"] == "REVISAR LESION"]
+        if not selecciones_revisar.empty:
+            st.write("**Selecciones que requieren confirmación de disponibilidad**")
+            filas_revision = list(selecciones_revisar.iterrows())
+            for inicio in range(0, len(filas_revision), 2):
+                columnas = st.columns(2, gap="medium")
                 for columna, (_, fila) in zip(
-                    columnas_picks, filas_candidatos[inicio:inicio + 2]
+                    columnas, filas_revision[inicio:inicio + 2]
                 ):
                     with columna:
                         mostrar_prop_compacto(fila)
+            st.divider()
 
-if seccion_props == "📈 Rendimiento":
-    from core.ui_historial_publicado import render_history
-    render_history("NFL",None,key='nfl_prop_perf')
-if seccion_props == "🏥 Lesiones":
-    st.subheader("Lesiones y disponibilidad")
-    st.caption(
-        "Jugadores que requieren confirmación y contexto ofensivo que puede "
-        "redistribuir volumen hacia sus compañeros."
-    )
-    selecciones_revisar = df[df["estado_pick"] == "REVISAR LESION"]
-    if not selecciones_revisar.empty:
-        st.write("**Selecciones que requieren confirmación de disponibilidad**")
-        filas_revision = list(selecciones_revisar.iterrows())
-        for inicio in range(0, len(filas_revision), 2):
-            columnas = st.columns(2, gap="medium")
-            for columna, (_, fila) in zip(
-                columnas, filas_revision[inicio:inicio + 2]
-            ):
-                with columna:
-                    mostrar_prop_compacto(fila)
-        st.divider()
-
-    lesionados = df[
-        ~df["estado_lesion"].fillna("healthy_or_unlisted").isin(
-            ["healthy", "healthy_or_unlisted"]
-        )
-    ].copy()
-    lesionados = lesionados.drop_duplicates("id_jugador")
-    if lesionados.empty:
-        state_message('No hay jugadores elegibles con estatus de lesión activo.',kind='empty')
-    else:
-        st.write("**Reporte activo**")
-        filas_lesionados = list(
-            lesionados.sort_values(["team", "player_name"]).iterrows()
-        )
-        for inicio in range(0, len(filas_lesionados), 3):
-            columnas = st.columns(3, gap="medium")
-            for columna, (_, fila) in zip(
-                columnas, filas_lesionados[inicio:inicio + 3]
-            ):
-                with columna:
-                    mostrar_lesion_compacta(fila)
-
-    st.divider()
-    st.write("**Contexto ofensivo por equipo**")
-    contextos = (
-        df[["team", "contexto_lesiones"]]
-        .dropna()
-        .drop_duplicates()
-        .sort_values("team")
-    )
-    for _, fila in contextos.iterrows():
-        if str(fila["contexto_lesiones"]).strip():
-            with st.expander(f"{fila['team']} · lesiones relevantes"):
-                st.write(fila["contexto_lesiones"])
-
-if seccion_props != "📈 Rendimiento":
-    with st.sidebar.expander("✍️ Capturar Draftea", expanded=False):
-        st.write("**Nueva línea manual**")
-        st.caption(
-            "La captura se guarda como una nueva observación histórica. "
-            "Después debe ejecutarse el predictor para recalcular edge y EV."
-        )
-
-        password_configurado = obtener_secreto(
-            "NFL_ADMIN_PASSWORD", "nfl_admin_password"
-        )
-        if not password_configurado:
-            st.info(
-                "Para habilitar este formulario agrega NFL_ADMIN_PASSWORD "
-                "a los Secrets de Streamlit."
+        lesionados = df[
+            ~df["estado_lesion"].fillna("healthy_or_unlisted").isin(
+                ["healthy", "healthy_or_unlisted"]
             )
+        ].copy()
+        lesionados = lesionados.drop_duplicates("id_jugador")
+        if lesionados.empty:
+            state_message('No hay jugadores elegibles con estatus de lesión activo.',kind='empty')
         else:
-            password = st.text_input(
-                "Contraseña administrativa", type="password", key="props_admin"
+            st.write("**Reporte activo**")
+            filas_lesionados = list(
+                lesionados.sort_values(["team", "player_name"]).iterrows()
             )
-            autorizado = bool(password) and hmac.compare_digest(
-                str(password), str(password_configurado)
+            for inicio in range(0, len(filas_lesionados), 3):
+                columnas = st.columns(3, gap="medium")
+                for columna, (_, fila) in zip(
+                    columnas, filas_lesionados[inicio:inicio + 3]
+                ):
+                    with columna:
+                        mostrar_lesion_compacta(fila)
+
+        st.divider()
+        st.write("**Contexto ofensivo por equipo**")
+        contextos = (
+            df[["team", "contexto_lesiones"]]
+            .dropna()
+            .drop_duplicates()
+            .sort_values("team")
+        )
+        for _, fila in contextos.iterrows():
+            if str(fila["contexto_lesiones"]).strip():
+                with st.expander(f"{fila['team']} · lesiones relevantes"):
+                    st.write(fila["contexto_lesiones"])
+
+    if seccion_props != "📈 Rendimiento":
+        with st.sidebar.expander("✍️ Capturar Draftea", expanded=False):
+            st.write("**Nueva línea manual**")
+            st.caption(
+                "La captura se guarda como una nueva observación histórica. "
+                "Después debe ejecutarse el predictor para recalcular edge y EV."
             )
-            if password and not autorizado:
-                st.error("Contraseña incorrecta.")
 
-            if autorizado:
-                juegos = (
-                    df[["id_juego", "away_team", "home_team", "gameday"]]
-                    .drop_duplicates("id_juego")
-                    .sort_values(["gameday", "away_team"])
+            password_configurado = obtener_secreto(
+                "NFL_ADMIN_PASSWORD", "nfl_admin_password"
+            )
+            if not password_configurado:
+                st.info(
+                    "Para habilitar este formulario agrega NFL_ADMIN_PASSWORD "
+                    "a los Secrets de Streamlit."
                 )
-                etiquetas_juegos = {
-                    f"{fila.away_team} @ {fila.home_team}": fila.id_juego
-                    for fila in juegos.itertuples(index=False)
-                }
-                etiqueta_juego = safe_select(
-                    "Partido", list(etiquetas_juegos.keys())
+            else:
+                password = st.text_input(
+                    "Contraseña administrativa", type="password", key="props_admin"
                 )
-                id_juego = etiquetas_juegos[etiqueta_juego]
+                autorizado = bool(password) and hmac.compare_digest(
+                    str(password), str(password_configurado)
+                )
+                if password and not autorizado:
+                    st.error("Contraseña incorrecta.")
 
-                disponibles = (
-                    df[df["id_juego"] == id_juego][
-                        ["id_jugador", "player_name", "position", "team"]
-                    ]
-                    .drop_duplicates("id_jugador")
-                    .sort_values("player_name")
-                )
-                etiquetas_jugadores = {
-                    f"{fila.player_name} · {fila.position} · {fila.team}": fila.id_jugador
-                    for fila in disponibles.itertuples(index=False)
-                }
-                etiqueta_jugador = safe_select(
-                    "Jugador", list(etiquetas_jugadores.keys())
-                )
-                id_jugador = etiquetas_jugadores[etiqueta_jugador]
-                nombre_prop = safe_select(
-                    "Mercado", list(NOMBRES_MERCADOS.values())
-                )
-                tipo_prop = next(
-                    clave for clave, valor in NOMBRES_MERCADOS.items()
-                    if valor == nombre_prop
-                )
+                if autorizado:
+                    juegos = (
+                        df[["id_juego", "away_team", "home_team", "gameday"]]
+                        .drop_duplicates("id_juego")
+                        .sort_values(["gameday", "away_team"])
+                    )
+                    etiquetas_juegos = {
+                        f"{fila.away_team} @ {fila.home_team}": fila.id_juego
+                        for fila in juegos.itertuples(index=False)
+                    }
+                    etiqueta_juego = safe_select(
+                        "Partido", list(etiquetas_juegos.keys())
+                    )
+                    id_juego = etiquetas_juegos[etiqueta_juego]
 
-                with st.form("captura_draftea", clear_on_submit=False):
-                    if tipo_prop == "anytime_td":
-                        linea = 0.5
-                        cuota_over = st.number_input(
-                            "Momio Anota TD", value=150, step=1
-                        )
-                        cuota_under = None
-                        st.caption(
-                            "Para este mercado solo se necesita el momio de que "
-                            "el jugador anota."
-                        )
-                    else:
-                        linea = st.number_input(
-                            "Línea", min_value=0.0, step=0.5, format="%.1f"
-                        )
-                        cuota_over = st.number_input(
-                            "Momio Over", value=-110, step=1
-                        )
-                        cuota_under = st.number_input(
-                            "Momio Under", value=-110, step=1
-                        )
-                    guardar = st.form_submit_button(
-                        "Guardar línea de Draftea", use_container_width=True
+                    disponibles = (
+                        df[df["id_juego"] == id_juego][
+                            ["id_jugador", "player_name", "position", "team"]
+                        ]
+                        .drop_duplicates("id_jugador")
+                        .sort_values("player_name")
+                    )
+                    etiquetas_jugadores = {
+                        f"{fila.player_name} · {fila.position} · {fila.team}": fila.id_jugador
+                        for fila in disponibles.itertuples(index=False)
+                    }
+                    etiqueta_jugador = safe_select(
+                        "Jugador", list(etiquetas_jugadores.keys())
+                    )
+                    id_jugador = etiquetas_jugadores[etiqueta_jugador]
+                    nombre_prop = safe_select(
+                        "Mercado", list(NOMBRES_MERCADOS.values())
+                    )
+                    tipo_prop = next(
+                        clave for clave, valor in NOMBRES_MERCADOS.items()
+                        if valor == nombre_prop
                     )
 
-                if guardar:
-                    if linea <= 0:
-                        st.error("La línea debe ser mayor que cero.")
-                    elif cuota_over == 0 or (
-                        cuota_under is not None and cuota_under == 0
-                    ):
-                        st.error("Los momios no pueden ser cero.")
-                    else:
-                        try:
-                            insertar_linea_draftea(
-                                id_juego, id_jugador, tipo_prop,
-                                linea, cuota_over, cuota_under,
+                    with st.form("captura_draftea", clear_on_submit=False):
+                        if tipo_prop == "anytime_td":
+                            linea = 0.5
+                            cuota_over = st.number_input(
+                                "Momio Anota TD", value=150, step=1
                             )
-                            st.cache_data.clear()
-                            st.success(
-                                "Línea guardada. Ejecuta "
-                                "python nfl/predecir_props_semana_actual.py "
-                                "para recalcular la selección."
+                            cuota_under = None
+                            st.caption(
+                                "Para este mercado solo se necesita el momio de que "
+                                "el jugador anota."
                             )
-                        except Exception as error:
-                            st.error("No se pudo guardar la línea.")
+                        else:
+                            linea = st.number_input(
+                                "Línea", min_value=0.0, step=0.5, format="%.1f"
+                            )
+                            cuota_over = st.number_input(
+                                "Momio Over", value=-110, step=1
+                            )
+                            cuota_under = st.number_input(
+                                "Momio Under", value=-110, step=1
+                            )
+                        guardar = st.form_submit_button(
+                            "Guardar línea de Draftea", use_container_width=True
+                        )
 
-st.divider()
-if seccion_props != "📈 Rendimiento":
-    columnas_csv = [
-        "id_juego", "id_jugador", "season", "week", "gameday",
-        "away_team", "home_team", "player_name", "position", "team",
-        "tipo_prop", "proyeccion", "linea", "edge", "seleccion",
-        "probabilidad_pick", "probabilidad_over", "probabilidad_under",
-        "cuota_pick", "ev_estimado", "casa_apuestas", "estado_pick",
-        "estado_lesion", "contexto_lesiones", "valor_real",
-        "resultado_pick", "beneficio_unidades", "evaluado_en",
-        "actualizado_en",
-    ]
-    csv = df[columnas_csv].to_csv(index=False).encode("utf-8")
-    st.sidebar.download_button(
-        "⬇️ Descargar props CSV",
-        data=csv,
-        file_name=f"nfl_props_{temporada}_semana_{semana}.csv",
-        mime="text/csv",
-    )
+                    if guardar:
+                        if linea <= 0:
+                            st.error("La línea debe ser mayor que cero.")
+                        elif cuota_over == 0 or (
+                            cuota_under is not None and cuota_under == 0
+                        ):
+                            st.error("Los momios no pueden ser cero.")
+                        else:
+                            try:
+                                insertar_linea_draftea(
+                                    id_juego, id_jugador, tipo_prop,
+                                    linea, cuota_over, cuota_under,
+                                )
+                                st.cache_data.clear()
+                                st.success(
+                                    "Línea guardada. Ejecuta "
+                                    "python nfl/predecir_props_semana_actual.py "
+                                    "para recalcular la selección."
+                                )
+                            except Exception as error:
+                                st.error("No se pudo guardar la línea.")
+
+    st.divider()
+    if seccion_props != "📈 Rendimiento":
+        columnas_csv = [
+            "id_juego", "id_jugador", "season", "week", "gameday",
+            "away_team", "home_team", "player_name", "position", "team",
+            "tipo_prop", "proyeccion", "linea", "edge", "seleccion",
+            "probabilidad_pick", "probabilidad_over", "probabilidad_under",
+            "cuota_pick", "ev_estimado", "casa_apuestas", "estado_pick",
+            "estado_lesion", "contexto_lesiones", "valor_real",
+            "resultado_pick", "beneficio_unidades", "evaluado_en",
+            "actualizado_en",
+        ]
+        csv = df[columnas_csv].to_csv(index=False).encode("utf-8")
+        st.sidebar.download_button(
+            "⬇️ Descargar props CSV",
+            data=csv,
+            file_name=f"nfl_props_{temporada}_semana_{semana}.csv",
+            mime="text/csv",
+        )

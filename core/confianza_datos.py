@@ -4,7 +4,7 @@ import json
 import numpy as np
 import pandas as pd
 from core.comparador import read_legacy_models as read_models,normalize,COLUMNS,VERIFIED
-from core.bankroll import rows
+from core.infrastructure.queries import rows
 from mlb_totales import registro
 from core.combinadas_datos import nfl_starts
 from mlb.publicaciones_moneyline import HISTORY_SQL

@@ -20,7 +20,7 @@ def load_history():
         conn=get_db_connection()
         frame,errors=read_history(conn,ROOT,include_liga=False,only_candidates=False)
         if not frame.empty:
-            from core.bankroll import rows
+            from core.infrastructure.queries import rows
             try:
                 games=rows(conn,'SELECT id_juego,temporada,semana FROM nfl_juegos')
                 if not games.empty:

@@ -51,7 +51,7 @@ render_pick(dict(fecha='2099-10-10',deporte='NFL',partido='Arizona Cardinals @ S
  seleccion='OVER 45.5',casa='DraftKings',cuota=1.9,probabilidad=.61,cuota_capturada_utc='2026-10-10T20:30:00Z'),
  market='Total del partido',details=[('Proyección','48.5'),('EV estimado','5.1%')],allow_register=False)
 import core.ui_nfl_creditos as paid_ui
-paid_ui.consultar=lambda day: dict(fecha=day,eventos=[dict(id='demo',away_team='Arizona Cardinals',
+paid_ui.consultar=lambda day, todos=False: dict(fecha=day,eventos=[dict(id='demo',away_team='Arizona Cardinals',
  home_team='Seattle Seahawks',commence_time='2099-01-01T00:20:00Z')],max_creditos=6,restantes=500,reserva=120)
 import core.ui_trabajos as jobs
 def fake_submit(service,**kwargs):
@@ -119,7 +119,7 @@ with st.container(key='confidence_smoke'),patch('core.ui_confianza.load',return_
                     page.goto(url)
                     page.locator('.oracle-pick').first.wait_for(timeout=30000)
                     assert page.locator('[data-testid="stException"]').count()==0
-                    paid_button=page.get_by_role('button',name='Actualizar predicciones NFL de hoy (hasta 6 créditos)',exact=True)
+                    paid_button=page.get_by_role('button',name='Actualizar predicciones NFL próximas (hasta 6 créditos)',exact=True)
                     paid_button.wait_for(timeout=30000)
                     liga=page.locator('.oracle-pick').filter(has_text='Liga MX')
                     liga.nth(8).wait_for(timeout=30000)

@@ -26,4 +26,4 @@ def render_prediction_button():
     disabled=not plan['eventos'] or plan['restantes'] is None or plan['restantes']<plan['reserva']+6
     action_button('nfl_predictions',f"Actualizar predicciones NFL {'de hoy' if todos else 'próximas'} (hasta {plan['max_creditos']} créditos)",
         key='nfl_predicciones_creditos',payload=plan,disabled=disabled,
-        help=f"Solo los juegos indicados, sin iniciar; se omiten capturas previas de hoy. Saldo: {plan['restantes']} · Reserva: 120. Cada nueva solicitud puede consumir créditos.")
+        help=f"Solo los juegos indicados, sin iniciar; se omiten capturas de las últimas 2 h y solicitudes de cobro incierto. Saldo: {plan['restantes']} · Reserva: 120. Cada nueva solicitud puede consumir créditos.")

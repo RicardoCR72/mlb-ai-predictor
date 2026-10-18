@@ -7,6 +7,35 @@ from core import bankroll as bank
 
 @unittest.skipUnless(os.environ.get('BANKROLL_MYSQL_TEST')=='1','Requiere MySQL de pruebas')
 class TestRealMySQL(unittest.TestCase):
+    def test_worker_reads_durable_payload_and_never_replays_completed_capture(self):
+        from unittest.mock import patch
+        from core import trabajos
+        from core.application.job_worker import run_pending
+        payload={'fecha':'2099-10-01','eventos':[],'todos':False,'max_creditos':0,'restantes':500}
+        with patch.object(trabajos.EXECUTOR,'submit'):
+            job_id=trabajos.submit('nfl_predictions',payload=payload)
+        with patch('core.nfl_creditos.run_predictions',return_value={'ok':True,'detalle':'Fixture sin consumo'}) as predict:
+            self.assertEqual(run_pending(job_id),1)
+            self.assertEqual(run_pending(job_id),0)
+            predict.assert_called_once()
+            self.assertEqual(predict.call_args.args[1],payload)
+        self.assertEqual(trabajos.latest('nfl_predictions')['estado'],'completada')
+
+    def test_versioned_migrations_preserve_existing_jobs_and_repeat_safely(self):
+        from core.infrastructure.migrations import ensure_schema
+        conn=get_db_connection()
+        try:
+            for _ in range(2):
+                for name in ('jobs','captures','total_publications','prop_publications'):
+                    ensure_schema(conn,name)
+            cur=conn.cursor()
+            cur.execute("SELECT COUNT(*) FROM oracle_schema_migrations")
+            self.assertGreaterEqual(cur.fetchone()[0],5)
+            cur.execute("SELECT COUNT(*) FROM information_schema.columns WHERE table_schema=DATABASE() AND table_name='oracle_trabajos' AND column_name='payload'")
+            self.assertEqual(cur.fetchone()[0],1)
+            cur.close()
+        finally:conn.close()
+
     def test_jobs_persist_across_connections_and_exclude_duplicate_active_requests(self):
         from unittest.mock import patch
         from core import trabajos
@@ -20,9 +49,9 @@ class TestRealMySQL(unittest.TestCase):
             conn=get_db_connection()
             try:
                 cur=conn.cursor()
-                cur.execute('UPDATE oracle_trabajos SET creado_utc=UTC_TIMESTAMP(6)-INTERVAL 6 MINUTE WHERE id=%s',(first,));conn.commit()
+                cur.execute("UPDATE oracle_trabajos SET estado='ejecutando',creado_utc=UTC_TIMESTAMP(6)-INTERVAL 6 MINUTE WHERE id=%s",(first,));conn.commit()
                 cur.execute("SELECT GET_LOCK('oracle-job-mlb',0)");self.assertEqual(cur.fetchone()[0],1)
-                self.assertEqual(trabajos.latest('mlb')['estado'],'en_cola')
+                self.assertEqual(trabajos.latest('mlb')['estado'],'ejecutando')
                 cur.execute("SELECT RELEASE_LOCK('oracle-job-mlb')");cur.fetchone()
                 self.assertEqual(trabajos.latest('mlb')['estado'],'interrumpida')
                 cur.close()
