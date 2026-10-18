@@ -20,6 +20,13 @@ class TestRealMySQL(unittest.TestCase):
             self.assertEqual(read['id'],first);self.assertEqual(read['estado'],'en_cola')
             conn=get_db_connection()
             try:
+                cur=conn.cursor()
+                cur.execute('UPDATE oracle_trabajos SET creado_utc=UTC_TIMESTAMP(6)-INTERVAL 6 MINUTE WHERE id=%s',(first,));conn.commit()
+                cur.execute("SELECT GET_LOCK('oracle-job-mlb',0)");self.assertEqual(cur.fetchone()[0],1)
+                self.assertEqual(trabajos.latest('mlb')['estado'],'en_cola')
+                cur.execute("SELECT RELEASE_LOCK('oracle-job-mlb')");cur.fetchone()
+                self.assertEqual(trabajos.latest('mlb')['estado'],'interrumpida')
+                cur.close()
                 trabajos.update(conn,first,'ejecutando',step='Resultados')
                 trabajos.update(conn,first,'completada',result={'detalle':'2 resultados guardados'})
                 read=trabajos.latest('mlb')

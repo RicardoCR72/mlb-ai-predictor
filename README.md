@@ -89,8 +89,9 @@ en particular `MLB_ODDS_CAPTURE_TIMEZONE=America/Mazatlan`.
 autorizada. Requiere CREATE/SELECT/INSERT/UPDATE. Conserva identificador, servicio,
 estados, pasos y respuesta; no almacena contraseñas ni claves de API.
 
-Una clave única evita dos solicitudes activas del mismo servicio. Un candado
-MySQL protege el worker entre procesos. El navegador puede recargarse mientras
+Una clave única evita dos solicitudes activas del mismo servicio. Cada servicio
+obtiene un candado MySQL incluso mientras espera turno; como máximo tres tareas
+ejecutan trabajo pesado simultáneamente. El navegador puede recargarse mientras
 se ejecuta. El estado se consulta desde MySQL y solo se sondea periódicamente
 mientras hay trabajo activo. Al completar, se invalidan las lecturas afectadas.
 

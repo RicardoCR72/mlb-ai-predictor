@@ -7,13 +7,16 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 import json
 import uuid
+import threading
 import mysql.connector
 from core.db import get_db_connection,get_db_credentials
 from core import permisos
 
 ROOT=Path(__file__).resolve().parents[1]
 SERVICES={'mlb','nfl_props','nfl_totales','liga_mx','nfl_predictions','mlb_predictions'}
-EXECUTOR=ThreadPoolExecutor(max_workers=3,thread_name_prefix='oracle-job')
+# Cada servicio obtiene su candado aun cuando espera capacidad de cómputo.
+EXECUTOR=ThreadPoolExecutor(max_workers=len(SERVICES),thread_name_prefix='oracle-job')
+CAPACITY=threading.BoundedSemaphore(3)
 DDL='''CREATE TABLE IF NOT EXISTS oracle_trabajos (
  id CHAR(36) PRIMARY KEY,servicio VARCHAR(40) NOT NULL,
  activo VARCHAR(40) NULL UNIQUE,estado VARCHAR(24) NOT NULL,
@@ -38,12 +41,14 @@ def update(conn,id,state,step=None,result=None):
 
 
 def worker(id,service,payload,token,config):
-    conn=None;cur=None
+    conn=None;cur=None;permit=False
     try:
         conn=mysql.connector.connect(**config);cur=conn.cursor()
         cur.execute('SELECT GET_LOCK(%s,0)',('oracle-job-'+service,))
         if cur.fetchone()[0]!=1:
             update(conn,id,'fallida',result={'detalle':'Servicio ocupado. No se inició otra ejecución.'});return
+        CAPACITY.acquire()
+        permit=True
         if not update(conn,id,'ejecutando',step='Preparando actualización'):return
         def progress(label):update(conn,id,'ejecutando',step=label)
         permisos.require_admin(token)
@@ -72,6 +77,7 @@ def worker(id,service,payload,token,config):
             try:update(conn,id,'fallida',result={'detalle':'La ejecución no pudo completarse. Revisa resultados antes de reintentar; pudo haber consumo si solicitaste cuotas.'})
             except Exception:pass
     finally:
+        if permit:CAPACITY.release()
         if cur is not None:
             try:cur.execute('SELECT RELEASE_LOCK(%s)',('oracle-job-'+service,));cur.fetchone();cur.close()
             except Exception:pass
