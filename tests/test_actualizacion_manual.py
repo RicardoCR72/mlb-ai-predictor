@@ -79,6 +79,31 @@ class TestManualUpdates(unittest.TestCase):
         self.assertEqual(values,(3,2,'yesterday'))
         conn.cursor.return_value.execute.assert_called_once()
 
+    def test_untracked_doubleheader_is_not_reported_as_ambiguous(self):
+        pending=pd.DataFrame([dict(id_juego='one',fecha='2026-10-05',equipo_local='H',equipo_visitante='A')])
+        game=dict(gamePk=1,status=dict(abstractGameState='Final'),teams=dict(
+            home=dict(team=dict(name='Other H'),score=3),away=dict(team=dict(name='Other A'),score=1)))
+        conn=Mock();report=Mock()
+        with patch.object(bank,'rows',return_value=pending), \
+             patch('mlb_totales.descargar_pitcheo.fetch_json',return_value={'dates':[{'games':[game,{**game,'gamePk':2}]}]}):
+            message=update.refresh_mlb_games(conn,on_ambiguity=report)
+        self.assertIn('0 coincidencias ambiguas',message)
+        report.assert_not_called();conn.cursor.return_value.execute.assert_not_called()
+
+    def test_real_ambiguity_is_reported_once_with_exact_pending_identity(self):
+        pending=pd.DataFrame([dict(id_juego='one',fecha='2026-10-05',equipo_local='H',equipo_visitante='A')])
+        game=dict(gamePk=1,status=dict(abstractGameState='Final'),teams=dict(
+            home=dict(team=dict(name='H'),score=3),away=dict(team=dict(name='A'),score=1)))
+        conn=Mock();report=Mock()
+        with patch.object(bank,'rows',return_value=pending), \
+             patch('mlb_totales.descargar_pitcheo.fetch_json',return_value={'dates':[{'games':[game,{**game,'gamePk':2}]}]}):
+            message=update.refresh_mlb_games(conn,on_ambiguity=report)
+        self.assertIn('1 coincidencias ambiguas',message)
+        report.assert_called_once()
+        self.assertEqual(report.call_args.args[0]['pendientes'],['one'])
+        self.assertEqual(report.call_args.args[0]['oficiales'],[1,2])
+        conn.cursor.return_value.execute.assert_not_called()
+
     def test_moneyline_history_includes_today_only_with_both_scores(self):
         import ast
         from datetime import date
@@ -152,5 +177,40 @@ st.write('Tabla actualizada')
         self.assertEqual(len(app.exception),0)
         run.assert_called_once();clear.assert_called_once()
         self.assertTrue(any('Sin conexión' in w.value for w in app.warning))
+
+class TestPublicationAudit(unittest.TestCase):
+    def original(self):
+        return dict(id_juego='g',modelo='v',probabilidad=.6,cuota=1.9,pick_ia='H',
+            equipo_local='H',equipo_visitante='A',start_utc='2026-10-17 20:00:00',
+            quote_utc='2026-10-17 17:00:00',captured_utc='2026-10-17 17:01:00',
+            publicada_utc='2026-10-17 18:00:00')
+
+    def test_new_publications_are_allowed_but_changed_or_deleted_originals_are_flagged(self):
+        from core.auditoria_mlb import summarize,compare
+        a={'Moneyline':summarize([self.original()],'Moneyline'),'Totales':summarize([],'Totales')}
+        b={**a,'Moneyline':summarize([self.original(),{**self.original(),'id_juego':'new'}],'Moneyline')}
+        self.assertEqual(compare(a,b)['Moneyline']['estado'],'OK')
+        b['Moneyline']=summarize([{**self.original(),'probabilidad':.8}],'Moneyline')
+        self.assertEqual(compare(a,b)['Moneyline']['modificados'],1)
+        b['Moneyline']=summarize([],'Moneyline')
+        self.assertEqual(compare(a,b)['Moneyline']['eliminados'],1)
+
+    def test_bad_clock_probabilities_duplicates_and_missing_source_are_not_certified(self):
+        from core.auditoria_mlb import summarize,compare
+        bad={**self.original(),'publicada_utc':'2026-10-17 21:00:00','probabilidad':90}
+        result=summarize([bad,bad],'Moneyline')
+        self.assertEqual(result['invalidos'],2);self.assertEqual(result['duplicados'],1)
+        a={'Moneyline':result,'Totales':dict(no_disponible='DatabaseError')}
+        self.assertEqual(compare(a,a)['Moneyline']['estado'],'REVISAR')
+        self.assertEqual(compare(a,a)['Totales']['estado'],'NO_VERIFICABLE')
+
+    def test_capture_only_selects_and_never_returns_private_database_errors(self):
+        from core.auditoria_mlb import capture
+        conn=Mock();cur=conn.cursor.return_value;cur.fetchall.return_value=[]
+        result=capture(conn)
+        self.assertTrue(all(c.args[0].startswith('SELECT ') for c in cur.execute.call_args_list))
+        cur.execute.side_effect=ValueError('private-host-password')
+        result=capture(conn)
+        self.assertNotIn('private',str(result))
 
 if __name__=='__main__':unittest.main()
