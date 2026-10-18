@@ -29,136 +29,8 @@ RUTA_FUTBOL = RAIZ / "futbol_liga_mx"
 RUTA_DATA = RUTA_FUTBOL / "data"
 RUTA_MODELOS = RUTA_FUTBOL / "modelos"
 
-st.markdown(
-    """
-    <style>
-    [data-testid="stAppViewContainer"] {
-        background:
-            radial-gradient(circle at 85% 0%, rgba(183,255,60,.055), transparent 28rem),
-            #080c13;
-        color: #eef3f8;
-    }
-    [data-testid="stHeader"] { background: transparent; }
-    .block-container {
-        max-width: 1480px;
-        padding-top: 1.15rem;
-        padding-bottom: 2.5rem;
-    }
-    [data-testid="stSidebar"] {
-        background: #0d131d;
-        border-right: 1px solid #202938;
-    }
-    .soccer-shell {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 1rem;
-        padding: .78rem .95rem;
-        border: 1px solid #202938;
-        border-radius: 13px;
-        background: #111720;
-        margin-bottom: .75rem;
-    }
-    .soccer-brand {
-        display: flex;
-        align-items: center;
-        gap: .65rem;
-        font-weight: 800;
-        letter-spacing: .02em;
-    }
-    .soccer-logo {
-        width: 34px;
-        height: 34px;
-        display: inline-grid;
-        place-items: center;
-        border-radius: 10px;
-        background: #b7ff3c;
-        color: #071006;
-        font-weight: 900;
-    }
-    .soccer-accent { color: #b7ff3c; }
-    .soccer-status { color: #8e99a9; font-size: .78rem; font-weight: 700; }
-    .soccer-view-hero {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-end;
-        gap: 1rem;
-        margin: .9rem 0 1.25rem;
-    }
-    .soccer-eyebrow {
-        color: #b7ff3c;
-        font-size: .72rem;
-        font-weight: 800;
-        letter-spacing: .12em;
-    }
-    .soccer-view-hero h1 {
-        margin: .22rem 0 .15rem;
-        color: #f5f8fb;
-        font-size: clamp(1.75rem, 3vw, 2.45rem);
-    }
-    .soccer-subtitle { color: #8994a5; font-size: .88rem; }
-    div[data-testid="stMetric"] {
-        background: #111720;
-        border: 1px solid #202938;
-        border-radius: 11px;
-        padding: .78rem .9rem;
-    }
-    div[data-testid="stMetric"] label { color: #8994a5; }
-    div[data-testid="stMetricValue"] { color: #f4f7fb; }
-    .match-card {
-        padding: 1.15rem 1.3rem;
-        border: 1px solid #253044;
-        border-radius: 16px;
-        background: linear-gradient(145deg, #111722, #0d131d);
-        margin-bottom: 0.95rem;
-    }
-    .match-header {
-        display: flex;
-        justify-content: space-between;
-        font-size: 0.78rem;
-        color: #798699;
-        margin-bottom: 0.7rem;
-    }
-    .match-teams {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        font-size: 1.2rem;
-        font-weight: 800;
-        color: #f5f8fb;
-        margin-bottom: 0.8rem;
-    }
-    .match-badge {
-        padding: 0.25rem 0.6rem;
-        border-radius: 999px;
-        background: rgba(183, 255, 60, 0.08);
-        border: 1px solid rgba(183, 255, 60, 0.3);
-        color: #b7ff3c;
-        font-size: 0.75rem;
-        font-weight: 800;
-    }
-    .prob-bar {
-        height: 6px;
-        border-radius: 3px;
-        background: #202938;
-        overflow: hidden;
-        margin-top: 0.5rem;
-    }
-    .prob-fill {
-        height: 100%;
-        background: #b7ff3c;
-    }
-    </style>
-    <div class="soccer-shell">
-        <div class="soccer-brand">
-            <span class="soccer-logo">⚽</span>
-            <span>ORÁCULO <span class="soccer-accent">LIGA MX</span></span>
-        </div>
-        <div class="soccer-status">MODELO CUANTITATIVO · TOTALES 2.5 · MODELO CONGELADO</div>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
+from core.ui_diseno import render_sport_header
+render_sport_header('Liga MX','⚽','Totales de goles y resultados')
 
 if st.session_state.get('ligamx_vista') == '📊 Métricas de Validación':
     st.session_state.pop('ligamx_vista')
@@ -171,23 +43,13 @@ vista = st.radio(
     key="ligamx_vista",
 )
 
-@st.cache_data(ttl=300)
 def cargar_datos_ligamx():
-    partidos_csv = RUTA_DATA / "partidos.csv"
-    if not partidos_csv.exists():
-        return pd.DataFrame()
-    df = pd.read_csv(partidos_csv)
-    df['fecha'] = pd.to_datetime(df['fecha'])
-    return df
+    from futbol_liga_mx.repositorio import read_games
+    return read_games(RUTA_DATA/'partidos.csv')
 
-@st.cache_data(ttl=300)
 def cargar_proximos_ligamx():
-    proximos_csv = RUTA_DATA / "proximos.csv"
-    if not proximos_csv.exists():
-        return pd.DataFrame()
-    df = pd.read_csv(proximos_csv)
-    df['fecha'] = pd.to_datetime(df['fecha'])
-    return df
+    from futbol_liga_mx.repositorio import read_games
+    return read_games(RUTA_DATA/'proximos.csv')
 
 @st.cache_data(ttl=600)
 def cargar_metricas_ligamx():
@@ -224,18 +86,7 @@ if not df_partidos.empty and modelo_params:
 # VISTA 0: PRÓXIMOS PARTIDOS Y PROYECCIONES
 # ==========================================================
 if vista == "🔮 Próximos Partidos":
-    st.markdown(
-        """
-        <div class="soccer-view-hero">
-            <div>
-                <div class="soccer-eyebrow">PROYECCIONES MODELO POISSON</div>
-                <h1>Próximos Partidos Liga MX</h1>
-                <div class="soccer-subtitle">Probabilidades calibradas de Over / Under 2.5 goles para la temporada actual.</div>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    st.subheader('Próximos Partidos Liga MX')
 
     try:
         futuros = upcoming_probabilities(df_partidos, df_proximos, modelo_params, metricas)
@@ -256,18 +107,7 @@ if vista == "🔮 Próximos Partidos":
 # VISTA 1: RESULTADOS HISTÓRICOS
 # ==========================================================
 elif vista == "⚽ Resultados Históricos":
-    st.markdown(
-        """
-        <div class="soccer-view-hero">
-            <div>
-                <div class="soccer-eyebrow">HISTORIAL 2018–2025</div>
-                <h1>Resultados Históricos Liga MX</h1>
-                <div class="soccer-subtitle">Resultados reales con probabilidad pre-partido Over/Under 2.5 según el modelo Poisson calibrado.</div>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    st.subheader('Resultados Históricos Liga MX')
 
     if df_partidos.empty or df_probabilidades.empty:
         state_message('Todavía no hay partidos históricos disponibles.',kind='empty')
@@ -316,18 +156,7 @@ elif vista == "⚽ Resultados Históricos":
 # VISTA 2: MÉTRICAS DE VALIDACIÓN
 # ==========================================================
 else:
-    st.markdown(
-        """
-        <div class="soccer-view-hero">
-            <div>
-                <div class="soccer-eyebrow">RESULTADOS GUARDADOS</div>
-                <h1>Historial Completo Liga MX</h1>
-                <div class="soccer-subtitle">Consulta de marcadores, goles totales y temporadas registradas.</div>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    st.subheader('Historial Completo Liga MX')
 
     if not df_partidos.empty:
         col_filtro1, col_filtro2 = st.columns(2)

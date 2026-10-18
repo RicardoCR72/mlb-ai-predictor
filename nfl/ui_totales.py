@@ -58,240 +58,7 @@ def opciones_partidos(datos):
 
 st.markdown(
     """
-    <style>
-    .pick-badge {
-        display: inline-block;
-        background-color: #0f9d58;
-        color: white;
-        font-weight: 700;
-        padding: 0.25rem 0.65rem;
-        border-radius: 999px;
-    }
-    .no-pick-badge {
-        display: inline-block;
-        background-color: #5f6368;
-        color: white;
-        font-weight: 700;
-        padding: 0.25rem 0.65rem;
-        border-radius: 999px;
-    }
-    .no-line-badge {
-        display: inline-block;
-        background-color: #d97706;
-        color: white;
-        font-weight: 700;
-        padding: 0.25rem 0.65rem;
-        border-radius: 999px;
-    }
-    .over-text {
-        color: #ef4444;
-        font-weight: 700;
-    }
-    .under-text {
-        color: #3b82f6;
-        font-weight: 700;
-    }
-    .small-note {
-        color: #9ca3af;
-        font-size: 0.85rem;
-    }
-    .total-pick-card {
-        position: relative;
-        overflow: hidden;
-        min-height: 226px;
-        padding: 1rem 1rem .9rem 1.15rem;
-        margin-bottom: .8rem;
-        border: 1px solid #263143;
-        border-radius: 13px;
-        background: linear-gradient(145deg, #121924, #0e141d);
-    }
-    .total-pick-card::before {
-        content: "";
-        position: absolute;
-        left: 0;
-        top: 0;
-        bottom: 0;
-        width: 4px;
-        background: #b7ff3c;
-    }
-    .total-pick-card.no-pick::before { background: #596579; }
-    .total-card-head {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        gap: .7rem;
-    }
-    .total-game { color: #f5f8fb; font-size: 1.08rem; font-weight: 850; }
-    .total-context { color: #8994a5; font-size: .73rem; margin-top: .18rem; }
-    .total-badge {
-        color: #b7ff3c;
-        background: #1b3518;
-        border-radius: 999px;
-        padding: .3rem .52rem;
-        font-size: .65rem;
-        font-weight: 850;
-        white-space: nowrap;
-    }
-    .total-badge.no-pick { color: #aab3c0; background: #222b38; }
-    .total-selection {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: .6rem;
-        margin: .9rem 0;
-    }
-    .total-pick-name { color: #fff; font-size: 1.08rem; font-weight: 900; }
-    .total-odds {
-        padding: .27rem .45rem;
-        border-radius: 7px;
-        background: #1b2431;
-        color: #f2f5f8;
-        font-weight: 800;
-    }
-    .total-values {
-        display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: .45rem;
-        padding-top: .7rem;
-        border-top: 1px solid #222d3e;
-    }
-    .total-value-label { color: #798596; font-size: .6rem; }
-    .total-value {
-        display: block;
-        margin-top: .16rem;
-        color: #eef3f8;
-        font-weight: 800;
-    }
-    .total-positive { color: #b7ff3c; }
-    .total-confidence {
-        height: 4px;
-        margin-top: .75rem;
-        border-radius: 999px;
-        background: #273141;
-        overflow: hidden;
-    }
-    .total-confidence > span { display: block; height: 100%; background: #b7ff3c; }
-    .total-footer {
-        display: flex;
-        justify-content: space-between;
-        gap: .5rem;
-        margin-top: .55rem;
-        color: #8994a5;
-        font-size: .68rem;
-    }
-    .total-pulse {
-        padding: 1rem;
-        border: 1px solid #202938;
-        border-radius: 12px;
-        background: #111720;
-    }
-    .total-pulse-title { color: #f5f8fb; font-weight: 800; }
-    .total-pulse-ring {
-        width: 116px;
-        height: 116px;
-        display: grid;
-        place-items: center;
-        position: relative;
-        margin: .9rem auto 1rem;
-        border-radius: 50%;
-        background: conic-gradient(#b7ff3c 0 var(--pulse), #273141 var(--pulse) 100%);
-    }
-    .total-pulse-ring::before {
-        content: "";
-        position: absolute;
-        width: 84px;
-        height: 84px;
-        border-radius: 50%;
-        background: #111720;
-    }
-    .total-pulse-ring strong { position: relative; z-index: 1; font-size: 1.35rem; }
-    .total-pulse-row {
-        display: flex;
-        justify-content: space-between;
-        gap: .6rem;
-        padding: .55rem 0;
-        border-bottom: 1px solid #202938;
-        font-size: .8rem;
-    }
-    .total-pulse-row span { color: #8994a5; }
-    .total-pulse-note {
-        margin-top: .8rem;
-        padding: .65rem;
-        border-radius: 8px;
-        background: #19220f;
-        color: #c9fb77;
-        font-size: .72rem;
-    }
-    .total-empty-state {
-        padding: 1rem;
-        border: 1px dashed #334155;
-        border-radius: 11px;
-        background: #111720;
-        color: #9aa6b6;
-        font-size: .84rem;
-    }
-    .total-result-card, .total-week-card {
-        position: relative;
-        padding: .9rem 1rem;
-        margin-bottom: .7rem;
-        border: 1px solid #263143;
-        border-radius: 12px;
-        background: linear-gradient(145deg, #121924, #0e141d);
-    }
-    .total-result-card::before {
-        content: "";
-        position: absolute;
-        left: 0;
-        top: 0;
-        bottom: 0;
-        width: 4px;
-        border-radius: 12px 0 0 12px;
-        background: #b7ff3c;
-    }
-    .total-result-card.lost::before { background: #ff5d68; }
-    .total-result-card.push::before { background: #f2b84b; }
-    .total-result-head {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        gap: .6rem;
-    }
-    .total-result-title, .total-week-title { color: #f5f8fb; font-weight: 850; }
-    .total-result-meta, .total-week-meta { color: #8994a5; font-size: .7rem; margin-top: .18rem; }
-    .total-result-badge {
-        padding: .26rem .46rem;
-        border-radius: 999px;
-        background: #1b3518;
-        color: #b7ff3c;
-        font-size: .62rem;
-        font-weight: 850;
-    }
-    .total-result-badge.lost { background: #3b1d25; color: #ff7881; }
-    .total-result-badge.push { background: #3a2d16; color: #f6c761; }
-    .total-result-values {
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: .45rem;
-        margin-top: .7rem;
-        padding-top: .6rem;
-        border-top: 1px solid #222d3e;
-    }
-    .total-history-values {
-        display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: .45rem;
-        margin-top: .7rem;
-        padding-top: .6rem;
-        border-top: 1px solid #222d3e;
-    }
-    .total-result-label { color: #798596; font-size: .58rem; }
-    .total-result-value { display: block; color: #eef3f8; font-weight: 800; margin-top: .12rem; }
-    @media (max-width: 850px) {
-        .total-pick-card { min-height: auto; }
-        .total-values { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-        .total-history-values { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    }
-    </style>
+
     """,
     unsafe_allow_html=True,
 )
@@ -341,152 +108,13 @@ def obtener_secreto(*nombres):
 
 
 def configuracion_mysql():
-    config = {
-        "host": obtener_secreto("host", "DB_HOST", "MYSQL_HOST"),
-        "port": obtener_secreto("port", "DB_PORT", "MYSQL_PORT"),
-        "user": obtener_secreto("user", "DB_USER", "MYSQL_USER"),
-        "password": obtener_secreto(
-            "password",
-            "DB_PASSWORD",
-            "MYSQL_PASSWORD",
-        ),
-        "database": obtener_secreto(
-            "database",
-            "DB_NAME",
-            "MYSQL_DATABASE",
-        ),
-    }
-
-    faltantes = [
-        nombre
-        for nombre, valor in config.items()
-        if valor in (None, "")
-    ]
-
-    if faltantes:
-        raise ValueError(
-            "Faltan secretos de MySQL: "
-            + ", ".join(faltantes)
-        )
-
-    config["port"] = int(config["port"])
-    config["connection_timeout"] = 20
-    config["ssl_disabled"] = False
-    return config
+    from core.db import get_db_credentials
+    return get_db_credentials()
 
 
-@st.cache_data(ttl=300, show_spinner=False)
 def cargar_predicciones_mysql():
-    conexion = None
-    cursor = None
-
-    consulta = """
-        SELECT
-            p.id_prediccion,
-            p.id_juego,
-            p.modelo_version,
-            j.temporada AS season,
-            j.tipo_juego AS game_type,
-            j.semana AS week,
-            j.fecha AS gameday,
-            j.equipo_visitante AS away_team,
-            j.equipo_local AS home_team,
-            j.marcador_visitante AS away_score,
-            j.marcador_local AS home_score,
-            p.linea_total AS total_line,
-            p.total_proyectado AS pred_total,
-            p.total_proyectado_base AS pred_total_base,
-            p.edge,
-            p.seleccion AS pick,
-            p.probabilidad_pick AS prob_pick,
-            p.probabilidad_over AS prob_over,
-            p.probabilidad_under AS prob_under,
-            p.cuota_pick AS odds_pick,
-            p.ev_estimado AS ev,
-            p.estado_pick AS estado,
-            p.total_real,
-            p.resultado_pick,
-            p.beneficio_unidades,
-            p.generado_en,
-            p.actualizado_en
-        FROM nfl_predicciones_totales AS p
-        INNER JOIN nfl_juegos AS j
-            ON j.id_juego = p.id_juego
-        ORDER BY
-            j.temporada DESC,
-            j.semana DESC,
-            p.actualizado_en DESC,
-            p.id_prediccion DESC
-    """
-
-    try:
-        conexion = mysql.connector.connect(
-            **configuracion_mysql()
-        )
-        cursor = conexion.cursor(dictionary=True)
-        cursor.execute(consulta)
-        registros = cursor.fetchall()
-
-    finally:
-        if cursor is not None:
-            cursor.close()
-        if conexion is not None and conexion.is_connected():
-            conexion.close()
-
-    if not registros:
-        return pd.DataFrame()
-
-    df = pd.DataFrame(registros)
-    df["gameday"] = pd.to_datetime(
-        df["gameday"],
-        errors="coerce",
-    )
-    df["actualizado_en"] = pd.to_datetime(
-        df["actualizado_en"],
-        errors="coerce",
-    )
-
-    numericas = [
-        "season",
-        "week",
-        "total_line",
-        "pred_total",
-        "pred_total_base",
-        "edge",
-        "prob_pick",
-        "prob_over",
-        "prob_under",
-        "odds_pick",
-        "ev",
-    ]
-
-    for columna in numericas:
-        df[columna] = pd.to_numeric(
-            df[columna],
-            errors="coerce",
-        )
-
-    # En MySQL las probabilidades y el EV se almacenan como porcentaje.
-    for columna in [
-        "prob_pick",
-        "prob_over",
-        "prob_under",
-        "ev",
-    ]:
-        df[columna] = df[columna] / 100.0
-
-    df["edge_absoluto"] = df["edge"].abs()
-
-    # Si existen varias versiones, conserva la actualización más reciente.
-    df = (
-        df.sort_values(
-            ["actualizado_en", "id_prediccion"],
-            ascending=[False, False],
-        )
-        .drop_duplicates(subset=["id_juego"], keep="first")
-    )
-
-    return df.reset_index(drop=True)
+    from nfl.repositorio import cargar_predicciones_mysql as read
+    return read()
 
 
 def mostrar_badge(estado):
@@ -614,16 +242,6 @@ roi_resumen = (
     else np.nan
 )
 
-resumen = st.columns(3)
-resumen[0].metric("Partidos", len(df))
-resumen[1].metric("Con línea", int(df["total_line"].notna().sum()))
-resumen[2].metric("Picks", len(picks))
-
-
-
-# ==========================================================
-# NAVEGACIÓN INTERNA: sin pestaña independiente de metodología.
-# ==========================================================
 seccion_totales = st.radio(
     "Sección de totales",
     ["🔥 Picks filtrados", "📋 Todos los partidos", "📈 Rendimiento"],
@@ -632,6 +250,18 @@ seccion_totales = st.radio(
     label_visibility="collapsed",
     key="nfl_totales_seccion",
 )
+
+if seccion_totales != "📈 Rendimiento":
+    resumen = st.columns(3)
+    resumen[0].metric("Partidos", len(df))
+    resumen[1].metric("Con línea", int(df["total_line"].notna().sum()))
+    resumen[2].metric("Picks", len(picks))
+
+
+
+# ==========================================================
+# NAVEGACIÓN INTERNA: sin pestaña independiente de metodología.
+# ==========================================================
 
 if seccion_totales == "🔥 Picks filtrados":
     with st.container():
@@ -679,120 +309,42 @@ if seccion_totales == "📋 Todos los partidos":
                 mostrar_partido(fila)
 
 if seccion_totales == "📈 Rendimiento":
-    st.subheader("Rendimiento de picks oficiales")
+    from core.ui_historial_publicado import render_history
+    render_history("NFL",'Totales',key='nfl_totales_perf')
 
-    liquidados = historico[
-        (historico["estado"] == "PICK")
-        & historico["resultado_pick"].isin(
-            ["GANADA", "PERDIDA", "PUSH"]
-        )
-    ].copy()
-    liquidados = performance_filters(liquidados, 'gameday', 'nfl_total_perf', season_col='season',
-        probability_col='prob_pick', probability_scale=100, market_col='pick',
-        result_col='resultado_pick', week_col='week', expanded=True,
-        extra_keys={'partido':'totales_partido_rendimiento'})
-    partidos_rendimiento = opciones_partidos(liquidados)
-    partido_rendimiento = safe_select(
-        "Partido",
-        list(partidos_rendimiento),
-        key="totales_partido_rendimiento",
+if seccion_totales != "📈 Rendimiento":
+    st.divider()
+
+    columnas_descarga = [
+        "id_juego",
+        "season",
+        "week",
+        "gameday",
+        "away_team",
+        "home_team",
+        "total_line",
+        "pred_total",
+        "pred_total_base",
+        "edge",
+        "pick",
+        "prob_pick",
+        "prob_over",
+        "prob_under",
+        "odds_pick",
+        "ev",
+        "estado",
+        "actualizado_en",
+    ]
+
+    csv_descarga = df[columnas_descarga].to_csv(
+        index=False
+    ).encode("utf-8")
+
+    st.sidebar.download_button(
+        "⬇️ Descargar predicciones CSV",
+        data=csv_descarga,
+        file_name=(
+            f"nfl_totales_{temporada}_semana_{semana}.csv"
+        ),
+        mime="text/csv",
     )
-    if partidos_rendimiento[partido_rendimiento] is not None:
-        liquidados = liquidados[
-            liquidados["id_juego"] == partidos_rendimiento[partido_rendimiento]
-        ]
-
-    if liquidados.empty:
-        state_message('No hay picks oficiales liquidados para los filtros seleccionados.',kind='filters')
-    else:
-        st.download_button('Descargar rendimiento filtrado', liquidados.to_csv(index=False), 'nfl_totales_rendimiento.csv', 'text/csv', key='totals_perf_csv')
-        ganadas = int(
-            (liquidados["resultado_pick"] == "GANADA").sum()
-        )
-        perdidas = int(
-            (liquidados["resultado_pick"] == "PERDIDA").sum()
-        )
-        pushes = int(
-            (liquidados["resultado_pick"] == "PUSH").sum()
-        )
-        decididas = ganadas + perdidas
-        accuracy = (
-            ganadas / decididas if decididas else np.nan
-        )
-        beneficio = pd.to_numeric(
-            liquidados["beneficio_unidades"],
-            errors="coerce",
-        ).fillna(0).sum()
-        muestra_roi=int(pd.to_numeric(liquidados['beneficio_unidades'],errors='coerce').notna().sum())
-        roi = beneficio / muestra_roi if muestra_roi else np.nan
-
-        metricas = st.columns(4)
-        metricas[0].metric(
-            "Picks evaluados",
-            len(liquidados),
-        )
-        metricas[1].metric(
-            "Acierto",
-            formatear_porcentaje(accuracy),
-        )
-        metricas[2].metric(
-            "Unidades",
-            f"{beneficio:+.2f} u",
-        )
-        metricas[3].metric(
-            "ROI",
-            formatear_porcentaje(roi),
-        )
-
-
-
-        st.subheader("Historial liquidado")
-        with st.expander('Orden del historial'):
-            history=render_order(liquidados,'nfl_total_perf',date_col='gameday',confidence_col='prob_pick',profit_col='beneficio_unidades')
-        filas_resultados=list(history_window(history,'nfl_total_history').iterrows())
-        for inicio in range(0, len(filas_resultados), 2):
-            columnas = st.columns(2, gap="medium")
-            for columna, (_, fila) in zip(
-                columnas, filas_resultados[inicio:inicio + 2]
-            ):
-                with columna:
-                    mostrar_resultado_total(fila)
-
-# ==========================================================
-# DESCARGA
-# ==========================================================
-st.divider()
-
-columnas_descarga = [
-    "id_juego",
-    "season",
-    "week",
-    "gameday",
-    "away_team",
-    "home_team",
-    "total_line",
-    "pred_total",
-    "pred_total_base",
-    "edge",
-    "pick",
-    "prob_pick",
-    "prob_over",
-    "prob_under",
-    "odds_pick",
-    "ev",
-    "estado",
-    "actualizado_en",
-]
-
-csv_descarga = df[columnas_descarga].to_csv(
-    index=False
-).encode("utf-8")
-
-st.sidebar.download_button(
-    "⬇️ Descargar predicciones CSV",
-    data=csv_descarga,
-    file_name=(
-        f"nfl_totales_{temporada}_semana_{semana}.csv"
-    ),
-    mime="text/csv",
-)

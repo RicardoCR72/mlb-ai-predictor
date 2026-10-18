@@ -7,6 +7,49 @@ from core import bankroll as bank
 
 @unittest.skipUnless(os.environ.get('BANKROLL_MYSQL_TEST')=='1','Requiere MySQL de pruebas')
 class TestRealMySQL(unittest.TestCase):
+    def test_jobs_persist_across_connections_and_exclude_duplicate_active_requests(self):
+        from unittest.mock import patch
+        from core import trabajos
+        from core import permisos
+        self.assertEqual(os.environ.get('DB_NAME'),'bankroll_ci')
+        with patch.object(permisos,'configured_password',return_value='integration'),patch.object(trabajos.EXECUTOR,'submit') as worker:
+            first=trabajos.submit('mlb',token='integration')
+            self.assertEqual(trabajos.submit('mlb',token='integration'),first)
+            worker.assert_called_once()
+            read=trabajos.latest('mlb')
+            self.assertEqual(read['id'],first);self.assertEqual(read['estado'],'en_cola')
+            conn=get_db_connection()
+            try:
+                trabajos.update(conn,first,'ejecutando',step='Resultados')
+                trabajos.update(conn,first,'completada',result={'detalle':'2 resultados guardados'})
+                read=trabajos.latest('mlb')
+                self.assertEqual(read['estado'],'completada');self.assertIsNone(read['activo'])
+                self.assertNotIn('integration',str(read['resultado']))
+                second=trabajos.submit('mlb',token='integration')
+                self.assertNotEqual(first,second)
+                trabajos.update(conn,second,'fallida',result={'detalle':'Prueba finalizada'})
+            finally:conn.close()
+
+    def test_nfl_total_original_is_immutable_and_never_backfills_a_past_start(self):
+        from unittest.mock import patch
+        import pandas as pd
+        from nfl import publicaciones_totales as pub
+        game='totals-'+str(uuid.uuid4())
+        frame=pd.DataFrame([dict(game_id=game,estado='PICK',pick='OVER',total_line=45.5,prob_pick=.6,odds_pick=-110)])
+        conn=get_db_connection()
+        try:
+            with patch.object(pub,'nfl_starts',return_value={game:pd.Timestamp('2099-10-01T20:00Z')}):
+                pub.save(conn,frame,'v1',None)
+                frame['total_line']=55.5;frame['prob_pick']=.9
+                pub.save(conn,frame,'v1',None)
+            cur=conn.cursor()
+            cur.execute('SELECT linea,probabilidad FROM nfl_publicaciones_totales WHERE id_juego=%s',(game,))
+            self.assertEqual(cur.fetchone(),(45.5,.6))
+            with patch.object(pub,'nfl_starts',return_value={game:pd.Timestamp('2020-10-01T20:00Z')}):pub.save(conn,frame,'past',None)
+            cur.execute('SELECT COUNT(*) FROM nfl_publicaciones_totales WHERE id_juego=%s',(game,))
+            self.assertEqual(cur.fetchone()[0],1);cur.close()
+        finally:conn.close()
+
     def test_mlb_totals_retry_keeps_original_and_settlement_is_one_row_per_game(self):
         import pandas as pd
         from datetime import datetime

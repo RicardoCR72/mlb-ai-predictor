@@ -4,7 +4,7 @@ from unittest import TestCase
 from unittest.mock import Mock,patch
 import pandas as pd
 from streamlit.testing.v1 import AppTest
-from core.comparador import normalize,comparison,read_models,SAVED
+from core.comparador import normalize,comparison,read_legacy_models as read_models,SAVED
 from core.ui_controles import ordered
 
 
@@ -160,7 +160,7 @@ class DeploymentImportTests(TestCase):
             sys.modules['core.ui_filtros'] = old
             paths = ['core/ui_comparador.py', 'nfl/ui_totales.py', 'nfl/ui_props.py',
                 'mlb_totales/ui_totales_mlb.py', 'core/ui_rendimiento_centro.py',
-                'pages/1_⚾_MLB.py', 'pages/3_⚽_Liga_MX.py']
+                'core/ui_historial_publicado.py', 'pages/3_⚽_Liga_MX.py']
             for path in paths:
                 tree = ast.parse(Path(path).read_text())
                 nodes = [n for n in tree.body if isinstance(n, ast.ImportFrom)

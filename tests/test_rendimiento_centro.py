@@ -64,7 +64,7 @@ class PerformanceCenterTests(TestCase):
     def test_sport_views_share_confidence_slider_and_no_advanced_panels(self):
         blocked={'Balance y equivalencia en pesos','Comparar mercados','Análisis por mercado y semana',
                  'Explorar umbrales históricos','Auditoría de yardas de recepción','Partidos pendientes de datos o revisión'}
-        for name in ['nfl/ui_props.py','nfl/ui_totales.py','mlb_totales/ui_totales_mlb.py','pages/1_⚾_MLB.py','pages/3_⚽_Liga_MX.py']:
+        for name in ['core/ui_historial_publicado.py','pages/3_⚽_Liga_MX.py']:
             source=(ROOT/name).read_text();tree=ast.parse(source)
             labels=[n.args[0].value for n in ast.walk(tree) if isinstance(n,ast.Call) and isinstance(n.func,ast.Attribute)
                     and n.func.attr=='expander' and n.args and isinstance(n.args[0],ast.Constant)]

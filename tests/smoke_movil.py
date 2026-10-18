@@ -53,8 +53,20 @@ render_pick(dict(fecha='2099-10-10',deporte='NFL',partido='Arizona Cardinals @ S
 import core.ui_nfl_creditos as paid_ui
 paid_ui.consultar=lambda day: dict(fecha=day,eventos=[dict(id='demo',away_team='Arizona Cardinals',
  home_team='Seattle Seahawks',commence_time='2099-01-01T00:20:00Z')],max_creditos=6,restantes=500,reserva=120)
-paid_ui.run_predictions=lambda root,plan: dict(ok=True,detalle='Predicciones de prueba actualizadas',
- reporte=dict(fecha=plan['fecha'],solicitados=1,creditos=6,restantes=494,insertadas=30))
+import core.permisos as access
+import core.ui_trabajos as jobs
+access.session_token=lambda:'fixture'
+jobs.session_token=lambda:'fixture'
+def fake_submit(service,**kwargs):
+    st.session_state['fixture_job_done']=True
+    return 'fixture-job'
+def fake_latest(service):
+    if service!='nfl_predictions' or not st.session_state.get('fixture_job_done'):return None
+    return dict(id='fixture-job',estado='completada',creado_utc='2026-10-10 18:00:00',
+        iniciado_utc=None,terminado_utc='2026-10-10 18:01:00',resultado=dict(detalle='Predicciones de prueba actualizadas',
+        reporte=dict(creditos=6,restantes=494)))
+jobs.submit=fake_submit
+jobs.latest=fake_latest
 paid_ui.render_prediction_button()
 comparison_data=normalize(pd.DataFrame([dict(id=str(i),fecha='2026-10-01',modelo='v1',resultado=result,
  probabilidad=.6,cuota=1.9) for i,result in enumerate(['GANADA','PERDIDA','PUSH'])]),
@@ -158,6 +170,10 @@ with st.container(key='confidence_smoke'),patch('core.ui_confianza.load',return_
                     mobile=page.locator('.oracle-pick').evaluate_all('(cards)=>cards.map(c=>{const r=c.getBoundingClientRect();return {x:r.x,y:r.y,w:r.width,right:r.right}})')
                     assert all(c['x']>=0 and c['right']<=392 and c['w']>300 for c in mobile),mobile
                     assert mobile[1]['y']>mobile[0]['y'],mobile[:2]
+                    page.set_viewport_size({'width':360,'height':780})
+                    page.wait_for_function('document.body.scrollWidth <= innerWidth+2')
+                    page.set_viewport_size({'width':768,'height':1024})
+                    page.wait_for_function('document.body.scrollWidth <= innerWidth+2')
                     page.set_viewport_size({'width':1280,'height':900})
                     assert page.locator('.oracle-back-top').is_hidden()
                     page.wait_for_function('document.body.scrollWidth <= innerWidth+2')
@@ -187,7 +203,7 @@ with st.container(key='confidence_smoke'),patch('core.ui_confianza.load',return_
                     assert page.locator('[data-testid="stDataFrame"]:visible').count()>=1
                     assert page.locator('[data-testid="stException"]').count()==0
                     paid_button.click()
-                    page.get_by_text('Predicciones de prueba actualizadas · Consumo: 6 · Restantes: 494',exact=True).first.wait_for()
+                    page.get_by_text('Créditos: 6 · Restantes: 494',exact=True).first.wait_for()
                     page.wait_for_function('document.body.scrollWidth <= innerWidth+2')
                     assert page.locator('[data-testid="stException"]').count()==0
                     lean=page.locator('.st-key-lean_history_smoke')
@@ -206,6 +222,7 @@ with st.container(key='confidence_smoke'),patch('core.ui_confianza.load',return_
                     confidence.get_by_role('button',name='Descargar evaluación temporal',exact=True).wait_for()
                     assert page.locator('[data-testid="stException"]').count()==0
                     page.wait_for_function('document.body.scrollWidth <= innerWidth+2')
+                    page.screenshot(path=str(ROOT/"smoke-desktop.png"),full_page=False)
                     browser.close()
                 print('Responsive OK: una columna a 390 px, dos a 1280 px, tabla sin desbordamiento, nueve tarjetas Liga MX y tarjetas alineadas y jerarquía visual de botones.')
             finally:
