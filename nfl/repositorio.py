@@ -13,7 +13,8 @@ def calcular_beneficio_unidades(fila):
     beneficio = pd.to_numeric(pd.Series([fila.get('beneficio_unidades')]), errors='coerce').iloc[0]
     if pd.notna(beneficio):
         return float(beneficio)
-    resultado = texto_seguro(fila.get('resultado_pick')).upper()
+    raw = fila.get('resultado_pick')
+    resultado = '' if raw is None or pd.isna(raw) else str(raw).strip().upper()
     if resultado == 'PERDIDA':
         return -1.0
     if resultado == 'PUSH':

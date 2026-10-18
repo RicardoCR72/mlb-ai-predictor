@@ -342,6 +342,19 @@ def insertar_linea_draftea(
 
 
 def render():
+    seccion_props = st.radio(
+        "Sección de props",
+        ["🔥 Candidatos", "📈 Rendimiento", "🏥 Lesiones"],
+        horizontal=True,
+        format_func=lambda value: value.lstrip("🔥📋📈⚾🏈📊⚽🔮💼 "),
+        label_visibility="collapsed",
+        key="nfl_props_seccion",
+    )
+    if seccion_props == "📈 Rendimiento":
+        from core.ui_historial_publicado import render_history
+        render_history("NFL", None, key='nfl_prop_perf')
+        return
+
     try:
         with st.spinner("Consultando props guardados…"):
             historico = cargar_props_mysql()
@@ -423,14 +436,7 @@ def render():
         if pd.notna(ultima)
         else "Sin sincronización"
     )
-    seccion_props = st.radio(
-        "Sección de props",
-        ["🔥 Candidatos", "📈 Rendimiento", "🏥 Lesiones"],
-        horizontal=True,
-        format_func=lambda value: value.lstrip("🔥📋📈⚾🏈📊⚽🔮💼 "),
-        label_visibility="collapsed",
-        key="nfl_props_seccion",
-    )
+
 
     st.subheader('Props de jugadores')
     st.caption('Último registro: '+ultima_texto)
@@ -497,9 +503,6 @@ def render():
                         with columna:
                             mostrar_prop_compacto(fila)
 
-    if seccion_props == "📈 Rendimiento":
-        from core.ui_historial_publicado import render_history
-        render_history("NFL",None,key='nfl_prop_perf')
     if seccion_props == "🏥 Lesiones":
         st.subheader("Lesiones y disponibilidad")
         st.caption(
