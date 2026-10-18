@@ -182,8 +182,6 @@ class CaptureTests(unittest.TestCase):
 
 
 class ManualTests(unittest.TestCase):
-    def setUp(self):
-        self.enterContext(patch("core.permisos.require_admin"))
     def test_plan_only_uses_free_events_endpoint_and_six_markets(self):
         response=Mock(status_code=200,headers={'x-requests-remaining':'450'})
         response.json.return_value=[event('tnf','2026-10-09T00:20:00Z'),event('sun','2026-10-11T17:00:00Z')]
@@ -219,7 +217,6 @@ class ManualTests(unittest.TestCase):
     def test_button_discloses_cost_and_does_not_run_on_page_load(self):
         plan=dict(fecha='2099-01-01',eventos=[event('tnf','2099-01-02T00:20:00Z')],max_creditos=6,restantes=500,reserva=120)
         with patch('core.ui_nfl_creditos.consultar',return_value=plan), \
-             patch('core.permisos.session_token',return_value='test'),patch('core.ui_trabajos.session_token',return_value='test'), \
              patch('core.ui_trabajos.latest',return_value=None),patch('core.ui_trabajos.submit',return_value='demo') as run:
             at=AppTest.from_string('from core.ui_actualizacion import render_update_button\nfrom core.ui_nfl_creditos import render_prediction_button\nrender_update_button("nfl_props",compact=True)\nrender_prediction_button()').run()
             self.assertFalse(at.exception);run.assert_not_called()

@@ -10,7 +10,6 @@ import uuid
 import threading
 import mysql.connector
 from core.db import get_db_connection,get_db_credentials
-from core import permisos
 
 ROOT=Path(__file__).resolve().parents[1]
 SERVICES={'mlb','nfl_props','nfl_totales','liga_mx','nfl_predictions','mlb_predictions'}
@@ -40,7 +39,7 @@ def update(conn,id,state,step=None,result=None):
     finally:cur.close()
 
 
-def worker(id,service,payload,token,config):
+def worker(id,service,payload,config):
     conn=None;cur=None;permit=False
     try:
         conn=mysql.connector.connect(**config);cur=conn.cursor()
@@ -51,10 +50,9 @@ def worker(id,service,payload,token,config):
         permit=True
         if not update(conn,id,'ejecutando',step='Preparando actualización'):return
         def progress(label):update(conn,id,'ejecutando',step=label)
-        permisos.require_admin(token)
         if service=='nfl_predictions':
             from core.nfl_creditos import run_predictions
-            result=run_predictions(ROOT,payload,on_step=progress,admin_token=token)
+            result=run_predictions(ROOT,payload,on_step=progress)
             state='completada' if result['ok'] else 'parcial' if result.get('reporte') else 'fallida'
         elif service=='mlb_predictions':
             from core.actualizacion_manual import child_environment
@@ -68,7 +66,7 @@ def worker(id,service,payload,token,config):
 
         else:
             from core.actualizacion_manual import run_update
-            result=run_update(service,ROOT,on_step=progress,admin_token=token)
+            result=run_update(service,ROOT,on_step=progress)
             flags=[s['ok'] for s in result['steps']]
             state='fallida' if result.get('busy') or not any(flags) else 'completada' if all(flags) else 'parcial'
         update(conn,id,state,result=result)
@@ -84,8 +82,7 @@ def worker(id,service,payload,token,config):
         if conn is not None:conn.close()
 
 
-def submit(service,*,token,payload=None):
-    permisos.require_admin(token)
+def submit(service,*,payload=None):
     if service not in SERVICES:raise ValueError('Servicio no permitido.')
     config=get_db_credentials();conn=get_db_connection();cur=conn.cursor()
     try:
@@ -104,7 +101,7 @@ def submit(service,*,token,payload=None):
             row=cur.fetchone()
             if row:return row[0]
             raise
-        try:EXECUTOR.submit(worker,id,service,payload,token,config)
+        try:EXECUTOR.submit(worker,id,service,payload,config)
         except Exception:
             update(conn,id,'fallida',result={'detalle':'No se pudo iniciar el worker.'});raise
         return id

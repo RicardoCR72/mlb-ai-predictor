@@ -3,8 +3,6 @@ import streamlit as st
 
 
 def install_navigation():
-    from core.permisos import render_access
-    render_access()
     st.markdown('''<style>
 .oracle-page-top{height:0;scroll-margin-top:4rem}
 .oracle-back-top{display:none}

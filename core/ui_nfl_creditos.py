@@ -11,11 +11,7 @@ def consultar(day):
 
 
 def render_prediction_button():
-    from core.permisos import session_token
     from core.ui_trabajos import action_button
-    if session_token() is None:
-        action_button('nfl_predictions','Actualizar predicciones NFL de hoy (usa créditos)',key='nfl_predicciones_creditos')
-        return
     try:plan=consultar(str(ahora_mexico().date()))
     except Exception:
         st.button('Actualizar predicciones NFL de hoy (usa créditos)',disabled=True,key='nfl_predicciones_creditos')

@@ -53,10 +53,7 @@ render_pick(dict(fecha='2099-10-10',deporte='NFL',partido='Arizona Cardinals @ S
 import core.ui_nfl_creditos as paid_ui
 paid_ui.consultar=lambda day: dict(fecha=day,eventos=[dict(id='demo',away_team='Arizona Cardinals',
  home_team='Seattle Seahawks',commence_time='2099-01-01T00:20:00Z')],max_creditos=6,restantes=500,reserva=120)
-import core.permisos as access
 import core.ui_trabajos as jobs
-access.session_token=lambda:'fixture'
-jobs.session_token=lambda:'fixture'
 def fake_submit(service,**kwargs):
     st.session_state['fixture_job_done']=True
     return 'fixture-job'

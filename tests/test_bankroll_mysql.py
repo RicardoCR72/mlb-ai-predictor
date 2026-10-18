@@ -10,11 +10,10 @@ class TestRealMySQL(unittest.TestCase):
     def test_jobs_persist_across_connections_and_exclude_duplicate_active_requests(self):
         from unittest.mock import patch
         from core import trabajos
-        from core import permisos
         self.assertEqual(os.environ.get('DB_NAME'),'bankroll_ci')
-        with patch.object(permisos,'configured_password',return_value='integration'),patch.object(trabajos.EXECUTOR,'submit') as worker:
-            first=trabajos.submit('mlb',token='integration')
-            self.assertEqual(trabajos.submit('mlb',token='integration'),first)
+        with patch.object(trabajos.EXECUTOR,'submit') as worker:
+            first=trabajos.submit('mlb')
+            self.assertEqual(trabajos.submit('mlb'),first)
             worker.assert_called_once()
             read=trabajos.latest('mlb')
             self.assertEqual(read['id'],first);self.assertEqual(read['estado'],'en_cola')
@@ -32,7 +31,7 @@ class TestRealMySQL(unittest.TestCase):
                 read=trabajos.latest('mlb')
                 self.assertEqual(read['estado'],'completada');self.assertIsNone(read['activo'])
                 self.assertNotIn('integration',str(read['resultado']))
-                second=trabajos.submit('mlb',token='integration')
+                second=trabajos.submit('mlb')
                 self.assertNotEqual(first,second)
                 trabajos.update(conn,second,'fallida',result={'detalle':'Prueba finalizada'})
             finally:conn.close()
