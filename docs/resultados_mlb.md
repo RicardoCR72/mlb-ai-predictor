@@ -40,7 +40,9 @@ fecha y pareja. El log detalla la fecha, equipos e IDs de una ambigüedad real;
 sin una correspondencia verificable no se aplica ningún marcador.
 
 Para dobles carteleras se permite resolver automáticamente una correspondencia
-uno a uno por equipos, fecha y hora exacta del inicio oficial. `juegos.fecha`
-se interpreta con el UTC−6 fijo que escribe el scraper. No se aproxima al
+uno a uno por equipos, fecha y hora del inicio oficial, con una diferencia máxima
+de 90 segundos entre proveedores. Cada juego de cada fuente debe tener solo un
+candidato en ese intervalo. `juegos.fecha`
+se interpreta con el UTC−6 fijo que escribe el scraper. No se elige el
 horario más cercano ni se asignan juegos por orden; fechas sin hora, horarios
-que cambiaron o IDs con la misma hora permanecen en revisión.
+fuera del intervalo o identidades con múltiples candidatos permanecen en revisión.
