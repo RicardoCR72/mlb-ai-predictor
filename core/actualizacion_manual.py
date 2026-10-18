@@ -42,6 +42,29 @@ def run_script(service,root):
     return f"{match.group(1) if match else '0'} resultados NFL evaluados. Los partidos sin resultado oficial siguen pendientes."
 
 
+def exact_mlb_starts(pending,games):
+    """Correspondencia uno a uno por hora exacta, sin aproximar ni ordenar juegos.
+
+    El scraper guarda juegos.fecha como commence_time UTC menos seis horas.
+    Una fecha sin hora no es evidencia suficiente para una doble cartelera.
+    """
+    matches={}
+    for game in games:
+        try:
+            start=pd.Timestamp(game['gameDate'])
+            if start.tzinfo is None:continue
+            ids=[]
+            for _,row in pending.iterrows():
+                stamp=pd.Timestamp(row.fecha)
+                if pd.isna(stamp) or stamp==stamp.normalize():continue
+                if stamp.tzinfo is None:stamp=stamp.tz_localize('Etc/GMT+6')
+                if stamp.tz_convert('UTC')==start.tz_convert('UTC'):ids.append(str(row.id_juego))
+            if len(ids)==1:matches[str(game['gamePk'])]=ids[0]
+        except (KeyError,ValueError,TypeError):continue
+    counts=Counter(matches.values())
+    return {pk:id for pk,id in matches.items() if counts[id]==1}
+
+
 def refresh_mlb_games(conn,now=None,on_ambiguity=None):
     from mlb_totales.descargar_pitcheo import fetch_json,TYPES
     now=now or datetime.now(ZoneInfo('America/Mexico_City'))
@@ -70,16 +93,22 @@ def refresh_mlb_games(conn,now=None,on_ambiguity=None):
                 h,a=game['teams']['home'],game['teams']['away']
                 if h.get('score') is None or a.get('score') is None:continue
                 if counts[(home,away)]!=1 or len(matching)>1:
+                    official=[g for g in games if pair(g)==(home,away)]
+                    exact=exact_mlb_starts(matching,official)
+                    identity=exact.get(str(game['gamePk']))
+                    unresolved=matching[~matching.id_juego.astype(str).isin(exact.values())]
                     # Solo contar registros nuestros, una vez por pareja/fecha.
                     # Una doble cartelera ajena al historial no es un pendiente.
                     key=(day,home,away)
-                    if key not in reported:
+                    if not unresolved.empty and key not in reported:
                         reported.add(key)
-                        ambiguous+=len(matching)
+                        ambiguous+=len(unresolved)
                         if on_ambiguity:on_ambiguity(dict(fecha=str(day),local=home,visitante=away,
-                            pendientes=matching.id_juego.astype(str).tolist(),
-                            oficiales=[g['gamePk'] for g in games if pair(g)==(home,away)]))
-                    continue  # Sin identidad verificable, no asignar un marcador.
+                            pendientes=unresolved.id_juego.astype(str).tolist(),
+                            horas_guardadas=unresolved.fecha.astype(str).tolist(),
+                            oficiales=[dict(game_pk=g['gamePk'],inicio=g.get('gameDate')) for g in official]))
+                    if identity is None:continue  # Sin evidencia, no asignar marcador.
+                    matching=matching[matching.id_juego.astype(str).eq(identity)]
                 cursor.execute("""UPDATE juegos SET marcador_local=%s,marcador_visitante=%s,estado='finalizado'
                     WHERE id_juego=%s AND LOWER(estado)='programado'""",
                     (int(h['score']),int(a['score']),matching.iloc[0].id_juego))
