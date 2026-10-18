@@ -148,7 +148,7 @@ class TestNFLIntegration(unittest.TestCase):
     def test_projection_query_requires_draftkings(self):
         conn=FakeConnection()
         FakeCursor.fetchall=lambda self: []
-        fn=extracted(Path('nfl/predecir_props_semana_actual.py'),'cargar_lineas',{'pd':pd,'np':np})
+        fn=extracted(Path('nfl/persistence/props.py'),'cargar_lineas',{'pd':pd,'np':np})
         self.assertTrue(fn(conn,['g']).empty)
         self.assertIn("LOWER(TRIM(casa_apuestas)) = 'draftkings'",conn.calls[0][0])
 

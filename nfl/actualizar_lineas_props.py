@@ -19,6 +19,8 @@ import json
 import os
 import re
 import sys
+from pathlib import Path
+sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 import unicodedata
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
@@ -28,9 +30,10 @@ import mysql.connector
 import pandas as pd
 import requests
 
-from predecir_semana_actual import TEMPORADA_ACTUAL, obtener_configuracion_mysql
-from jornada import ahora_mexico, eventos_hoy, limites_utc
-import capturas
+from nfl.settings import TEMPORADA_ACTUAL
+from core.db import get_db_credentials as obtener_configuracion_mysql
+from nfl.jornada import ahora_mexico, eventos_hoy, limites_utc
+from nfl import capturas
 
 
 API_BASE = "https://api.the-odds-api.com/v4"
@@ -137,20 +140,7 @@ def conectar_mysql():
     return mysql.connector.connect(**configuracion)
 
 
-def api_get(ruta: str, api_key: str, **parametros):
-    params = {"apiKey": api_key, **parametros}
-    try:
-        respuesta = requests.get(f"{API_BASE}{ruta}", params=params, timeout=30)
-    except requests.RequestException:
-        raise RuntimeError("No se pudo conectar a The Odds API.") from None
-    if respuesta.status_code != 200:
-        raise RuntimeError(f"The Odds API respondio HTTP {respuesta.status_code}.")
-    cuota = {
-        "usados": respuesta.headers.get("x-requests-used"),
-        "restantes": respuesta.headers.get("x-requests-remaining"),
-        "costo": respuesta.headers.get("x-requests-last"),
-    }
-    return respuesta.json(), cuota
+from nfl.providers.odds import api_get
 
 
 def cargar_juegos_pendientes(conexion, solo_hoy=False):
@@ -548,14 +538,14 @@ def extraer_lineas(respuesta, juego, indice):
 
 
 def convertir_timestamp(valor):
-    if not valor:
-        return datetime.now(timezone.utc).replace(tzinfo=None)
+    """No convertir una hora desconocida en una captura reciente ficticia."""
     try:
-        return datetime.fromisoformat(valor.replace("Z", "+00:00")).astimezone(
-            timezone.utc
-        ).replace(tzinfo=None)
+        stamp = pd.Timestamp(valor)
+        if pd.isna(stamp) or stamp.tzinfo is None:
+            return None
+        return stamp.tz_convert('UTC').tz_localize(None).to_pydatetime()
     except (TypeError, ValueError):
-        return datetime.now(timezone.utc).replace(tzinfo=None)
+        return None
 
 
 def cargar_ultimas_lineas(conexion, ids_juegos):
@@ -607,7 +597,12 @@ def guardar_lineas(conexion, lineas):
             fila["casa_apuestas"], fila["tipo_prop"],
         )
         anterior = ultimas.get(clave)
-        if anterior is None or not misma_linea(anterior, fila):
+        captured = convertir_timestamp(fila.get('timestamp_captura'))
+        if captured is None:
+            continue
+        previous = pd.to_datetime(anterior.get('timestamp_captura'), utc=True, errors='coerce') if anterior else pd.NaT
+        newer = pd.isna(previous) or pd.Timestamp(captured, tz='UTC') > previous
+        if anterior is None or not misma_linea(anterior, fila) or newer:
             nuevas.append(fila)
 
     if not nuevas:
@@ -725,14 +720,16 @@ def juegos_con_captura(conexion, parejas):
         markers = ",".join(["%s"] * len(ids))
         day = ahora_mexico().date()
         start, end = limites_utc(day)
+        from datetime import timedelta, timezone
+        start = max(start, ahora_mexico().astimezone(timezone.utc).replace(tzinfo=None) - timedelta(minutes=120))
         cursor.execute(
             "SELECT DISTINCT id_juego FROM nfl_lineas_props "
             f"WHERE id_juego IN ({markers}) "
             "AND LOWER(TRIM(casa_apuestas))='draftkings' "
             "AND timestamp_captura >= %s AND timestamp_captura < %s "
             "UNION SELECT id_juego FROM nfl_capturas_odds "
-            f"WHERE id_juego IN ({markers}) AND fecha_mexico=%s AND estado<>'sin_lineas'",
-            (*ids, start, end, *ids, day))
+            f"WHERE id_juego IN ({markers}) AND fecha_mexico=%s AND (estado='solicitada' OR (estado='recibida' AND solicitada_en >= %s))",
+            (*ids, start, end, *ids, day, start))
         return {row[0] for row in cursor.fetchall()}
     finally:
         cursor.close()

@@ -6,7 +6,7 @@ import math
 import uuid
 import pandas as pd
 import streamlit as st
-from core import bankroll as bank
+from core.domain.odds import decimal_odds
 from core.db import get_db_connection
 
 
@@ -108,14 +108,16 @@ def nfl_pick(row, prop=False):
     side = row['seleccion'] if prop else row['pick']
     line = number(row['linea'] if prop else row['total_line'])
     raw_odds = row.get('cuota_pick') if prop else row.get('odds_pick')
-    try: odds = bank.decimal_odds(raw_odds)
+    try: odds = decimal_odds(raw_odds)
     except (TypeError, ValueError): odds = None
     reference = dict(game_id=str(row['id_juego']), side=side, line=line)
+    if pd.notna(row.get('inicio_utc')):
+        reference['inicio_utc'] = kickoff(row['inicio_utc'])
     if prop: reference.update(id_jugador=str(row['id_jugador']), tipo_prop=str(row['tipo_prop']))
     label = (str(row['player_name'])+' · ' if prop else '') + str(side)
     if line is not None and side in ('OVER','UNDER'): label += f' {line:g}'
     return dict(fecha=row['gameday'], deporte='NFL', partido=f"{row['away_team']} @ {row['home_team']}",
-                seleccion=label, casa=str(row.get('casa_apuestas') or 'DraftKings') if prop else 'DraftKings',
+                seleccion=label, casa=str(row.get('casa_apuestas') or 'DraftKings') if prop else 'nflverse · casa no verificada',
                 cuota=odds, probabilidad=number(row['probabilidad_pick'] if prop else row['prob_pick']),
                 origen='nfl_prop' if prop else 'nfl_total', referencia=reference,
                 modelo=row.get('modelo_version'),mercado_confianza=row.get('tipo_prop') if prop else 'Totales',
@@ -134,7 +136,7 @@ def mlb_total_pick(row):
 def liga_pick(row, side):
     date = pd.Timestamp(row['fecha']).date().isoformat()
     return dict(fecha=date, deporte='Liga MX', partido=f"{row['visitante']} @ {row['local']}",
-        seleccion=side+' 2.5', casa='DraftKings', cuota=None, probabilidad=number(row['p_'+side.lower()+'25']),
+        seleccion=side+' 2.5', casa='Sin cuota de mercado', cuota=None, probabilidad=number(row['p_'+side.lower()+'25']),
         origen='liga_mx', referencia=dict(fecha=date,local=row['local'],visitante=row['visitante'],
             side=side,line=2.5,inicio_utc=kickoff(row['inicio_utc'])))
 

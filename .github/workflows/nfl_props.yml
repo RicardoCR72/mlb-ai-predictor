@@ -8,19 +8,6 @@ on:
         required: true
         type: boolean
         default: false
-  schedule:
-    # Jueves 16:00: captura TNF.
-    - cron: "0 22 * * 4"
-    # Viernes 08:00: liquida TNF sin consultar odds.
-    - cron: "0 14 * * 5"
-    # Domingo 10:00: captura los próximos juegos (ventana de 2 h).
-    - cron: "0 16 * * 0"
-    # Domingo 17:00 de Durango/CDMX (UTC-6).
-    - cron: "0 23 * * 0"
-    # Lunes 16:00: captura MNF.
-    - cron: "0 22 * * 1"
-    # Martes 08:00: liquida MNF y el resto de la semana sin odds.
-    - cron: "0 14 * * 2"
 
 permissions:
   contents: read

@@ -82,6 +82,9 @@ jobs:
           printf '%s' "$NFL_DB_SSL_CA_CERT" > "$RUNNER_TEMP/aiven-ca.pem"
           printf 'DB_SSL_CA=%s\n' "$RUNNER_TEMP/aiven-ca.pem" >> "$GITHUB_ENV"
 
+      - name: Evaluar resultados totales terminados
+        run: python nfl/evaluar_resultados.py
+
       - name: Evaluar resultados props terminados
         run: python nfl/evaluar_resultados_props.py
 

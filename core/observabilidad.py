@@ -4,9 +4,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from urllib.request import Request, urlopen
 import pandas as pd
-from core.bankroll import rows
+from core.infrastructure.queries import rows
 
-WORKFLOWS = {'MLB':'bot_diario.yml', 'NFL totales':'nfl_predicciones.yml',
+WORKFLOWS = {'MLB':'bot_diario.yml', 'NFL totales':'bot_nfl_props.yml',
              'NFL props':'bot_nfl_props.yml', 'Liga MX':'liga_mx_espn.yml', 'MySQL':'validacion_mysql.yml'}
 
 

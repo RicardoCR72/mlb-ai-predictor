@@ -110,13 +110,7 @@ def fingerprint(bet):
     return hashlib.sha256(json.dumps(data, sort_keys=True, default=str).encode()).hexdigest()
 
 
-def rows(conn, sql, params=()):
-    cursor = conn.cursor(dictionary=True)
-    try:
-        cursor.execute(sql, params)
-        return pd.DataFrame(cursor.fetchall())
-    finally:
-        cursor.close()
+from core.infrastructure.queries import rows
 
 
 def load_ledger(conn):
@@ -284,10 +278,7 @@ def metrics(frame, initial=0):
                 saldo=initial+profit, disponible=initial+profit-risk, apuestas=len(frame))
 
 
-def decimal_odds(american):
-    value = float(american)
-    if not math.isfinite(value) or abs(value) < 100: raise ValueError('Momio americano inválido.')
-    return 1 + (value/100 if value > 0 else 100/abs(value))
+from core.domain.odds import decimal_odds
 
 
 def total_state(total, line, selection):

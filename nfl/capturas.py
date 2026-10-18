@@ -1,3 +1,4 @@
+from core.infrastructure.migrations import ensure_schema
 """Auditoría de consultas pagadas y candado compartido entre web y Actions."""
 from datetime import datetime, timezone
 
@@ -7,13 +8,7 @@ LOCK_NAME = 'nfl-props-cuota'
 def preparar(conn):
     cursor = conn.cursor()
     try:
-        cursor.execute('''CREATE TABLE IF NOT EXISTS nfl_capturas_odds (
-            id BIGINT AUTO_INCREMENT PRIMARY KEY,
-            id_juego VARCHAR(64) NOT NULL, evento_id VARCHAR(64) NOT NULL,
-            fecha_mexico DATE NOT NULL, solicitada_en DATETIME NOT NULL,
-            estado VARCHAR(20) NOT NULL, creditos INT NULL,
-            INDEX jornada (id_juego,fecha_mexico)
-        )''')
+        ensure_schema(conn, 'captures')
         conn.commit()
     finally:
         cursor.close()

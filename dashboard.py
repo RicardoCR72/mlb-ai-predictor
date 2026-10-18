@@ -1,5 +1,4 @@
 import streamlit as st
-import runpy
 from pathlib import Path
 
 st.set_page_config(page_title='Oráculo Sports AI', page_icon='◉', layout='wide', initial_sidebar_state='expanded')
@@ -12,7 +11,7 @@ st.markdown('''<style>
 .oracle-brand{color:#b7ff3c;font-size:.75rem;letter-spacing:.15em;font-weight:800;margin-bottom:.5rem}
 </style><div class="oracle-brand">ORÁCULO SPORTS AI</div>''', unsafe_allow_html=True)
 st.title('Tu día deportivo')
-view=runpy.run_path(str(Path(__file__).resolve().parent/'core/ui_inicio.py'),run_name='inicio_actual')
-view['render_home']()
+from core.ui_inicio import render_home
+render_home()
 with st.sidebar:
     st.caption('MLB, NFL, Liga MX y Rendimiento')
