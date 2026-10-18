@@ -101,8 +101,30 @@ class TestManualUpdates(unittest.TestCase):
         self.assertIn('1 coincidencias ambiguas',message)
         report.assert_called_once()
         self.assertEqual(report.call_args.args[0]['pendientes'],['one'])
-        self.assertEqual(report.call_args.args[0]['oficiales'],[1,2])
+        self.assertEqual([g['game_pk'] for g in report.call_args.args[0]['oficiales']],[1,2])
         conn.cursor.return_value.execute.assert_not_called()
+
+    def test_doubleheader_uses_exact_distinct_starts_and_never_nearest_or_date_only(self):
+        pending=pd.DataFrame([
+            dict(id_juego='early',fecha='2026-09-22 11:05:00',equipo_local='H',equipo_visitante='A'),
+            dict(id_juego='late',fecha='2026-09-22 17:05:00',equipo_local='H',equipo_visitante='A')])
+        def game(pk,hour,score):return dict(gamePk=pk,gameDate=f'2026-09-22T{hour}:05:00Z',
+            status=dict(abstractGameState='Final'),teams=dict(home=dict(team=dict(name='H'),score=score),
+            away=dict(team=dict(name='A'),score=1)))
+        games=[game(1,'17',2),game(2,'23',4)]
+        self.assertEqual(update.exact_mlb_starts(pending,games),{'1':'early','2':'late'})
+        date_only=pending.assign(fecha='2026-09-22')
+        self.assertEqual(update.exact_mlb_starts(date_only,games),{})
+        shifted=pending.copy();shifted['fecha']=pd.to_datetime(shifted.fecha)+pd.Timedelta(minutes=1)
+        self.assertEqual(update.exact_mlb_starts(shifted,games),{})
+        self.assertEqual(update.exact_mlb_starts(pd.concat([pending,pending]),games),{})
+        conn=Mock();conn.cursor.return_value.rowcount=1;report=Mock()
+        with patch.object(bank,'rows',return_value=pending), \
+             patch('mlb_totales.descargar_pitcheo.fetch_json',return_value={'dates':[{'games':games}]}):
+            message=update.refresh_mlb_games(conn,on_ambiguity=report)
+        self.assertIn('2 partidos MLB actualizados',message)
+        self.assertEqual([c.args[1] for c in conn.cursor.return_value.execute.call_args_list],[(2,1,'early'),(4,1,'late')])
+        report.assert_not_called()
 
     def test_moneyline_history_includes_today_only_with_both_scores(self):
         import ast

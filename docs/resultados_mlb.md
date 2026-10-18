@@ -38,3 +38,9 @@ Cada versión del modelo mantiene su propio registro: no son duplicados.
 Las ambigüedades solo cuentan registros pendientes de nuestra base, una vez por
 fecha y pareja. El log detalla la fecha, equipos e IDs de una ambigüedad real;
 sin una correspondencia verificable no se aplica ningún marcador.
+
+Para dobles carteleras se permite resolver automáticamente una correspondencia
+uno a uno por equipos, fecha y hora exacta del inicio oficial. `juegos.fecha`
+se interpreta con el UTC−6 fijo que escribe el scraper. No se aproxima al
+horario más cercano ni se asignan juegos por orden; fechas sin hora, horarios
+que cambiaron o IDs con la misma hora permanecen en revisión.
