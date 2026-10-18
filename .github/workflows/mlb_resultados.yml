@@ -1,0 +1,40 @@
+name: Actualizar resultados MLB
+
+on:
+  schedule:
+    - cron: '25 * * * *'
+  workflow_dispatch:
+  # Ejecutar también al instalar o corregir este proceso, para recuperar pendientes.
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/mlb_resultados.yml'
+      - 'scripts/actualizar_resultados_mlb.py'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mlb-v2-produccion
+  cancel-in-progress: false
+
+jobs:
+  resultados:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DB_HOST: ${{ secrets.DB_HOST }}
+      DB_PORT: ${{ secrets.DB_PORT }}
+      DB_USER: ${{ secrets.DB_USER }}
+      DB_PASS: ${{ secrets.DB_PASS }}
+      DB_NAME: ${{ secrets.DB_NAME }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install 'pandas>=2.2,<3' numpy scipy 'scikit-learn==1.8.0' joblib mysql-connector-python requests streamlit
+      - name: Recuperar marcadores y evaluar totales pendientes
+        run: python scripts/actualizar_resultados_mlb.py

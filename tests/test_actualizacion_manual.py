@@ -57,6 +57,64 @@ class TestManualUpdates(unittest.TestCase):
         conn.cursor.return_value.execute.assert_not_called()
         self.assertIn('ambiguas',message)
 
+    def test_mlb_finished_game_is_settled_but_live_and_postponed_are_not(self):
+        pending=pd.DataFrame([
+            dict(id_juego='yesterday',fecha='2026-10-16',equipo_local='H',equipo_visitante='A'),
+            dict(id_juego='today',fecha='2026-10-17',equipo_local='H',equipo_visitante='A'),
+            dict(id_juego='rain',fecha='2026-10-15',equipo_local='H',equipo_visitante='A')])
+        def official(endpoint,params):
+            final=params['date']=='2026-10-16'
+            if params['date']=='2026-10-15':
+                return {'dates':[{'games':[dict(gamePk=3,status=dict(statusCode='DR',abstractGameState='Final',
+                    detailedState='Postponed'),teams=dict(home=dict(team=dict(name='H')),away=dict(team=dict(name='A'))))]}]}
+            return {'dates':[{'games':[dict(gamePk=1,status=dict(statusCode='O' if final else 'I',
+                abstractGameState='Final' if final else 'Live'),teams=dict(
+                home=dict(team=dict(name='H'),score=3),away=dict(team=dict(name='A'),score=2)))]}]}
+        conn=Mock();conn.cursor.return_value.rowcount=1
+        with patch.object(bank,'rows',return_value=pending), \
+             patch('mlb_totales.descargar_pitcheo.fetch_json',side_effect=official):
+            message=update.refresh_mlb_games(conn,datetime(2026,10,17,tzinfo=ZoneInfo('America/Mexico_City')))
+        self.assertIn('1 partidos MLB actualizados',message)
+        values=conn.cursor.return_value.execute.call_args.args[1]
+        self.assertEqual(values,(3,2,'yesterday'))
+        conn.cursor.return_value.execute.assert_called_once()
+
+    def test_moneyline_history_includes_today_only_with_both_scores(self):
+        import ast
+        from datetime import date
+        source=ast.parse((ROOT/'pages/1_⚾_MLB.py').read_text())
+        fn=next(n for n in source.body if isinstance(n,ast.FunctionDef) and n.name=='cargar_historial_xampp')
+        fn.decorator_list=[]
+        conn=Mock();read=Mock(return_value=pd.DataFrame())
+        namespace=dict(conectar_bd=lambda:conn,hoy_mx=lambda:date(2026,10,17),pd=Mock(read_sql=read))
+        exec(compile(ast.Module(body=[fn],type_ignores=[]),'<history>','exec'),namespace)
+        namespace['cargar_historial_xampp']()
+        sql=read.call_args.args[0]
+        self.assertIn('DATE(j.fecha) <= %s',sql)
+        self.assertIn('j.marcador_visitante IS NOT NULL',sql)
+        self.assertEqual(read.call_args.kwargs['params'],(date(2026,10,17),))
+        conn.close.assert_called_once()
+
+    def test_results_job_attempts_both_histories_and_reports_partial_failure(self):
+        from scripts import actualizar_resultados_mlb as job
+        conn=Mock()
+        with patch.object(job,'get_db_connection',return_value=conn), \
+             patch.object(job,'refresh_mlb_games',side_effect=ValueError('private')), \
+             patch.object(job,'mlb_totals',return_value='2 resultados') as totals, \
+             patch('builtins.print') as output:
+            with self.assertRaises(RuntimeError):job.main()
+        totals.assert_called_once_with(conn)
+        conn.close.assert_called_once()
+        self.assertNotIn('private',str(output.call_args_list))
+
+    def test_hourly_results_workflow_has_no_odds_or_notifications(self):
+        import yaml
+        data=yaml.load((ROOT/'.github/workflows/mlb_resultados.yml').read_text(),Loader=yaml.BaseLoader)
+        self.assertEqual(data['on']['schedule'][0]['cron'],'25 * * * *')
+        job=data['jobs']['resultados']
+        self.assertEqual(job['steps'][-1]['run'],'python scripts/actualizar_resultados_mlb.py')
+        self.assertFalse(any('ODDS' in key or 'TELEGRAM' in key for key in job['env']))
+
     def test_partial_today_coverage_expires_and_old_unresolved_games_block(self):
         from futbol_liga_mx import cobertura_actual as coverage
         from datetime import timedelta

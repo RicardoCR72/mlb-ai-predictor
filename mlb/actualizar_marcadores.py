@@ -39,59 +39,12 @@ fecha_hoy_dt = hoy_mx()
 fecha_ayer_dt = fecha_hoy_dt - timedelta(days=1)
 fechas_a_revisar = [fecha_hoy_dt.strftime('%Y-%m-%d'), fecha_ayer_dt.strftime('%Y-%m-%d')]
 
-partidos_actualizados_total = 0
-
-for fecha_str in fechas_a_revisar:
-    print(f"📅 Buscando resultados oficiales del: {fecha_str}")
-
-    url = f"https://statsapi.mlb.com/api/v1/schedule?sportId=1&date={fecha_str}"
-    respuesta = requests.get(url).json()
-
-    if 'dates' in respuesta and len(respuesta['dates']) > 0:
-        juegos = respuesta['dates'][0]['games']
-
-        for juego in juegos:
-            # 'F' significa que el partido ya es Final / Terminó
-            if juego['status']['statusCode'] == 'F':
-                # Extraer nombres de la API
-                equipo_local_api = juego['teams']['home']['team']['name']
-                equipo_visita_api = juego['teams']['away']['team']['name']
-
-                # Normalizar el caso de los Athletics (a veces la API manda Oakland Athletics)
-                if equipo_local_api == "Oakland Athletics": equipo_local_api = "Athletics"
-                if equipo_visita_api == "Oakland Athletics": equipo_visita_api = "Athletics"
-
-                # Extraer marcadores
-                carreras_local = juego['teams']['home']['score']
-                carreras_visita = juego['teams']['away']['score']
-
-                # 3. ACTUALIZAR TU TABLA EN XAMPP
-                # Buscamos por equipo, estado programado Y LA FECHA EXACTA para evitar errores de series
-                query = """
-                UPDATE juegos
-                SET marcador_local = %s, marcador_visitante = %s, estado = 'finalizado'
-                WHERE equipo_local = %s 
-                  AND equipo_visitante = %s 
-                  AND estado = 'programado'
-                  AND DATE(fecha) = %s
-                """
-
-                cursor.execute(query, (carreras_local, carreras_visita, equipo_local_api, equipo_visita_api, fecha_str))
-
-                # Solo contamos si realmente modificó una fila (si la encontró)
-                if cursor.rowcount > 0:
-                    print(f"✅ Actualizado: {equipo_local_api} {carreras_local} - {carreras_visita} {equipo_visita_api}")
-                    partidos_actualizados_total += 1
-    else:
-        print(f"😴 No se encontraron juegos de MLB para {fecha_str}.")
-
-# Guardar los cambios
-conexion.commit()
-mensaje_exito = f"✅ MLB Base de datos actualizada: {partidos_actualizados_total} partidos guardados en XAMPP."
+# Compartir el evaluador de la app: exige un final oficial con ambos marcadores
+# y no aplica un marcador a dos partidos de una doble cartelera.
+from core.actualizacion_manual import refresh_mlb_games
+mensaje_exito = refresh_mlb_games(conexion)
 print(mensaje_exito)
 notificar_telegram(mensaje_exito)
-
-# ... (Tu código actual que actualiza XAMPP se queda igual arriba de esto) ...
 
 print("🧠 Iniciando actualización de la memoria de la IA...")
 
@@ -131,12 +84,14 @@ try:
 
         if 'dates' in respuesta and len(respuesta['dates']) > 0:
             for juego in respuesta['dates'][0]['games']:
-                # Solo procesar juegos que sí finalizaron ('F')
-                if juego['status']['statusCode'] == 'F':
+                # Un aplazado también puede tener abstractGameState=Final: exigir marcador.
+                if juego.get('status', {}).get('abstractGameState') == 'Final':
                     local = juego['teams']['home']['team']['name']
                     visita = juego['teams']['away']['team']['name']
-                    score_l = juego['teams']['home'].get('score', 0)
-                    score_v = juego['teams']['away'].get('score', 0)
+                    score_l = juego['teams']['home'].get('score')
+                    score_v = juego['teams']['away'].get('score')
+                    if score_l is None or score_v is None:
+                        continue
 
                     # Homologar el nombre de los Athletics
                     if local == "Oakland Athletics": local = "Athletics"
