@@ -7,6 +7,7 @@ import streamlit as st
 from core.db import get_db_connection
 from core.confianza_datos import read_confidence
 from core.confianza import prepare,reliability,temporal_trial,price_comparison
+from core.diagnostico_confianza import market_summary
 from core.ui_diseno import apply_design
 from core.ui_controles import state_message
 from core.ui_movil import apply_mobile_layout
@@ -37,6 +38,12 @@ def render():
     clean,excluded=prepare(raw)
     if clean.empty:
         state_message('Aún no hay resultados decididos con probabilidades válidas para evaluar.');return
+    with st.expander('Diagnóstico por mercado y versión'):
+        overview=pd.DataFrame(market_summary(clean))
+        st.caption('Cada fila mantiene separados deporte, mercado, versión y procedencia. Diferencia = acierto real menos confianza; un valor negativo indica que la confianza fue mayor que el acierto observado.')
+        st.dataframe(overview,hide_index=True,width='stretch',column_config={c:st.column_config.NumberColumn(format='percent') for c in ['confianza','acierto','diferencia','intervalo_inferior','intervalo_superior']})
+        st.caption('La señal describe estos datos; con una muestra limitada no basta para concluir que el modelo cambió ni para recalibrarlo. Brier y log-loss menores son mejores, pero no garantizan rentabilidad.')
+        st.download_button('Descargar resumen por mercado',overview.to_csv(index=False),'confianza_por_mercado.csv','text/csv')
     sport=safe_select('Deporte',sorted(clean.deporte.unique()),key='confidence_sport')
     f=clean[clean.deporte.eq(sport)]
     market=safe_select('Mercado',sorted(f.mercado.unique()),key='confidence_market')
@@ -66,6 +73,8 @@ def render():
         trials=temporal_trial(f)
         st.caption('Solo publicaciones verificadas y candidatos sin alerta de lesión: primeras fechas para ajuste (60%), posteriores para selección (20%) y últimas para prueba (20%). Cada versión y mercado se evalúa por separado.')
         st.caption('Mínimos: 200/100/100 picks y 30/20/20 partidos; al menos 20 ganadas y 20 perdidas por bloque. Se comparan identidad, temperatura y Platt sin consultar el bloque de prueba al seleccionar.')
+        for trial in trials:
+            if trial.get('motivo'):st.write('Evaluación pendiente: '+trial['motivo']+'.')
         st.json(trials,expanded=False)
         st.caption('El ajuste es experimental. No cambia la confianza publicada, los picks. Una validación favorable requiere mejora de log-loss y un intervalo de la diferencia Brier completamente bajo cero.')
         st.download_button('Descargar evaluación temporal',json.dumps(trials,ensure_ascii=False,allow_nan=False,indent=2),'calibracion_temporal.json','application/json')

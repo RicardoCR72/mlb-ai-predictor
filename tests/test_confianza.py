@@ -94,6 +94,33 @@ class ConfidenceTests(TestCase):
         with patch('core.ui_confianza.load',return_value=(self.fixture(20),[])):
             app=AppTest.from_file(str(Path(__file__).resolve().parents[1]/'pages/6_📐_Calibracion.py')).run()
             self.assertFalse(app.exception)
-            self.assertTrue(app.dataframe[0].value.evidencia.eq('Muestra limitada').all())
+            table=next(t.value for t in app.dataframe if 'evidencia' in t.value)
+            self.assertTrue(table.evidencia.eq('Muestra limitada').all())
             self.assertEqual(len(app.selectbox),3)
             self.assertTrue(any('No cambia' in c.value for c in app.caption))
+
+    def test_mixed_sources_fill_missing_game_ids_and_prepare_is_idempotent(self):
+        raw=self.fixture(4)
+        raw['probabilidad']=.7
+        raw['identidad']=['g1|p1|receiving_yards','g1|p2|receiving_yards','g2|p3|receiving_yards','mlb1']
+        raw['evento']=[None,np.nan,'','MLB|mlb1']
+        raw.loc[3,'deporte']='MLB'
+        f,_=prepare(raw)
+        self.assertEqual(f.evento.tolist(),['NFL|g1','NFL|g1','NFL|g2','MLB|mlb1'])
+        self.assertEqual(prepare(f)[0].evento.tolist(),f.evento.tolist())
+        self.assertEqual(reliability(f[f.deporte.eq('NFL')]).partidos.sum(),2)
+
+    def test_market_diagnosis_preserves_versions_and_sources_and_json_is_strict(self):
+        from core.diagnostico_confianza import build_report
+        import json
+        raw=self.fixture(6)
+        raw['probabilidad']=.9;raw['resultado']=['GANADA','PERDIDA']*3
+        raw.loc[2:3,'modelo']='v2';raw.loc[4:,'procedencia']='Sin hora'
+        report=build_report(raw,['Fuente ausente'])
+        self.assertEqual(len(report['mercados']),3)
+        self.assertTrue(all(r['muestra']=='Limitada' for r in report['mercados']))
+        self.assertTrue(all(abs(r['diferencia']+.4)<1e-9 for r in report['mercados']))
+        self.assertFalse(report['production_changed'])
+        self.assertEqual(report['fuentes_no_disponibles'],['Fuente ausente'])
+        json.dumps(report,allow_nan=False)
+        self.assertTrue(all('motivo' in r for r in report['pruebas_temporales']))
