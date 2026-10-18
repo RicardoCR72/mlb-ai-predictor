@@ -28,9 +28,16 @@ def prepare(frame):
     before=len(f);f=f.drop_duplicates(KEYS+['identidad'])
     excluded['duplicados']=before-len(f)
     f['y']=f.resultado.eq('GANADA').astype(int)
-    if 'evento' not in f:
-        f['evento']=[str(r.identidad).split('|')[0] if r.deporte=='NFL' else str(r.identidad) for r in f.itertuples()]
-    f['evento']=f.deporte.astype(str)+'|'+f.evento.astype(str)
+    # Un concat puede introducir evento solo para una de las fuentes.
+    # Completar por fila: jamás agrupar todos los NaN como un mismo partido.
+    events=[]
+    for r in f.to_dict('records'):
+        fallback=str(r['identidad']).split('|')[0] if r['deporte']=='NFL' else str(r['identidad'])
+        value=r.get('evento')
+        value=fallback if pd.isna(value) or str(value).strip() in ('','nan','None') else str(value)
+        prefix=str(r['deporte'])+'|'
+        events.append(value if value.startswith(prefix) else prefix+value)
+    f['evento']=events
     return f.reset_index(drop=True),excluded
 
 
@@ -79,13 +86,19 @@ def temporal_trial(frame):
         eligible=g.get('apto_ajuste',pd.Series(True,index=g.index)).map(lambda v:True if pd.isna(v) else str(v).casefold()=='true')
         verified=g[g.procedencia.eq(VERIFIED)&eligible].copy();dates=sorted(verified.fecha.unique())
         report.update(total=len(g),verificados=len(verified),partidos=int(verified.evento.nunique()))
-        if len(dates)<10 or verified.groupby('evento').fecha.nunique().gt(1).any():reports.append(report);continue
+        if len(dates)<10 or verified.groupby('evento').fecha.nunique().gt(1).any():
+            report['motivo']=('No hay publicaciones verificadas elegibles' if verified.empty else
+                'Un partido aparece en fechas distintas' if verified.groupby('evento').fecha.nunique().gt(1).any()
+                else 'Menos de 10 fechas con publicaciones verificadas elegibles')
+            reports.append(report);continue
         a=dates[int(len(dates)*.6)];b=dates[int(len(dates)*.8)]
         fit=verified[verified.fecha<a];selection=verified[(verified.fecha>=a)&(verified.fecha<b)];test=verified[verified.fecha>=b]
         report.update(corte_seleccion=str(a),corte_prueba=str(b),fit=len(fit),seleccion=len(selection),prueba=len(test))
         if (len(fit)<200 or len(selection)<100 or len(test)<100 or fit.evento.nunique()<30
             or selection.evento.nunique()<20 or test.evento.nunique()<20
-            or any(min(block.y.value_counts().reindex([0,1],fill_value=0))<20 for block in [fit,selection,test])):reports.append(report);continue
+            or any(min(block.y.value_counts().reindex([0,1],fill_value=0))<20 for block in [fit,selection,test])):
+            report['motivo']='No cumple mínimos de picks, partidos o ambas clases en ajuste/selección/prueba'
+            reports.append(report);continue
         from sklearn.linear_model import LogisticRegression
         estimator=LogisticRegression(C=1,random_state=72).fit(logit(np.clip(fit.probabilidad.to_numpy(),1e-6,1-1e-6)).reshape(-1,1),fit.y)
         choices=[dict(method='identity')]+[dict(method='temperature',temperature=t) for t in [1.1,1.25,1.5,2.0]]

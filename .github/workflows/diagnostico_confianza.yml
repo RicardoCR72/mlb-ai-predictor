@@ -1,0 +1,36 @@
+name: Diagnóstico de confianza por mercado
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/diagnostico_confianza.yml'
+      - 'scripts/diagnosticar_confianza.py'
+      - 'core/diagnostico_confianza.py'
+      - 'core/confianza.py'
+      - 'core/confianza_datos.py'
+permissions:
+  contents: read
+jobs:
+  diagnostico:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      DB_HOST: ${{ secrets.NFL_DB_HOST || secrets.DB_HOST }}
+      DB_PORT: ${{ secrets.NFL_DB_PORT || secrets.DB_PORT }}
+      DB_USER: ${{ secrets.NFL_DB_USER || secrets.DB_USER }}
+      DB_PASSWORD: ${{ secrets.NFL_DB_PASSWORD || secrets.DB_PASSWORD || secrets.DB_PASS }}
+      DB_NAME: ${{ secrets.NFL_DB_NAME || secrets.DB_NAME }}
+      DB_SSL_CA_CERT: ${{ secrets.NFL_DB_SSL_CA_CERT || secrets.DB_SSL_CA_CERT }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install 'pandas>=2.2,<3' numpy scipy scikit-learn==1.8.0 joblib mysql-connector-python requests 'pyarrow>=17,<22'
+      - name: Evaluar históricos sin modificar modelos ni predicciones
+        run: python scripts/diagnosticar_confianza.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: diagnostico-confianza
+          path: diagnostico_confianza/reporte.json
