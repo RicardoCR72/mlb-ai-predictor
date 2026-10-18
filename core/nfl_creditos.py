@@ -28,7 +28,7 @@ def api_key():
     raise RuntimeError('Falta ODDS_API_KEY u odds_api_key en la configuración de la página.')
 
 
-def plan_hoy(now=None):
+def plan_hoy(now=None, todos=False):
     key = api_key()
     try:
         response = requests.get(API_BASE+'/sports/americanfootball_nfl/events',
@@ -37,10 +37,10 @@ def plan_hoy(now=None):
         raise RuntimeError('No se pudo consultar el calendario de The Odds API.') from None
     if response.status_code != 200:
         raise RuntimeError(f'The Odds API respondió HTTP {response.status_code}; no se solicitaron cuotas.')
-    events = eventos_hoy(response.json(), now)
+    events = eventos_hoy(response.json(), now, proximas_horas=None if todos else 2)
     remaining = response.headers.get('x-requests-remaining')
     remaining = int(remaining) if remaining is not None else None
-    return dict(fecha=str(ahora_mexico(now).date()), eventos=events,
+    return dict(fecha=str(ahora_mexico(now).date()), eventos=events, todos=todos,
                 max_creditos=len(events)*len(MERCADOS_PROPS), restantes=remaining, reserva=RESERVA)
 
 
@@ -53,12 +53,17 @@ def run_predictions(root, plan, on_step=None):
         if plan['fecha'] != str(ahora_mexico().date()):
             raise RuntimeError('Cambió el día; vuelve a consultar los partidos de hoy.')
         events = eventos_hoy(plan['eventos'])
+        if not plan.get('todos', False):
+            events = eventos_hoy(events, proximas_horas=2)
         if not events:
             return dict(ok=True, detalle='No hay partidos NFL de hoy sin iniciar. Consumo: 0 créditos.', reporte=None)
         if plan['restantes'] is None:
             raise RuntimeError('No se recibió el saldo de créditos; no se consultarán cuotas.')
         if plan['restantes'] < RESERVA + len(MERCADOS_PROPS):
             raise RuntimeError('No hay créditos disponibles por encima de la reserva de 120.')
+        prediction_args = ('--solo-hoy',)
+        if not plan.get('todos', False):
+            prediction_args += ('--proximas-horas', '2')
         env = child_environment()
         env['ODDS_API_KEY'] = api_key()
         env['PYTHONUNBUFFERED'] = '1'
@@ -77,19 +82,19 @@ def run_predictions(root, plan, on_step=None):
             return process.stdout
         if not (Path(root)/'data/nfl/raw/nfl_player_stats_2012_2026.parquet').exists():
             run('Preparar estadísticas NFL, sin créditos', 'nfl/descargar_datos.py')
-        output = run('Actualizar totales de hoy, sin créditos', 'nfl/predecir_semana_actual.py', ('--solo-hoy',))
+        output = run('Actualizar totales de hoy, sin créditos', 'nfl/predecir_semana_actual.py', prediction_args)
         if 'MySQL actualizado:' not in output:
             raise RuntimeError('No hay partidos de hoy habilitados por el calendario NFL; no se gastaron créditos.')
-        output = run('Comprobar modelos y datos de props, sin créditos', 'nfl/predecir_props_semana_actual.py', ('--solo-hoy',))
+        output = run('Comprobar modelos y datos de props, sin créditos', 'nfl/predecir_props_semana_actual.py', prediction_args)
         if 'MySQL actualizado:' not in output:
             raise RuntimeError('No se pudieron preparar los props de hoy; no se gastaron créditos.')
         report = dict(fecha=plan['fecha'], solicitados=None, creditos=None, restantes=None,
                       insertadas=0, completo=False)
         run('Consultar líneas DraftKings de hoy, con créditos', 'nfl/actualizar_lineas_props.py',
-            ('--solo-hoy', '--solo-draftkings', '--reserva-creditos', str(RESERVA),
+            ('--solo-hoy', '--una-captura', *(() if plan.get('todos', False) else ('--proximas-horas', '2')), '--solo-draftkings', '--reserva-creditos', str(RESERVA),
              '--max-creditos', str(min(plan['max_creditos'], len(events)*len(MERCADOS_PROPS))),
              '--eventos', ','.join(e['id'] for e in events)))
-        run('Guardar predicciones con las líneas actualizadas', 'nfl/predecir_props_semana_actual.py', ('--solo-hoy',))
+        run('Guardar predicciones con las líneas actualizadas', 'nfl/predecir_props_semana_actual.py', prediction_args)
         partial = report is not None and not report.get('completo')
         return dict(ok=not partial, detalle='Actualización parcial; revisa consumo y partidos omitidos.' if partial else 'Predicciones de hoy actualizadas.', reporte=report)
     except Exception as exc:

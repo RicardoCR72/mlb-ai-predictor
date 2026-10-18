@@ -849,11 +849,11 @@ def main(argv=None):
         parejas_api = emparejar_eventos(
             juegos, eventos, permitir_iniciados=args.usar_cache
         )
-        report['esperados'] = len(eventos)
-        report['sin_emparejar'] = len(eventos) - len(parejas_api)
-        parejas = filtrar_parejas_por_ventana(
-            parejas_api, args.proximas_horas
-        )
+        parejas = filtrar_parejas_por_ventana(parejas_api, args.proximas_horas)
+        # El informe mide únicamente el alcance solicitado.
+        eventos_ventana = filtrar_parejas_por_ventana([(None, e) for e in eventos], args.proximas_horas)
+        report['esperados'] = len(eventos_ventana)
+        report['sin_emparejar'] = len(eventos_ventana) - len(parejas)
         if args.una_captura and not args.usar_cache:
             anteriores = juegos_con_captura(conexion, parejas)
             parejas = [(juego, evento) for juego, evento in parejas

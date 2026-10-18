@@ -1652,7 +1652,10 @@ def mostrar_resultados(df, semana):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--solo-hoy', action='store_true')
+    parser.add_argument('--proximas-horas', type=float, default=None)
     args = parser.parse_args()
+    if args.proximas_horas is not None and (args.proximas_horas <= 0 or not args.solo_hoy):
+        parser.error('--proximas-horas requiere --solo-hoy y un valor positivo')
 
     DIRECTORIO_PREDICCIONES.mkdir(
 
@@ -1671,6 +1674,8 @@ def main():
         hoy = calendario_hoy(calendario[
             calendario['season'].eq(TEMPORADA_ACTUAL) & calendario['game_type'].eq('REG')
             & (calendario['home_score'].isna() | calendario['away_score'].isna())])
+        if args.proximas_horas is not None:
+            hoy = calendario_hoy(hoy, proximas_horas=args.proximas_horas)
         if hoy.empty:
             print('No hay partidos NFL de hoy sin iniciar; no se generan predicciones.')
             return

@@ -29,6 +29,19 @@ def event(id, kickoff, away='Arizona Cardinals', home='Seattle Seahawks'):
 
 
 class DayTests(unittest.TestCase):
+    def test_window_excludes_afternoon_and_evening_until_their_turn(self):
+        events = [event('early','2026-10-18T17:00:00Z'),
+                  event('late','2026-10-18T20:05:00Z'),
+                  event('night','2026-10-19T00:20:00Z')]
+        now = datetime(2026,10,18,15,30,tzinfo=timezone.utc)
+        self.assertEqual([e['id'] for e in jornada.eventos_hoy(events,now,2)], ['early'])
+        self.assertEqual(len(jornada.eventos_hoy(events,now)), 3)
+        self.assertEqual(jornada.eventos_hoy(events,now-timedelta(hours=8),2), [])
+        self.assertEqual([e['id'] for e in jornada.eventos_hoy(events,now+timedelta(hours=3),2)], ['late'])
+        frame = pd.DataFrame([dict(game_id=e['id'], gameday='2026-10-18',gametime=t)
+                              for e,t in zip(events,['13:00','16:05','20:20'])])
+        self.assertEqual(jornada.calendario_hoy(frame,now,2).game_id.tolist(), ['early'])
+
     def test_delayed_thursday_after_utc_midnight_is_still_tnf(self):
         now = datetime(2026,10,9,0,10,tzinfo=timezone.utc)
         events = [event('tnf','2026-10-09T00:20:00Z'), event('sun','2026-10-11T17:00:00Z'),
@@ -186,27 +199,28 @@ class ManualTests(unittest.TestCase):
         response=Mock(status_code=200,headers={'x-requests-remaining':'450'})
         response.json.return_value=[event('tnf','2026-10-09T00:20:00Z'),event('sun','2026-10-11T17:00:00Z')]
         with patch.object(nfl_creditos,'api_key',return_value='private'),patch.object(nfl_creditos.requests,'get',return_value=response) as get:
-            plan=nfl_creditos.plan_hoy(datetime(2026,10,8,20,tzinfo=timezone.utc))
+            plan=nfl_creditos.plan_hoy(datetime(2026,10,8,23,tzinfo=timezone.utc))
         self.assertTrue(get.call_args.args[0].endswith('/events'))
         self.assertEqual(plan['max_creditos'],6)
         self.assertEqual(plan['restantes'],450)
 
     def test_pipeline_spends_only_after_models_and_db_work_and_carries_budget(self):
-        now=datetime(2026,10,8,20,tzinfo=timezone.utc)
+        now=datetime(2026,10,8,23,tzinfo=timezone.utc)
         plan=dict(fecha='2026-10-08',eventos=[event('tnf','2026-10-09T00:20:00Z')],max_creditos=6,restantes=500)
         report=dict(fecha='2026-10-08',solicitados=1,creditos=6,restantes=494,insertadas=30,completo=True)
         def process(args,**kwargs):
             stdout='NFL_ODDS_REPORT='+json.dumps(report) if 'actualizar_lineas_props.py' in args[1] else 'MySQL actualizado: 1'
             return Mock(returncode=0,stdout=stdout)
         with tempfile.TemporaryDirectory() as folder,patch.object(nfl_creditos,'ahora_mexico',return_value=jornada.ahora_mexico(now)),\
-             patch.object(nfl_creditos,'eventos_hoy',side_effect=lambda e:jornada.eventos_hoy(e,now)),\
+             patch.object(nfl_creditos,'eventos_hoy',side_effect=lambda e,**kw:jornada.eventos_hoy(e,now,**kw)),\
              patch.object(nfl_creditos,'child_environment',return_value={}),patch.object(nfl_creditos,'api_key',return_value='private'),\
              patch.object(nfl_creditos.subprocess,'run',side_effect=process) as run:
             result=nfl_creditos.run_predictions(folder,plan)
             commands=[c.args[0] for c in run.call_args_list]
             paid=next(c for c in commands if 'actualizar_lineas_props.py' in c[1])
             self.assertEqual(paid[-4:],['--max-creditos','6','--eventos','tnf'])
-            self.assertNotIn('--una-captura',paid)
+            self.assertIn('--una-captura',paid)
+            self.assertIn('--proximas-horas',paid)
             self.assertTrue(all('--solo-hoy' in c for c in commands if 'predecir_' in c[1]))
             self.assertTrue(result['ok']);self.assertEqual(result['reporte']['creditos'],6)
             run.reset_mock();run.return_value=Mock(returncode=1,stdout='');run.side_effect=None
@@ -224,6 +238,25 @@ class ManualTests(unittest.TestCase):
             at.button[1].click().run()
             self.assertFalse(at.exception);run.assert_called_once()
             self.assertEqual(run.call_args.kwargs['payload']['eventos'][0]['id'],'tnf')
+
+    def test_checkbox_switches_scope_and_empty_window_disables_submission(self):
+        def preview(day, todos=False):
+            events = [event('night','2099-01-02T00:20:00Z')] if todos else []
+            return dict(fecha='2099-01-01', eventos=events, todos=todos,
+                        max_creditos=len(events)*6, restantes=500, reserva=120)
+        with patch('core.ui_nfl_creditos.consultar',side_effect=preview), \
+             patch('core.ui_trabajos.latest',return_value=None), \
+             patch('core.ui_trabajos.submit',return_value='demo') as submit:
+            at=AppTest.from_string('from core.ui_nfl_creditos import render_prediction_button\nrender_prediction_button()').run()
+            self.assertFalse(at.exception)
+            self.assertFalse(at.checkbox[0].value)
+            self.assertTrue(at.button[0].disabled)
+            submit.assert_not_called()
+            at.checkbox[0].check().run()
+            self.assertFalse(at.exception)
+            self.assertFalse(at.button[0].disabled)
+            at.button[0].click().run()
+            self.assertTrue(submit.call_args.kwargs['payload']['todos'])
 
     def test_workflow_decision_is_based_on_trigger_and_every_paid_step_is_today(self):
         w=yaml.safe_load((ROOT/'.github/workflows/bot_nfl_props.yml').read_text())

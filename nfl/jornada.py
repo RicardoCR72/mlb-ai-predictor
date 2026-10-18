@@ -22,13 +22,14 @@ def inicio_evento(event):
         return None
 
 
-def eventos_hoy(events, now=None):
+def eventos_hoy(events, now=None, proximas_horas=None):
     now = ahora_mexico(now)
     valid = {}
     for event in events:
         start = inicio_evento(event)
         if (start and event.get('id') and start > now
-                and start.astimezone(MEXICO).date() == now.date()):
+                and start.astimezone(MEXICO).date() == now.date()
+                and (proximas_horas is None or start <= now + timedelta(hours=proximas_horas))):
             valid[event['id']] = event
     return sorted(valid.values(), key=lambda e: (inicio_evento(e), e['id']))
 
@@ -39,7 +40,7 @@ def limites_utc(day):
             (start + timedelta(days=1)).astimezone(timezone.utc).replace(tzinfo=None))
 
 
-def calendario_hoy(frame, now=None):
+def calendario_hoy(frame, now=None, proximas_horas=None):
     """nflverse publica gametime en Eastern; no inventar hora cuando falta."""
     import pandas as pd
     now = ahora_mexico(now)
@@ -50,7 +51,8 @@ def calendario_hoy(frame, now=None):
             day = pd.Timestamp(row['gameday']).date()
             start = datetime.fromisoformat(str(day)+'T'+str(row['gametime']))
             start = start.replace(tzinfo=ZoneInfo('America/New_York'))
-            return start > now and start.astimezone(MEXICO).date() == now.date()
+            return (start > now and start.astimezone(MEXICO).date() == now.date()
+                    and (proximas_horas is None or start <= now + timedelta(hours=proximas_horas)))
         except (TypeError, ValueError):
             return False
     if frame.empty:

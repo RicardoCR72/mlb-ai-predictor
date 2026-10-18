@@ -95,8 +95,16 @@ antes de solicitar otra ejecución. Para escalar a varios servidores se puede
 reemplazar este ejecutor conservando el contrato persistente.
 
 La captura pagada NFL mantiene el alcance del día CDMX, DraftKings, reserva y
-candado de crédito existente. Cada nueva solicitud manual puede consumir
-créditos; los workflows conservan su deduplicación diaria por partido.
+candado de crédito existente. El botón selecciona por defecto solo juegos que inician en las próximas dos horas,
+con reloj CDMX; sin juegos próximos no carga otras tandas. La casilla «Todos los
+partidos de hoy» permite ampliar explícitamente el alcance. La lista previa
+muestra horarios y presupuesto. Totales y props respetan la misma ventana.
+La ejecución vuelve a validar las horas antes de pedir cuotas. Los procesos
+automáticos también usan dos horas, incluyendo una captura dominical intermedia.
+Web y workflows omiten capturas previas del día por partido (incluso solicitudes
+con cobro incierto), evitando repetir créditos por un segundo clic.
+Los picks ya guardados continúan visibles; el alcance controla qué se actualiza.
+Totales usa la línea de nflverse, no cuotas nuevas de The Odds API.
 
 ## Pruebas y entornos
 

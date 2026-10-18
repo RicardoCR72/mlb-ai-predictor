@@ -13,7 +13,7 @@ on:
     - cron: "0 22 * * 4"
     # Viernes 08:00: liquida TNF sin consultar odds.
     - cron: "0 14 * * 5"
-    # Domingo 10:00: captura la jornada dominical.
+    # Domingo 10:00: captura los próximos juegos (ventana de 2 h).
     - cron: "0 16 * * 0"
     # Domingo 17:00 de Durango/CDMX (UTC-6).
     - cron: "0 23 * * 0"
@@ -109,7 +109,7 @@ jobs:
           DB_NAME: ${{ secrets.NFL_DB_NAME || secrets.DB_NAME }}
           DB_SSL_CA: ${{ runner.temp }}/aiven-ca.pem
           ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
-        run: python nfl/actualizar_lineas_props.py --solo-hoy --una-captura --solo-draftkings --reserva-creditos 120
+        run: python nfl/actualizar_lineas_props.py --solo-hoy --proximas-horas 2 --una-captura --solo-draftkings --reserva-creditos 120
 
       # NOTA: Las proyecciones se generan tras cada captura de bot_nfl_props.yml.
       # Aquí solo se regeneran cuando se corre manualmente.
@@ -123,7 +123,7 @@ jobs:
           DB_PASSWORD: ${{ secrets.NFL_DB_PASSWORD || secrets.DB_PASSWORD || secrets.DB_PASS }}
           DB_NAME: ${{ secrets.NFL_DB_NAME || secrets.DB_NAME }}
           DB_SSL_CA: ${{ runner.temp }}/aiven-ca.pem
-        run: python nfl/predecir_props_semana_actual.py --solo-hoy
+        run: python nfl/predecir_props_semana_actual.py --solo-hoy --proximas-horas 2
 
 
       - name: Liquidar apuestas realizadas de Bankroll

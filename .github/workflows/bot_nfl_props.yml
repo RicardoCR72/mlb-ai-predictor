@@ -11,11 +11,18 @@ on:
     # Domingo 12:00 UTC (06:00 CDMX): incluye juegos internacionales tempranos.
     - cron: '0 12 * 9-12,1-2 0'
     - cron: '0 16 * 9-12,1-2 0'
+    # 12:00 CDMX: incluye la tanda de las 14:00.
+    - cron: '0 18 * 9-12,1-2 0'
+    - cron: '0 20 * 9-12,1-2 0'
     # Domingo 22:00 UTC (16:00 CDMX): captura solo juegos de hoy sin captura previa.
     - cron: '0 22 * 9-12,1-2 0'
     # Lunes 20:00 UTC (14:00 CDMX): solo MNF del día.
     - cron: '0 20 * 9-12,1-2 1'
     - cron: '0 22 * 9-12,1-2 1'
+    # 17:00 CDMX: TNF, SNF y MNF ya están dentro de las 2 h previas.
+    - cron: '0 23 * 9-12,1-2 4'
+    - cron: '0 23 * 9-12,1-2 0'
+    - cron: '0 23 * 9-12,1-2 1'
     # Martes 14:00 UTC (08:00 CDMX): liquida MNF, regenera proyecciones sin odds.
     - cron: '0 14 * 9-12,1-2 2'
   workflow_dispatch:
@@ -96,17 +103,17 @@ jobs:
 
       - name: Actualizar calendario y totales de hoy sin creditos
         if: steps.ventana.outputs.capturar == 'true'
-        run: python nfl/predecir_semana_actual.py --solo-hoy
+        run: python nfl/predecir_semana_actual.py --solo-hoy --proximas-horas 2
 
       - name: Comprobar modelos y props de hoy antes de gastar creditos
         if: steps.ventana.outputs.capturar == 'true'
-        run: python nfl/predecir_props_semana_actual.py --solo-hoy
+        run: python nfl/predecir_props_semana_actual.py --solo-hoy --proximas-horas 2
 
       - name: Capturar odds del partido de hoy
         if: steps.ventana.outputs.capturar == 'true'
         run: |
           python nfl/actualizar_lineas_props.py \
-            --solo-hoy \
+            --solo-hoy --proximas-horas 2 \
             --una-captura \
             --solo-draftkings \
             --reserva-creditos 120
@@ -117,9 +124,9 @@ jobs:
           CAPTURAR: ${{ steps.ventana.outputs.capturar }}
         run: |
           if [ "$CAPTURAR" = "true" ]; then
-            python nfl/predecir_props_semana_actual.py --solo-hoy
+            python nfl/predecir_props_semana_actual.py --solo-hoy --proximas-horas 2
           else
-            python nfl/predecir_props_semana_actual.py
+            python nfl/predecir_props_semana_actual.py --solo-hoy --proximas-horas 2
           fi
 
 
