@@ -582,7 +582,8 @@ def cargar_historial_xampp():
                MAX(c.cuota_local) AS 'Paga Local', MAX(c.cuota_visitante) AS 'Paga Visitante'
         FROM juegos j
         JOIN cuotas_moneyline c ON j.id_juego = c.id_juego
-        WHERE j.marcador_local IS NOT NULL AND DATE(j.fecha) < %s
+        WHERE j.marcador_local IS NOT NULL AND j.marcador_visitante IS NOT NULL
+          AND DATE(j.fecha) <= %s
         GROUP BY j.id_juego ORDER BY j.fecha ASC
     """
     df = pd.read_sql(consulta, conexion, params=(hoy_mx(),))
