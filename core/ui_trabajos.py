@@ -1,8 +1,7 @@
-"""Controles administrativos y seguimiento del estado real persistido."""
+"""Controles de actualización y seguimiento del estado real persistido."""
 import streamlit as st
 import pandas as pd
 from html import escape
-from core.permisos import session_token
 from core.trabajos import submit,latest
 
 
@@ -54,14 +53,13 @@ def render_job(service):
 
 
 def action_button(service,label,*,key,help=None,payload=None,disabled=False):
-    token=session_token()
-    clicked=st.button(label,key=key,help=help or 'Requiere acceso administrativo.',disabled=disabled or token is None,
+    clicked=st.button(label,key=key,help=help,disabled=disabled,
         type='primary' if service.endswith('predictions') else 'secondary')
     if clicked:
         try:
-            submit(service,token=token,payload=payload)
+            submit(service,payload=payload)
             st.toast('Solicitud registrada. Puedes seguir consultando la página.')
-        except Exception:st.caption('No se pudo registrar la solicitud. Revisa el acceso y la conexión.')
+        except Exception:st.caption('No se pudo registrar la solicitud. Revisa la conexión.')
     render_job(service)
 
 

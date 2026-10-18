@@ -11,8 +11,6 @@ from core import bankroll as bank
 ROOT=Path(__file__).resolve().parents[1]
 
 class TestManualUpdates(unittest.TestCase):
-    def setUp(self):
-        self.enterContext(patch("core.permisos.require_admin"))
     def test_nfl_uses_fixed_evaluator_and_private_environment_without_notifications(self):
         creds={'host':'database','port':1234,'user':'user','password':'private','database':'sports','ssl_ca':'/tmp/ca.pem'}
         with patch.object(update,'get_db_credentials',return_value=creds),patch.dict(update.os.environ,{'ODDS_API_KEY':'secret','TELEGRAM_BOT_TOKEN':'secret'}),patch.object(update.subprocess,'run',return_value=Mock(returncode=0)) as run:
@@ -201,7 +199,7 @@ st.write('Tabla actualizada')
         result={'busy':False,'steps':[{'paso':'Resultados','ok':True,'detalle':'1 resultado'},{'paso':'Bankroll','ok':False,'detalle':'Sin conexión'}],'at':'2026-10-06T07:30:00-06:00'}
         from datetime import datetime
         job=dict(id='demo',estado='parcial',creado_utc=datetime(2026,10,1),iniciado_utc=None,terminado_utc=datetime(2026,10,1),resultado=result)
-        with patch('core.ui_trabajos.session_token',return_value='test'),patch('core.ui_trabajos.submit',return_value='demo') as run, \
+        with patch('core.ui_trabajos.submit',return_value='demo') as run, \
              patch('core.ui_trabajos.latest',return_value=job),patch('core.ui_trabajos.invalidate_readers'):
             app=AppTest.from_string(text).run()
             app.button[0].click().run()

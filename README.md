@@ -20,15 +20,9 @@ MySQL utiliza `core/db.py`: Secrets de Streamlit, sección `mysql` o variables
 `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`/`DB_PASS`, `DB_NAME`. Los certificados
 Aiven existentes siguen admitidos. No deben incluirse credenciales en Git.
 
-La consulta está disponible sin acceso de operación. Para habilitar escrituras
-y acciones que consumen créditos, configura **ORACLE_ADMIN_PASSWORD** en Secrets
-y abre **Acceso administrativo** en la barra lateral. Se admiten como
-compatibilidad `NFL_ADMIN_PASSWORD` y `nfl_admin_password` ya configurados.
-Sin contraseña administrativa se mantiene el modo consulta; no hay contraseña
-predeterminada. La comprobación se repite en el servidor antes de ejecutar.
-
-El acceso administrativo no sustituye autenticación de suscriptores. Antes de
-vender acceso se necesita una identidad por usuario y control de suscripción.
+Los botones de actualización están disponibles sin inicio de sesión administrativo.
+Las acciones se solicitan explícitamente desde cada sección; abrir una página no
+inicia generación de predicciones ni capturas de cuotas.
 
 ## Navegación
 
@@ -53,7 +47,6 @@ resultados deportivos no liquida Bankroll como efecto secundario.
 - `nfl/repositorio.py`: consultas y normalización SQL NFL.
 - `futbol_liga_mx/repositorio.py`: CSV con invalidación por versión del archivo.
 - `core/trabajos.py`: ejecuciones manuales persistidas y exclusión MySQL.
-- `core/permisos.py`: autorización de operación.
 - `assets/ui.css` y `.streamlit/config.toml`: tema y componentes comunes.
 
 Consultar MLB no ejecuta TensorFlow ni guarda nuevas predicciones. **Generar
@@ -86,7 +79,7 @@ en particular `MLB_ODDS_CAPTURE_TIMEZONE=America/Mazatlan`.
 ## Actualizaciones manuales
 
 `oracle_trabajos` es una tabla aditiva creada al solicitar la primera ejecución
-autorizada. Requiere CREATE/SELECT/INSERT/UPDATE. Conserva identificador, servicio,
+manual. Requiere CREATE/SELECT/INSERT/UPDATE. Conserva identificador, servicio,
 estados, pasos y respuesta; no almacena contraseñas ni claves de API.
 
 Una clave única evita dos solicitudes activas del mismo servicio. Cada servicio
@@ -109,7 +102,7 @@ créditos; los workflows conservan su deduplicación diaria por partido.
 
 El CI ejecuta unittest/AppTest, MySQL desechable y navegador a varios tamaños.
 Los fixtures de navegación no solicitan APIs deportivas ni usan datos privados.
-`tests/test_arquitectura.py` verifica permisos antes de conectar, vistas reales,
+`tests/test_arquitectura.py` verifica servicios permitidos, acciones explícitas, vistas reales,
 fuente original compartida, estado persistente y corte CDMX.
 
 MySQL de pruebas exige `BANKROLL_MYSQL_TEST=1` y `DB_NAME=bankroll_ci`; nunca debe

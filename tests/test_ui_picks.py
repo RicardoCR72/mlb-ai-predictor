@@ -243,7 +243,6 @@ class MLBHistoryVisibilityTests(TestCase):
         if reconstructed:f.loc[1,'procedencia']='Reconstruido'
         self.enterContext(patch('core.ui_historial_publicado.load_history',return_value=(f,[])))
         self.enterContext(patch('core.ui_trabajos.latest',return_value=None))
-        self.enterContext(patch('core.permisos.configured_password',return_value=None))
         app=AppTest.from_file(str(Path(__file__).resolve().parents[1]/'pages/1_⚾_MLB.py'))
         app.session_state['mlb_section']='Rendimiento' if 'Rendimiento' in view else 'Picks de hoy'
         return app.run()

@@ -6,7 +6,6 @@ import os
 import pandas as pd
 from streamlit.testing.v1 import AppTest
 from core.comparador import normalize,VERIFIED,SAVED
-from core import permisos
 
 ROOT=Path(__file__).resolve().parents[1]
 
@@ -38,7 +37,7 @@ class ArchitectureTests(TestCase):
         with patch('nfl.repositorio.cargar_props_mysql',return_value=nfl_fixture(True)), \
              patch('nfl.repositorio.cargar_predicciones_mysql',return_value=nfl_fixture()), \
              patch('core.ui_historial_publicado.load_history',return_value=(history_fixture(),[])), \
-             patch('core.ui_trabajos.latest',return_value=None),patch('core.permisos.configured_password',return_value=None), \
+             patch('core.ui_trabajos.latest',return_value=None), \
              patch('streamlit.secrets',{}),patch('subprocess.run') as child:
             app=AppTest.from_file(str(ROOT/'pages/2_🏈_NFL.py')).run()
             self.assertFalse(app.exception)
@@ -52,16 +51,24 @@ class ArchitectureTests(TestCase):
             self.assertFalse(app.exception)
             child.assert_not_called()
 
-    def test_unauthorized_actions_never_connect_or_spawn(self):
-        from core import trabajos,nfl_creditos,actualizacion_manual
-        with patch.object(permisos,'configured_password',return_value='private'), \
-             patch.object(trabajos,'get_db_connection') as db, \
-             patch.object(nfl_creditos.subprocess,'run') as child:
-            for call in (lambda:trabajos.submit('mlb',token='wrong'),
-                         lambda:nfl_creditos.run_predictions(ROOT,{},admin_token='wrong'),
-                         lambda:actualizacion_manual.run_update('mlb',ROOT,admin_token='wrong')):
-                with self.assertRaises(PermissionError):call()
+    def test_unknown_service_never_connects_or_spawns(self):
+        from core import trabajos
+        with patch.object(trabajos,'get_db_connection') as db, \
+             patch.object(trabajos.EXECUTOR,'submit') as child:
+            with self.assertRaises(ValueError):trabajos.submit('unknown')
             db.assert_not_called();child.assert_not_called()
+
+    def test_update_button_submits_without_login_and_respects_disabled(self):
+        with patch('core.ui_trabajos.submit',return_value='job') as submit, \
+             patch('core.ui_trabajos.latest',return_value=None):
+            app=AppTest.from_string("from core.ui_trabajos import action_button\naction_button('mlb','Actualizar resultados',key='update')\naction_button('nfl_predictions','Sin juegos',key='empty',disabled=True)").run()
+            self.assertFalse(app.exception)
+            self.assertFalse(app.button[0].disabled)
+            self.assertTrue(app.button[1].disabled)
+            submit.assert_not_called()
+            app.button[0].click().run()
+            self.assertFalse(app.exception)
+            submit.assert_called_once_with('mlb',payload=None)
 
     def test_history_and_calibration_share_original_but_keep_push_semantics(self):
         from core import confianza_datos as data
@@ -100,14 +107,15 @@ class ArchitectureTests(TestCase):
     def test_readonly_history_does_not_import_tensorflow_and_empty_is_not_zero_roi(self):
         f=history_fixture();f['deporte']='MLB';f['mercado']='Moneyline'
         with patch('core.ui_historial_publicado.load_history',return_value=(f,[])), \
-             patch('core.ui_trabajos.latest',return_value=None),patch('core.permisos.configured_password',return_value=None), \
+             patch('core.ui_trabajos.latest',return_value=None), \
              patch('subprocess.run') as child:
             app=AppTest.from_file(str(ROOT/'pages/1_⚾_MLB.py')).run()
             next(r for r in app.radio if r.label=='Sección MLB').set_value('Rendimiento').run()
             self.assertFalse(app.exception)
             self.assertEqual(next(m for m in app.metric if m.label=='Picks evaluados').value,'1')
             self.assertEqual(next(m for m in app.metric if m.label=='ROI').value,'+90.0%')
-            self.assertTrue(all(b.disabled for b in app.button if 'resultados' in b.label or 'Generar' in b.label))
+            self.assertTrue(all(not b.disabled for b in app.button if 'resultados' in b.label or 'Generar' in b.label))
+            self.assertFalse(any(e.label=='Acceso administrativo' for e in app.expander))
             child.assert_not_called()
         with patch('core.ui_historial_publicado.load_history',return_value=(f.iloc[:0],[])):
             empty=AppTest.from_string("from core.ui_historial_publicado import render_history\nrender_history('MLB','Moneyline',key='empty')").run()
