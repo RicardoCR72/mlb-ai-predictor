@@ -1,7 +1,33 @@
 """Migraciones aditivas y versionadas; repetirlas conserva datos existentes."""
 import hashlib
 
-SCHEMAS = {'jobs': 'CREATE TABLE IF NOT EXISTS oracle_trabajos (\n id CHAR(36) PRIMARY KEY,servicio VARCHAR(40) NOT NULL,\n activo VARCHAR(40) NULL UNIQUE,estado VARCHAR(24) NOT NULL,\n creado_utc DATETIME(6) NOT NULL,iniciado_utc DATETIME(6) NULL,\n terminado_utc DATETIME(6) NULL,paso VARCHAR(180) NULL,resultado JSON NULL,payload JSON NULL,\n KEY ix_oracle_jobs_service(servicio,creado_utc)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4', 'captures': 'CREATE TABLE IF NOT EXISTS nfl_capturas_odds (\n            id BIGINT AUTO_INCREMENT PRIMARY KEY,\n            id_juego VARCHAR(64) NOT NULL, evento_id VARCHAR(64) NOT NULL,\n            fecha_mexico DATE NOT NULL, solicitada_en DATETIME NOT NULL,\n            estado VARCHAR(20) NOT NULL, creditos INT NULL,\n            INDEX jornada (id_juego,fecha_mexico)\n        )', 'total_publications': 'CREATE TABLE IF NOT EXISTS nfl_publicaciones_totales (\n id_juego VARCHAR(128) NOT NULL, modelo VARCHAR(128) NOT NULL,\n seleccion VARCHAR(5) NOT NULL,linea DOUBLE NOT NULL,probabilidad DOUBLE NOT NULL,\n cuota DOUBLE NOT NULL,start_utc DATETIME(6) NOT NULL,publicada_utc DATETIME(6) NOT NULL,\n PRIMARY KEY(id_juego,modelo)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4', 'prop_publications': 'CREATE TABLE IF NOT EXISTS nfl_publicaciones_props (\n            id_juego VARCHAR(64) NOT NULL, id_jugador VARCHAR(64) NOT NULL,\n            tipo_prop VARCHAR(40) NOT NULL, modelo_version VARCHAR(100) NOT NULL,\n            id_linea BIGINT NOT NULL, publicada_en DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,\n            payload JSON NOT NULL,\n            PRIMARY KEY(id_juego,id_jugador,tipo_prop,modelo_version,id_linea)\n        )'}
+SCHEMAS = {
+    'jobs': """CREATE TABLE IF NOT EXISTS oracle_trabajos (
+ id CHAR(36) PRIMARY KEY,servicio VARCHAR(40) NOT NULL,
+ activo VARCHAR(40) NULL UNIQUE,estado VARCHAR(24) NOT NULL,
+ creado_utc DATETIME(6) NOT NULL,iniciado_utc DATETIME(6) NULL,
+ terminado_utc DATETIME(6) NULL,paso VARCHAR(180) NULL,resultado JSON NULL,payload JSON NULL,
+ KEY ix_oracle_jobs_service(servicio,creado_utc)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""",
+    'captures': """CREATE TABLE IF NOT EXISTS nfl_capturas_odds (
+            id BIGINT AUTO_INCREMENT PRIMARY KEY,
+            id_juego VARCHAR(64) NOT NULL, evento_id VARCHAR(64) NOT NULL,
+            fecha_mexico DATE NOT NULL, solicitada_en DATETIME NOT NULL,
+            estado VARCHAR(20) NOT NULL, creditos INT NULL,
+            INDEX jornada (id_juego,fecha_mexico)
+        )""",
+    'total_publications': """CREATE TABLE IF NOT EXISTS nfl_publicaciones_totales (
+ id_juego VARCHAR(128) NOT NULL, modelo VARCHAR(128) NOT NULL,
+ seleccion VARCHAR(5) NOT NULL,linea DOUBLE NOT NULL,probabilidad DOUBLE NOT NULL,
+ cuota DOUBLE NOT NULL,start_utc DATETIME(6) NOT NULL,publicada_utc DATETIME(6) NOT NULL,
+ PRIMARY KEY(id_juego,modelo)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""",
+    'prop_publications': """CREATE TABLE IF NOT EXISTS nfl_publicaciones_props (
+            id_juego VARCHAR(64) NOT NULL, id_jugador VARCHAR(64) NOT NULL,
+            tipo_prop VARCHAR(40) NOT NULL, modelo_version VARCHAR(100) NOT NULL,
+            id_linea BIGINT NOT NULL, publicada_en DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            payload JSON NOT NULL,
+            PRIMARY KEY(id_juego,id_jugador,tipo_prop,modelo_version,id_linea)
+        )""",
+}
 
 
 def ensure_schema(conn, name):
