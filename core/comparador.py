@@ -13,6 +13,14 @@ VERIFIED='Previo al inicio verificado'
 def normalize(frame,*,sport,market,identity,american=False,verified=False):
     if frame.empty:return pd.DataFrame(columns=COLUMNS)
     out=frame.copy()
+    # Las publicaciones originales Moneyline guardan el equipo como pick_ia.
+    # Conservar esa selección; jamás inferirla del ganador del partido.
+    if sport == 'MLB' and market == 'Moneyline' and 'pick_ia' in out:
+        if 'seleccion' not in out:
+            out['seleccion'] = out['pick_ia']
+        else:
+            known = out['seleccion'].notna() & out['seleccion'].astype(str).str.strip().ne('')
+            out['seleccion'] = out['seleccion'].where(known, out['pick_ia'])
     out['deporte']=sport
     if market is not None:out['mercado']=market
     names={'receptions':'Recepciones','receiving_yards':'Yardas de recepción','passing_yards':'Yardas por pase',
