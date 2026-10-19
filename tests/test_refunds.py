@@ -173,3 +173,13 @@ class RefundCorrectionsTests(TestCase):
             self.assertEqual(save.call_args.args[2],'Jugador no participó')
             invalidate.assert_called_once()
             db.return_value.close.assert_called_once()
+
+    def test_delayed_roster_can_map_identity_but_not_reuse_old_inactive_status(self):
+        row=pending()
+        roster=pd.DataFrame([dict(season=2026,week=5,gsis_id='p',team='NYG',pfr_id='PfrP',status='INA')])
+        snap=pd.DataFrame([dict(game_id='g',pfr_player_id='PfrP',offense_snaps=6,defense_snaps=0,st_snaps=0)])
+        injury=pd.DataFrame([dict(season=2026,week=6,gsis_id='p',team='NYG',report_status='Out')])
+        self.assertEqual(nonparticipation_evidence([row],{'g'},empty_stats(),roster,snap,injury),{})
+        zero=snap.assign(offense_snaps=0)
+        self.assertIn(('g','p'),nonparticipation_evidence([row],{'g'},empty_stats(),roster,zero,pd.DataFrame()))
+        self.assertEqual(nonparticipation_evidence([row],{'g'},empty_stats(),roster,pd.DataFrame(),pd.DataFrame()),{})

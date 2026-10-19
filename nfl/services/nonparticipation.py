@@ -26,7 +26,17 @@ def nonparticipation_evidence(pending, final_ids, stats, rosters, snaps, injurie
         roster=_matching(rosters,row['temporada'],row['semana'],player,teams,row.get('tipo_juego'))
         injury=_matching(injuries,row['temporada'],row['semana'],player,teams,row.get('tipo_juego'))
         proof={'game_id':game,'player_id':player,'season':int(row['temporada']),'week':int(row['semana'])}
-        pfr_ids=roster.pfr_id.dropna().astype(str).unique() if 'pfr_id' in roster else []
+        # La identidad GSIS/PFR es estable aunque el roster semanal llegue tarde.
+        # Reusar solo esa correspondencia; nunca el estatus de otra semana.
+        identity_roster=rosters
+        required={'season','gsis_id','pfr_id'}
+        if required.issubset(rosters.columns):
+            identity_roster=rosters[
+                pd.to_numeric(rosters.season,errors='coerce').eq(int(row['temporada'])) &
+                rosters.gsis_id.astype(str).eq(player)]
+        else:
+            identity_roster=pd.DataFrame()
+        pfr_ids=identity_roster.pfr_id.dropna().astype(str).unique() if 'pfr_id' in identity_roster else []
         snap=pd.DataFrame()
         if len(pfr_ids)==1 and {'game_id','pfr_player_id'}.issubset(snaps.columns):
             snap=snaps[snaps.game_id.astype(str).eq(game)&snaps.pfr_player_id.astype(str).eq(pfr_ids[0])]
