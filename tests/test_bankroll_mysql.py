@@ -7,6 +7,25 @@ from core import bankroll as bank
 
 @unittest.skipUnless(os.environ.get('BANKROLL_MYSQL_TEST')=='1','Requiere MySQL de pruebas')
 class TestRealMySQL(unittest.TestCase):
+    def test_refund_audit_is_idempotent_and_does_not_invent_a_result(self):
+        from core.devoluciones import save_refund,read_refunds,apply_refunds
+        import pandas as pd
+        conn=get_db_connection()
+        game='refund-'+uuid.uuid4().hex
+        try:
+            for _ in range(2):
+                save_refund(conn,sport='NFL',game_id=game,player_id='inactive-player',market='receiving_yards',
+                    reason='Jugador inactivo confirmado',source='integration fixture',evidence={'status':'INA'})
+            rows=read_refunds(conn)
+            self.assertEqual(sum(r['id_juego']==game for r in rows),1)
+            frame=pd.DataFrame([dict(deporte='NFL',identidad=game+'|inactive-player|receiving_yards',
+                resultado='PENDIENTE',valor_real=None,unidades=None)])
+            result=apply_refunds(frame,rows)
+            self.assertEqual(result.resultado.iloc[0],'PUSH')
+            self.assertEqual(result.unidades.iloc[0],0)
+            self.assertTrue(pd.isna(result.valor_real.iloc[0]))
+        finally:conn.close()
+
     def test_worker_reads_durable_payload_and_never_replays_completed_capture(self):
         from unittest.mock import patch
         from core import trabajos

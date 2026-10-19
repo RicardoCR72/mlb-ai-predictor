@@ -76,6 +76,8 @@ def refresh_mlb_games(conn,now=None,on_ambiguity=None):
     pending['dia']=pd.to_datetime(pending.fecha).dt.date
     days=sorted(set(pending.dia),reverse=True)[:15]
     changed,ambiguous=0,0
+    refunded=0
+    from core.devoluciones import cancelled_mlb, save_refund
     reported=set()
     cursor=conn.cursor()
     try:
@@ -87,12 +89,13 @@ def refresh_mlb_games(conn,now=None,on_ambiguity=None):
                 return tuple('Athletics' if n=='Oakland Athletics' else n for n in names)
             counts=Counter(pair(game) for game in games)
             for game in games:
-                if game.get('status',{}).get('abstractGameState')!='Final':continue
+                cancelled=cancelled_mlb(game)
+                if not cancelled and game.get('status',{}).get('abstractGameState')!='Final':continue
                 home,away=pair(game)
                 matching=pending[(pending.dia==day)&pending.equipo_local.eq(home)&pending.equipo_visitante.eq(away)]
                 if matching.empty:continue
                 h,a=game['teams']['home'],game['teams']['away']
-                if h.get('score') is None or a.get('score') is None:continue
+                if not cancelled and (h.get('score') is None or a.get('score') is None):continue
                 if counts[(home,away)]!=1 or len(matching)>1:
                     official=[g for g in games if pair(g)==(home,away)]
                     exact=verified_mlb_starts(matching,official)
@@ -110,6 +113,13 @@ def refresh_mlb_games(conn,now=None,on_ambiguity=None):
                             oficiales=[dict(game_pk=g['gamePk'],inicio=g.get('gameDate')) for g in official]))
                     if identity is None:continue  # Sin evidencia, no asignar marcador.
                     matching=matching[matching.id_juego.astype(str).eq(identity)]
+                if cancelled:
+                    save_refund(conn,sport='MLB',game_id=str(matching.iloc[0].id_juego),
+                        official_id=game['gamePk'],legacy_key=f'{day.isoformat()}|{home}|{away}',
+                        reason='Partido cancelado sin disputarse',source='MLB Stats API',
+                        evidence={'gamePk':game['gamePk'],'status':game['status'],'date':str(day)})
+                    refunded+=1
+                    continue
                 cursor.execute("""UPDATE juegos SET marcador_local=%s,marcador_visitante=%s,estado='finalizado'
                     WHERE id_juego=%s AND LOWER(estado)='programado'""",
                     (int(h['score']),int(a['score']),matching.iloc[0].id_juego))
@@ -118,7 +128,7 @@ def refresh_mlb_games(conn,now=None,on_ambiguity=None):
     except Exception:
         conn.rollback();raise
     finally:cursor.close()
-    return f'{changed} partidos MLB actualizados. {ambiguous} coincidencias ambiguas requieren revisión. Se revisaron hasta 15 fechas pendientes.'
+    return f'{changed} partidos MLB actualizados. {refunded} partidos con devolución confirmada. {ambiguous} coincidencias ambiguas requieren revisión. Se revisaron hasta 15 fechas pendientes.'
 
 
 def mlb_totals(conn):

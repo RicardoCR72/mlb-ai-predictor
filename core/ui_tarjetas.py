@@ -58,7 +58,7 @@ def card_html(pick, *, market, state='', details=()):
     odds_text = f'{odds:.2f}' if odds and odds > 1 else 'Por confirmar'
     primary = [] if any(k=='Probabilidad Over 2.5' for k,v in details) else [('Probabilidad estimada', percent(probability))]
     # Historical results are immediately visible; projections live in details.
-    primary.extend((k, v) for k, v in details if k in ('Resultado real', 'Total real', 'Marcador final'))
+    primary.extend((k, v) for k, v in details if k in ('Resultado real', 'Total real', 'Marcador final', 'Devolución'))
     primary.extend((k, v) for k, v in details if k in ('Unidades', 'Profit simulado', 'Stake simulado', 'Beneficio', 'Monto apostado'))
     # Liga MX has no market quote: keep both probabilities on its single card.
     primary.extend((k, v) for k, v in details if k in ('Probabilidad Over 2.5', 'Probabilidad Under 2.5'))
@@ -72,7 +72,7 @@ def card_html(pick, *, market, state='', details=()):
     status_label=state
     if 'GANADA' in status:status_label='✅ Ganada'
     elif 'PERDIDA' in status:status_label='❌ Perdida'
-    elif 'PUSH' in status:status_label='↔ Push'
+    elif 'PUSH' in status:status_label='↔ Push · Devolución' if any(k=='Devolución' for k,v in details) else '↔ Push'
     elif 'PENDIENTE' in status:status_label='Pendiente'
     width = min(max((probability or 0)*100, 0), 100)
     return (f'<div class="oracle-pick {css}"><div class="context">{safe(pick["deporte"])} · {safe(market)} · {safe(pick["casa"])}</div>'

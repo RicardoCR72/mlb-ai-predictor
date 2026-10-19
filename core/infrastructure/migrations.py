@@ -27,6 +27,15 @@ SCHEMAS = {
             payload JSON NOT NULL,
             PRIMARY KEY(id_juego,id_jugador,tipo_prop,modelo_version,id_linea)
         )""",
+    'refunds': """CREATE TABLE IF NOT EXISTS oracle_devoluciones (
+        deporte VARCHAR(12) NOT NULL,id_juego VARCHAR(128) NOT NULL,
+        id_jugador VARCHAR(64) NOT NULL DEFAULT '',mercado VARCHAR(40) NOT NULL DEFAULT '',
+        id_oficial VARCHAR(128) NULL,clave_legacy VARCHAR(512) NULL,
+        motivo VARCHAR(255) NOT NULL,fuente VARCHAR(128) NOT NULL,evidencia JSON NOT NULL,
+        registrado_utc DATETIME(6) NOT NULL,
+        PRIMARY KEY(deporte,id_juego,id_jugador,mercado)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4""",
+
 }
 
 

@@ -1,4 +1,5 @@
 """Fuentes de solo lectura; diferencia capturas originales de reconstrucciones."""
+from core.devoluciones import read_refunds, apply_refunds
 from pathlib import Path
 import json
 import numpy as np
@@ -12,6 +13,7 @@ from mlb.publicaciones_moneyline import HISTORY_SQL
 
 def read_history(conn,root,*,calibration=False,include_liga=True,only_candidates=True):
     frames=[];errors=[]
+    refunds=read_refunds(conn)
     if conn is not None:
         base,errors=read_models(conn)
         # Releer totales con su masa push; no usar confianza incondicional como binaria.
@@ -116,7 +118,7 @@ def read_history(conn,root,*,calibration=False,include_liga=True,only_candidates
         except Exception:errors.append('Totales NFL: publicaciones originales no disponibles; históricos sin certificar.')
     else:errors.append('MLB y NFL no disponibles: falta conexión de datos.')
     if not include_liga:
-        return pd.concat(frames,ignore_index=True) if frames else pd.DataFrame(columns=COLUMNS),errors
+        return apply_refunds(pd.concat(frames,ignore_index=True) if frames else pd.DataFrame(columns=COLUMNS),refunds),errors
     try:
         folder=Path(root)/'futbol_liga_mx';raw=pd.read_csv(folder/'modelos/confirmacion.csv')
         raw['modelo']='Liga MX congelado · confirmación 2024-25'
@@ -126,7 +128,7 @@ def read_history(conn,root,*,calibration=False,include_liga=True,only_candidates
         f['procedencia']='Confirmación histórica · reconstruida'
         frames.append(f)
     except Exception:errors.append('Liga MX: confirmación histórica no disponible.')
-    return pd.concat(frames,ignore_index=True) if frames else pd.DataFrame(columns=COLUMNS),errors
+    return apply_refunds(pd.concat(frames,ignore_index=True) if frames else pd.DataFrame(columns=COLUMNS),refunds),errors
 
 
 def read_confidence(conn,root):

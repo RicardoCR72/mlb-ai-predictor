@@ -68,7 +68,7 @@ def cargar_pendientes(cursor):
             p.cuota_pick,
             p.estado_pick,
             j.temporada,
-            j.semana
+            j.semana, j.tipo_juego, j.equipo_local, j.equipo_visitante
         FROM nfl_proyecciones_props AS p
         INNER JOIN nfl_juegos AS j
             ON j.id_juego = p.id_juego
@@ -205,6 +205,14 @@ def main():
 
         temporadas = sorted({int(fila["temporada"]) for fila in pendientes})
         ids_finales, estadisticas = cargar_resultados(temporadas)
+        from nfl.services.nonparticipation import load_nonparticipation
+        from core.devoluciones import save_refund
+        unresolved=[r for r in pendientes if str(r['id_juego']) in ids_finales
+                    and (str(r['id_juego']),str(r['id_jugador'])) not in estadisticas.index]
+        evidence=load_nonparticipation(temporadas,unresolved,ids_finales,estadisticas,nfl) if unresolved else {}
+        if evidence:
+            from core.infrastructure.migrations import ensure_schema
+            ensure_schema(conexion,'refunds')
 
         sql = """
             UPDATE nfl_proyecciones_props
@@ -226,6 +234,7 @@ def main():
             }
         )
         omitidos_sin_registro = 0
+        devoluciones = 0
         pendientes_partido = 0
         ahora = datetime.now(timezone.utc).replace(tzinfo=None)
 
@@ -237,6 +246,21 @@ def main():
                 continue
 
             clave = (game_id, player_id)
+            proof=evidence.get(clave)
+            if proof:
+                cursor.execute(sql,(None,'PUSH',0.0,ahora,int(fila['id_proyeccion'])))
+                if cursor.rowcount==1:
+                    # Commit conjunto: no auditar una devolución si otro proceso
+                    # ya resolvió esta proyección mientras consultábamos los datos.
+                    save_refund(conexion,sport='NFL',game_id=game_id,player_id=player_id,
+                        market=fila['tipo_prop'],reason=proof['reason'],source=proof['source'],evidence=proof,prepare=False)
+                    devoluciones+=1
+                    datos=resumen[fila['tipo_prop']]
+                    datos['evaluadas']+=1
+                    if fila['estado_pick']=='CANDIDATO':
+                        datos['candidatos']+=1
+                        datos['pushes']+=1
+                continue
             if clave not in estadisticas.index:
                 # No asignamos cero a un jugador ausente: la apuesta pudo ser void.
                 omitidos_sin_registro += 1
@@ -288,6 +312,7 @@ def main():
         print(f"Proyecciones evaluadas: {total_evaluadas}")
         print(f"Partidos aún no finalizados: {pendientes_partido}")
         print(f"Jugadores sin registro oficial: {omitidos_sin_registro}")
+        print(f"Devoluciones por ausencia confirmada: {devoluciones}")
         for mercado, datos in sorted(resumen.items()):
             decididas = datos["ganadas"] + datos["perdidas"]
             acierto = datos["ganadas"] / decididas if decididas else None
