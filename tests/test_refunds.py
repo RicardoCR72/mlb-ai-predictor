@@ -128,3 +128,48 @@ class RefundTests(TestCase):
             'detalle':'0 partidos MLB actualizados. 1 partidos con devolución confirmada.'}]})
         self.assertIn('1 devoluciones registradas',message)
         self.assertNotIn('Sin cambios',message)
+
+class RefundCorrectionsTests(TestCase):
+    def test_only_verified_next_day_postponement_returns_original_pick(self):
+        from core.devoluciones import mlb_refund_reason
+        game={'status':{'detailedState':'Postponed'},'rescheduleGameDate':'2026-10-18'}
+        self.assertIn('aplazado',mlb_refund_reason(game,'2026-10-16'))
+        self.assertIsNone(mlb_refund_reason(game,'2026-10-18'))
+        self.assertIsNone(mlb_refund_reason({'status':game['status']},'2026-10-16'))
+        self.assertIsNone(mlb_refund_reason(dict(game,teams={'home':{'score':0}}),'2026-10-16'))
+        self.assertIsNone(mlb_refund_reason(dict(game,status={'detailedState':'Suspended'}),'2026-10-16'))
+
+    def test_manual_refund_is_audited_and_targets_only_selected_player_market(self):
+        from core.devoluciones import record_manual_refund
+        row=dict(deporte='NFL',mercado='Yardas terrestres',identidad='g|p|rushing_yards',
+                 resultado='PENDIENTE',fecha='2026-10-18',seleccion='OVER')
+        with patch('core.devoluciones.save_refund') as save:
+            record_manual_refund(Mock(),row,'Jugador no participó')
+        args=save.call_args.kwargs
+        self.assertEqual((args['game_id'],args['player_id'],args['market']),('g','p','rushing_yards'))
+        self.assertEqual(args['source'],'Confirmación manual del usuario')
+        self.assertTrue(args['evidence']['confirmation'])
+        with self.assertRaises(ValueError):
+            record_manual_refund(Mock(),dict(row,resultado='PERDIDA'),'Jugador no participó')
+        with self.assertRaises(ValueError):
+            record_manual_refund(Mock(),dict(row,identidad='g'),'Jugador no participó')
+
+    def test_manual_control_requires_confirmation_then_saves_and_refreshes(self):
+        from streamlit.testing.v1 import AppTest
+        row=dict(deporte='NFL',mercado='Yardas terrestres',identidad='g|p|rushing_yards',
+                 resultado='PENDIENTE',fecha='2026-10-18',seleccion='OVER')
+        script="from core.ui_historial_publicado import render_manual_refund\nrender_manual_refund("+repr(row)+",'example')"
+        with patch('core.ui_historial_publicado.get_db_connection') as db, \
+             patch('core.devoluciones.record_manual_refund') as save, \
+             patch('core.ui_trabajos.invalidate_readers') as invalidate:
+            app=AppTest.from_string(script).run()
+            self.assertFalse(app.exception)
+            self.assertTrue(app.button[0].disabled)
+            save.assert_not_called()
+            app.checkbox[0].check().run()
+            app.button[0].click().run()
+            self.assertFalse(app.exception)
+            save.assert_called_once()
+            self.assertEqual(save.call_args.args[2],'Jugador no participó')
+            invalidate.assert_called_once()
+            db.return_value.close.assert_called_once()

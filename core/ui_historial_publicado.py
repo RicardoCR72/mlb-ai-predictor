@@ -64,6 +64,34 @@ def actual_result_details(row):
         return details
     return []
 
+def render_manual_refund(row, key):
+    if row.get('deporte') not in ('MLB', 'NFL') or row.get('resultado') != 'PENDIENTE':
+        return
+    with st.popover('Registrar devolución', use_container_width=True):
+        st.caption('Úsalo si confirmaste que la apuesta fue anulada. Quedará identificada como devolución manual.')
+        reasons = ['Partido no disputado en la fecha del pick', 'Apuesta anulada por la casa']
+        if row.get('deporte') == 'NFL' and row.get('mercado') != 'Totales':
+            reasons.insert(0, 'Jugador no participó')
+        reason = st.selectbox('Motivo', reasons, key=key+'_reason')
+        confirmed = st.checkbox('Confirmo la devolución de este pick', key=key+'_confirm')
+        if st.button('Guardar como push', key=key+'_save', disabled=not confirmed):
+            conn = None
+            try:
+                from core.devoluciones import record_manual_refund
+                conn = get_db_connection()
+                record_manual_refund(conn, row, reason)
+            except Exception:
+                st.error('No se pudo guardar la devolución. Intenta nuevamente.')
+            else:
+                from core.ui_trabajos import invalidate_readers
+                invalidate_readers()
+                st.toast('Devolución registrada: push y 0 unidades.')
+                st.rerun()
+            finally:
+                if conn is not None:
+                    conn.close()
+
+
 def render_history(sport,market=None,*,key):
     raw,errors=load_history()
     if errors:state_message('Consulta parcial del historial. Algunas fuentes no están disponibles.',kind='offline')
@@ -116,4 +144,7 @@ def render_history(sport,market=None,*,key):
                 if pd.notna(row.get('start_utc')):pick['referencia']['inicio_utc']=pd.Timestamp(row.start_utc).tz_localize('UTC').isoformat() if pd.Timestamp(row.start_utc).tzinfo is None else str(row.start_utc)
                 render_pick(pick,market=row.mercado,state=row.resultado,allow_register=False,
                     details=actual_result_details(row)+[('Unidades',f'{row.unidades:+.2f} u' if pd.notna(row.unidades) else 'N/D'),('Procedencia',row.procedencia),('Versión',labels[(sport,str(row.modelo))])])
+                import hashlib
+                refund_key=hashlib.sha256(f'{key}|{row.modelo}|{row.identidad}|{row.mercado}'.encode()).hexdigest()[:24]
+                render_manual_refund(row,'refund_'+refund_key)
     st.download_button('Descargar rendimiento filtrado',frame.to_csv(index=False),sport.lower()+'_rendimiento.csv','text/csv',key=key+'_csv')
