@@ -97,6 +97,7 @@ class RefundTests(TestCase):
              patch.object(evaluator,'cargar_pendientes',return_value=rows), \
              patch.object(evaluator,'cargar_resultados',return_value=({'g'},stats)), \
              patch('nfl.services.nonparticipation.load_nonparticipation',return_value=proof), \
+             patch('core.infrastructure.migrations.ensure_schema'), \
              patch('core.devoluciones.save_refund') as refund:
             evaluator.main()
         params=[c.args[1] for c in cursor.execute.call_args_list]
@@ -105,6 +106,16 @@ class RefundTests(TestCase):
         self.assertEqual(params[1][:3],(0.0,'PERDIDA',-1.0))
         self.assertEqual([p[-1] for p in params],[1,2])
         self.assertEqual(refund.call_args.kwargs['player_id'],'inactive')
+        self.assertFalse(refund.call_args.kwargs['prepare'])
+        cursor.rowcount=0
+        with patch.object(evaluator,'conectar_mysql',return_value=conn),patch.object(evaluator,'verificar_columnas'), \
+             patch.object(evaluator,'cargar_pendientes',return_value=rows[:1]), \
+             patch.object(evaluator,'cargar_resultados',return_value=({'g'},stats)), \
+             patch('nfl.services.nonparticipation.load_nonparticipation',return_value=proof), \
+             patch('core.infrastructure.migrations.ensure_schema'), \
+             patch('core.devoluciones.save_refund') as refund:
+            evaluator.main()
+        refund.assert_not_called()
 
     def test_refund_is_no_longer_pending_and_update_message_reports_it(self):
         from core.resumen import prediction_summary

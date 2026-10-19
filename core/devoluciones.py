@@ -7,10 +7,11 @@ from core.infrastructure.migrations import ensure_schema
 
 
 def save_refund(conn, *, sport, game_id, reason, source, evidence,
-                player_id='', market='', official_id=None, legacy_key=None):
+                player_id='', market='', official_id=None, legacy_key=None, prepare=True):
     if sport not in ('MLB','NFL') or not game_id or not reason or not source or not evidence:
         raise ValueError('La devolución requiere identidad, motivo y evidencia.')
-    ensure_schema(conn, 'refunds')
+    if prepare:
+        ensure_schema(conn, 'refunds')
     cursor=conn.cursor()
     try:
         cursor.execute("""INSERT INTO oracle_devoluciones

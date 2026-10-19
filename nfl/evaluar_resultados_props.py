@@ -210,6 +210,9 @@ def main():
         unresolved=[r for r in pendientes if str(r['id_juego']) in ids_finales
                     and (str(r['id_juego']),str(r['id_jugador'])) not in estadisticas.index]
         evidence=load_nonparticipation(temporadas,unresolved,ids_finales,estadisticas,nfl) if unresolved else {}
+        if evidence:
+            from core.infrastructure.migrations import ensure_schema
+            ensure_schema(conexion,'refunds')
 
         sql = """
             UPDATE nfl_proyecciones_props
@@ -245,10 +248,12 @@ def main():
             clave = (game_id, player_id)
             proof=evidence.get(clave)
             if proof:
-                save_refund(conexion,sport='NFL',game_id=game_id,player_id=player_id,
-                    market=fila['tipo_prop'],reason=proof['reason'],source=proof['source'],evidence=proof)
                 cursor.execute(sql,(None,'PUSH',0.0,ahora,int(fila['id_proyeccion'])))
                 if cursor.rowcount==1:
+                    # Commit conjunto: no auditar una devolución si otro proceso
+                    # ya resolvió esta proyección mientras consultábamos los datos.
+                    save_refund(conexion,sport='NFL',game_id=game_id,player_id=player_id,
+                        market=fila['tipo_prop'],reason=proof['reason'],source=proof['source'],evidence=proof,prepare=False)
                     devoluciones+=1
                     datos=resumen[fila['tipo_prop']]
                     datos['evaluadas']+=1
