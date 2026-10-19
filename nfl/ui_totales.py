@@ -234,10 +234,7 @@ def render():
     )
 
     if seccion_totales != "📈 Rendimiento":
-        resumen = st.columns(3)
-        resumen[0].metric("Partidos", len(df))
-        resumen[1].metric("Con línea", int(df["total_line"].notna().sum()))
-        resumen[2].metric("Picks", len(picks))
+        st.metric("Picks", len(picks))
 
 
 

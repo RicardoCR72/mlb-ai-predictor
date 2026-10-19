@@ -52,15 +52,22 @@ def render_job(service):
     poll(service)
 
 
-def action_button(service,label,*,key,help=None,payload=None,disabled=False):
+def action_button(service,label,*,key,help=None,payload=None,disabled=False,details_on_click=False):
     clicked=st.button(label,key=key,help=help,disabled=disabled,
         type='primary' if service.endswith('predictions') else 'secondary')
+    visibility_key = '_show_update_details_' + service
     if clicked:
+        if details_on_click:
+            st.session_state[visibility_key] = True
         try:
             submit(service,payload=payload)
             st.toast('Solicitud registrada. Puedes seguir consultando la página.')
         except Exception:st.caption('No se pudo registrar la solicitud. Revisa la conexión.')
-    render_job(service)
+    if not details_on_click or st.session_state.get(visibility_key, False):
+        render_job(service)
+        if details_on_click and st.button('Ocultar detalles', key=key+'_hide'):
+            st.session_state[visibility_key] = False
+            st.rerun()
 
 
 def render_generate_mlb():

@@ -236,8 +236,10 @@ class ManualTests(unittest.TestCase):
              patch('core.ui_trabajos.latest',return_value=None),patch('core.ui_trabajos.submit',return_value='demo') as run:
             at=AppTest.from_string('from core.ui_actualizacion import render_update_button\nfrom core.ui_nfl_creditos import render_prediction_button\nrender_update_button("nfl_props",compact=True)\nrender_prediction_button()').run()
             self.assertFalse(at.exception);run.assert_not_called()
-            self.assertIn('6 créditos',at.button[1].label)
             at.button[1].click().run()
+            run.assert_not_called()
+            self.assertTrue(any('6 créditos' in c.value for c in at.caption))
+            next(b for b in at.button if b.label=='Confirmar actualización').click().run()
             self.assertFalse(at.exception);run.assert_called_once()
             self.assertEqual(run.call_args.kwargs['payload']['eventos'][0]['id'],'tnf')
 
@@ -251,13 +253,15 @@ class ManualTests(unittest.TestCase):
              patch('core.ui_trabajos.submit',return_value='demo') as submit:
             at=AppTest.from_string('from core.ui_nfl_creditos import render_prediction_button\nrender_prediction_button()').run()
             self.assertFalse(at.exception)
+            self.assertFalse(at.checkbox)
+            at.button[0].click().run()
             self.assertFalse(at.checkbox[0].value)
-            self.assertTrue(at.button[0].disabled)
+            self.assertTrue(next(b for b in at.button if b.label=='Confirmar actualización').disabled)
             submit.assert_not_called()
             at.checkbox[0].check().run()
             self.assertFalse(at.exception)
-            self.assertFalse(at.button[0].disabled)
-            at.button[0].click().run()
+            self.assertFalse(next(b for b in at.button if b.label=='Confirmar actualización').disabled)
+            next(b for b in at.button if b.label=='Confirmar actualización').click().run()
             self.assertTrue(submit.call_args.kwargs['payload']['todos'])
 
     def test_workflow_decision_is_based_on_trigger_and_every_paid_step_is_today(self):

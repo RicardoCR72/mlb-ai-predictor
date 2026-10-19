@@ -37,4 +37,5 @@ def render_update_button(service, *, compact=True):
     from core.ui_trabajos import action_button
     apply_mobile_layout()
     action_button(service,LABELS[service],key=f'actualizacion_manual_{service}',
-        help='Consulta resultados oficiales. No consulta nuevas cuotas ni consume créditos.')
+        help='Consulta resultados oficiales. No consulta nuevas cuotas ni consume créditos.',
+        details_on_click=service in ('nfl_totales','nfl_props'))

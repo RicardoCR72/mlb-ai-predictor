@@ -119,7 +119,8 @@ with st.container(key='confidence_smoke'),patch('core.ui_confianza.load',return_
                     page.goto(url)
                     page.locator('.oracle-pick').first.wait_for(timeout=30000)
                     assert page.locator('[data-testid="stException"]').count()==0
-                    paid_button=page.get_by_role('button',name='Actualizar predicciones NFL próximas (hasta 6 créditos)',exact=True)
+                    page.get_by_role('button',name='Actualizar predicciones NFL',exact=True).click()
+                    paid_button=page.get_by_role('button',name='Confirmar actualización',exact=True)
                     paid_button.wait_for(timeout=30000)
                     liga=page.locator('.oracle-pick').filter(has_text='Liga MX')
                     liga.nth(8).wait_for(timeout=30000)
