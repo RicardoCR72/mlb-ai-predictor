@@ -102,6 +102,7 @@ class ArchitectureTests(TestCase):
         row=frame[frame.deporte.eq('NFL') & frame.mercado.eq('Yardas de recepción')].iloc[0]
         self.assertEqual(len(frame),1);self.assertEqual(row.resultado,'PERDIDA')
         self.assertEqual(row.linea,50.5);self.assertEqual(row.probabilidad,.7)
+        self.assertEqual(row.valor_real,40)
         self.assertEqual(row.procedencia,VERIFIED)
 
     def test_readonly_history_does_not_import_tensorflow_and_empty_is_not_zero_roi(self):

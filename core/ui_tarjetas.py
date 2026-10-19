@@ -58,6 +58,7 @@ def card_html(pick, *, market, state='', details=()):
     odds_text = f'{odds:.2f}' if odds and odds > 1 else 'Por confirmar'
     primary = [] if any(k=='Probabilidad Over 2.5' for k,v in details) else [('Probabilidad estimada', percent(probability))]
     # Historical results are immediately visible; projections live in details.
+    primary.extend((k, v) for k, v in details if k in ('Resultado real', 'Total real', 'Marcador final'))
     primary.extend((k, v) for k, v in details if k in ('Unidades', 'Profit simulado', 'Stake simulado', 'Beneficio', 'Monto apostado'))
     # Liga MX has no market quote: keep both probabilities on its single card.
     primary.extend((k, v) for k, v in details if k in ('Probabilidad Over 2.5', 'Probabilidad Under 2.5'))

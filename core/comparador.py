@@ -37,7 +37,7 @@ def normalize(frame,*,sport,market,identity,american=False,verified=False):
         np.where(out['resultado'].eq('GANADA') & valid,out['cuota']-1,np.nan)))
     out['identidad']=out[identity].astype(str).agg('|'.join,axis=1)
     out=out.drop_duplicates(['modelo','identidad'],keep='first')
-    details=['seleccion','linea','linea_total','equipo_local','equipo_visitante','start_utc','publicada_utc','quote_utc','captured_utc','jugador','candidato']
+    details=['seleccion','linea','linea_total','equipo_local','equipo_visitante','start_utc','publicada_utc','quote_utc','captured_utc','jugador','candidato','valor_real','total_real','marcador_local','marcador_visitante','home_runs','away_runs']
     return out.reindex(columns=COLUMNS+[c for c in details if c in out and c not in COLUMNS])
 
 
@@ -58,13 +58,13 @@ def read_legacy_models(conn):
         ORDER BY r.fecha DESC'''),
         ('NFL Totales','NFL','Totales',True,['id_juego'],'''
         SELECT j.fecha,j.temporada,p.id_juego,p.modelo_version AS modelo,p.probabilidad_pick/100 AS probabilidad,
-          p.cuota_pick AS cuota,p.resultado_pick AS resultado,p.seleccion,p.linea_total,j.equipo_local,j.equipo_visitante
+          p.cuota_pick AS cuota,p.resultado_pick AS resultado,p.seleccion,p.linea_total,p.total_real,j.equipo_local,j.equipo_visitante,j.marcador_local,j.marcador_visitante
         FROM nfl_predicciones_totales p JOIN nfl_juegos j ON j.id_juego=p.id_juego
         WHERE p.estado_pick='PICK' ORDER BY p.actualizado_en DESC,p.id_prediccion DESC'''),
         ('NFL Props','NFL',None,True,['id_juego','id_jugador','tipo_prop'],'''
         SELECT j.fecha,j.temporada,p.id_juego,p.id_jugador,p.tipo_prop,p.tipo_prop AS mercado,p.modelo_version AS modelo,
           p.probabilidad_pick AS probabilidad,p.cuota_pick AS cuota,p.resultado_pick AS resultado,
-          p.seleccion,p.linea,j.equipo_local,j.equipo_visitante,u.nombre AS jugador
+          p.seleccion,p.linea,p.valor_real,j.equipo_local,j.equipo_visitante,u.nombre AS jugador
         FROM nfl_proyecciones_props p JOIN nfl_juegos j ON j.id_juego=p.id_juego
         LEFT JOIN nfl_jugadores u ON u.id_jugador=p.id_jugador
         WHERE p.estado_pick IN ('CANDIDATO','REVISAR LESION')

@@ -8,7 +8,7 @@ from core.confianza_datos import read_history
 from core.ui_rendimiento_diseno import performance_filters,safe_select
 from core.ui_controles import state_message,render_order
 from core.ui_rendimiento_resumen import history_window
-from core.ui_tarjetas import render_pick
+from core.ui_tarjetas import render_pick, number
 
 ROOT=Path(__file__).resolve().parents[1]
 
@@ -33,6 +33,33 @@ def load_history():
     finally:
         if conn is not None:conn.close()
 
+
+
+def actual_result_details(row):
+    """Mostrar el valor observado; nunca sustituirlo por la proyección o la línea."""
+    sport = row.get('deporte')
+    market = row.get('mercado')
+    settled = str(row.get('resultado', '')).strip().upper() in ('GANADA','PERDIDA','PUSH')
+    if sport == 'NFL' and market != 'Totales':
+        units = {'Recepciones':'recepciones', 'Yardas de recepción':'yardas',
+                 'Yardas por pase':'yardas', 'Yardas terrestres':'yardas',
+                 'Pases de touchdown':'pases de touchdown', 'Anota touchdown':'touchdowns'}
+        actual = number(row.get('valor_real'))
+        value = f"{actual:g} {units.get(market, '')}".strip() if settled and actual is not None else 'No disponible' if settled else 'Pendiente'
+        return [('Resultado real', value)]
+    if market == 'Totales' and sport in ('NFL','MLB'):
+        actual = number(row.get('total_real'))
+        away = number(row.get('marcador_visitante') if sport == 'NFL' else row.get('away_runs'))
+        home = number(row.get('marcador_local') if sport == 'NFL' else row.get('home_runs'))
+        if actual is None and settled and away is not None and home is not None:
+            actual = away + home
+        unit = 'puntos' if sport == 'NFL' else 'carreras'
+        value = f'{actual:g} {unit}' if settled and actual is not None else 'No disponible' if settled else 'Pendiente'
+        details = [('Total real', value)]
+        if settled and away is not None and home is not None:
+            details.append(('Marcador final', f'{away:g} – {home:g} (visitante – local)'))
+        return details
+    return []
 
 def render_history(sport,market=None,*,key):
     raw,errors=load_history()
@@ -85,5 +112,5 @@ def render_history(sport,market=None,*,key):
                     probabilidad=row.probabilidad,cuota=row.cuota,referencia={})
                 if pd.notna(row.get('start_utc')):pick['referencia']['inicio_utc']=pd.Timestamp(row.start_utc).tz_localize('UTC').isoformat() if pd.Timestamp(row.start_utc).tzinfo is None else str(row.start_utc)
                 render_pick(pick,market=row.mercado,state=row.resultado,allow_register=False,
-                    details=[('Unidades',f'{row.unidades:+.2f} u' if pd.notna(row.unidades) else 'N/D'),('Procedencia',row.procedencia),('Versión',labels[(sport,str(row.modelo))])])
+                    details=actual_result_details(row)+[('Unidades',f'{row.unidades:+.2f} u' if pd.notna(row.unidades) else 'N/D'),('Procedencia',row.procedencia),('Versión',labels[(sport,str(row.modelo))])])
     st.download_button('Descargar rendimiento filtrado',frame.to_csv(index=False),sport.lower()+'_rendimiento.csv','text/csv',key=key+'_csv')

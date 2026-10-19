@@ -6,7 +6,7 @@ import pandas as pd
 from core.comparador import read_legacy_models as read_models,normalize,COLUMNS,VERIFIED
 from core.infrastructure.queries import rows
 from mlb_totales import registro
-from core.combinadas_datos import nfl_starts
+from nfl.persistence.calendar import nfl_starts
 from mlb.publicaciones_moneyline import HISTORY_SQL
 
 
@@ -47,7 +47,8 @@ def read_history(conn,root,*,calibration=False,include_liga=True,only_candidates
         except Exception:errors.append('Totales MLB: no se pudo leer la masa de push.')
         try:
             raw=rows(conn,'''SELECT p.id_juego,p.modelo_version AS modelo,p.linea_total,p.seleccion,j.fecha,j.equipo_local,j.equipo_visitante,
-                p.probabilidad_pick/100 AS probabilidad,p.cuota_pick AS cuota,p.resultado_pick AS resultado
+                p.probabilidad_pick/100 AS probabilidad,p.cuota_pick AS cuota,p.resultado_pick AS resultado,
+                p.total_real,j.marcador_local,j.marcador_visitante
                 FROM nfl_predicciones_totales p JOIN nfl_juegos j ON j.id_juego=p.id_juego
                 WHERE p.estado_pick='PICK' ORDER BY p.actualizado_en DESC,p.id_prediccion DESC''')
             if calibration and not raw.empty:
@@ -103,6 +104,7 @@ def read_history(conn,root,*,calibration=False,include_liga=True,only_candidates
                 WHERE s.publicada_utc<s.start_utc ORDER BY s.publicada_utc ASC""")
             if not raw.empty:
                 score=(pd.to_numeric(raw.marcador_local,errors='coerce')+pd.to_numeric(raw.marcador_visitante,errors='coerce')).where(raw.estado.str.lower().eq('finalizado'))
+                raw['total_real']=score
                 raw['resultado']=np.where(score.isna(),'PENDIENTE',np.where(score.eq(raw.linea),'PUSH',
                     np.where((score.gt(raw.linea))==raw.seleccion.eq('OVER'),'GANADA','PERDIDA')))
                 if calibration:raw=raw[pd.to_numeric(raw.linea).mod(1).ne(0)].copy()

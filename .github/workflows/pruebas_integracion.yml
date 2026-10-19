@@ -25,7 +25,7 @@ jobs:
           mlb_totales.test_draftkings mlb_totales.test_fechas
           mlb_totales.test_integracion mlb_totales.test_pitcheo
           futbol_liga_mx.test_continuidad futbol_liga_mx.test_modelo
-          tests.test_integracion_deportes tests.test_observabilidad tests.test_actualizacion_manual tests.test_ui_picks tests.test_resumen tests.test_analitica_bankroll tests.test_nfl_jornada tests.test_mejoras_pagina tests.test_auditoria_nfl tests.test_validacion_yardas tests.test_combinadas tests.test_confianza tests.test_publicaciones_mlb tests.test_rendimiento_centro tests.test_mejoras_uso tests.test_arquitectura tests.test_architecture_refactor tests.test_nfl_props_availability -v
+          tests.test_integracion_deportes tests.test_observabilidad tests.test_actualizacion_manual tests.test_ui_picks tests.test_resumen tests.test_analitica_bankroll tests.test_nfl_jornada tests.test_mejoras_pagina tests.test_auditoria_nfl tests.test_validacion_yardas tests.test_combinadas tests.test_confianza tests.test_publicaciones_mlb tests.test_rendimiento_centro tests.test_mejoras_uso tests.test_arquitectura tests.test_architecture_refactor tests.test_nfl_props_availability tests.test_nfl_actual_results -v
       - name: Probar presentación móvil y escritorio con datos de prueba
         run: |
           python -m pip install playwright
