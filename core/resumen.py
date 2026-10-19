@@ -1,5 +1,6 @@
 """Resumen de solo lectura; una fuente fallida no oculta las demás."""
 from datetime import datetime, timezone, timedelta
+from core.devoluciones import read_refunds, apply_refunds
 from pathlib import Path
 from zoneinfo import ZoneInfo
 import json
@@ -81,6 +82,7 @@ def read_summary(conn, root, now=None, *, include_bankroll=True):
     horizon = (today+timedelta(days=8)).isoformat()
     output = {key:empty(key) for key in LABELS}
     calendars = {}
+    refunds=read_refunds(conn)
     for source,table in [('mlb','juegos'),('nfl_totales','nfl_juegos')]:
         item = output[source]
         try:
@@ -89,6 +91,9 @@ def read_summary(conn, root, now=None, *, include_bankroll=True):
                 equipo_visitante AS visitante,estado,marcador_local,marcador_visitante FROM {table}
                 WHERE DATE(fecha)<=%s AND (DATE(fecha)>=%s OR marcador_local IS NULL OR marcador_visitante IS NULL)''',
                 (horizon,today.isoformat()))
+            frame=apply_refunds(frame,refunds,sport='MLB' if source=='mlb' else 'NFL',game_col='game_id')
+            if 'motivo_devolucion' in frame:
+                frame=frame[frame.motivo_devolucion.isna()].copy()
             frame=frame.drop_duplicates('game_id') if not frame.empty else frame
             if frame.empty: counts=(0,0,[])
             else: counts=game_summary(frame,now)
@@ -133,6 +138,7 @@ def read_summary(conn, root, now=None, *, include_bankroll=True):
             if conn is None: raise ConnectionError('offline')
             params = (today.isoformat(),horizon) if source=='mlb' else (horizon,(today-timedelta(days=1)).isoformat())
             frame=bank.rows(conn,sql,params)
+            frame=apply_refunds(frame,refunds,sport='MLB' if source.startswith('mlb') else 'NFL',game_col='game_id')
             if source=='mlb':
                 # Un registro por pareja no identifica el juego de una doble cartelera.
                 if not frame.empty: frame=frame[~frame.duplicated(['fecha','local','visitante'],keep=False)]
@@ -145,6 +151,8 @@ def read_summary(conn, root, now=None, *, include_bankroll=True):
                         frame['resuelto']=frame.home_runs.notna() & frame.away_runs.notna() & ~frame.revision_reglas.fillna(0).astype(bool)
                         frame['estado_juego']=frame[['home_runs','away_runs']].notna().all(axis=1).map({True:'finalizado',False:''})
                         calendar=frame.rename(columns={'home_runs':'marcador_local','away_runs':'marcador_visitante'})
+                        if 'motivo_devolucion' in calendar:
+                            calendar=calendar[calendar.motivo_devolucion.isna()]
                         item['games_today'],_,item['games']=game_summary(calendar.drop_duplicates('game_id'),now,utc=True)
                     else: item['games_today'],item['games']=0,[]
                     item['last_result']=maximum(frame,'updated_utc')

@@ -37,6 +37,9 @@ def load_history():
 
 def actual_result_details(row):
     """Mostrar el valor observado; nunca sustituirlo por la proyección o la línea."""
+    reason = row.get('motivo_devolucion')
+    if pd.notna(reason) and str(reason).strip():
+        return [('Devolución', str(reason))]
     sport = row.get('deporte')
     market = row.get('mercado')
     settled = str(row.get('resultado', '')).strip().upper() in ('GANADA','PERDIDA','PUSH')

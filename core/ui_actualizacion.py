@@ -19,6 +19,10 @@ def update_message(result):
     for item in result['steps']:
         if not item['ok']: continue
         match=re.match(r'\s*(\d+)\b',str(item['detalle']))
+        refunds=re.search(r'(\d+) partidos con devolución confirmada',str(item['detalle']))
+        if refunds and int(refunds.group(1)):
+            known.append(int(refunds.group(1)))
+            parts.append(f'{refunds.group(1)} devoluciones registradas')
         no_pending=str(item['detalle']).startswith('Sin partidos MLB pendientes')
         if item['paso'] in names and (match or no_pending):
             n=int(match.group(1)) if match else 0

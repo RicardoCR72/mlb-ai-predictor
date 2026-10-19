@@ -165,6 +165,14 @@ def refresh_results(connection,max_days=15):
         for day in pending.fecha_oficial:
             data=fetch_json('schedule',{'sportId':1,'date':str(pd.Timestamp(day).date()),
                                        'gameType':TYPES,'hydrate':'linescore'})
+            from core.devoluciones import cancelled_mlb, save_refund
+            for date_entry in data.get('dates',[]):
+                for game in date_entry.get('games',[]):
+                    if cancelled_mlb(game):
+                        save_refund(connection,sport='MLB',game_id=str(game['gamePk']),
+                            official_id=game['gamePk'],reason='Partido cancelado sin disputarse',
+                            source='MLB Stats API',evidence={'gamePk':game['gamePk'],'status':game['status']})
+                        n+=1
             for result in parse_results(data):
                 cursor.execute(RESULT_SQL,(*result,datetime.now(timezone.utc).replace(tzinfo=None)))
                 n+=1

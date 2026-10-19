@@ -160,3 +160,25 @@ acciones explícitas. El entorno virtual MLB se reconstruye con sus requirements
 y ya no forma parte del seguimiento de Git.
 
 Ver [detalle de los 15 cambios](docs/arquitectura_15_mejoras.md).
+
+## Devoluciones por cancelación o ausencia
+
+Los partidos MLB confirmados como cancelados sin marcador se registran como
+PUSH/devolución al actualizar resultados. Se verifica la identidad del partido;
+una doble cartelera ambigua no se liquida por aproximación. Un aplazado,
+suspendido o un partido ausente del feed no se convierte automáticamente en push.
+
+Los props NFL de un partido finalizado se devuelven cuando falta la estadística
+del jugador y existe evidencia explícita de ausencia: cero snaps, reporte Out
+o estado inactivo del roster semanal del mismo jugador/equipo/semana. Una
+participación positiva contradice una designación inactiva anterior. Cero yardas
+en una estadística oficial de un jugador que participó se evalúa normalmente.
+Si no hay evidencia suficiente o la fuente todavía no publica los datos, sigue
+pendiente. No se inventan estadísticas ni se consulta The Odds API para liquidar.
+
+`oracle_devoluciones` conserva motivo, fuente y evidencia de forma idempotente.
+El historial aplica la devolución sin alterar la publicación original: muestra
+PUSH, 0 unidades y el motivo; no cuenta como ganada ni perdida. El resumen deja
+de listar esas selecciones como pendientes. Las devoluciones de un jugador no
+se aplican a compañeros ni al total del partido. Las apuestas reales de cada
+casa deben seguir sus propias liquidaciones; esto es el registro del modelo.
