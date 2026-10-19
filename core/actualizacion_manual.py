@@ -77,7 +77,7 @@ def refresh_mlb_games(conn,now=None,on_ambiguity=None):
     days=sorted(set(pending.dia),reverse=True)[:15]
     changed,ambiguous=0,0
     refunded=0
-    from core.devoluciones import cancelled_mlb, save_refund
+    from core.devoluciones import mlb_refund_reason, save_refund
     reported=set()
     cursor=conn.cursor()
     try:
@@ -89,7 +89,8 @@ def refresh_mlb_games(conn,now=None,on_ambiguity=None):
                 return tuple('Athletics' if n=='Oakland Athletics' else n for n in names)
             counts=Counter(pair(game) for game in games)
             for game in games:
-                cancelled=cancelled_mlb(game)
+                refund_reason=mlb_refund_reason(game,day)
+                cancelled=refund_reason is not None
                 if not cancelled and game.get('status',{}).get('abstractGameState')!='Final':continue
                 home,away=pair(game)
                 matching=pending[(pending.dia==day)&pending.equipo_local.eq(home)&pending.equipo_visitante.eq(away)]
@@ -116,8 +117,9 @@ def refresh_mlb_games(conn,now=None,on_ambiguity=None):
                 if cancelled:
                     save_refund(conn,sport='MLB',game_id=str(matching.iloc[0].id_juego),
                         official_id=game['gamePk'],legacy_key=f'{day.isoformat()}|{home}|{away}',
-                        reason='Partido cancelado sin disputarse',source='MLB Stats API',
-                        evidence={'gamePk':game['gamePk'],'status':game['status'],'date':str(day)})
+                        reason=refund_reason,source='MLB Stats API',
+                        evidence={'gamePk':game['gamePk'],'status':game['status'],'date':str(day),
+                                  'rescheduleGameDate':game.get('rescheduleGameDate')})
                     refunded+=1
                     continue
                 cursor.execute("""UPDATE juegos SET marcador_local=%s,marcador_visitante=%s,estado='finalizado'

@@ -165,8 +165,9 @@ Ver [detalle de los 15 cambios](docs/arquitectura_15_mejoras.md).
 
 Los partidos MLB confirmados como cancelados sin marcador se registran como
 PUSH/devolución al actualizar resultados. Se verifica la identidad del partido;
-una doble cartelera ambigua no se liquida por aproximación. Un aplazado,
-suspendido o un partido ausente del feed no se convierte automáticamente en push.
+una doble cartelera ambigua no se liquida por aproximación. Un aplazado sin marcador
+con reprogramación oficial para otro día devuelve el pick de la fecha original.
+Un suspendido, un retraso del mismo día o un partido ausente del feed sigue pendiente.
 
 Los props NFL de un partido finalizado se devuelven cuando falta la estadística
 del jugador y existe evidencia explícita de ausencia: cero snaps, reporte Out
@@ -182,3 +183,8 @@ PUSH, 0 unidades y el motivo; no cuenta como ganada ni perdida. El resumen deja
 de listar esas selecciones como pendientes. Las devoluciones de un jugador no
 se aplican a compañeros ni al total del partido. Las apuestas reales de cada
 casa deben seguir sus propias liquidaciones; esto es el registro del modelo.
+
+En Rendimiento, cada pick pendiente de MLB/NFL permite **Registrar devolución**.
+El usuario selecciona el motivo y confirma **Guardar como push**. Se conserva
+la confirmación manual en la auditoría; no se presenta como evidencia oficial,
+no se inventan yardas ni marcadores y se invalida la caché tras guardarla.

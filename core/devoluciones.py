@@ -77,3 +77,50 @@ def cancelled_mlb(game):
     if 'cancelled' not in detail and 'canceled' not in detail:return False
     teams=game.get('teams',{})
     return all(teams.get(side,{}).get('score') is None for side in ('home','away'))
+
+
+def mlb_refund_reason(game, original_day):
+    """La devolución pertenece al pick original, no al nuevo horario."""
+    if cancelled_mlb(game):
+        return 'Partido cancelado sin disputarse'
+    if str(game.get('status', {}).get('detailedState', '')).lower() != 'postponed':
+        return None
+    teams = game.get('teams', {})
+    if any(teams.get(side, {}).get('score') is not None for side in ('home', 'away')):
+        return None
+    original = pd.Timestamp(original_day).date()
+    rescheduled = game.get('rescheduleGameDate')
+    try:
+        if rescheduled and pd.Timestamp(rescheduled).date() > original:
+            return 'Partido aplazado para otro día; devolución del pick original'
+    except (ValueError, TypeError):
+        pass
+    return None
+
+
+def record_manual_refund(conn, row, reason):
+    """Confirmación del usuario, identificada como manual y sin inventar resultados."""
+    reasons = ('Jugador no participó', 'Partido no disputado en la fecha del pick',
+               'Apuesta anulada por la casa')
+    sport = str(row.get('deporte', ''))
+    if sport not in ('MLB', 'NFL') or str(row.get('resultado', '')).upper() != 'PENDIENTE':
+        raise ValueError('Solo se pueden devolver picks pendientes de MLB o NFL.')
+    if reason not in reasons:
+        raise ValueError('Selecciona un motivo de devolución válido.')
+    identity = str(row.get('identidad', ''))
+    if not identity or identity in ('nan', 'None'):
+        raise ValueError('El pick no tiene una identidad verificable.')
+    parts = identity.split('|')
+    kwargs = {}
+    if sport == 'NFL' and row.get('mercado') != 'Totales':
+        if len(parts) != 3 or not all(parts):
+            raise ValueError('No se pudo identificar el jugador y el mercado.')
+        game, player, market = parts
+        kwargs.update(player_id=player, market=market)
+    else:
+        game = identity
+    save_refund(conn, sport=sport, game_id=game, reason=reason + ' (confirmación manual)',
+                source='Confirmación manual del usuario',
+                evidence={'confirmation': True, 'identity': identity,
+                          'original_date': str(row.get('fecha')), 'market': str(row.get('mercado')),
+                          'selection': str(row.get('seleccion')), 'reason': reason}, **kwargs)
