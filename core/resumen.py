@@ -8,7 +8,8 @@ import pandas as pd
 from core import bankroll as bank
 
 LABELS = {'mlb':'MLB · Moneyline', 'mlb_total':'MLB · Totales V2',
-          'nfl_totales':'NFL · Totales', 'nfl_props':'NFL · Props', 'liga_mx':'Liga MX', 'bankroll':'Bankroll'}
+          'nfl_totales':'NFL · Totales', 'nfl_props':'NFL · Props', 'liga_mx':'Liga MX',
+          'nba':'NBA · Spreads y Totales', 'bankroll':'Bankroll'}
 
 
 def empty(service):
@@ -203,6 +204,31 @@ def read_summary(conn, root, now=None, *, include_bankroll=True):
     except Exception as exc:
         item['errors'].append('Cobertura o calendario: '+type(exc).__name__)
         item['detail']='Revisa o actualiza el calendario y su cobertura; las predicciones se mantienen suspendidas.'
+
+    item=output['nba']
+    try:
+        preds_file=Path(root)/'data/nba/predictions/predicciones_nba_hoy.json'
+        if preds_file.exists():
+            nba_preds=json.loads(preds_file.read_text(encoding='utf-8'))
+            item['picks_today']=len(nba_preds)
+            item['games_today']=len(nba_preds)
+            item['pending']=0
+            item['last_data']=nba_preds[0].get('timestamp') if nba_preds else None
+            item['detail']='Líneas y predicciones de DraftKings activas para hoy.'
+            item['games']=[
+                {'Fecha':p.get('fecha_cdmx',today.isoformat()),
+                 'Horario':p.get('hora_cdmx','TBD')+' CDMX',
+                 'Partido':p.get('partido','')}
+                for p in nba_preds
+            ]
+        else:
+            item['picks_today']=0
+            item['games_today']=0
+            item['pending']=0
+            item['detail']='Sin predicciones de NBA generadas para hoy.'
+    except Exception as exc:
+        item['errors'].append('NBA: '+type(exc).__name__)
+        item['detail']='No se pudo leer predicciones_nba_hoy.json.'
 
     if include_bankroll:
         item=output['bankroll']

@@ -22,3 +22,5 @@ modelos_nfl/*.json
 # Backups y temporales
 *.sql
 *.tmp
+data/cache/
+data/nba/cache/
