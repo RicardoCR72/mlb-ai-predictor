@@ -76,7 +76,7 @@ def cargar_perfiles_recientes_equipos() -> Dict[str, Dict[str, float]]:
     return perfiles
 
 
-def predecir_partidos_hoy(force_refresh: bool = False) -> List[Dict[str, Any]]:
+def predecir_partidos_hoy(force_refresh: bool = False, fecha: Optional[str] = None) -> List[Dict[str, Any]]:
     """Genera las predicciones completas para la cartelera de hoy en la NBA."""
     logger.info("🏀 Iniciando pipeline de predicciones diarias de la NBA...")
 
@@ -87,8 +87,12 @@ def predecir_partidos_hoy(force_refresh: bool = False) -> List[Dict[str, Any]]:
     bundle_totales = joblib.load(RUTA_MODELO_TOTALES)
     perfiles = cargar_perfiles_recientes_equipos()
 
-    # Consultar eventos del día
-    juegos = obtener_calendario_y_cuotas_nba(force_refresh=force_refresh)
+    # Consultar eventos del día (usar fecha actual CDMX o la fecha especificada)
+    hoy_cdmx = fecha or datetime.now(ZONA_CDMX).strftime("%Y%m%d")
+    juegos = obtener_calendario_y_cuotas_nba(fecha=hoy_cdmx, force_refresh=force_refresh)
+    if not juegos:
+        juegos = obtener_calendario_y_cuotas_nba(force_refresh=force_refresh)
+
     if not juegos:
         logger.info("No hay partidos programados para hoy en el calendario de ESPN.")
         return []

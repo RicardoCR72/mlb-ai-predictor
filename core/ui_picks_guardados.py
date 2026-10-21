@@ -31,6 +31,7 @@ def render_mlb_today(market):
         for col,(_,row) in zip(columns,shown.iloc[start:start+2].iterrows()):
             with col:
                 pick=dict(fecha=row.fecha,deporte='MLB',partido=f'{row.get("equipo_visitante","Visitante")} @ {row.get("equipo_local","Local")}',
+                    equipo_visitante=row.get("equipo_visitante"),equipo_local=row.get("equipo_local"),
                     seleccion=str(row.get('seleccion','Selección guardada'))+(f' {row.linea:g}' if pd.notna(row.get('linea')) else ''),
                     probabilidad=row.probabilidad,cuota=row.cuota,casa='DraftKings',modelo=row.modelo,mercado_confianza=market,
                     origen='mlb_total' if market=='Totales' else 'mlb_ml',p_push=row.get('p_push',0),

@@ -214,7 +214,10 @@ h1{letter-spacing:-.035em}h2,h3{letter-spacing:-.02em}
 .stApp .mlb-hero,.stApp .oracle-hero,.stApp .soccer-view-hero,.stApp .nfl-view-hero,.stApp .parlay-hero,.stApp .bankroll-hero{
  padding:1.15rem!important;border:1px solid #273245!important;border-radius:14px!important;background:#111720!important;margin:.6rem 0 1rem!important
 }
-.stApp .mlb-eyebrow,.stApp .oracle-eyebrow,.stApp .soccer-eyebrow,.stApp .nfl-eyebrow,.stApp .parlay-kicker,.stApp .bankroll-eyebrow{
+.stApp .mlb-eyebrow{
+ font-size:.72rem!important;letter-spacing:.12em!important;font-weight:800!important;color:#00e5ff!important
+}
+.stApp .oracle-eyebrow,.stApp .soccer-eyebrow,.stApp .nfl-eyebrow,.stApp .parlay-kicker,.stApp .bankroll-eyebrow{
  font-size:.72rem!important;letter-spacing:.12em!important;font-weight:800!important;color:#b7ff3c!important
 }
 .stApp .mlb-subtitle,.stApp .oracle-subtitle,.stApp .soccer-subtitle,.stApp .nfl-subtitle,.stApp .parlay-hero p,.stApp .bankroll-hero p{
@@ -223,8 +226,29 @@ h1{letter-spacing:-.035em}h2,h3{letter-spacing:-.02em}
 .stApp [data-testid="stButton"] button,.stApp [data-testid="stDownloadButton"] button,.stApp [data-testid="stFormSubmitButton"] button,.stApp [data-testid="stPageLink"] a{
  background:#111720!important;color:#c6d1df!important;border:1px solid #45546a!important;border-radius:9px!important;min-height:44px; font-weight:650!important
 }
-.stApp [class*="st-key-actualizacion_manual_"] button,.stApp .st-key-nfl_predicciones_creditos button,.stApp .st-key-parlay_reload button,.stApp .st-key-comparison_refresh button,.stApp [data-testid="stButton"] button[kind="primary"],.stApp [data-testid="stFormSubmitButton"] button[kind="primary"]{
+.stApp [class*="st-key-actualizacion_manual_nfl"] button,.stApp .st-key-nfl_predicciones_creditos button,.stApp .st-key-parlay_reload button,.stApp .st-key-comparison_refresh button,.stApp [data-testid="stFormSubmitButton"] button[kind="primary"]{
  background:#b7ff3c!important;color:#071006!important;border-color:#b7ff3c!important
+}
+.stApp [class*="st-key-actualizacion_manual_liga_mx"] button {
+ background:#00e676!important;color:#04150b!important;border-color:#00e676!important;box-shadow:0 4px 14px rgba(0, 230, 118, 0.4)!important
+}
+.stApp [class*="st-key-actualizacion_manual_liga_mx"] button * {
+ color:#04150b!important;font-weight:850!important
+}
+.stApp [class*="st-key-actualizacion_manual_liga_mx"] button:hover {
+ background:#26f089!important;color:#04150b!important;border-color:#26f089!important;box-shadow:0 6px 20px rgba(0, 230, 118, 0.6)!important
+}
+.stApp .st-key-mlb_generate button,
+.stApp [class*="st-key-actualizacion_manual_mlb"] button {
+ background:#00e5ff!important;color:#040d1a!important;border-color:#00e5ff!important;box-shadow:0 4px 14px rgba(0, 229, 255, 0.4)!important
+}
+.stApp .st-key-mlb_generate button *,
+.stApp [class*="st-key-actualizacion_manual_mlb"] button * {
+ color:#040d1a!important;font-weight:850!important
+}
+.stApp .st-key-mlb_generate button:hover,
+.stApp [class*="st-key-actualizacion_manual_mlb"] button:hover {
+ background:#33ebff!important;color:#040d1a!important;border-color:#33ebff!important;box-shadow:0 6px 20px rgba(0, 229, 255, 0.6)!important
 }
 .stApp [data-testid="stButton"] button:hover,.stApp [data-testid="stDownloadButton"] button:hover,.stApp [data-testid="stFormSubmitButton"] button:hover,.stApp [data-testid="stPageLink"] a:hover{
  background:#1a2535!important;color:#eef3f8!important;border-color:#b7ff3c!important
@@ -232,6 +256,54 @@ h1{letter-spacing:-.035em}h2,h3{letter-spacing:-.02em}
 .stApp button:focus-visible,.stApp a:focus-visible{outline:2px solid #b7ff3c!important;outline-offset:3px}
 .stApp [data-testid="stExpander"]{border-radius:12px!important;border-color:#273245!important}
 .stApp .oracle-pick{min-height:19rem;background:#111720;border:1px solid #273245;border-top:3px solid #8994a5;border-radius:14px;padding:1rem;margin:.4rem 0;box-sizing:border-box}
+.stApp .oracle-pick.mlb-card{
+ min-height:auto!important;
+ background:linear-gradient(145deg, #0b1524, #060c18)!important;
+ border:1px solid #16263d!important;
+ border-top:1px solid #16263d!important;
+ border-radius:18px!important;
+ padding:1.5rem 1.6rem 1.8rem 1.6rem!important;
+ margin-bottom:1.5rem!important;
+ box-shadow:0 4px 22px rgba(0, 0, 0, 0.35)!important;
+ color:#eef3f8!important;
+}
+.stApp .oracle-pick.mlb-card:hover{
+ border-color:rgba(0, 229, 255, 0.5)!important;
+ border-top-color:rgba(0, 229, 255, 0.5)!important;
+ box-shadow:0 6px 26px rgba(0, 229, 255, 0.12)!important;
+}
+.stApp .oracle-pick.nfl-card{
+ min-height:auto!important;
+ background:linear-gradient(145deg, #0e2218, #07140e)!important;
+ border:1px solid #1a382a!important;
+ border-top:1px solid #1a382a!important;
+ border-radius:18px!important;
+ padding:1.5rem 1.6rem 1.8rem 1.6rem!important;
+ margin-bottom:1.5rem!important;
+ box-shadow:0 4px 22px rgba(0, 0, 0, 0.35)!important;
+ color:#eef3f8!important;
+}
+.stApp .oracle-pick.nfl-card:hover{
+ border-color:rgba(183, 255, 60, 0.5)!important;
+ border-top-color:rgba(183, 255, 60, 0.5)!important;
+ box-shadow:0 6px 26px rgba(183, 255, 60, 0.12)!important;
+}
+.stApp .oracle-pick.ligamx-card{
+ min-height:auto!important;
+ background:linear-gradient(145deg, #0b1f15, #06140d)!important;
+ border:1px solid #143523!important;
+ border-top:1px solid #143523!important;
+ border-radius:18px!important;
+ padding:1.5rem 1.6rem 1.8rem 1.6rem!important;
+ margin-bottom:1.5rem!important;
+ box-shadow:0 4px 22px rgba(0, 0, 0, 0.35)!important;
+ color:#eef3f8!important;
+}
+.stApp .oracle-pick.ligamx-card:hover{
+ border-color:rgba(0, 230, 118, 0.5)!important;
+ border-top-color:rgba(0, 230, 118, 0.5)!important;
+ box-shadow:0 6px 26px rgba(0, 230, 118, 0.12)!important;
+}
 .stApp .oracle-pick h3{min-height:2.8em;line-height:1.4}
 .stApp .oracle-selection{min-height:3rem;align-items:flex-start}
 .stApp .oracle-values{min-height:2.6rem}

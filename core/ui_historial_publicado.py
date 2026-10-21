@@ -139,8 +139,14 @@ def render_history(sport,market=None,*,key):
                 if pd.notna(row.get('jugador')):selection=str(row.jugador)+' · '+selection
                 line=row.get('linea') if pd.notna(row.get('linea')) else row.get('linea_total')
                 if pd.notna(line):selection+=f' {line:g}'
+                away_sc = row.get('marcador_visitante') if pd.notna(row.get('marcador_visitante')) else (row.get('away_runs') if pd.notna(row.get('away_runs')) else row.get('goles_visitante'))
+                home_sc = row.get('marcador_local') if pd.notna(row.get('marcador_local')) else (row.get('home_runs') if pd.notna(row.get('home_runs')) else row.get('goles_local'))
                 pick=dict(fecha=row.fecha,deporte=sport,partido=event,seleccion=selection,casa='DraftKings',
-                    probabilidad=row.probabilidad,cuota=row.cuota,referencia={})
+                    probabilidad=row.probabilidad,cuota=row.cuota,referencia={},
+                    equipo_visitante=row.get('equipo_visitante'),equipo_local=row.get('equipo_local'),
+                    away_runs=row.get('away_runs'),home_runs=row.get('home_runs'),
+                    away_score=away_sc,home_score=home_sc,
+                    unidades=row.get('unidades'),resultado=row.get('resultado'))
                 if pd.notna(row.get('start_utc')):pick['referencia']['inicio_utc']=pd.Timestamp(row.start_utc).tz_localize('UTC').isoformat() if pd.Timestamp(row.start_utc).tzinfo is None else str(row.start_utc)
                 render_pick(pick,market=row.mercado,state=row.resultado,allow_register=False,
                     details=actual_result_details(row)+[('Unidades',f'{row.unidades:+.2f} u' if pd.notna(row.unidades) else 'N/D'),('Procedencia',row.procedencia),('Versión',labels[(sport,str(row.modelo))])])

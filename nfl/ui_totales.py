@@ -117,22 +117,47 @@ def mostrar_badge(estado):
 
 def mostrar_partido(fila):
     pick = nfl_pick(fila)
-    render_pick(pick, market='Total del partido', state=str(fila['estado']),
-        details=[('Proyección', formatear_numero(fila['pred_total'], 1)),
-                 ('Edge', formatear_numero(fila['edge'], 2)), ('EV estimado', formatear_porcentaje(fila['ev'])),
-                 ('P(Over) / P(Under)', formatear_porcentaje(fila['prob_over'])+' / '+formatear_porcentaje(fila['prob_under'])),
-                 ('Proyección base', formatear_numero(fila['pred_total_base'], 1))],
-        allow_register=fila['pick'] in ('OVER', 'UNDER') and pd.notna(fila['total_line']))
+    res = str(fila.get('resultado_pick') or '').strip().upper()
+    es_resuelta = res in ('GANADA', 'PERDIDA', 'PUSH')
+    state = res if es_resuelta else str(fila['estado'])
+
+    details = [
+        ('Proyección', formatear_numero(fila['pred_total'], 1)),
+        ('Edge', formatear_numero(fila['edge'], 2)),
+        ('EV estimado', formatear_porcentaje(fila['ev'])),
+        ('P(Over) / P(Under)', formatear_porcentaje(fila['prob_over'])+' / '+formatear_porcentaje(fila['prob_under'])),
+        ('Proyección base', formatear_numero(fila['pred_total_base'], 1))
+    ]
+    if es_resuelta:
+        if pd.notna(fila.get('total_real')):
+            details.insert(0, ('Total real', formatear_numero(fila.get('total_real'), 1)))
+        if pd.notna(fila.get('marcador_visitante')) and pd.notna(fila.get('marcador_local')):
+            details.insert(1, ('Marcador final', f"{int(fila['marcador_visitante'])} – {int(fila['marcador_local'])}"))
+            pick['away_score'] = int(fila['marcador_visitante'])
+            pick['home_score'] = int(fila['marcador_local'])
+        if pd.notna(fila.get('beneficio_unidades')):
+            pick['unidades'] = float(fila['beneficio_unidades'])
+            details.insert(2, ('Unidades', f"{float(fila['beneficio_unidades']):+.2f} u"))
+
+    render_pick(pick, market='Total del partido', state=state, details=details,
+        allow_register=not es_resuelta and fila['pick'] in ('OVER', 'UNDER') and pd.notna(fila['total_line']))
 
 
 
 def mostrar_resultado_total(fila):
-    result=str(fila.get('resultado_pick','PENDIENTE'))
-    label={'GANADA':'✅ Ganada','PERDIDA':'❌ Perdida'}.get(result.upper(),result)
-    render_pick(nfl_pick(fila), market='Total del partido · Simulación 1 u', state=label,
-        details=[('Total real',formatear_numero(fila.get('total_real'),1)),
-                 ('Unidades', 'N/D' if pd.isna(fila.get('beneficio_unidades')) else f"{float(fila['beneficio_unidades']):+.2f} u")],
-        allow_register=False)
+    result = str(fila.get('resultado_pick', 'PENDIENTE')).strip().upper()
+    pick = nfl_pick(fila)
+    if pd.notna(fila.get('marcador_visitante')) and pd.notna(fila.get('marcador_local')):
+        pick['away_score'] = int(fila['marcador_visitante'])
+        pick['home_score'] = int(fila['marcador_local'])
+    if pd.notna(fila.get('beneficio_unidades')):
+        pick['unidades'] = float(fila['beneficio_unidades'])
+    details = [('Total real', formatear_numero(fila.get('total_real'), 1))]
+    if pd.notna(fila.get('marcador_visitante')) and pd.notna(fila.get('marcador_local')):
+        details.append(('Marcador final', f"{int(fila['marcador_visitante'])} – {int(fila['marcador_local'])}"))
+    if pd.notna(fila.get('beneficio_unidades')):
+        details.append(('Unidades', f"{float(fila['beneficio_unidades']):+.2f} u"))
+    render_pick(pick, market='Total del partido · Simulación 1 u', state=result, details=details, allow_register=False)
 
 
 

@@ -52,9 +52,9 @@ def render_job(service):
     poll(service)
 
 
-def action_button(service,label,*,key,help=None,payload=None,disabled=False,details_on_click=False):
-    clicked=st.button(label,key=key,help=help,disabled=disabled,
-        type='primary' if service.endswith('predictions') else 'secondary')
+def action_button(service,label,*,key,help=None,payload=None,disabled=False,details_on_click=False,kind=None):
+    btn_type = kind if kind else ('secondary' if service.startswith('mlb') else ('primary' if service.endswith('predictions') else 'secondary'))
+    clicked=st.button(label,key=key,help=help,disabled=disabled,type=btn_type)
     visibility_key = '_show_update_details_' + service
     if clicked:
         if details_on_click:

@@ -22,7 +22,6 @@ if str(RAIZ) not in sys.path:
     sys.path.insert(0, str(RAIZ))
 
 from core.constants import ZONA_CDMX
-from core.db import get_db_connection
 
 RUTA_PROCESSED = RAIZ / "data" / "nba" / "processed"
 RUTA_HISTORIAL_PARQUET = RUTA_PROCESSED / "historial_picks_nba.parquet"
@@ -30,6 +29,19 @@ RUTA_HISTORIAL_CSV = RUTA_PROCESSED / "historial_picks_nba.csv"
 RUTA_DATASET_PARTIDOS = RUTA_PROCESSED / "dataset_partidos_nba.parquet"
 
 logger = logging.getLogger(__name__)
+
+
+def obtener_conexion_mysql(timeout: int = 2):
+    """Crea una conexión rápida a MySQL con timeout corto para no congelar la app si está offline."""
+    try:
+        from core.infrastructure.database import get_db_credentials
+        import mysql.connector
+        creds = get_db_credentials()
+        creds["connection_timeout"] = timeout
+        conn = mysql.connector.connect(**creds)
+        return conn
+    except Exception:
+        return None
 
 DDL_NBA_PICKS = """
 CREATE TABLE IF NOT EXISTS nba_registro_picks (
@@ -86,23 +98,29 @@ def guardar_predicciones_nba(predicciones: List[Dict[str, Any]]) -> None:
         elif p.get("abbr_visita") in p.get("pick_seleccion", ""):
             cuota_dec = float(p.get("ml_visita_dec") or 1.91)
 
+        linea_val = p.get("linea_total") if "Totales" in p.get("pick_mercado", "") else p.get("linea_spread")
+        if linea_val is None:
+            import re
+            m_l = re.search(r'([+-]?\d+(?:\.\d+)?)', p.get("pick_seleccion", ""))
+            linea_val = float(m_l.group(1)) if m_l else 0.0
+
         fila = {
-            "id_juego": str(p["id_evento"]),
-            "fecha": str(p["fecha_cdmx"]),
-            "hora_cdmx": str(p["hora_cdmx"]),
-            "equipo_local": str(p["equipo_local"]),
-            "equipo_visitante": str(p["equipo_visita"]),
-            "mercado": str(p["pick_mercado"]),
-            "seleccion": str(p["pick_seleccion"]),
-            "linea": float(p.get("linea_total") if "Totales" in p.get("pick_mercado", "") else (p.get("linea_spread") or 0.0)),
+            "id_juego": str(p.get("id_evento", "")),
+            "fecha": str(p.get("fecha_cdmx", ahora.strftime("%Y-%m-%d"))),
+            "hora_cdmx": str(p.get("hora_cdmx", "TBD")),
+            "equipo_local": str(p.get("equipo_local", "")),
+            "equipo_visitante": str(p.get("equipo_visita", "")),
+            "mercado": str(p.get("pick_mercado", "")),
+            "seleccion": str(p.get("pick_seleccion", "")),
+            "linea": float(linea_val or 0.0),
             "cuota": round(cuota_dec, 3),
             "probabilidad": float(p.get("pick_probabilidad") or 0.5),
             "edge": float(p.get("pick_edge") or 0.0),
             "confianza": str(p.get("confianza") or "MEDIA"),
-            "marcador_local": None,
-            "marcador_visitante": None,
-            "resultado": "PENDIENTE",
-            "unidades_ganadas": None,
+            "marcador_local": p.get("marcador_local"),
+            "marcador_visitante": p.get("marcador_visita"),
+            "resultado": p.get("resultado") or "PENDIENTE",
+            "unidades_ganadas": p.get("unidades_ganadas"),
             "actualizado_en": ahora_str,
         }
         nuevas_filas.append(fila)
@@ -112,7 +130,7 @@ def guardar_predicciones_nba(predicciones: List[Dict[str, Any]]) -> None:
     # 2. Persistencia en Base de Datos MySQL si está disponible
     conn = None
     try:
-        conn = get_db_connection()
+        conn = obtener_conexion_mysql(timeout=2)
         if conn:
             preparar_tablas_nba(conn)
             cursor = conn.cursor()
@@ -128,6 +146,10 @@ def guardar_predicciones_nba(predicciones: List[Dict[str, Any]]) -> None:
                 probabilidad = VALUES(probabilidad),
                 edge = VALUES(edge),
                 confianza = VALUES(confianza),
+                marcador_local = COALESCE(VALUES(marcador_local), marcador_local),
+                marcador_visitante = COALESCE(VALUES(marcador_visitante), marcador_visitante),
+                resultado = CASE WHEN resultado IN ('GANADA', 'PERDIDA', 'PUSH') THEN resultado ELSE VALUES(resultado) END,
+                unidades_ganadas = COALESCE(VALUES(unidades_ganadas), unidades_ganadas),
                 actualizado_en = VALUES(actualizado_en);
             """
             for f in nuevas_filas:
@@ -158,11 +180,32 @@ def guardar_predicciones_nba(predicciones: List[Dict[str, Any]]) -> None:
             pass
 
     if not df_existente.empty:
-        df_total = pd.concat([df_existente, df_nuevas], ignore_index=True)
-        # Eliminar duplicados conservando la versión más reciente
-        df_total = df_total.drop_duplicates(subset=["id_juego", "mercado", "seleccion"], keep="last")
+        # Partidos ya liquidados (bloqueados permanentemente para no duplicar datos)
+        liquidados_prev = df_existente[df_existente["resultado"].isin(["GANADA", "PERDIDA", "PUSH"])]
+        if not liquidados_prev.empty:
+            ids_liquidados = set(liquidados_prev["id_juego"].astype(str))
+            partidos_liquidados = set(zip(
+                liquidados_prev["fecha"].astype(str),
+                liquidados_prev["equipo_local"].astype(str).str.upper(),
+                liquidados_prev["equipo_visitante"].astype(str).str.upper()
+            ))
+            # Descartar cualquier predicción cuyo juego ya esté liquidado en el historial
+            df_nuevas_filtradas = df_nuevas[~df_nuevas.apply(
+                lambda r: (str(r["id_juego"]) in ids_liquidados) or (
+                    (str(r["fecha"]), str(r["equipo_local"]).upper(), str(r["equipo_visitante"]).upper()) in partidos_liquidados
+                ), axis=1
+            )]
+        else:
+            df_nuevas_filtradas = df_nuevas
+
+        if not df_nuevas_filtradas.empty:
+            df_total = pd.concat([df_existente, df_nuevas_filtradas], ignore_index=True)
+            # Garantizar que cada id_juego solo tenga un único registro en todo el historial
+            df_total = df_total.drop_duplicates(subset=["id_juego"], keep="first")
+        else:
+            df_total = df_existente
     else:
-        df_total = df_nuevas
+        df_total = df_nuevas.drop_duplicates(subset=["id_juego"], keep="first")
 
     df_total.to_parquet(RUTA_HISTORIAL_PARQUET, index=False)
     df_total.to_csv(RUTA_HISTORIAL_CSV, index=False, encoding="utf-8")
@@ -179,22 +222,25 @@ def liquidar_partido(fila: pd.Series) -> Tuple[str, Optional[float]]:
 
     m_local = int(m_local)
     m_visita = int(m_visita)
-    cuota = float(fila.get("cuota", 1.91))
+    cuota = float(fila.get("cuota") or 1.91)
     mercado = str(fila.get("mercado", ""))
-    sel = str(fila.get("seleccion", ""))
+    sel = str(fila.get("seleccion", "")).strip()
     linea = float(fila.get("linea") or 0.0)
 
-    # 1. Totales Over / Under
-    if "Totales" in mercado or "OVER" in sel or "UNDER" in sel:
+    # 1. Totales Over / Under (asegurando límite de palabra para no confundir con thUNDER)
+    import re
+    es_over = bool(re.search(r'\bOVER\b', sel, re.IGNORECASE))
+    es_under = bool(re.search(r'\bUNDER\b', sel, re.IGNORECASE))
+    if "Totales" in mercado or es_over or es_under:
         total_puntos = m_local + m_visita
-        if "OVER" in sel:
+        if es_over:
             if total_puntos > linea:
                 return "GANADA", round(cuota - 1.0, 3)
             elif total_puntos < linea:
                 return "PERDIDA", -1.0
             else:
                 return "PUSH", 0.0
-        elif "UNDER" in sel:
+        elif es_under:
             if total_puntos < linea:
                 return "GANADA", round(cuota - 1.0, 3)
             elif total_puntos > linea:
@@ -204,27 +250,44 @@ def liquidar_partido(fila: pd.Series) -> Tuple[str, Optional[float]]:
 
     # 2. Moneyline
     if "Moneyline" in mercado or "ML" in sel:
-        eq_local = str(fila.get("equipo_local", ""))
-        eq_vis = str(fila.get("equipo_visitante", ""))
-        if eq_local in sel:
+        eq_local = str(fila.get("equipo_local", "")).lower()
+        eq_vis = str(fila.get("equipo_visitante", "")).lower()
+        sel_l = sel.lower()
+        if any(part in sel_l for part in eq_local.split()):
             if m_local > m_visita:
                 return "GANADA", round(cuota - 1.0, 3)
-            else:
+            elif m_local < m_visita:
                 return "PERDIDA", -1.0
-        elif eq_vis in sel:
+            else:
+                return "PUSH", 0.0
+        elif any(part in sel_l for part in eq_vis.split()):
             if m_visita > m_local:
                 return "GANADA", round(cuota - 1.0, 3)
-            else:
+            elif m_visita < m_local:
                 return "PERDIDA", -1.0
+            else:
+                return "PUSH", 0.0
 
     # 3. Spread / Hándicap
-    if "Spread" in mercado:
-        margen = m_local - m_visita
-        eq_local = str(fila.get("equipo_local", ""))
-        if eq_local in sel:
-            diff = margen + linea
+    if "Spread" in mercado or "+" in sel or "-" in sel:
+        import re
+        eq_local = str(fila.get("equipo_local", "")).lower()
+        eq_vis = str(fila.get("equipo_visitante", "")).lower()
+        sel_l = sel.lower()
+        
+        match_spread = re.search(r'([+-]\d+(?:\.\d+)?)', sel)
+        if match_spread:
+            handicap = float(match_spread.group(1))
+            if any(part in sel_l for part in eq_local.split()):
+                diff = (m_local + handicap) - m_visita
+            else:
+                diff = (m_visita + handicap) - m_local
         else:
-            diff = -margen + linea
+            margen = m_local - m_visita
+            if any(part in sel_l for part in eq_local.split()):
+                diff = margen + linea
+            else:
+                diff = -margen + linea
 
         if diff > 0:
             return "GANADA", round(cuota - 1.0, 3)
@@ -348,6 +411,185 @@ def inicializar_historial_simulado() -> pd.DataFrame:
     df_hist.to_csv(RUTA_HISTORIAL_CSV, index=False, encoding="utf-8")
     logger.info(f"✅ Historial inicial generado con {len(df_hist):,} picks evaluados.")
     return df_hist
+
+
+def liquidar_partidos_pendientes_nba() -> dict[str, Any]:
+    """Consulta ESPN Scoreboard y liquida todos los picks pendientes de la NBA.
+    Actualiza el archivo Parquet/CSV, la base de datos MySQL y el archivo JSON de predicciones
+    para que queden auditados y pasen a Rendimiento e Historial.
+    """
+    from nba.proveedor_cuotas import obtener_calendario_y_cuotas_nba
+
+    # 1. Asegurar que solo las predicciones activas pendientes de hoy se registren
+    archivo_preds = RAIZ / "data" / "nba" / "predictions" / "predicciones_nba_hoy.json"
+    if archivo_preds.exists():
+        try:
+            with open(archivo_preds, "r", encoding="utf-8") as f:
+                preds_hoy = json.load(f)
+            # Solo considerar si hay partidos no finalizados
+            pendientes_hoy = [
+                p for p in preds_hoy
+                if p.get("resultado") not in ["GANADA", "PERDIDA", "PUSH"] and p.get("estado") != "STATUS_FINAL"
+            ]
+            if pendientes_hoy:
+                guardar_predicciones_nba(pendientes_hoy)
+        except Exception as err_preds:
+            logger.warning(f"Error cargando predicciones de hoy para registro previo: {err_preds}")
+
+    if not RUTA_HISTORIAL_PARQUET.exists():
+        cargar_historial_rendimiento()
+
+    try:
+        df = pd.read_parquet(RUTA_HISTORIAL_PARQUET)
+    except Exception as err:
+        return {"ok": False, "evaluados": 0, "mensaje": f"Error al abrir historial: {err}"}
+
+    pendientes = df[df["resultado"] == "PENDIENTE"]
+    if pendientes.empty:
+        return {
+            "ok": True,
+            "evaluados": 0,
+            "ya_liquidados": True,
+            "mensaje": "Todos los partidos disponibles ya han sido liquidados y registrados en Rendimiento e Historial. La acción está bloqueada."
+        }
+
+    # 2. Consultar marcadores de ESPN para hoy y las fechas de los juegos pendientes
+    fechas = set(pendientes["fecha"].dropna().astype(str).tolist())
+    hoy_str = datetime.now(ZONA_CDMX).strftime("%Y-%m-%d")
+    fechas.add(hoy_str)
+
+    partidos_espn = []
+    for f_str in fechas:
+        partidos_espn.extend(obtener_calendario_y_cuotas_nba(fecha=f_str, force_refresh=True, ttl_minutes=0))
+    # Consulta por defecto sin fecha
+    partidos_espn.extend(obtener_calendario_y_cuotas_nba(force_refresh=True, ttl_minutes=0))
+
+    marcadores_por_id = {}
+    marcadores_por_equipos = {}
+    for ev in partidos_espn:
+        ev_id = str(ev.get("id_evento", "")).strip()
+        estado = str(ev.get("estado", "")).upper()
+        desc = str(ev.get("descripcion_estado", "")).upper()
+        if "FINAL" in estado or "FINAL" in desc:
+            sc_home = ev.get("marcador_local")
+            sc_away = ev.get("marcador_visita")
+            if sc_home is not None and sc_away is not None:
+                try:
+                    ml = int(sc_home)
+                    mv = int(sc_away)
+                    if ev_id:
+                        marcadores_por_id[ev_id] = (ml, mv)
+                    eq_loc = str(ev.get("equipo_local", "")).strip().upper()
+                    eq_vis = str(ev.get("equipo_visita", "")).strip().upper()
+                    ab_loc = str(ev.get("abbr_local", "")).strip().upper()
+                    ab_vis = str(ev.get("abbr_visita", "")).strip().upper()
+                    if eq_loc and eq_vis:
+                        marcadores_por_equipos[(eq_loc, eq_vis)] = (ml, mv)
+                    if ab_loc and ab_vis:
+                        marcadores_por_equipos[(ab_loc, ab_vis)] = (ml, mv)
+                except (ValueError, TypeError):
+                    pass
+
+    liquidados_count = 0
+    ahora_str = datetime.now(ZONA_CDMX).strftime("%Y-%m-%d %H:%M:%S")
+
+    for idx, row in df[df["resultado"] == "PENDIENTE"].iterrows():
+        ev_id = str(row["id_juego"]).split("_")[0].strip()
+        eq_loc = str(row.get("equipo_local", "")).strip().upper()
+        eq_vis = str(row.get("equipo_visitante", "")).strip().upper()
+
+        sc = marcadores_por_id.get(ev_id)
+        if not sc and (eq_loc, eq_vis) in marcadores_por_equipos:
+            sc = marcadores_por_equipos[(eq_loc, eq_vis)]
+
+        if sc:
+            m_loc, m_vis = sc
+            df.at[idx, "marcador_local"] = m_loc
+            df.at[idx, "marcador_visitante"] = m_vis
+            res, u_gan = liquidar_partido(df.loc[idx])
+            df.at[idx, "resultado"] = res
+            df.at[idx, "unidades_ganadas"] = u_gan
+            df.at[idx, "actualizado_en"] = ahora_str
+            liquidados_count += 1
+
+    if liquidados_count > 0:
+        df = df.drop_duplicates(subset=["id_juego"], keep="first")
+        df.to_parquet(RUTA_HISTORIAL_PARQUET, index=False)
+        df.to_csv(RUTA_HISTORIAL_CSV, index=False, encoding="utf-8")
+
+        # Sincronizar en MySQL
+        conn = None
+        try:
+            conn = obtener_conexion_mysql(timeout=2)
+            if conn:
+                cursor = conn.cursor()
+                sql_update = """
+                UPDATE nba_registro_picks
+                SET marcador_local = %s, marcador_visitante = %s, resultado = %s,
+                    unidades_ganadas = %s, actualizado_en = %s
+                WHERE id_juego = %s AND mercado = %s AND seleccion = %s;
+                """
+                for idx, row in df[df["resultado"].isin(["GANADA", "PERDIDA", "PUSH"])].iterrows():
+                    cursor.execute(sql_update, (
+                        row["marcador_local"], row["marcador_visitante"], row["resultado"],
+                        row["unidades_ganadas"], ahora_str, row["id_juego"], row["mercado"], row["seleccion"]
+                    ))
+                conn.commit()
+                cursor.close()
+        except Exception as e:
+            logger.warning(f"Error sincronizando liquidación en MySQL: {e}")
+        finally:
+            if conn:
+                try:
+                    conn.close()
+                except Exception:
+                    pass
+
+        # 3. Sincronizar predicciones_nba_hoy.json para reflejar el estado liquidado y marcadores finales
+        if archivo_preds.exists():
+            try:
+                with open(archivo_preds, "r", encoding="utf-8") as f:
+                    preds_data = json.load(f)
+                modificado = False
+                for p in preds_data:
+                    p_id = str(p.get("id_evento", "")).strip()
+                    p_eq_loc = str(p.get("equipo_local", "")).strip().upper()
+                    p_eq_vis = str(p.get("equipo_visita", "")).strip().upper()
+
+                    sc = marcadores_por_id.get(p_id)
+                    if not sc and (p_eq_loc, p_eq_vis) in marcadores_por_equipos:
+                        sc = marcadores_por_equipos[(p_eq_loc, p_eq_vis)]
+
+                    if sc:
+                        m_loc, m_vis = sc
+                        p["marcador_local"] = m_loc
+                        p["marcador_visita"] = m_vis
+                        p["estado"] = "STATUS_FINAL"
+
+                        match_rows = df[(df["id_juego"].astype(str).str.startswith(p_id)) & (df["resultado"].isin(["GANADA", "PERDIDA", "PUSH"]))]
+                        if not match_rows.empty:
+                            p["resultado"] = str(match_rows.iloc[-1]["resultado"])
+                            u_val = match_rows.iloc[-1]["unidades_ganadas"]
+                            p["unidades_ganadas"] = float(u_val) if pd.notna(u_val) else None
+                        modificado = True
+                if modificado:
+                    with open(archivo_preds, "w", encoding="utf-8") as f:
+                        json.dump(preds_data, f, indent=2, ensure_ascii=False)
+                    pd.DataFrame(preds_data).to_parquet(archivo_preds.with_suffix(".parquet"), index=False)
+            except Exception as e_json:
+                logger.warning(f"Error actualizando predicciones_nba_hoy.json: {e_json}")
+
+        return {
+            "ok": True,
+            "evaluados": liquidados_count,
+            "mensaje": f"Se liquidaron exitosamente {liquidados_count} pick(s) y pasaron a Rendimiento e Historial."
+        }
+    else:
+        return {
+            "ok": True,
+            "evaluados": 0,
+            "mensaje": "Los partidos de hoy aún están programados o en juego. No hay resultados finales listos para liquidar."
+        }
 
 
 def cargar_historial_rendimiento() -> pd.DataFrame:

@@ -259,22 +259,40 @@ def mostrar_prop(fila):
 
 def mostrar_prop_compacto(fila):
     pick = nfl_pick(fila, prop=True)
-    render_pick(pick, market=str(fila['mercado']), state=str(fila['estado_pick']),
-        details=[('Proyección', formatear_porcentaje(fila['proyeccion']) if fila['tipo_prop']=='anytime_td' else formatear_numero(fila['proyeccion'], 2)),
-                 ('Edge', formatear_numero(fila['edge'], 2)), ('EV estimado', formatear_porcentaje(fila['ev_estimado'])),
-                 ('Lesión', texto_seguro(fila.get('estado_lesion'), 'Sin alerta')),
-                 ('Contexto y escenarios', texto_seguro(fila.get('contexto_lesiones'), 'Sin alerta'))],
-        allow_register=fila['seleccion'] in ('OVER','UNDER','ANOTA'))
+    res = str(fila.get('resultado_pick') or '').strip().upper()
+    es_resuelta = res in ('GANADA', 'PERDIDA', 'PUSH')
+    state = res if es_resuelta else str(fila['estado_pick'])
+
+    details = [
+        ('Proyección', formatear_porcentaje(fila['proyeccion']) if fila['tipo_prop']=='anytime_td' else formatear_numero(fila['proyeccion'], 2)),
+        ('Edge', formatear_numero(fila['edge'], 2)),
+        ('EV estimado', formatear_porcentaje(fila['ev_estimado'])),
+        ('Lesión', texto_seguro(fila.get('estado_lesion'), 'Sin alerta')),
+        ('Contexto y escenarios', texto_seguro(fila.get('contexto_lesiones'), 'Sin alerta'))
+    ]
+    if es_resuelta:
+        if pd.notna(fila.get('valor_real')):
+            details.insert(0, ('Resultado real', formatear_numero(fila.get('valor_real'), 1)))
+        if pd.notna(fila.get('beneficio_unidades')):
+            pick['unidades'] = float(fila['beneficio_unidades'])
+            details.insert(1, ('Unidades', f"{float(fila['beneficio_unidades']):+.2f} u"))
+
+    render_pick(pick, market=str(fila['mercado']), state=state, details=details,
+        allow_register=not es_resuelta and fila['seleccion'] in ('OVER','UNDER','ANOTA'))
 
 
 
 def mostrar_resultado_prop(fila):
-    result=str(fila.get('resultado_pick','PENDIENTE'))
-    label={'GANADA':'✅ Ganada','PERDIDA':'❌ Perdida'}.get(result.upper(),result)
-    render_pick(nfl_pick(fila, prop=True), market=str(fila['mercado'])+' · Simulación 1 u', state=label,
-        details=[('Resultado real',formatear_numero(fila.get('valor_real'),1)),
-                 ('Unidades', 'N/D' if pd.isna(fila.get('beneficio_unidades')) else f"{float(fila['beneficio_unidades']):+.2f} u"),
-                 ('Publicación',str(fila.get('estado_pick','')))], allow_register=False)
+    result = str(fila.get('resultado_pick', 'PENDIENTE')).strip().upper()
+    pick = nfl_pick(fila, prop=True)
+    if pd.notna(fila.get('beneficio_unidades')):
+        pick['unidades'] = float(fila['beneficio_unidades'])
+    details = [('Resultado real', formatear_numero(fila.get('valor_real'), 1))]
+    if pd.notna(fila.get('beneficio_unidades')):
+        details.append(('Unidades', f"{float(fila['beneficio_unidades']):+.2f} u"))
+    if fila.get('estado_pick'):
+        details.append(('Publicación', str(fila.get('estado_pick', ''))))
+    render_pick(pick, market=str(fila['mercado']) + ' · Simulación 1 u', state=result, details=details, allow_register=False)
 
 
 
