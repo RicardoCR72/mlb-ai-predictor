@@ -10,7 +10,7 @@ from nfl.jornada import ahora_mexico, eventos_hoy, MERCADOS_PROPS
 from core.actualizacion_manual import child_environment
 
 API_BASE = 'https://api.the-odds-api.com/v4'
-RESERVA = 120
+RESERVA = 0
 LOCK = threading.Lock()
 
 
@@ -60,7 +60,7 @@ def run_predictions(root, plan, on_step=None):
         if plan['restantes'] is None:
             raise RuntimeError('No se recibió el saldo de créditos; no se consultarán cuotas.')
         if plan['restantes'] < RESERVA + len(MERCADOS_PROPS):
-            raise RuntimeError('No hay créditos disponibles por encima de la reserva de 120.')
+            raise RuntimeError('Saldo insuficiente para consultar todos los mercados de una captura.')
         prediction_args = ('--solo-hoy',)
         if not plan.get('todos', False):
             prediction_args += ('--proximas-horas', '2')
