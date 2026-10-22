@@ -10,7 +10,7 @@ from nfl.jornada import ahora_mexico, eventos_hoy, MERCADOS_PROPS
 from core.actualizacion_manual import child_environment
 
 API_BASE = 'https://api.the-odds-api.com/v4'
-RESERVA = 0
+RESERVA = 6
 LOCK = threading.Lock()
 
 
