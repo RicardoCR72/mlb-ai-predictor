@@ -85,7 +85,9 @@ def predecir_jornada_nfl_moneyline(force_refresh: bool = False) -> List[Dict[str
     RUTA_PREDICCIONES_DIR.mkdir(parents=True, exist_ok=True)
 
     if not RUTA_MODELO.exists():
-        raise FileNotFoundError(f"Modelo Moneyline no encontrado en {RUTA_MODELO}. Ejecuta nfl/entrenar_moneyline.py")
+        logger.info(f"Modelo Moneyline no encontrado en {RUTA_MODELO}. Entrenando automáticamente...")
+        from nfl.entrenar_moneyline import entrenar_modelo_moneyline
+        entrenar_modelo_moneyline()
 
     bundle = joblib.load(RUTA_MODELO)
     modelo = bundle["modelo"]

@@ -16,8 +16,11 @@ __pycache__/
 # Datos y modelos NFL
 data/nfl/cache/
 data/nfl/predictions/
+!data/nfl/predictions/predicciones_nfl_moneyline.json
 modelos_nfl/*.joblib
+!modelos_nfl/modelo_moneyline_nfl.joblib
 modelos_nfl/*.json
+!modelos_nfl/metadata_moneyline_nfl.json
 
 # Backups y temporales
 *.sql

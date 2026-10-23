@@ -1,0 +1,28 @@
+{
+  "modelo_version": "nfl_moneyline_calibrado_v1",
+  "fecha_entrenamiento": "2026-10-23T06:51:25.308792",
+  "features": [
+    "spread_line",
+    "diff_margin_avg_8",
+    "diff_points_for_avg_8",
+    "diff_points_against_avg_8",
+    "diff_win_pct_8",
+    "diff_rest",
+    "diff_injury_severity",
+    "home_qb_change",
+    "away_qb_change",
+    "home_margin_avg_4",
+    "away_margin_avg_4",
+    "home_points_for_avg_season",
+    "away_points_for_avg_season",
+    "home_win_pct_season",
+    "away_win_pct_season"
+  ],
+  "metricas_out_of_sample": {
+    "auc": 0.7373,
+    "accuracy": 0.6742,
+    "brier": 0.2068,
+    "log_loss": 0.5998,
+    "n_partidos_historicos": 3696
+  }
+}
