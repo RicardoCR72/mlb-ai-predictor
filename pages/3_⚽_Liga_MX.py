@@ -326,6 +326,8 @@ st.markdown(
 
 def cargar_predicciones_ligamx(forzar: bool = False):
     """Carga las predicciones desde disco o ejecuta el pipeline si no existen o se solicita refresco."""
+    hoy_cdmx = datetime.now(ZONA_CDMX).strftime("%Y-%m-%d")
+
     if forzar or not RUTA_PREDICCIONES.exists():
         with st.spinner("Consultando DraftKings y ejecutando modelo Bivariado Poisson..."):
             preds = predecir_jornada_ligamx(force_refresh=forzar)
@@ -333,8 +335,22 @@ def cargar_predicciones_ligamx(forzar: bool = False):
     try:
         with open(RUTA_PREDICCIONES, "r", encoding="utf-8") as f:
             preds = json.load(f)
-        if not preds:
+
+        if not preds or not isinstance(preds, list):
             return predecir_jornada_ligamx(force_refresh=True)
+
+        # Evitar que se queden pegados partidos pasados:
+        fechas_partidos = [p.get("fecha_cdmx") for p in preds if p.get("fecha_cdmx")]
+        # Si TODOS los partidos del archivo son de fechas anteriores a hoy, actualizar a la nueva jornada
+        todos_pasados = all(f < hoy_cdmx for f in fechas_partidos) if fechas_partidos else False
+        todos_finalizados = all(
+            p.get("resultado") in ["GANADA", "PERDIDA", "PUSH"] or "FINAL" in str(p.get("estado", "")).upper()
+            for p in preds
+        )
+
+        if todos_pasados or (todos_finalizados and max(fechas_partidos, default="") < hoy_cdmx):
+            with st.spinner("Actualizando cartelera de la jornada activa Liga MX..."):
+                return predecir_jornada_ligamx(force_refresh=True)
 
         # Sincronizar pendientes con la base de datos
         pendientes = [p for p in preds if p.get("resultado") not in ["GANADA", "PERDIDA", "PUSH"]]

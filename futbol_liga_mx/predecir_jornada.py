@@ -42,7 +42,7 @@ RUTA_PREDICCIONES_JSON = RUTA_PREDICCIONES_DIR / "predicciones_ligamx_hoy.json"
 RUTA_PREDICCIONES_PARQUET = RUTA_PREDICCIONES_DIR / "predicciones_ligamx_hoy.parquet"
 
 
-def obtener_jornada_completa_ligamx(force_refresh: bool = False, dias_adelante: int = 3) -> List[Dict[str, Any]]:
+def obtener_jornada_completa_ligamx(force_refresh: bool = False, dias_adelante: int = 4) -> List[Dict[str, Any]]:
     """Consulta los partidos de hoy y los próximos días del fin de semana en la Liga MX."""
     hoy = datetime.now(ZONA_CDMX).date()
     fechas = [(hoy + timedelta(days=i)).strftime("%Y%m%d") for i in range(dias_adelante + 1)]
