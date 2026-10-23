@@ -174,67 +174,52 @@ def render_cartelera(predicciones: list[dict]):
         pick_edge = p.get("pick_edge", 0.0) * 100
         pick_ev = p.get("ev_estimado", 0.0)
 
-        card_html = f"""
-        <div class="oracle-pick nfl-card">
-            <div class="card-top">
-                {badge_estado}
-                <div style="display: flex; gap: 0.5rem; align-items: center;">
-                    <span style="color: #8fa899; font-size: 0.76rem; font-weight: 700;">{spread_str}</span>
-                    {badge_conf}
-                    {badge_res}
-                </div>
-            </div>
-
-            <!-- Fila de Equipos y Probabilidades -->
-            <div style="display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 1rem; margin: 1rem 0;">
-                <!-- Visitante -->
-                <div style="text-align: left;">
-                    <div style="font-size: 1.35rem; font-weight: 900; color: #f5f8fb;">{away}</div>
-                    <div style="font-size: 0.82rem; color: #8fa899;">DraftKings ML: <b style="color: #b7ff3c;">{ml_a}</b></div>
-                    <div style="font-size: 1.1rem; font-weight: 800; color: #eef3f8; margin-top: 0.25rem;">{prob_a:.1f}%</div>
-                    <div style="font-size: 0.72rem; color: #8fa899;">Probabilidad Modelo</div>
-                </div>
-
-                <!-- VS Central -->
-                <div style="text-align: center; color: #4f6859; font-weight: 900; font-size: 1.1rem;">
-                    @
-                </div>
-
-                <!-- Local -->
-                <div style="text-align: right;">
-                    <div style="font-size: 1.35rem; font-weight: 900; color: #f5f8fb;">{home}</div>
-                    <div style="font-size: 0.82rem; color: #8fa899;">DraftKings ML: <b style="color: #b7ff3c;">{ml_h}</b></div>
-                    <div style="font-size: 1.1rem; font-weight: 800; color: #eef3f8; margin-top: 0.25rem;">{prob_h:.1f}%</div>
-                    <div style="font-size: 0.72rem; color: #8fa899;">Probabilidad Modelo</div>
-                </div>
-            </div>
-
-            <!-- Barra de Probabilidad Proyectada -->
-            <div style="width: 100%; height: 8px; background: #07140e; border-radius: 4px; overflow: hidden; display: flex; margin-bottom: 1.1rem;">
-                <div style="width: {prob_a}%; background: #4f6859; transition: width 0.3s ease;"></div>
-                <div style="width: {prob_h}%; background: #b7ff3c; transition: width 0.3s ease;"></div>
-            </div>
-
-            <!-- Caja Destacada del Pick Oficial -->
-            <div class="pick-box" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
-                <div>
-                    <span class="pick-lbl">🎯 PICK RECOMENDADO MONEYLINE</span>
-                    <div class="pick-sel">{pick_sel} <span style="color: #b7ff3c; font-size: 1.1rem; margin-left: 0.35rem;">({pick_cuota})</span></div>
-                    <div style="font-size: 0.78rem; color: #8fa899; margin-top: 0.2rem;">{p.get('pick_detalle', '')}</div>
-                </div>
-                <div style="display: flex; gap: 0.6rem;">
-                    <div class="stat-pill">
-                        <div style="font-size: 0.68rem; color: #8fa899; text-transform: uppercase;">Ventaja (Edge)</div>
-                        <div style="font-weight: 800; color: #b7ff3c; font-size: 0.95rem;">+{pick_edge:.1f}%</div>
-                    </div>
-                    <div class="stat-pill">
-                        <div style="font-size: 0.68rem; color: #8fa899; text-transform: uppercase;">Valor Esp. (EV)</div>
-                        <div style="font-weight: 800; color: {'#b7ff3c' if pick_ev >= 0 else '#ff6b6b'}; font-size: 0.95rem;">{pick_ev:+.1f}%</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        """
+        card_html = f"""<div class="oracle-pick nfl-card">
+<div class="card-top">
+{badge_estado}
+<div style="display: flex; gap: 0.5rem; align-items: center;">
+<span style="color: #8fa899; font-size: 0.76rem; font-weight: 700;">{spread_str}</span>
+{badge_conf}
+{badge_res}
+</div>
+</div>
+<div style="display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 1rem; margin: 1rem 0;">
+<div style="text-align: left;">
+<div style="font-size: 1.35rem; font-weight: 900; color: #f5f8fb;">{away}</div>
+<div style="font-size: 0.82rem; color: #8fa899;">DraftKings ML: <b style="color: #b7ff3c;">{ml_a}</b></div>
+<div style="font-size: 1.1rem; font-weight: 800; color: #eef3f8; margin-top: 0.25rem;">{prob_a:.1f}%</div>
+<div style="font-size: 0.72rem; color: #8fa899;">Probabilidad Modelo</div>
+</div>
+<div style="text-align: center; color: #4f6859; font-weight: 900; font-size: 1.1rem;">@</div>
+<div style="text-align: right;">
+<div style="font-size: 1.35rem; font-weight: 900; color: #f5f8fb;">{home}</div>
+<div style="font-size: 0.82rem; color: #8fa899;">DraftKings ML: <b style="color: #b7ff3c;">{ml_h}</b></div>
+<div style="font-size: 1.1rem; font-weight: 800; color: #eef3f8; margin-top: 0.25rem;">{prob_h:.1f}%</div>
+<div style="font-size: 0.72rem; color: #8fa899;">Probabilidad Modelo</div>
+</div>
+</div>
+<div style="width: 100%; height: 8px; background: #07140e; border-radius: 4px; overflow: hidden; display: flex; margin-bottom: 1.1rem;">
+<div style="width: {prob_a}%; background: #4f6859; transition: width 0.3s ease;"></div>
+<div style="width: {prob_h}%; background: #b7ff3c; transition: width 0.3s ease;"></div>
+</div>
+<div class="pick-box" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+<div>
+<span class="pick-lbl">🎯 PICK RECOMENDADO MONEYLINE</span>
+<div class="pick-sel">{pick_sel} <span style="color: #b7ff3c; font-size: 1.1rem; margin-left: 0.35rem;">({pick_cuota})</span></div>
+<div style="font-size: 0.78rem; color: #8fa899; margin-top: 0.2rem;">{p.get('pick_detalle', '')}</div>
+</div>
+<div style="display: flex; gap: 0.6rem;">
+<div class="stat-pill">
+<div style="font-size: 0.68rem; color: #8fa899; text-transform: uppercase;">Ventaja (Edge)</div>
+<div style="font-weight: 800; color: #b7ff3c; font-size: 0.95rem;">+{pick_edge:.1f}%</div>
+</div>
+<div class="stat-pill">
+<div style="font-size: 0.68rem; color: #8fa899; text-transform: uppercase;">Valor Esp. (EV)</div>
+<div style="font-weight: 800; color: {'#b7ff3c' if pick_ev >= 0 else '#ff6b6b'}; font-size: 0.95rem;">{pick_ev:+.1f}%</div>
+</div>
+</div>
+</div>
+</div>"""
         st.markdown(card_html, unsafe_allow_html=True)
 
 
