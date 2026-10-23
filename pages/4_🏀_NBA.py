@@ -355,6 +355,7 @@ st.markdown(
 
 def cargar_predicciones(forzar: bool = False):
     """Carga las predicciones desde disco o ejecuta el pipeline si no existen o se solicita refresco."""
+    hoy_cdmx = datetime.now(ZONA_CDMX).strftime("%Y-%m-%d")
     if forzar or not RUTA_PREDICCIONES.exists():
         with st.spinner("Consultando DraftKings y ejecutando modelos de la NBA..."):
             preds = predecir_partidos_hoy(force_refresh=forzar)
@@ -362,17 +363,25 @@ def cargar_predicciones(forzar: bool = False):
     try:
         with open(RUTA_PREDICCIONES, "r", encoding="utf-8") as f:
             preds = json.load(f)
-            # Solo sincronizar con historial si hay picks pendientes por liquidar
-            pendientes = [
-                p for p in preds
-                if p.get("resultado") not in ["GANADA", "PERDIDA", "PUSH"] and p.get("estado") != "STATUS_FINAL"
-            ]
-            if pendientes:
-                try:
-                    guardar_predicciones_nba(pendientes)
-                except Exception:
-                    pass
-            return preds
+
+        # Si el archivo tiene predicciones de una fecha anterior, actualizar para la fecha de hoy
+        if preds and isinstance(preds, list):
+            fecha_archivo = preds[0].get("fecha_cdmx")
+            if fecha_archivo and fecha_archivo != hoy_cdmx:
+                with st.spinner(f"Actualizando cartelera de hoy ({hoy_cdmx})..."):
+                    return predecir_partidos_hoy(force_refresh=True)
+
+        # Solo sincronizar con historial si hay picks pendientes por liquidar
+        pendientes = [
+            p for p in preds
+            if p.get("resultado") not in ["GANADA", "PERDIDA", "PUSH"]
+        ]
+        if pendientes:
+            try:
+                guardar_predicciones_nba(pendientes)
+            except Exception:
+                pass
+        return preds
     except Exception:
         return predecir_partidos_hoy(force_refresh=True)
 
@@ -407,7 +416,7 @@ vista = st.radio(
 # Cargar estado de predicciones de hoy para determinar si los partidos ya fueron liquidados
 predicciones_actuales = cargar_predicciones(forzar=False)
 hay_pendientes_por_liquidar = any(
-    p.get("resultado") not in ["GANADA", "PERDIDA", "PUSH"] and p.get("estado") != "STATUS_FINAL"
+    p.get("resultado") not in ["GANADA", "PERDIDA", "PUSH"]
     for p in predicciones_actuales
 )
 
@@ -416,11 +425,11 @@ st.markdown("<div style='margin-bottom: 0.8rem;'></div>", unsafe_allow_html=True
 col_act1, col_act2 = st.columns(2, gap="medium")
 with col_act1:
     btn_deshabilitado = not hay_pendientes_por_liquidar
-    lbl_btn_res = "Resultados Ya Registrados (Bloqueado)" if btn_deshabilitado else "Actualizar Resultados Hoy"
+    lbl_btn_res = "Resultados Ya Registrados" if btn_deshabilitado else "Actualizar Resultados Hoy"
     help_btn_res = (
-        "Los partidos ya fueron liquidados y registrados en Rendimiento e Historial. Acción bloqueada para evitar duplicados."
+        "Todos los partidos disponibles ya fueron liquidados y registrados en Rendimiento e Historial."
         if btn_deshabilitado else
-        "Consulta marcadores finales de ESPN, liquida las apuestas de hoy y las pasa a Rendimiento e Historial."
+        "Consulta marcadores finales de ESPN, liquida las apuestas y las pasa a Rendimiento e Historial."
     )
     if st.button(lbl_btn_res, key="btn_act_res", type="primary", disabled=btn_deshabilitado, use_container_width=True, help=help_btn_res):
         with st.spinner("Liquidando partidos y actualizando historial NBA..."):
@@ -466,11 +475,11 @@ if vista == "Proyecciones de Hoy":
     # Partidos pendientes activos (los concluidos y liquidados pasan exclusivamente a Rendimiento e Historial)
     partidos_pendientes = [
         p for p in predicciones
-        if p.get("resultado") not in ["GANADA", "PERDIDA", "PUSH"] and p.get("estado") != "STATUS_FINAL"
+        if p.get("resultado") not in ["GANADA", "PERDIDA", "PUSH"]
     ]
     partidos_liquidados = [
         p for p in predicciones
-        if p.get("resultado") in ["GANADA", "PERDIDA", "PUSH"] or p.get("estado") == "STATUS_FINAL"
+        if p.get("resultado") in ["GANADA", "PERDIDA", "PUSH"]
     ]
 
     total_partidos = len(predicciones)
@@ -677,11 +686,20 @@ if vista == "Proyecciones de Hoy":
                 </div>
                 """
 
+            cuota_pick_str = ""
+            if "Totales" in str(p.get("pick_mercado", "")) or "Spread" in str(p.get("pick_mercado", "")):
+                cuota_pick_str = " · Momio: -110 (1.91)"
+            elif "Moneyline" in str(p.get("pick_mercado", "")):
+                sel_text = str(p.get("pick_seleccion", ""))
+                ml_val = p.get("ml_local") if (str(p.get("equipo_local", "")).lower() in sel_text.lower()) else p.get("ml_visita")
+                if ml_val:
+                    cuota_pick_str = f" · Momio: {ml_val}"
+
             st.markdown(
                 f"""
                 <div class="pick-box">
                     <div>
-                        <div class="pick-title">Recomendación Oficial del Oráculo AI ({p.get('pick_mercado')})</div>
+                        <div class="pick-title">Recomendación Oficial del Oráculo AI ({p.get('pick_mercado')})<span style="color:#ffffff;font-weight:700;">{cuota_pick_str}</span></div>
                         <div class="pick-sel">{p.get('pick_seleccion')}</div>
                         <div style="font-size: 0.8rem; color: #8e9bb0; margin-top: 0.2rem;">{p.get('pick_detalle')}</div>
                     </div>

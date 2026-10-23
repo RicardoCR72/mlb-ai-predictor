@@ -420,16 +420,15 @@ def liquidar_partidos_pendientes_nba() -> dict[str, Any]:
     """
     from nba.proveedor_cuotas import obtener_calendario_y_cuotas_nba
 
-    # 1. Asegurar que solo las predicciones activas pendientes de hoy se registren
+    # 1. Asegurar que las predicciones pendientes de hoy se registren
     archivo_preds = RAIZ / "data" / "nba" / "predictions" / "predicciones_nba_hoy.json"
     if archivo_preds.exists():
         try:
             with open(archivo_preds, "r", encoding="utf-8") as f:
                 preds_hoy = json.load(f)
-            # Solo considerar si hay partidos no finalizados
             pendientes_hoy = [
                 p for p in preds_hoy
-                if p.get("resultado") not in ["GANADA", "PERDIDA", "PUSH"] and p.get("estado") != "STATUS_FINAL"
+                if p.get("resultado") not in ["GANADA", "PERDIDA", "PUSH"]
             ]
             if pendientes_hoy:
                 guardar_predicciones_nba(pendientes_hoy)
@@ -444,13 +443,28 @@ def liquidar_partidos_pendientes_nba() -> dict[str, Any]:
     except Exception as err:
         return {"ok": False, "evaluados": 0, "mensaje": f"Error al abrir historial: {err}"}
 
+    # Sincronizar desde MySQL si hay picks pendientes que falten en el archivo local
+    try:
+        conn = obtener_conexion_mysql(timeout=3)
+        if conn:
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute("SELECT * FROM nba_registro_picks WHERE resultado = 'PENDIENTE';")
+            pendientes_db = cursor.fetchall()
+            cursor.close()
+            conn.close()
+            if pendientes_db:
+                df_db = pd.DataFrame(pendientes_db)
+                df = pd.concat([df, df_db], ignore_index=True).drop_duplicates(subset=["id_juego"], keep="first")
+    except Exception:
+        pass
+
     pendientes = df[df["resultado"] == "PENDIENTE"]
     if pendientes.empty:
         return {
             "ok": True,
             "evaluados": 0,
             "ya_liquidados": True,
-            "mensaje": "Todos los partidos disponibles ya han sido liquidados y registrados en Rendimiento e Historial. La acción está bloqueada."
+            "mensaje": "Todos los partidos disponibles ya han sido liquidados y registrados en Rendimiento e Historial. La acción está al día."
         }
 
     # 2. Consultar marcadores de ESPN para hoy y las fechas de los juegos pendientes

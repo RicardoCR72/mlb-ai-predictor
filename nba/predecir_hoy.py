@@ -90,16 +90,75 @@ def predecir_partidos_hoy(force_refresh: bool = False, fecha: Optional[str] = No
     # Consultar eventos del día (usar fecha actual CDMX o la fecha especificada)
     hoy_cdmx = fecha or datetime.now(ZONA_CDMX).strftime("%Y%m%d")
     juegos = obtener_calendario_y_cuotas_nba(fecha=hoy_cdmx, force_refresh=force_refresh)
-    if not juegos:
+    if not juegos and not fecha:
         juegos = obtener_calendario_y_cuotas_nba(force_refresh=force_refresh)
+
+    archivo_json = RUTA_PREDICCIONES / "predicciones_nba_hoy.json"
 
     if not juegos:
         logger.info("No hay partidos programados para hoy en el calendario de ESPN.")
+        if archivo_json.exists():
+            try:
+                with open(archivo_json, "w", encoding="utf-8") as f:
+                    json.dump([], f)
+            except Exception:
+                pass
         return []
+
+    # Cargar predicciones previas para preservar picks congelados y cuotas pre-partido
+    predicciones_previas: Dict[str, Dict[str, Any]] = {}
+    if archivo_json.exists():
+        try:
+            with open(archivo_json, "r", encoding="utf-8") as f:
+                preds_existentes = json.load(f)
+            for p in preds_existentes:
+                if p.get("id_evento"):
+                    predicciones_previas[str(p["id_evento"])] = p
+        except Exception:
+            pass
 
     predicciones = []
 
     for j in juegos:
+        id_ev = str(j.get("id_evento", "")).strip()
+        prev = predicciones_previas.get(id_ev)
+
+        # Si el partido ya inició (STATUS_IN_PROGRESS), finalizó (STATUS_FINAL)
+        # o ESPN retiró las cuotas pre-partido, PRESERVAR el pick y momios originales
+        estado_juego = str(j.get("estado", "")).upper()
+        ya_comenzo = ("PROGRESS" in estado_juego) or ("FINAL" in estado_juego) or (j.get("marcador_local") is not None)
+        cuotas_vacias = (j.get("moneyline_local") is None and j.get("total_linea") is None)
+
+        if prev and (ya_comenzo or cuotas_vacias) and prev.get("pick_seleccion"):
+            prev_actualizado = dict(prev)
+            prev_actualizado["estado"] = j.get("estado", prev.get("estado"))
+            prev_actualizado["descripcion_estado"] = j.get("descripcion_estado", prev.get("descripcion_estado"))
+            if j.get("marcador_local") is not None:
+                prev_actualizado["marcador_local"] = j["marcador_local"]
+            if j.get("marcador_visita") is not None:
+                prev_actualizado["marcador_visita"] = j["marcador_visita"]
+
+            if ("FINAL" in str(prev_actualizado.get("estado", "")).upper()) and prev_actualizado.get("marcador_local") is not None:
+                try:
+                    from nba.registro import liquidar_partido
+                    res, u_gan = liquidar_partido(pd.Series({
+                        "equipo_local": prev_actualizado.get("equipo_local"),
+                        "equipo_visitante": prev_actualizado.get("equipo_visita"),
+                        "mercado": prev_actualizado.get("pick_mercado"),
+                        "seleccion": prev_actualizado.get("pick_seleccion"),
+                        "linea": prev_actualizado.get("linea_total") if "Totales" in prev_actualizado.get("pick_mercado", "") else prev_actualizado.get("linea_spread"),
+                        "cuota": prev_actualizado.get("ml_local_dec") or 1.909,
+                        "marcador_local": prev_actualizado.get("marcador_local"),
+                        "marcador_visitante": prev_actualizado.get("marcador_visita"),
+                    }))
+                    prev_actualizado["resultado"] = res
+                    prev_actualizado["unidades_ganadas"] = u_gan
+                except Exception:
+                    pass
+
+            predicciones.append(prev_actualizado)
+            continue
+
         home_abbr = normalizar_equipo(j["abbr_local"])
         away_abbr = normalizar_equipo(j["abbr_visita"])
 
