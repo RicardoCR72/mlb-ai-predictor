@@ -183,6 +183,8 @@ def run_update(service,root,on_step=None):
             step('Resultados NFL totales' if which=='nfl_totales' else 'Resultados NFL props',lambda:run_script(which,root))
         elif which=='liga_mx':
             step('Resultados y calendario Liga MX',lambda:refresh_liga(root))
+            from futbol_liga_mx.registro import liquidar_partidos_pendientes_ligamx
+            step('Liquidación Liga MX',lambda:liquidar_partidos_pendientes_ligamx().get('mensaje'))
     try:
         if service=='bankroll':
             try:
