@@ -6,7 +6,8 @@ from core.actualizacion_manual import run_update
 
 ROOT=Path(__file__).resolve().parents[1]
 LABELS={'mlb':'Actualizar resultados MLB','nfl_totales':'Actualizar resultados de totales NFL',
-        'nfl_props':'Actualizar resultados de props NFL','liga_mx':'Actualizar resultados y calendario Liga MX',
+        'nfl_props':'Actualizar resultados de props NFL','nfl_moneyline':'Actualizar resultados de Moneyline NFL',
+        'liga_mx':'Actualizar resultados y calendario Liga MX',
         'bankroll':'Actualizar resultados y bankroll'}
 
 

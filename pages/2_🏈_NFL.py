@@ -350,8 +350,8 @@ st.markdown(
     <div class="nfl-view-hero">
         <div>
             <div class="nfl-eyebrow" style="color: #b7ff3c !important;">FÚTBOL AMERICANO PROFESIONAL · NFL AI</div>
-            <h1 style="margin:.25rem 0 .2rem;color:#f0fdf4;">Totales & Props de Jugadores</h1>
-            <div class="nfl-subtitle">Modelos cuantitativos de totales de puntos, valor esperado (EV) y props individuales.</div>
+            <h1 style="margin:.25rem 0 .2rem;color:#f0fdf4;">Moneylines, Totales & Props</h1>
+            <div class="nfl-subtitle">Modelos cuantitativos de ganador directo (Moneyline), totales de puntos y props individuales con cuotas DraftKings.</div>
         </div>
         <div style="text-align:right;">
             <span style="background:#112a1f;color:#b7ff3c;padding:.3rem .75rem;border-radius:8px;font-size:.78rem;font-weight:800;border:1px solid #1a382a;">
@@ -366,25 +366,36 @@ st.markdown(
 # Selector de navegación interna (sin emojis)
 vista = st.radio(
     "Sección NFL",
-    ["Totales de Partido", "Props de Jugadores"],
+    ["Moneyline (Ganador Directo)", "Totales de Partido", "Props de Jugadores"],
     horizontal=True,
     label_visibility="collapsed",
     key="nfl_vista_principal_v2",
 )
 
-# Barra de acciones (actualizaciones y generación)
-st.markdown("<div style='margin-bottom: 0.8rem;'></div>", unsafe_allow_html=True)
-col_act1, col_act2 = st.columns([1, 1], gap="medium")
-with col_act1:
-    render_update_button("nfl_totales" if "Totales" in vista else "nfl_props", compact=True)
-with col_act2:
-    render_prediction_button()
+if vista == "Moneyline (Ganador Directo)":
+    from nfl.ui_moneyline import render
+    render()
+elif "Totales" in vista:
+    # Barra de acciones (actualizaciones y generación)
+    st.markdown("<div style='margin-bottom: 0.8rem;'></div>", unsafe_allow_html=True)
+    col_act1, col_act2 = st.columns([1, 1], gap="medium")
+    with col_act1:
+        render_update_button("nfl_totales", compact=True)
+    with col_act2:
+        render_prediction_button()
+    st.markdown("<div style='margin-bottom: 1.1rem;'></div>", unsafe_allow_html=True)
 
-st.markdown("<div style='margin-bottom: 1.1rem;'></div>", unsafe_allow_html=True)
-
-# Renderizado de la sección correspondiente
-if "Totales" in vista:
     from nfl.ui_totales import render
+    render()
 else:
+    # Barra de acciones para Props
+    st.markdown("<div style='margin-bottom: 0.8rem;'></div>", unsafe_allow_html=True)
+    col_act1, col_act2 = st.columns([1, 1], gap="medium")
+    with col_act1:
+        render_update_button("nfl_props", compact=True)
+    with col_act2:
+        render_prediction_button()
+    st.markdown("<div style='margin-bottom: 1.1rem;'></div>", unsafe_allow_html=True)
+
     from nfl.ui_props import render
-render()
+    render()

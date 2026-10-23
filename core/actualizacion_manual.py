@@ -12,7 +12,7 @@ import pandas as pd
 from core.db import get_db_connection, get_db_credentials
 from core import bankroll as bank
 
-SERVICES = ('mlb','nfl_totales','nfl_props','liga_mx','bankroll')
+SERVICES = ('mlb','nfl_totales','nfl_props','nfl_moneyline','liga_mx','bankroll')
 LOCKS = {service:threading.Lock() for service in SERVICES}
 SCRIPTS = {'nfl_totales':'nfl/evaluar_resultados.py','nfl_props':'nfl/evaluar_resultados_props.py'}
 
@@ -181,6 +181,9 @@ def run_update(service,root,on_step=None):
             step('Resultados MLB Totales V2',lambda:mlb_totals(db()))
         elif which in SCRIPTS:
             step('Resultados NFL totales' if which=='nfl_totales' else 'Resultados NFL props',lambda:run_script(which,root))
+        elif which=='nfl_moneyline':
+            from nfl.registro_moneyline import liquidar_partidos_pendientes_moneyline
+            step('Liquidación NFL Moneyline',lambda:liquidar_partidos_pendientes_moneyline().get('mensaje'))
         elif which=='liga_mx':
             step('Resultados y calendario Liga MX',lambda:refresh_liga(root))
             from futbol_liga_mx.registro import liquidar_partidos_pendientes_ligamx
@@ -196,6 +199,7 @@ def run_update(service,root,on_step=None):
                 if origins & {'mlb_total','mlb_ml'}:wanted.append('mlb')
                 if 'nfl_total' in origins:wanted.append('nfl_totales')
                 if 'nfl_prop' in origins:wanted.append('nfl_props')
+                if 'nfl_moneyline' in origins:wanted.append('nfl_moneyline')
                 if 'liga_mx' in origins:wanted.append('liga_mx')
                 for which in wanted:
                     if LOCKS[which].acquire(blocking=False):
