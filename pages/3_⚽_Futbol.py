@@ -287,34 +287,30 @@ st.markdown(
 
 # Header de navegación
 st.markdown(
-    """
-    <div class="futbol-shell">
-        <div class="futbol-brand">
-            <span class="futbol-logo">⚽</span>
-            <div>
-                <div style="font-size: 1.05rem; font-weight: 900; color: #ffffff;">FÚTBOL MUNDIAL <span class="futbol-accent">ORÁCULO AI</span></div>
-                <div class="futbol-status">8 Ligas Principales · Cuotas DraftKings · Modelo Bivariado Calibrado</div>
-            </div>
-        </div>
-        <div style="text-align: right;">
-            <div style="font-size: 0.78rem; color: #8ba797;">Ligas Activas</div>
-            <div style="font-size: 0.95rem; font-weight: 800; color: #00e676;">🇲🇽 🏴󠁧󠁢󠁥󠁮󠁧󠁿 🇪🇸 🇮🇹 🇩🇪 🇫🇷 🇳🇱 🇺🇸</div>
-        </div>
-    </div>
-    """,
+    """<div class="futbol-shell">
+<div class="futbol-brand">
+<span class="futbol-logo">⚽</span>
+<div>
+<div style="font-size: 1.05rem; font-weight: 900; color: #ffffff;">FÚTBOL MUNDIAL <span class="futbol-accent">ORÁCULO AI</span></div>
+<div class="futbol-status">8 Ligas Principales · Cuotas DraftKings · Modelo Bivariado Calibrado</div>
+</div>
+</div>
+<div style="text-align: right;">
+<div style="font-size: 0.78rem; color: #8ba797;">Ligas Activas</div>
+<div style="font-size: 0.95rem; font-weight: 800; color: #00e676;">🇲🇽 🏴󠁧󠁢󠁥󠁮󠁧󠁿 🇪🇸 🇮🇹 🇩🇪 🇫🇷 🇳🇱 🇺🇸</div>
+</div>
+</div>""",
     unsafe_allow_html=True,
 )
 
 # Hero Section
 st.markdown(
-    """
-    <div class="futbol-view-hero">
-        <div>
-            <h1 class="futbol-hero-title">Centro de Inteligencia Deportiva · Fútbol</h1>
-            <div class="futbol-hero-sub">Proyecciones matemáticas de goles (xG), Moneyline (1X2) y Totales Over/Under con momios oficiales en vivo.</div>
-        </div>
-    </div>
-    """,
+    """<div class="futbol-view-hero">
+<div>
+<h1 class="futbol-hero-title">Centro de Inteligencia Deportiva · Fútbol</h1>
+<div class="futbol-hero-sub">Proyecciones matemáticas de goles (xG), Moneyline (1X2) y Totales Over/Under con momios oficiales en vivo.</div>
+</div>
+</div>""",
     unsafe_allow_html=True,
 )
 
@@ -449,7 +445,7 @@ with tab_cartelera:
 
             m_loc = p.get("marcador_local")
             m_vis = p.get("marcador_visita")
-            tiene_marcador = (m_loc is not None and m_vis is not None)
+            tiene_marcador = (es_final or en_vivo) and (m_loc is not None and m_vis is not None)
 
             confianza = p.get("confianza", "MEDIA")
             badge_conf_cls = "badge-conf-alta" if confianza == "ALTA" else "badge-conf-media"
@@ -473,46 +469,42 @@ with tab_cartelera:
             emp_ml = p.get("moneyline_empate") or "N/D"
 
             if tiene_marcador:
-                score_center = f"""
-                <div style="font-size: 1.35rem; color: #00e676; font-weight: 900; background: #092416; border: 1px solid #00e676; padding: 0.2rem 0.8rem; border-radius: 8px;">
-                    {int(m_vis)} - {int(m_loc)}
-                </div>
-                """
+                score_center = (
+                    f'<div style="font-size: 1.35rem; color: #00e676; font-weight: 900; background: #092416; '
+                    f'border: 1px solid #00e676; padding: 0.2rem 0.8rem; border-radius: 8px;">'
+                    f'{int(m_vis)} - {int(m_loc)}</div>'
+                )
             else:
                 score_center = '<div style="font-size: 1.1rem; color: #446452; font-weight: 800;">vs</div>'
 
-            teams_html = f"""
-            <div class="teams-row">
-                <div>
-                    <div class="team-name">{vis_name}</div>
-                    <div class="team-sub">Visitante · ML: <b>{vis_ml}</b></div>
-                </div>
-                <div style="text-align: center;">
-                    {score_center}
-                </div>
-                <div style="text-align: right;">
-                    <div class="team-name" style="justify-content: flex-end;">{loc_name}</div>
-                    <div class="team-sub">Local · ML: <b>{loc_ml}</b></div>
-                </div>
-            </div>
-            """
+            teams_html = (
+                f'<div class="teams-row">'
+                f'<div>'
+                f'<div class="team-name">{vis_name}</div>'
+                f'<div class="team-sub">Visitante · ML: <b>{vis_ml}</b></div>'
+                f'</div>'
+                f'<div style="text-align: center;">{score_center}</div>'
+                f'<div style="text-align: right;">'
+                f'<div class="team-name" style="justify-content: flex-end;">{loc_name}</div>'
+                f'<div class="team-sub">Local · ML: <b>{loc_ml}</b></div>'
+                f'</div>'
+                f'</div>'
+            )
+
+            card_top_html = (
+                f'<div class="card-top">'
+                f'<div style="display: flex; align-items: center; gap: 0.5rem;">'
+                f'<span class="badge-league">{bandera} {liga_nom}</span>'
+                f'{badge_status}'
+                f'</div>'
+                f'<div>'
+                f'<span class="{badge_conf_cls}">CONFIANZA {confianza}</span>'
+                f'</div>'
+                f'</div>'
+            )
 
             with st.container(border=True):
-                st.markdown(
-                    f"""
-                    <div class="card-top">
-                        <div style="display: flex; align-items: center; gap: 0.5rem;">
-                            <span class="badge-league">{bandera} {liga_nom}</span>
-                            {badge_status}
-                        </div>
-                        <div>
-                            <span class="{badge_conf_cls}">CONFIANZA {confianza}</span>
-                        </div>
-                    </div>
-                    {teams_html}
-                    """,
-                    unsafe_allow_html=True,
-                )
+                st.markdown(card_top_html + teams_html, unsafe_allow_html=True)
 
                 col_c1, col_c2, col_c3 = st.columns(3)
                 with col_c1:
@@ -547,34 +539,33 @@ with tab_cartelera:
                 if res_pick in ["GANADA", "PERDIDA", "PUSH"]:
                     color_res = "#4ade80" if res_pick == "GANADA" else ("#f87171" if res_pick == "PERDIDA" else "#cbd5e1")
                     val_u = f"{u_gan:+.2f} u" if u_gan is not None else ""
-                    res_box_html = f"""
-                    <div style="text-align: right;">
-                        <div style="font-size: 0.72rem; color: #8ba797; font-weight: 700;">RESULTADO AUDITADO</div>
-                        <div style="font-size: 1.15rem; font-weight: 900; color: {color_res};">{res_pick} ({val_u})</div>
-                    </div>
-                    """
+                    res_box_html = (
+                        f'<div style="text-align: right;">'
+                        f'<div style="font-size: 0.72rem; color: #8ba797; font-weight: 700;">RESULTADO AUDITADO</div>'
+                        f'<div style="font-size: 1.15rem; font-weight: 900; color: {color_res};">{res_pick} ({val_u})</div>'
+                        f'</div>'
+                    )
                 else:
                     prob_hit = p.get("pick_probabilidad", 0.5) * 100
-                    res_box_html = f"""
-                    <div style="text-align: right;">
-                        <div style="font-size: 0.72rem; color: #8ba797; font-weight: 700;">PROBABILIDAD ORÁCULO</div>
-                        <div style="font-size: 1.25rem; font-weight: 900; color: #00e676;">{prob_hit:.1f}%</div>
-                    </div>
-                    """
+                    res_box_html = (
+                        f'<div style="text-align: right;">'
+                        f'<div style="font-size: 0.72rem; color: #8ba797; font-weight: 700;">PROBABILIDAD ORÁCULO</div>'
+                        f'<div style="font-size: 1.25rem; font-weight: 900; color: #00e676;">{prob_hit:.1f}%</div>'
+                        f'</div>'
+                    )
 
-                st.markdown(
-                    f"""
-                    <div class="pick-box">
-                        <div style="min-width: 0; flex: 1;">
-                            <div class="pick-title">Recomendación Oficial ({p.get('pick_mercado')})<span style="color:#ffffff;font-weight:700;">{momio_pick_str}</span></div>
-                            <div class="pick-sel">{p.get('pick_seleccion')}</div>
-                            <div style="font-size: 0.82rem; color: #8ba797; margin-top: 0.2rem;">{p.get('pick_detalle', '')}</div>
-                        </div>
-                        {res_box_html}
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
+                pick_box_html = (
+                    f'<div class="pick-box">'
+                    f'<div style="min-width: 0; flex: 1;">'
+                    f'<div class="pick-title">Recomendación Oficial ({p.get("pick_mercado")})<span style="color:#ffffff;font-weight:700;">{momio_pick_str}</span></div>'
+                    f'<div class="pick-sel">{p.get("pick_seleccion")}</div>'
+                    f'<div style="font-size: 0.82rem; color: #8ba797; margin-top: 0.2rem;">{p.get("pick_detalle", "")}</div>'
+                    f'</div>'
+                    f'{res_box_html}'
+                    f'</div>'
                 )
+
+                st.markdown(pick_box_html, unsafe_allow_html=True)
 
                 with st.expander("Ver detalles de cuotas y desglose"):
                     col_d1, col_d2 = st.columns(2)
