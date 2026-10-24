@@ -279,6 +279,20 @@ def mostrar_prop_compacto(fila):
 
     render_pick(pick, market=str(fila['mercado']), state=state, details=details,
         allow_register=not es_resuelta and fila['seleccion'] in ('OVER','UNDER','ANOTA'))
+    if not es_resuelta and fila.get('seleccion'):
+        from core.ui_boleta import render_boton_boleta
+        prop_id = f"{fila.get('id_juego')}_{fila.get('id_jugador')}_{fila.get('tipo_prop')}"
+        slip_item = {
+            "id": f"NFL_PROP_{prop_id}",
+            "deporte": "NFL",
+            "icono": "🏈",
+            "partido": f"{fila.get('away_team')} @ {fila.get('home_team')}",
+            "mercado": f"Prop: {fila.get('mercado')}",
+            "seleccion": f"{fila.get('player_name')} {fila.get('seleccion')}" + (f" {fila.get('linea')}" if pd.notna(fila.get('linea')) else ""),
+            "momio": str(fila.get('cuota_pick') or "-110"),
+            "prob": fila.get('probabilidad_pick'),
+        }
+        render_boton_boleta(slip_item, key=f"btn_nfl_prop_{prop_id}")
 
 
 
@@ -543,5 +557,8 @@ def render():
                     ):
                         with columna:
                             mostrar_prop_compacto(fila)
+
+            from core.ui_boleta import render_widget_boleta
+            render_widget_boleta()
 
 

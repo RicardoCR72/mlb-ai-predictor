@@ -52,6 +52,23 @@ def render_mlb_today(market):
                     seleccion=str(row.get('seleccion','Selección guardada'))+(f' {row.linea:g}' if pd.notna(row.get('linea')) else ''),
                     probabilidad=row.probabilidad,cuota=row.cuota,casa='DraftKings',modelo=row.modelo,mercado_confianza=market,
                     origen='mlb_total' if market=='Totales' else 'mlb_ml',p_push=row.get('p_push',0),
-                    referencia=dict(game_id=str(row.identidad),inicio_utc=pd.to_datetime(row.start_utc,utc=True).isoformat()),
-                    cuota_capturada_utc=row.get('quote_utc'))
+                    referencia=dict(game_id=str(row.identidad),inicio_utc=pd.to_datetime(row.start_utc,utc=True).isoformat()))
                 render_pick(pick,market=market,state='Publicado',details=[('Procedencia',row.procedencia)])
+
+                from core.ui_boleta import render_boton_boleta
+                clean_market = str(market).replace(' ', '_')
+                ident = str(row.identidad).replace(' ', '_')
+                slip_item = {
+                    "id": f"MLB_{ident}_{clean_market}_{pick['seleccion']}",
+                    "deporte": "MLB",
+                    "icono": "⚾",
+                    "partido": pick["partido"],
+                    "mercado": market,
+                    "seleccion": pick["seleccion"],
+                    "cuota": row.cuota,
+                    "prob": row.probabilidad,
+                }
+                render_boton_boleta(slip_item, key=f"btn_mlb_slip_{ident}_{clean_market}")
+
+    from core.ui_boleta import render_widget_boleta
+    render_widget_boleta()

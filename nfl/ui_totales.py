@@ -141,6 +141,20 @@ def mostrar_partido(fila):
 
     render_pick(pick, market='Total del partido', state=state, details=details,
         allow_register=not es_resuelta and fila['pick'] in ('OVER', 'UNDER') and pd.notna(fila['total_line']))
+    if not es_resuelta and fila.get('pick') in ('OVER', 'UNDER'):
+        from core.ui_boleta import render_boton_boleta
+        tot_id = f"{fila.get('id_juego')}_total"
+        slip_item = {
+            "id": f"NFL_TOT_{tot_id}_{fila.get('pick')}",
+            "deporte": "NFL",
+            "icono": "🏈",
+            "partido": f"{fila.get('away_team')} @ {fila.get('home_team')}",
+            "mercado": "Totales",
+            "seleccion": f"{fila.get('pick')} {fila.get('total_line')}",
+            "momio": str(fila.get('odds_pick') or "-110"),
+            "prob": fila.get('prob_pick'),
+        }
+        render_boton_boleta(slip_item, key=f"btn_nfl_tot_{tot_id}")
 
 
 
@@ -329,6 +343,8 @@ def render():
         render_history("NFL",'Totales',key='nfl_totales_perf')
 
     if seccion_totales != "📈 Rendimiento":
+        from core.ui_boleta import render_widget_boleta
+        render_widget_boleta()
         st.divider()
 
         columnas_descarga = [

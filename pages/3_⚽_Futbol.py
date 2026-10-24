@@ -266,7 +266,7 @@ def render_cartelera_futbol(predicciones: list[dict], mercado_activo: str):
         return
 
     # Despliegue de tarjetas de partidos
-    for p in filtrados:
+    for idx, p in enumerate(filtrados):
         pick_data = obtener_pick_para_mercado_futbol(p, mercado_activo)
 
         estado = str(p.get("estado", "")).upper()
@@ -279,6 +279,13 @@ def render_cartelera_futbol(predicciones: list[dict], mercado_activo: str):
 
         confianza = pick_data.get("confianza", "MEDIA")
         badge_conf_cls = "badge-conf-alta" if confianza == "ALTA" else "badge-conf-media"
+
+        # Cálculo de Valor Esperado (+EV) real
+        from core.ui_boleta import parsear_cuota_decimal
+        c_dec_f = parsear_cuota_decimal(pick_data.get("cuota"))
+        prob_f = float(pick_data.get("probabilidad", 0.5))
+        ev_calc_f = (prob_f * c_dec_f - 1.0) * 100.0 if (c_dec_f > 1.0 and prob_f > 0) else 0.0
+        ev_badge_f = f'<span class="badge-ev" style="margin-left: 0.45rem;">🔥 +EV +{ev_calc_f:.1f}%</span>' if ev_calc_f >= 2.0 else ""
 
         bandera = p.get("liga_bandera", "⚽")
         liga_nom = p.get("liga_nombre", "Fútbol")
@@ -326,8 +333,9 @@ def render_cartelera_futbol(predicciones: list[dict], mercado_activo: str):
             f'<span class="badge-league">{bandera} {liga_nom}</span>'
             f'{badge_status}'
             f'</div>'
-            f'<div>'
+            f'<div style="display:inline-flex; align-items:center;">'
             f'<span class="{badge_conf_cls}">CONFIANZA {confianza}</span>'
+            f'{ev_badge_f}'
             f'</div>'
             f'</div>'
         )
@@ -396,6 +404,21 @@ def render_cartelera_futbol(predicciones: list[dict], mercado_activo: str):
 
             st.markdown(pick_box_html, unsafe_allow_html=True)
 
+            from core.ui_boleta import render_boton_boleta
+            partido_id = str(p.get("id_partido") or p.get("id_evento") or f"{p.get('equipo_visita')}_{p.get('equipo_local')}_{idx}")
+            clean_mercado = str(pick_data.get("mercado")).replace(" ", "_").replace("(", "").replace(")", "")
+            slip_item = {
+                "id": f"FUTBOL_{partido_id}_{clean_mercado}_{pick_data.get('seleccion')}",
+                "deporte": f"Fútbol ({p.get('liga_nombre', 'Ligas')})",
+                "icono": "⚽",
+                "partido": f"{p.get('equipo_visita')} vs {p.get('equipo_local')}",
+                "mercado": pick_data.get("mercado"),
+                "seleccion": pick_data.get("seleccion"),
+                "momio": pick_data.get("cuota"),
+                "prob": pick_data.get("probabilidad"),
+            }
+            render_boton_boleta(slip_item, key=f"btn_futbol_slip_{partido_id}_{clean_mercado}_{idx}")
+
             with st.expander("Ver detalles de cuotas y desglose"):
                 col_d1, col_d2 = st.columns(2)
                 with col_d1:
@@ -408,6 +431,10 @@ def render_cartelera_futbol(predicciones: list[dict], mercado_activo: str):
                     st.write(f"- OVER {p.get('linea_total', 2.5):g}: {p.get('over_momio')} ({p.get('over_momio_dec')})")
                     st.write(f"- UNDER {p.get('linea_total', 2.5):g}: {p.get('under_momio')} ({p.get('under_momio_dec')})")
                     st.write(f"- Edge del Pick: **+{pick_data.get('edge', 0.0)*100:.1f}%**")
+
+    from core.ui_boleta import render_widget_boleta
+    render_widget_boleta()
+
 
 
 def render_historial_futbol(mercado_activo: str):

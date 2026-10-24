@@ -217,10 +217,25 @@ def render_cartelera(predicciones: list[dict]):
 <div style="font-size: 0.68rem; color: #8fa899; text-transform: uppercase;">Valor Esp. (EV)</div>
 <div style="font-weight: 800; color: {'#b7ff3c' if pick_ev >= 0 else '#ff6b6b'}; font-size: 0.95rem;">{pick_ev:+.1f}%</div>
 </div>
-</div>
-</div>
-</div>"""
         st.markdown(card_html, unsafe_allow_html=True)
+
+        if resultado_pick not in ["GANADA", "PERDIDA", "PUSH"]:
+            from core.ui_boleta import render_boton_boleta
+            partido_id = str(p.get("id_evento") or p.get("id_juego") or f"{away}_{home}_{idx}")
+            slip_item = {
+                "id": f"NFL_ML_{partido_id}_{pick_sel}",
+                "deporte": "NFL",
+                "icono": "🏈",
+                "partido": f"{away} @ {home}",
+                "mercado": "Moneyline",
+                "seleccion": pick_sel,
+                "momio": pick_cuota,
+                "prob": p.get("pick_probabilidad", p.get("prob_local", 0.5)),
+            }
+            render_boton_boleta(slip_item, key=f"btn_nfl_ml_slip_{partido_id}_{idx}")
+
+    from core.ui_boleta import render_widget_boleta
+    render_widget_boleta()
 
 
 def render_historial():
