@@ -362,7 +362,7 @@ def insertar_linea_draftea(
 def render():
     seccion_props = st.radio(
         "Sección de props",
-        ["🔥 Candidatos", "📈 Rendimiento", "🏥 Lesiones"],
+        ["🔥 Candidatos", "📈 Rendimiento"],
         horizontal=True,
         format_func=lambda value: value.lstrip("🔥📋📈⚾🏈📊⚽🔮💼 "),
         label_visibility="collapsed",
@@ -531,56 +531,4 @@ def render():
                         with columna:
                             mostrar_prop_compacto(fila)
 
-    if seccion_props == "🏥 Lesiones":
-        st.subheader("Lesiones y disponibilidad")
-        st.caption(
-            "Jugadores que requieren confirmación y contexto ofensivo que puede "
-            "redistribuir volumen hacia sus compañeros."
-        )
-        selecciones_revisar = df[df["estado_pick"] == "REVISAR LESION"]
-        if not selecciones_revisar.empty:
-            st.write("**Selecciones que requieren confirmación de disponibilidad**")
-            filas_revision = list(selecciones_revisar.iterrows())
-            for inicio in range(0, len(filas_revision), 2):
-                columnas = st.columns(2, gap="medium")
-                for columna, (_, fila) in zip(
-                    columnas, filas_revision[inicio:inicio + 2]
-                ):
-                    with columna:
-                        mostrar_prop_compacto(fila)
-            st.divider()
-
-        lesionados = df[
-            ~df["estado_lesion"].fillna("healthy_or_unlisted").isin(
-                ["healthy", "healthy_or_unlisted"]
-            )
-        ].copy()
-        lesionados = lesionados.drop_duplicates("id_jugador")
-        if lesionados.empty:
-            state_message('No hay jugadores elegibles con estatus de lesión activo.',kind='empty')
-        else:
-            st.write("**Reporte activo**")
-            filas_lesionados = list(
-                lesionados.sort_values(["team", "player_name"]).iterrows()
-            )
-            for inicio in range(0, len(filas_lesionados), 3):
-                columnas = st.columns(3, gap="medium")
-                for columna, (_, fila) in zip(
-                    columnas, filas_lesionados[inicio:inicio + 3]
-                ):
-                    with columna:
-                        mostrar_lesion_compacta(fila)
-
-        st.divider()
-        st.write("**Contexto ofensivo por equipo**")
-        contextos = (
-            df[["team", "contexto_lesiones"]]
-            .dropna()
-            .drop_duplicates()
-            .sort_values("team")
-        )
-        for _, fila in contextos.iterrows():
-            if str(fila["contexto_lesiones"]).strip():
-                with st.expander(f"{fila['team']} · lesiones relevantes"):
-                    st.write(fila["contexto_lesiones"])
 

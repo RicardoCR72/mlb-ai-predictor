@@ -45,8 +45,6 @@ class ArchitectureTests(TestCase):
             self.assertFalse(app.exception)
             next(r for r in app.radio if r.label=='Sección NFL').set_value('📊 Props de jugadores').run()
             self.assertFalse(app.exception)
-            next(r for r in app.radio if r.label=='Sección de props').set_value('🏥 Lesiones').run()
-            self.assertFalse(app.exception)
             next(r for r in app.radio if r.label=='Sección de props').set_value('📈 Rendimiento').run()
             self.assertFalse(app.exception)
             child.assert_not_called()
