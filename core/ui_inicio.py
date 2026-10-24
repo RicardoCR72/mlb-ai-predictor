@@ -15,11 +15,11 @@ def render_home():
     if st.button('Actualizar resumen', key='home_refresh', help='Vuelve a leer los datos guardados. No genera predicciones.'):
         summary.load_snapshot.clear(); st.rerun()
     services=data['services']
-    sports=[services[k] for k in ('mlb','mlb_total','nfl_totales','nfl_props','liga_mx','nba')]
+    sports=[services[k] for k in ('mlb','mlb_total','nfl_totales','nfl_props','liga_mx','nba') if k in services]
     cols=st.columns(3)
     cols[0].metric('Picks disponibles hoy',partial_count(sports,'picks_today'))
     cols[1].metric('Registros por revisar',partial_count(sports,'pending'))
-    cols[2].metric('Partidos pendientes hoy',partial_count([services[k] for k in ('mlb','nfl_totales','liga_mx','nba')],'games_today'))
+    cols[2].metric('Partidos pendientes hoy',partial_count([services[k] for k in ('mlb','nfl_totales','liga_mx','nba') if k in services],'games_today'))
     st.markdown('''<style>
 .st-key-home_sports [data-testid="stHorizontalBlock"],.st-key-home_tools [data-testid="stHorizontalBlock"]{align-items:stretch}
 .st-key-home_sports [data-testid="stColumn"] > [data-testid="stVerticalBlock"],.st-key-home_tools [data-testid="stColumn"] > [data-testid="stVerticalBlock"]{height:100%;flex:1}
@@ -38,8 +38,9 @@ def render_home():
             st.caption('Abre el deporte para revisar calendario, resultados o predicciones. Una consulta parcial no significa que falten partidos.')
     st.subheader('Tu agenda · hoy primero')
     games=[]
-    for source,sport in [('mlb','MLB'),('nfl_totales','NFL'),('liga_mx','Liga MX'),('nba','NBA')]:
-        games.extend(dict(Deporte=sport,**g) for g in services[source]['games'])
+    for source,sport in [('mlb','MLB'),('nfl_totales','NFL'),('liga_mx','Fútbol'),('nba','NBA')]:
+        if source in services:
+            games.extend(dict(Deporte=sport,**g) for g in services[source].get('games', []))
     if games:
         calendar=pd.DataFrame(games).sort_values(['Fecha','Deporte','Partido'])
         dates=pd.to_datetime(calendar.Fecha,errors='coerce').dt.date
@@ -49,12 +50,13 @@ def render_home():
         render_agenda(calendar)
     else:state_message('No hay próximos partidos disponibles en los calendarios consultados.')
     st.subheader('Tus deportes')
-    groups=[('MLB','⚾','mlb',['mlb','mlb_total'],'pages/1_⚾_MLB.py'),
-            ('NFL','🏈','nfl_totales',['nfl_totales','nfl_props'],'pages/2_🏈_NFL.py'),
-            ('Fútbol','⚽','liga_mx',['liga_mx'],'pages/3_⚽_Futbol.py'),
-            ('NBA','🏀','nba',['nba'],'pages/4_🏀_NBA.py')]
+    all_groups=[('MLB','⚾','mlb',['mlb','mlb_total'],'pages/1_⚾_MLB.py'),
+                ('NFL','🏈','nfl_totales',['nfl_totales','nfl_props'],'pages/2_🏈_NFL.py'),
+                ('Fútbol','⚽','liga_mx',['liga_mx'],'pages/3_⚽_Futbol.py'),
+                ('NBA','🏀','nba',['nba'],'pages/4_🏀_NBA.py')]
+    groups=[g for g in all_groups if g[2] in services]
     with st.container(key='home_sports'):
-        for col,(name,icon,calendar,keys,page) in zip(st.columns(4),groups):
+        for col,(name,icon,calendar,keys,page) in zip(st.columns(len(groups) or 1),groups):
             with col,st.container(border=True,height='stretch',key='home_sport_'+calendar):
                 st.markdown(f'### {icon} {name}')
                 st.metric('Partidos pendientes hoy',count(services[calendar]['games_today']))

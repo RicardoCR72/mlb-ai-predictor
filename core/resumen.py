@@ -181,26 +181,45 @@ def read_summary(conn, root, now=None, *, include_bankroll=True):
 
     item=output['liga_mx']
     try:
-        folder=Path(root)/'futbol_liga_mx'
-        history=pd.read_csv(folder/'data/partidos.csv')
-        fixtures=pd.read_csv(folder/'data/proximos.csv')
-        report=json.loads((folder/'data/cobertura_actual.json').read_text())
-        item['last_data']=report.get('verified_utc')
-        item['last_result']=maximum(history,'fecha')
-        item['pending']=int(fixtures['fecha'].map(mx_date).map(lambda d:d is not None and d<today).sum())
-        for row in fixtures.to_dict('records'):
-            day=mx_date(row['fecha'])
-            if day is not None and day<today:
-                item['pending_items'].append({'Fecha':day.isoformat(),'Partido':f"{row['visitante']} @ {row['local']}",'Selección':'Calendario pendiente de revisión'})
-        from futbol_liga_mx.continuidad import frozen_model,upcoming_ready
-        _,metrics=frozen_model(folder/'modelos')
-        ready=upcoming_ready(history,fixtures,metrics,now)
-        calendar=ready.rename(columns={'inicio_utc':'fecha_utc'}).copy()
-        calendar['fecha']=calendar['fecha_utc']
-        item['games_today'],_,item['games']=game_summary(calendar,now,utc=True)
-        item['picks_today']=item['games_today']*2
-        item['detail']='Dos selecciones O/U 2.5 por partido habilitado; cuotas por confirmar. Último dato: verificación de cobertura.'
-        if report.get('partial_day'): item['detail']+=' La cobertura del día en curso es parcial.'
+        fut_file = Path(root)/'data/futbol/predicciones_futbol_mundial.json'
+        if fut_file.exists():
+            fut_preds = json.loads(fut_file.read_text(encoding='utf-8'))
+            today_str = today.isoformat()
+            preds_hoy = [p for p in fut_preds if p.get('fecha_cdmx') == today_str]
+            item['label'] = 'Fútbol · 8 Ligas'
+            item['picks_today'] = len(preds_hoy)
+            item['games_today'] = len(preds_hoy)
+            item['pending'] = sum(1 for p in fut_preds if p.get('resultado_pick') == 'PENDIENTE' and p.get('fecha_cdmx', '') < today_str)
+            item['last_data'] = fut_preds[0].get('timestamp') if fut_preds else None
+            item['detail'] = '8 ligas mundiales activas con momios oficiales de DraftKings y modelado Poisson.'
+            item['games'] = [
+                {'Fecha': p.get('fecha_cdmx', today_str),
+                 'Horario': p.get('hora_cdmx', 'TBD') + ' CDMX',
+                 'Partido': f"{p.get('liga_bandera','')} {p.get('equipo_visita')} @ {p.get('equipo_local')}"}
+                for p in fut_preds
+                if p.get('fecha_cdmx', '') >= today_str
+            ]
+        else:
+            folder=Path(root)/'futbol_liga_mx'
+            history=pd.read_csv(folder/'data/partidos.csv')
+            fixtures=pd.read_csv(folder/'data/proximos.csv')
+            report=json.loads((folder/'data/cobertura_actual.json').read_text())
+            item['last_data']=report.get('verified_utc')
+            item['last_result']=maximum(history,'fecha')
+            item['pending']=int(fixtures['fecha'].map(mx_date).map(lambda d:d is not None and d<today).sum())
+            for row in fixtures.to_dict('records'):
+                day=mx_date(row['fecha'])
+                if day is not None and day<today:
+                    item['pending_items'].append({'Fecha':day.isoformat(),'Partido':f"{row['visitante']} @ {row['local']}",'Selección':'Calendario pendiente de revisión'})
+            from futbol_liga_mx.continuidad import frozen_model,upcoming_ready
+            _,metrics=frozen_model(folder/'modelos')
+            ready=upcoming_ready(history,fixtures,metrics,now)
+            calendar=ready.rename(columns={'inicio_utc':'fecha_utc'}).copy()
+            calendar['fecha']=calendar['fecha_utc']
+            item['games_today'],_,item['games']=game_summary(calendar,now,utc=True)
+            item['picks_today']=item['games_today']*2
+            item['detail']='Dos selecciones O/U 2.5 por partido habilitado; cuotas por confirmar. Último dato: verificación de cobertura.'
+            if report.get('partial_day'): item['detail']+=' La cobertura del día en curso es parcial.'
     except Exception as exc:
         item['errors'].append('Cobertura o calendario: '+type(exc).__name__)
         item['detail']='Revisa o actualiza el calendario y su cobertura; las predicciones se mantienen suspendidas.'
