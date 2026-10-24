@@ -189,15 +189,6 @@ def render():
         & (historico["week"] == semana)
     ].copy()
 
-    st.sidebar.caption(f"NFL {temporada} · Semana {semana}")
-
-    ultima_actualizacion = historico["actualizado_en"].max()
-    if pd.notna(ultima_actualizacion):
-        st.sidebar.caption(
-            "Último registro: "
-            + ultima_actualizacion.strftime("%d/%m/%Y %H:%M")
-        )
-
     # ==========================================================
     # FILTROS Y RESUMEN
     # ==========================================================
@@ -360,16 +351,3 @@ def render():
             "estado",
             "actualizado_en",
         ]
-
-        csv_descarga = df[columnas_descarga].to_csv(
-            index=False
-        ).encode("utf-8")
-
-        st.sidebar.download_button(
-            "⬇️ Descargar predicciones CSV",
-            data=csv_descarga,
-            file_name=(
-                f"nfl_totales_{temporada}_semana_{semana}.csv"
-            ),
-            mime="text/csv",
-        )
