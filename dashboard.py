@@ -14,4 +14,4 @@ st.title('Tu día deportivo')
 from core.ui_inicio import render_home
 render_home()
 with st.sidebar:
-    st.caption('MLB, NFL, Liga MX, NBA y Rendimiento')
+    st.caption('MLB, NFL, Fútbol (8 Ligas), NBA y Rendimiento')

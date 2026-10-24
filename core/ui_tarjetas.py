@@ -246,7 +246,7 @@ def modern_sport_card_html(pick, *, market, state='', details=()):
     secondary = [(k, v) for k, v in details if k not in ('Total real', 'Resultado real', 'Marcador final', 'Unidades', 'Jornada', 'Probabilidad Under 2.5', 'Probabilidad Over 2.5')]
     secondary.append(('Captura de cuota', quote_text(pick)))
     detail_items = ''.join(f'<div class="oracle-detail"><span>{safe(k)}</span><strong>{safe(v)}</strong></div>' for k, v in secondary)
-    disclosure = f'<details class="oracle-details"><summary>Ver detalles adicionales</summary>{detail_items}</details>' if secondary else ''
+    disclosure = f'<details class="oracle-details"><summary>Ver detalles</summary>{detail_items}</details>' if secondary else ''
 
     return (
         f'<div class="{card_cls}">'

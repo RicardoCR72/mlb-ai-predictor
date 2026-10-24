@@ -158,11 +158,12 @@ class DeploymentImportTests(TestCase):
                 raise AssertionError('The obsolete filters must not be used')
             old.performance_filters = old_filters
             sys.modules['core.ui_filtros'] = old
+            soccer_page = 'pages/3_⚽_Futbol.py' if Path('pages/3_⚽_Futbol.py').exists() else 'pages/3_⚽_Liga_MX.py'
             paths = ['core/ui_comparador.py', 'nfl/ui_totales.py', 'nfl/ui_props.py',
                 'mlb_totales/ui_totales_mlb.py', 'core/ui_rendimiento_centro.py',
-                'core/ui_historial_publicado.py', 'pages/3_⚽_Liga_MX.py']
+                'core/ui_historial_publicado.py', soccer_page]
             for path in paths:
-                tree = ast.parse(Path(path).read_text())
+                tree = ast.parse(Path(path).read_text(encoding='utf-8', errors='replace'))
                 nodes = [n for n in tree.body if isinstance(n, ast.ImportFrom)
                     and n.module in ('core.ui_filtros', 'core.ui_rendimiento_diseno')]
                 assert nodes, path

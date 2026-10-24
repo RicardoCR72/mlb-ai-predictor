@@ -51,7 +51,7 @@ def render_home():
     st.subheader('Tus deportes')
     groups=[('MLB','⚾','mlb',['mlb','mlb_total'],'pages/1_⚾_MLB.py'),
             ('NFL','🏈','nfl_totales',['nfl_totales','nfl_props'],'pages/2_🏈_NFL.py'),
-            ('Liga MX','⚽','liga_mx',['liga_mx'],'pages/3_⚽_Liga_MX.py'),
+            ('Fútbol','⚽','liga_mx',['liga_mx'],'pages/3_⚽_Futbol.py'),
             ('NBA','🏀','nba',['nba'],'pages/4_🏀_NBA.py')]
     with st.container(key='home_sports'):
         for col,(name,icon,calendar,keys,page) in zip(st.columns(4),groups):
@@ -65,7 +65,7 @@ def render_home():
                     st.caption('Último registro: '+timestamp(item['last_data'],key=='mlb',key in ('mlb_total','liga_mx','nba')))
                 if any(services[key]['errors'] for key in keys):st.caption('Información parcial · vuelve a consultar o actualiza este deporte.')
                 st.page_link(page,label='Abrir '+name,use_container_width=True)
-    st.caption('Liga MX cuenta ambas opciones O/U por encuentro. NBA incluye líneas oficiales de DraftKings sin consumo de créditos.')
+    st.caption('Fútbol cubre 8 ligas principales con cuotas oficiales DraftKings. NBA y Fútbol operan sin consumo de créditos.')
     with st.container(key='home_tools'):
         with st.container(border=True,key='home_performance_card'):
             st.markdown('### Rendimiento')

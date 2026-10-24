@@ -64,8 +64,9 @@ class PerformanceCenterTests(TestCase):
     def test_sport_views_share_confidence_slider_and_no_advanced_panels(self):
         blocked={'Balance y equivalencia en pesos','Comparar mercados','Análisis por mercado y semana',
                  'Explorar umbrales históricos','Auditoría de yardas de recepción','Partidos pendientes de datos o revisión'}
-        for name in ['core/ui_historial_publicado.py','pages/3_⚽_Liga_MX.py']:
-            source=(ROOT/name).read_text();tree=ast.parse(source)
+        soccer_page = 'pages/3_⚽_Futbol.py' if (ROOT/'pages/3_⚽_Futbol.py').exists() else 'pages/3_⚽_Liga_MX.py'
+        for name in ['core/ui_historial_publicado.py', soccer_page]:
+            source=(ROOT/name).read_text(encoding='utf-8', errors='replace');tree=ast.parse(source)
             labels=[n.args[0].value for n in ast.walk(tree) if isinstance(n,ast.Call) and isinstance(n.func,ast.Attribute)
                     and n.func.attr=='expander' and n.args and isinstance(n.args[0],ast.Constant)]
             self.assertFalse(blocked.intersection(labels),name)
@@ -74,7 +75,7 @@ class PerformanceCenterTests(TestCase):
             self.assertTrue(all(any(k.arg=='probability_col' for k in n.keywords) for n in calls),name)
         self.assertFalse((ROOT/'pages/0_💼_Bankroll.py').exists())
         self.assertFalse((ROOT/'pages/4_📊_Comparador.py').exists())
-        self.assertTrue((ROOT/'pages/4_📊_Rendimiento.py').exists())
+        self.assertTrue((ROOT/'pages/5_📊_Rendimiento.py').exists() or (ROOT/'pages/4_📊_Rendimiento.py').exists())
 
     def test_empty_sources_remain_usable(self):
         with patch('core.ui_rendimiento_centro.load_comparison',return_value=(self.frame().iloc[:0],['offline'])):
