@@ -271,7 +271,16 @@ def render():
     st.markdown("<div style='margin-bottom: 1.1rem;'></div>", unsafe_allow_html=True)
 
     if seccion_totales != "📈 Rendimiento":
-        st.metric("Picks", len(picks))
+        c1, c2, c3, c4 = st.columns(4)
+        with c1:
+            st.metric("Total Partidos", len(df))
+        with c2:
+            st.metric("Pendientes", len(pendientes))
+        with c3:
+            st.metric("Finalizados", max(0, len(df) - len(pendientes)))
+        with c4:
+            st.metric("Picks de Alto Valor", len(picks))
+        st.markdown("<div style='margin-bottom: 1.25rem;'></div>", unsafe_allow_html=True)
 
 
 

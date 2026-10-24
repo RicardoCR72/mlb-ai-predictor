@@ -472,7 +472,17 @@ def render():
     st.subheader('Props de jugadores')
     st.caption('Último registro: '+ultima_texto)
 
-    if seccion_props != "📈 Rendimiento":st.metric("Candidatos", len(candidatos))
+    if seccion_props != "📈 Rendimiento":
+        c1, c2, c3, c4 = st.columns(4)
+        with c1:
+            st.metric("Total Partidos", df["id_juego"].nunique())
+        with c2:
+            st.metric("Pendientes", pendientes["id_juego"].nunique())
+        with c3:
+            st.metric("Finalizados", max(0, df["id_juego"].nunique() - pendientes["id_juego"].nunique()))
+        with c4:
+            st.metric("Picks de Alto Valor", len(candidatos))
+        st.markdown("<div style='margin-bottom: 1.25rem;'></div>", unsafe_allow_html=True)
 
 
     # ---------------------------------------------------------------------------

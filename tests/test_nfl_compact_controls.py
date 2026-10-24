@@ -38,11 +38,14 @@ class CompactNFLTests(unittest.TestCase):
             self.assertFalse(app.exception)
             self.assertFalse(any(b.label=='Ocultar detalles' for b in app.button))
 
-    def test_totals_summary_keeps_only_picks(self):
+    def test_totals_summary_four_cards(self):
         with patch('nfl.repositorio.cargar_predicciones_mysql',return_value=nfl_fixture()):
             app=AppTest.from_string('from nfl.ui_totales import render\nrender()').run()
         self.assertFalse(app.exception)
         labels=[m.label for m in app.metric]
-        self.assertIn('Picks',labels)
+        self.assertIn('Total Partidos',labels)
+        self.assertIn('Pendientes',labels)
+        self.assertIn('Finalizados',labels)
+        self.assertIn('Picks de Alto Valor',labels)
         self.assertNotIn('Partidos',labels)
         self.assertNotIn('Con línea',labels)
