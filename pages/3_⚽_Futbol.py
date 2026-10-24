@@ -447,13 +447,13 @@ def render_historial_futbol(mercado_activo: str):
 
 hora_actual_cdmx = datetime.now(ZONA_CDMX).strftime("%H:%M")
 
-# Header de navegación y marca
+# Header de navegación y marca (Tarjeta Shell)
 st.markdown(
     f"""<div class="futbol-shell">
 <div class="futbol-brand">
 <span class="futbol-logo">⚽</span>
 <div>
-<div style="font-size: 1.05rem; font-weight: 900; color: #ffffff;">FÚTBOL MUNDIAL <span class="futbol-accent">ORÁCULO AI</span></div>
+<div style="font-size: 1.05rem; font-weight: 900; color: #ffffff;">ORÁCULO <span class="futbol-accent">FÚTBOL AI</span></div>
 <div class="futbol-status">8 Ligas Principales · Cuotas DraftKings · Modelo Bivariado Calibrado</div>
 </div>
 </div>

@@ -631,3 +631,37 @@ h1{letter-spacing:-.035em}h2,h3{letter-spacing:-.02em}
     border: 1px solid #3d1c10;
 }
 
+/* Fútbol Pitch Emerald Styles */
+.futbol-shell {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: .78rem .95rem;
+    border: 1px solid #143522;
+    border-radius: 13px;
+    background: #091710;
+    margin-bottom: .75rem;
+}
+.futbol-brand {
+    display: flex;
+    align-items: center;
+    gap: .65rem;
+    font-weight: 800;
+    letter-spacing: .02em;
+}
+.futbol-logo {
+    width: 34px;
+    height: 34px;
+    display: inline-grid;
+    place-items: center;
+    border-radius: 10px;
+    background: #00e676;
+    color: #03140a;
+    font-weight: 900;
+    font-size: 1.15rem;
+}
+.futbol-accent { color: #00e676; }
+.futbol-status { color: #8ba797; font-size: .78rem; font-weight: 700; }
+
+
