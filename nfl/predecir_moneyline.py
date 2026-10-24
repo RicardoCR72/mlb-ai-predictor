@@ -120,11 +120,11 @@ def predecir_jornada_nfl_moneyline(force_refresh: bool = False) -> List[Dict[str
         away_team = j["equipo_visita"]
 
         estado_juego = str(j.get("estado", "")).upper()
-        ya_comenzo = ("PROGRESS" in estado_juego) or ("FINAL" in estado_juego) or (j.get("marcador_local") is not None)
+        ya_comenzo = ("PROGRESS" in estado_juego) or ("FINAL" in estado_juego)
         cuotas_vacias = (j.get("moneyline_local") is None and j.get("moneyline_visita") is None)
 
-        # SI EL PARTIDO YA COMENZÓ, FINALIZÓ O SE RETIRARON LÍNEAS, CONSERVAR PICK CONGELADO
-        if prev and (ya_comenzo or cuotas_vacias) and prev.get("pick_seleccion"):
+        # SI EL PARTIDO YA COMENZÓ O FINALIZÓ (Y YA NO ESTÁ PROGRAMADO), CONSERVAR PICK CONGELADO
+        if prev and ya_comenzo and prev.get("pick_seleccion"):
             prev_act = dict(prev)
             prev_act["estado"] = j.get("estado", prev.get("estado"))
             prev_act["descripcion_estado"] = j.get("descripcion_estado", prev.get("descripcion_estado"))
@@ -156,7 +156,10 @@ def predecir_jornada_nfl_moneyline(force_refresh: bool = False) -> List[Dict[str
         m_home = metricas_equipos.get(home_team, {})
         m_away = metricas_equipos.get(away_team, {})
 
-        spread_val = j.get("spread_line") or 0.0
+        spread_raw = j.get("spread_line")
+        # En ESPN/DraftKings el favorito local tiene spread negativo (ej. -10.5).
+        # En nflverse (donde se entrenó el modelo), spread_line es positivo si el local es favorito (+10.5).
+        spread_val = (-float(spread_raw)) if spread_raw is not None else 0.0
 
         fila_feat = {
             "spread_line": spread_val,
@@ -199,45 +202,34 @@ def predecir_jornada_nfl_moneyline(force_refresh: bool = False) -> List[Dict[str
         edge_home = prob_home - p_book_h
         edge_away = prob_away - p_book_a
 
-        # Selección del mejor Pick
-        if edge_home >= 0.025 and prob_home >= 0.40:
+        # Selección del mejor Pick de Moneyline:
+        # Apunta al ganador proyectado con sustento de probabilidad sólida y valor esperado
+        if prob_home >= prob_away:
             pick_sel = f"{home_team} ML"
             pick_prob = prob_home
-            pick_edge = edge_home
+            pick_edge = max(edge_home, 0.005)
             pick_cuota = j.get("moneyline_local") or "-110"
             pick_cuota_dec = ml_h_dec
             ev = round(((prob_home * (ml_h_dec - 1.0)) - ((1.0 - prob_home) * 1.0)) * 100, 2)
-            detalle = f"Prob Modelo: {prob_home*100:.1f}% vs Book: {p_book_h*100:.1f}% (Edge: +{edge_home*100:.1f}%)"
-        elif edge_away >= 0.025 and prob_away >= 0.38:
+            if edge_home >= 0.02:
+                detalle = f"Prob Modelo: {prob_home*100:.1f}% vs Book: {p_book_h*100:.1f}% (Edge: +{edge_home*100:.1f}%)"
+            else:
+                detalle = f"Favorito proyectado con {prob_home*100:.1f}% de probabilidad."
+        else:
             pick_sel = f"{away_team} ML"
             pick_prob = prob_away
-            pick_edge = edge_away
+            pick_edge = max(edge_away, 0.005)
             pick_cuota = j.get("moneyline_visita") or "-110"
             pick_cuota_dec = ml_a_dec
             ev = round(((prob_away * (ml_a_dec - 1.0)) - ((1.0 - prob_away) * 1.0)) * 100, 2)
-            detalle = f"Prob Modelo: {prob_away*100:.1f}% vs Book: {p_book_a*100:.1f}% (Edge: +{edge_away*100:.1f}%)"
-        else:
-            # Pick neutral al de mayor probabilidad
-            if prob_home >= prob_away:
-                pick_sel = f"{home_team} ML"
-                pick_prob = prob_home
-                pick_edge = max(edge_home, 0.01)
-                pick_cuota = j.get("moneyline_local") or "-110"
-                pick_cuota_dec = ml_h_dec
-                ev = round(((prob_home * (ml_h_dec - 1.0)) - ((1.0 - prob_home) * 1.0)) * 100, 2)
-                detalle = f"Favorito proyectado con {prob_home*100:.1f}% de probabilidad."
+            if edge_away >= 0.02:
+                detalle = f"Prob Modelo: {prob_away*100:.1f}% vs Book: {p_book_a*100:.1f}% (Edge: +{edge_away*100:.1f}%)"
             else:
-                pick_sel = f"{away_team} ML"
-                pick_prob = prob_away
-                pick_edge = max(edge_away, 0.01)
-                pick_cuota = j.get("moneyline_visita") or "-110"
-                pick_cuota_dec = ml_a_dec
-                ev = round(((prob_away * (ml_a_dec - 1.0)) - ((1.0 - prob_away) * 1.0)) * 100, 2)
                 detalle = f"Favorito proyectado con {prob_away*100:.1f}% de probabilidad."
 
-        if pick_edge >= 0.05 and pick_prob >= 0.52:
+        if pick_prob >= 0.65 or (pick_prob >= 0.54 and pick_edge >= 0.03):
             confianza = "ALTA"
-        elif pick_edge >= 0.025:
+        elif pick_prob >= 0.52:
             confianza = "MEDIA"
         else:
             confianza = "NEUTRAL"

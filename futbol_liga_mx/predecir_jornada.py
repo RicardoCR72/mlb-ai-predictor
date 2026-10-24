@@ -115,12 +115,12 @@ def predecir_jornada_ligamx(force_refresh: bool = False, fecha: Optional[str] = 
         id_ev = str(j.get("id_evento", "")).strip()
         prev = predicciones_previas.get(id_ev)
 
-        # Si el partido ya inició o finalizó, o ESPN retiró cuotas pre-partido, PRESERVAR pick congelado
+        # Si el partido ya inició o finalizó, PRESERVAR pick congelado
         estado_juego = str(j.get("estado", "")).upper()
-        ya_comenzo = ("PROGRESS" in estado_juego) or ("FINAL" in estado_juego) or (j.get("marcador_local") is not None)
+        ya_comenzo = ("PROGRESS" in estado_juego) or ("FINAL" in estado_juego)
         cuotas_vacias = (j.get("moneyline_local") is None and j.get("over_momio") is None)
 
-        if prev and (ya_comenzo or cuotas_vacias) and prev.get("pick_seleccion"):
+        if prev and ya_comenzo and prev.get("pick_seleccion"):
             prev_act = dict(prev)
             prev_act["estado"] = j.get("estado", prev.get("estado"))
             prev_act["descripcion_estado"] = j.get("descripcion_estado", prev.get("descripcion_estado"))
@@ -191,7 +191,7 @@ def predecir_jornada_ligamx(force_refresh: bool = False, fecha: Optional[str] = 
         candidatos = []
 
         # 1. Candidato Totales: OVER
-        if edge_over >= 0.035 and res_biv["prob_over"] >= 0.51:
+        if edge_over >= 0.02 and res_biv["prob_over"] >= 0.505:
             candidatos.append({
                 "mercado": "Totales (Over/Under)",
                 "seleccion": f"OVER {linea_tot:g}",
@@ -202,7 +202,7 @@ def predecir_jornada_ligamx(force_refresh: bool = False, fecha: Optional[str] = 
                 "detalle": f"xG Total: {res_biv['total_proyectado']:.2f} (Prob: {res_biv['prob_over']*100:.1f}% vs Book: {p_book_over*100:.1f}%)"
             })
         # 2. Candidato Totales: UNDER
-        elif edge_under >= 0.035 and res_biv["prob_under"] >= 0.51:
+        elif edge_under >= 0.02 and res_biv["prob_under"] >= 0.505:
             candidatos.append({
                 "mercado": "Totales (Over/Under)",
                 "seleccion": f"UNDER {linea_tot:g}",
@@ -213,47 +213,41 @@ def predecir_jornada_ligamx(force_refresh: bool = False, fecha: Optional[str] = 
                 "detalle": f"xG Total: {res_biv['total_proyectado']:.2f} (Prob: {res_biv['prob_under']*100:.1f}% vs Book: {p_book_under*100:.1f}%)"
             })
 
-        # 3. Candidato Moneyline: Local
-        if edge_ml_home >= 0.04 and res_biv["prob_local"] >= 0.42:
+        # 3. Candidato Moneyline: Local (Debe ser favorito proyectado con probabilidad sólida)
+        if res_biv["prob_local"] >= 0.44 and res_biv["prob_local"] > res_biv["prob_visita"] and edge_ml_home >= -0.05:
             candidatos.append({
                 "mercado": "Moneyline",
                 "seleccion": f"{home_team} ML",
                 "probabilidad": res_biv["prob_local"],
-                "edge": edge_ml_home,
+                "edge": max(edge_ml_home, 0.01),
                 "cuota_americana": j.get("moneyline_local") or "+110",
                 "cuota_dec": j.get("ml_local_dec") or 2.10,
-                "detalle": f"Prob Modelo: {res_biv['prob_local']*100:.1f}% vs Book: {p_book_home*100:.1f}% (xG: {res_biv['xg_local']:.2f})"
+                "detalle": f"Favorito proyectado {res_biv['prob_local']*100:.1f}% (xG: {res_biv['xg_local']:.2f} vs {res_biv['xg_visita']:.2f})"
             })
-        # 4. Candidato Moneyline: Visita
-        elif edge_ml_away >= 0.04 and res_biv["prob_visita"] >= 0.35:
+        # 4. Candidato Moneyline: Visita (Debe ser favorito visitante proyectado con probabilidad sólida)
+        elif res_biv["prob_visita"] >= 0.44 and res_biv["prob_visita"] > res_biv["prob_local"] and edge_ml_away >= -0.05:
             candidatos.append({
                 "mercado": "Moneyline",
                 "seleccion": f"{away_team} ML",
                 "probabilidad": res_biv["prob_visita"],
-                "edge": edge_ml_away,
+                "edge": max(edge_ml_away, 0.01),
                 "cuota_americana": j.get("moneyline_visita") or "+180",
                 "cuota_dec": j.get("ml_visita_dec") or 2.80,
-                "detalle": f"Prob Modelo: {res_biv['prob_visita']*100:.1f}% vs Book: {p_book_away*100:.1f}% (xG: {res_biv['xg_visita']:.2f})"
-            })
-        # 5. Candidato Moneyline: Empate con alto valor
-        elif edge_ml_draw >= 0.05 and res_biv["prob_empate"] >= 0.30:
-            candidatos.append({
-                "mercado": "Moneyline",
-                "seleccion": "Empate ML",
-                "probabilidad": res_biv["prob_empate"],
-                "edge": edge_ml_draw,
-                "cuota_americana": j.get("moneyline_empate") or "+250",
-                "cuota_dec": j.get("ml_empate_dec") or 3.50,
-                "detalle": f"Prob Empate: {res_biv['prob_empate']*100:.1f}% vs Book: {p_book_draw*100:.1f}%"
+                "detalle": f"Favorito visitante proyectado {res_biv['prob_visita']*100:.1f}% (xG: {res_biv['xg_visita']:.2f} vs {res_biv['xg_local']:.2f})"
             })
 
-        # Ordenar por mayor Edge
-        candidatos.sort(key=lambda x: x["edge"], reverse=True)
+        # Ordenar candidatos priorizando probabilidad real de acierto combinada con valor
+        def score_candidato(c):
+            p = float(c.get("probabilidad", 0.0))
+            ed = float(c.get("edge", 0.0))
+            return p * (1.0 + max(ed, 0.0))
+
+        candidatos.sort(key=score_candidato, reverse=True)
         if candidatos:
             mejor = candidatos[0]
         else:
             # Fallback natural con mayor probabilidad intrínseca
-            if res_biv["prob_over"] > res_biv["prob_under"]:
+            if res_biv["prob_over"] >= res_biv["prob_under"]:
                 mejor = {
                     "mercado": "Totales (Over/Under)",
                     "seleccion": f"OVER {linea_tot:g}",
@@ -275,9 +269,9 @@ def predecir_jornada_ligamx(force_refresh: bool = False, fecha: Optional[str] = 
                 }
 
         # Nivel de confianza
-        if mejor["edge"] >= 0.06 and mejor["probabilidad"] >= 0.52:
+        if mejor["probabilidad"] >= 0.58 or (mejor["probabilidad"] >= 0.52 and mejor["edge"] >= 0.03):
             confianza = "ALTA"
-        elif mejor["edge"] >= 0.03:
+        elif mejor["probabilidad"] >= 0.46:
             confianza = "MEDIA"
         else:
             confianza = "NEUTRAL"

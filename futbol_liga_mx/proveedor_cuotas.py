@@ -128,23 +128,34 @@ def obtener_calendario_y_cuotas_ligamx(
 
             # Cuotas de DraftKings
             odds_list = comp.get("odds", [])
-            odd = odds_list[0] if odds_list else {}
-            provider_name = odd.get("provider", {}).get("name", "DraftKings")
+            odd = odds_list[0] if (odds_list and isinstance(odds_list[0], dict)) else {}
+            provider_dict = odd.get("provider") if isinstance(odd.get("provider"), dict) else {}
+            provider_name = provider_dict.get("name", "DraftKings")
 
             # Moneyline (1X2)
-            ml_obj = odd.get("moneyline", {})
-            ml_home_close = ml_obj.get("home", {}).get("close", {}).get("odds")
-            ml_away_close = ml_obj.get("away", {}).get("close", {}).get("odds")
+            ml_obj = odd.get("moneyline") if isinstance(odd.get("moneyline"), dict) else {}
+            home_odds_obj = ml_obj.get("home") if isinstance(ml_obj.get("home"), dict) else {}
+            away_odds_obj = ml_obj.get("away") if isinstance(ml_obj.get("away"), dict) else {}
+            ml_home_close = (home_odds_obj.get("close") or home_odds_obj.get("open") or {}).get("odds") if isinstance(home_odds_obj.get("close") or home_odds_obj.get("open"), dict) else None
+            ml_away_close = (away_odds_obj.get("close") or away_odds_obj.get("open") or {}).get("odds") if isinstance(away_odds_obj.get("close") or away_odds_obj.get("open"), dict) else None
             
+            # Fallback a homeTeamOdds / awayTeamOdds
+            if ml_home_close is None and isinstance(odd.get("homeTeamOdds"), dict):
+                ml_home_close = odd["homeTeamOdds"].get("moneyLine")
+            if ml_away_close is None and isinstance(odd.get("awayTeamOdds"), dict):
+                ml_away_close = odd["awayTeamOdds"].get("moneyLine")
+
             # Empate
-            draw_obj = odd.get("draw", {}) or odd.get("drawOdds", {})
-            ml_draw_close = draw_obj.get("close", {}).get("odds") or draw_obj.get("moneyLine")
+            draw_obj = odd.get("draw") if isinstance(odd.get("draw"), dict) else (odd.get("drawOdds") if isinstance(odd.get("drawOdds"), dict) else {})
+            ml_draw_close = (draw_obj.get("close") or {}).get("odds") if isinstance(draw_obj.get("close"), dict) else draw_obj.get("moneyLine")
 
             # Totales (Over / Under)
             total_line = odd.get("overUnder", 2.5)
-            tot_obj = odd.get("total", {})
-            over_odds = tot_obj.get("over", {}).get("close", {}).get("odds")
-            under_odds = tot_obj.get("under", {}).get("close", {}).get("odds")
+            tot_obj = odd.get("total") if isinstance(odd.get("total"), dict) else {}
+            over_obj = tot_obj.get("over") if isinstance(tot_obj.get("over"), dict) else {}
+            under_obj = tot_obj.get("under") if isinstance(tot_obj.get("under"), dict) else {}
+            over_odds = (over_obj.get("close") or over_obj.get("open") or {}).get("odds") if isinstance(over_obj.get("close") or over_obj.get("open"), dict) else None
+            under_odds = (under_obj.get("close") or under_obj.get("open") or {}).get("odds") if isinstance(under_obj.get("close") or under_obj.get("open"), dict) else None
 
             partidos.append({
                 "id_evento": ev_id,
