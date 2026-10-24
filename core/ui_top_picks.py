@@ -13,10 +13,10 @@ from core.constants import ZONA_CDMX
 RAIZ = Path(__file__).resolve().parents[1]
 
 
+@st.cache_data(ttl=60)
 def obtener_top_picks_del_dia(max_picks: int = 3) -> list[dict]:
     """Recolecta y clasifica las mejores recomendaciones del día de todos los deportes."""
     picks = []
-    hoy_cdmx = datetime.now(ZONA_CDMX).date()
 
     # 1. Fútbol
     p_futbol = RAIZ / "data" / "futbol" / "predicciones_futbol.json"
@@ -146,7 +146,7 @@ def obtener_top_picks_del_dia(max_picks: int = 3) -> list[dict]:
                         "cuota": str(c or "-110"),
                         "probabilidad": prob,
                         "edge": edge,
-                        "confianza": j.get("confianza", "MEDIA"),
+                        "confianza": "ALTA" if (prob >= 0.70 and edge >= 0.03) else j.get("confianza", "MEDIA"),
                         "pagina": "pages/4_🏀_NBA.py",
                     })
         except Exception:
