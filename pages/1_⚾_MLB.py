@@ -57,8 +57,7 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# Navegación y mercado alineados en una sola fila limpia y compacta
-col_nav, col_mkt, _ = st.columns([1.1, 1.1, 2.0], gap="small")
+col_nav, col_mkt = st.columns([1, 1], gap="medium")
 with col_nav:
     seccion_guardada = st.session_state.get("mlb_section", "Picks de hoy")
     idx_defecto = 1 if seccion_guardada == "Rendimiento" else 0
