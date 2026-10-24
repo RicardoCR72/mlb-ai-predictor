@@ -17,14 +17,34 @@ def render_mlb_today(market):
     if 'start_utc' not in frame:state_message('No hay publicaciones con inicio verificable.');return
     starts=pd.to_datetime(frame.start_utc,utc=True,errors='coerce')
     days=starts.dt.tz_convert(ZONA_CDMX).dt.date
-    frame=frame[starts.gt(now)&days.eq(now.tz_convert(ZONA_CDMX).date())&frame.resultado.eq('PENDIENTE')]
-    if frame.empty:state_message('No hay picks publicados para partidos de hoy sin iniciar.');return
+    hoy_date=now.tz_convert(ZONA_CDMX).date()
+    hoy_all=frame[days.eq(hoy_date)].copy()
+
+    total_partidos=hoy_all['identidad'].nunique() if not hoy_all.empty else 0
+    pendientes=hoy_all[starts.gt(now)&hoy_all.resultado.eq('PENDIENTE')]['identidad'].nunique() if not hoy_all.empty else 0
+    finalizados=max(0,total_partidos-pendientes)
+
+    frame=frame[starts.gt(now)&days.eq(hoy_date)&frame.resultado.eq('PENDIENTE')]
     if 'publicada_utc' in frame:frame=frame.sort_values('publicada_utc',ascending=False,na_position='last')
     frame=frame.drop_duplicates('identidad')
+
+    picks_valor=int((frame['probabilidad']>=0.55).sum()) if not frame.empty and 'probabilidad' in frame else len(frame)
+
+    c1, c2, c3, c4 = st.columns(4)
+    with c1:
+        st.metric("Total Partidos", total_partidos)
+    with c2:
+        st.metric("Pendientes", pendientes)
+    with c3:
+        st.metric("Finalizados", finalizados)
+    with c4:
+        st.metric("Picks de Alto Valor", picks_valor)
+    st.markdown("<div style='margin-bottom: 1.25rem;'></div>", unsafe_allow_html=True)
+
+    if frame.empty:state_message('No hay picks publicados para partidos de hoy sin iniciar.');return
     minimum=st.slider('Confianza mínima (%)',0,100,50,key='mlb_today_'+market)
     frame=frame[frame.probabilidad.ge(minimum/100)]
     if frame.empty:state_message('No hay picks que cumplan el filtro.',kind='filters');return
-    st.metric('Partidos con pronóstico',len(frame))
     shown=frame.sort_values('probabilidad',ascending=False)
     for start in range(0,len(shown),2):
         columns=st.columns(2,gap='medium')

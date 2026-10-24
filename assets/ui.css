@@ -320,17 +320,9 @@ h1{letter-spacing:-.035em}h2,h3{letter-spacing:-.02em}
 .stApp [class*="st-key-actualizacion_manual_liga_mx"] button:hover {
  background:#26f089!important;color:#04150b!important;border-color:#26f089!important;box-shadow:0 6px 20px rgba(0, 230, 118, 0.6)!important
 }
-.stApp .st-key-mlb_generate button,
-.stApp [class*="st-key-actualizacion_manual_mlb"] button {
- background:#00e5ff!important;color:#040d1a!important;border-color:#00e5ff!important;box-shadow:0 4px 14px rgba(0, 229, 255, 0.4)!important
-}
-.stApp .st-key-mlb_generate button *,
-.stApp [class*="st-key-actualizacion_manual_mlb"] button * {
- color:#040d1a!important;font-weight:850!important
-}
 .stApp .st-key-mlb_generate button:hover,
 .stApp [class*="st-key-actualizacion_manual_mlb"] button:hover {
- background:#33ebff!important;color:#040d1a!important;border-color:#33ebff!important;box-shadow:0 6px 20px rgba(0, 229, 255, 0.6)!important
+ background:#1a2535!important;color:#eef3f8!important;border-color:#00e5ff!important;box-shadow:0 0 10px rgba(0, 229, 255, 0.25)!important
 }
 .stApp [data-testid="stButton"] button:hover,.stApp [data-testid="stDownloadButton"] button:hover,.stApp [data-testid="stFormSubmitButton"] button:hover,.stApp [data-testid="stPageLink"] a:hover{
  background:#1a2535!important;color:#eef3f8!important;border-color:#b7ff3c!important

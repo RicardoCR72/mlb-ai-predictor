@@ -66,16 +66,7 @@ mercado = st.radio(
     key="mlb_mercado_principal",
 )
 
-# Nivel 2: Barra superior de botones idéntica a NFL (2 columnas iguales)
-st.markdown("<div style='margin-bottom: 0.8rem;'></div>", unsafe_allow_html=True)
-col1, col2 = st.columns(2, gap="medium")
-with col1:
-    render_update_button("mlb", compact=True)
-with col2:
-    render_generate_mlb()
-st.markdown("<div style='margin-bottom: 1.1rem;'></div>", unsafe_allow_html=True)
-
-# Nivel 3: Selector interno de sección (idéntico a NFL en disposición horizontal)
+# Nivel 2: Selector interno de sección (idéntico a NFL en disposición horizontal)
 seccion_guardada = st.session_state.get("mlb_section", "Picks de hoy")
 idx_defecto = 1 if seccion_guardada == "Rendimiento" else 0
 
@@ -87,6 +78,15 @@ view = st.radio(
     label_visibility="collapsed",
     key="mlb_section",
 )
+
+# Nivel 3: Barra superior de botones idéntica a NFL (2 columnas iguales)
+st.markdown("<div style='margin-bottom: 0.8rem;'></div>", unsafe_allow_html=True)
+col1, col2 = st.columns(2, gap="medium")
+with col1:
+    render_update_button("mlb", compact=True)
+with col2:
+    render_generate_mlb()
+st.markdown("<div style='margin-bottom: 1.1rem;'></div>", unsafe_allow_html=True)
 
 mercado_tipo = "Totales" if "Totales" in mercado else "Moneyline"
 
