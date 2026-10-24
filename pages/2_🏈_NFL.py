@@ -57,13 +57,14 @@ st.markdown(
 # Selector de navegación interna compatible con suite de pruebas y responsive
 vista = st.radio(
     "Sección NFL",
-    ["Totales de Partido", "Moneyline (Ganador Directo)", "📊 Props de jugadores"],
+    ["Totales de Partido", "Moneyline", "📊 Props de jugadores"],
     horizontal=True,
+    format_func=lambda x: x.lstrip("📊 "),
     label_visibility="collapsed",
     key="nfl_vista_principal",
 )
 
-if vista == "Moneyline (Ganador Directo)":
+if "Moneyline" in vista:
     from nfl.ui_moneyline import render
     render()
 elif "Totales" in vista:

@@ -406,6 +406,9 @@ def render():
     ].copy()
 
     st.sidebar.caption(f"NFL {temporada} · Semana {semana}")
+    ultima_sinc = historico["actualizado_en"].max()
+    if pd.notna(ultima_sinc):
+        st.sidebar.caption(f"Último registro: {ultima_sinc.strftime('%d/%m/%Y · %H:%M')}")
 
     filtrado = df.sort_values(
         ["ev_estimado", "probabilidad_pick"],
@@ -460,17 +463,6 @@ def render():
         if apuestas_roi_resumen
         else np.nan
     )
-
-    ultima = historico["actualizado_en"].max()
-    ultima_texto = (
-        ultima.strftime("%d/%m/%Y · %H:%M")
-        if pd.notna(ultima)
-        else "Sin sincronización"
-    )
-
-
-    st.subheader('Props de jugadores')
-    st.caption('Último registro: '+ultima_texto)
 
     if seccion_props != "📈 Rendimiento":
         c1, c2, c3, c4 = st.columns(4)

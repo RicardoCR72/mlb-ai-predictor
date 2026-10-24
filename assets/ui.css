@@ -305,8 +305,9 @@ h1{letter-spacing:-.035em}h2,h3{letter-spacing:-.02em}
  font-size:.94rem!important;line-height:1.5!important;color:#a8b4c5!important;margin:.4rem 0 0!important
 }
 .stApp [data-testid="stButton"] button,.stApp [data-testid="stDownloadButton"] button,.stApp [data-testid="stFormSubmitButton"] button,.stApp [data-testid="stPageLink"] a{
- background:#111720!important;color:#c6d1df!important;border:1px solid #45546a!important;border-radius:9px!important;min-height:44px; font-weight:650!important
+ background:#111720!important;color:#c6d1df!important;border:1px solid #45546a!important;border-radius:9px!important;min-height:44px; font-weight:650!important;margin-top:0!important
 }
+.stApp [data-testid="stColumn"] > div > [data-testid="stButton"]{margin-top:0!important;padding-top:0!important}
 .stApp .st-key-parlay_reload button,.stApp .st-key-comparison_refresh button,.stApp [data-testid="stFormSubmitButton"] button[kind="primary"]{
  background:#b7ff3c!important;color:#071006!important;border-color:#b7ff3c!important
 }
