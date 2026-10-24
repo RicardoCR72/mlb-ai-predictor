@@ -98,10 +98,10 @@ def obtener_pick_para_mercado(p: dict, mercado_tipo: str) -> dict:
             sel = f"UNDER {linea}"
             prob = p_under
 
-        edge = abs(edge_pts) / 10.0
-        if edge >= 0.06 and prob >= 0.55:
+        edge = prob - 0.5238
+        if edge >= 0.05 and prob >= 0.55:
             conf = "ALTA"
-        elif edge >= 0.03:
+        elif edge >= 0.025:
             conf = "MEDIA"
         else:
             conf = "NEUTRAL"
@@ -110,7 +110,7 @@ def obtener_pick_para_mercado(p: dict, mercado_tipo: str) -> dict:
             "mercado": "Totales",
             "seleccion": sel,
             "probabilidad": prob,
-            "edge": edge,
+            "edge": max(0.0, edge),
             "momio": "-110 (1.91)",
             "detalle": f"Proyección: {proy:.1f} pts · Línea DK: {linea} (Edge: {edge_pts:+.1f} pts)",
             "confianza": conf,
@@ -273,12 +273,17 @@ Los partidos de la cartelera anterior ({n_liquidados} juegos) ya finalizaron y h
         return
 
     # Renderizado de Tarjetas de partidos individuales para el mercado seleccionado
-    for p in lista_mostrar:
+    for idx, p in enumerate(lista_mostrar):
         pick_info = obtener_pick_para_mercado(p, mercado)
         conf = pick_info["confianza"]
         badge_conf = "badge-conf-alta" if conf == "ALTA" else "badge-conf-media"
-        edge_val = float(pick_info.get("edge") or 0.0)
-        ev_badge = f'<span class="badge-ev" style="margin-left: 0.45rem;">🔥 +EV +{edge_val*100:.1f}%</span>' if edge_val >= 0.02 else ""
+        
+        # Cálculo del Valor Esperado real: EV% = (probabilidad * cuota_decimal - 1.0) * 100
+        from core.ui_boleta import parsear_cuota_decimal
+        c_dec = parsear_cuota_decimal(pick_info.get("momio"))
+        prob = float(pick_info.get("probabilidad") or 0.5)
+        ev_calc = (prob * c_dec - 1.0) * 100.0 if (c_dec > 1.0 and prob > 0) else 0.0
+        ev_badge = f'<span class="badge-ev" style="margin-left: 0.45rem;">🔥 +EV +{ev_calc:.1f}%</span>' if ev_calc >= 2.0 else ""
 
         resultado_pick = p.get("resultado")
         u_gan = p.get("unidades_ganadas")
@@ -373,8 +378,10 @@ Los partidos de la cartelera anterior ({n_liquidados} juegos) ya finalizaron y h
         with st.container(border=True):
             st.markdown(card_top_html + teams_html + pick_box_html, unsafe_allow_html=True)
 
+            evento_id = str(p.get("id_evento") or p.get("id_juego") or f"{p.get('abbr_visita')}_{p.get('abbr_local')}_{idx}")
+            clean_mercado = str(mercado).replace(" ", "_").replace("(", "").replace(")", "")
             slip_item = {
-                "id": f"NBA_{p.get('partido')}_{mercado}_{pick_info['seleccion']}",
+                "id": f"NBA_{evento_id}_{clean_mercado}_{pick_info['seleccion']}",
                 "deporte": "NBA",
                 "icono": "🏀",
                 "partido": p.get("partido") or f"{p.get('equipo_visita')} @ {p.get('equipo_local')}",
@@ -383,7 +390,7 @@ Los partidos de la cartelera anterior ({n_liquidados} juegos) ya finalizaron y h
                 "momio": pick_info["momio"],
                 "prob": pick_info["probabilidad"],
             }
-            render_boton_boleta(slip_item, key=f"btn_nba_slip_{p.get('id_juego')}_{mercado}")
+            render_boton_boleta(slip_item, key=f"btn_nba_slip_{evento_id}_{clean_mercado}_{idx}")
 
             with st.expander("📊 Ver desglose analítico completo (Spreads, Totales y Probabilidades 1X2)"):
                 col_c1, col_c2, col_c3 = st.columns(3)
