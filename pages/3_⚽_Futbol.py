@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 import pandas as pd
 import numpy as np
@@ -187,7 +187,7 @@ def render_cartelera_futbol(predicciones: list[dict], mercado_activo: str):
         for c in opciones_selector
     ]
 
-    f_lig_col, f_conf_col, f_est_col = st.columns([2, 1, 1])
+    f_lig_col, f_fec_col, f_conf_col, f_est_col = st.columns([1.4, 1.1, 1.1, 1.1])
     with f_lig_col:
         liga_sel_idx = st.selectbox(
             "Filtrar por Liga:",
@@ -196,6 +196,13 @@ def render_cartelera_futbol(predicciones: list[dict], mercado_activo: str):
             key="sel_liga_futbol",
         )
         liga_seleccionada = opciones_selector[liga_sel_idx]
+
+    with f_fec_col:
+        filtro_fecha = st.selectbox(
+            "Fecha:",
+            ["Todas las fechas", "Hoy", "Mañana", "Próximos días"],
+            key="f_fecha_futbol",
+        )
 
     with f_conf_col:
         filtro_confianza = st.selectbox(
@@ -215,6 +222,29 @@ def render_cartelera_futbol(predicciones: list[dict], mercado_activo: str):
     filtrados = list(predicciones)
     if liga_seleccionada != "todas":
         filtrados = [p for p in filtrados if p.get("liga_codigo") == liga_seleccionada]
+
+    hoy_cdmx = datetime.now(ZONA_CDMX).date()
+    manana_cdmx = hoy_cdmx + timedelta(days=1)
+
+    def _extraer_fecha(item: dict):
+        f = item.get("fecha_cdmx")
+        if not f:
+            return None
+        try:
+            if isinstance(f, str):
+                return datetime.strptime(f[:10], "%Y-%m-%d").date()
+            if hasattr(f, "date"):
+                return f.date()
+            return f
+        except Exception:
+            return None
+
+    if filtro_fecha == "Hoy":
+        filtrados = [p for p in filtrados if _extraer_fecha(p) == hoy_cdmx]
+    elif filtro_fecha == "Mañana":
+        filtrados = [p for p in filtrados if _extraer_fecha(p) == manana_cdmx]
+    elif filtro_fecha == "Próximos días":
+        filtrados = [p for p in filtrados if _extraer_fecha(p) and _extraer_fecha(p) > manana_cdmx]
 
     if filtro_confianza == "Solo ALTA confianza":
         filtrados = [p for p in filtrados if p.get("confianza") == "ALTA"]
