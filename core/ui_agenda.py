@@ -76,11 +76,12 @@ def render_agenda(calendar):
     st.markdown(agenda_html(visible),unsafe_allow_html=True)
     st.caption(f'{len(visible)} de {len(calendar)} partidos · próximos siete días.')
     with st.container(key='home_calendar_full'):
-        with st.expander('Ver calendario completo'):
+        with st.expander('Ver calendario semanal y tabla de partidos'):
             st.markdown(header('Agenda de la semana','Encuentros organizados por día.',f'{len(calendar)} partidos'),unsafe_allow_html=True)
             st.markdown(agenda_html(calendar,grouped=True),unsafe_allow_html=True)
-            with st.expander('Ver calendario en tabla'):
-                st.dataframe(calendar,hide_index=True,use_container_width=True)
+            st.markdown("<div style='margin-top:1rem; margin-bottom:0.4rem; font-weight:800; font-size:0.88rem; color:#cbd5e1;'>📊 Detalle tabular de partidos:</div>", unsafe_allow_html=True)
+            st.dataframe(calendar,hide_index=True,use_container_width=True)
+
 
 
 def render_availability(table):

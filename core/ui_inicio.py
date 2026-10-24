@@ -11,14 +11,22 @@ def render_home():
     from core.ui_controles import state_message
     apply_mobile_layout()
     data=summary.snapshot()
-    st.caption(f"{data['today']} · CDMX · Consultado: {timestamp(data['at'])}")
-    if st.button('Actualizar resumen', key='home_refresh', help='Vuelve a leer los datos guardados. No genera predicciones.'):
-        summary.load_snapshot.clear(); st.rerun()
+    r_col1, r_col2 = st.columns([3, 1])
+    with r_col1:
+        st.markdown(
+            f'<div style="font-size:0.83rem; color:#8fa0b5; padding-top:0.35rem;">'
+            f'📅 <b style="color:#ffffff;">{data["today"]}</b> · CDMX · Última sincronización: <b style="color:#cbd5e1;">{timestamp(data["at"])}</b>'
+            f'</div>',
+            unsafe_allow_html=True
+        )
+    with r_col2:
+        if st.button('🔄 Actualizar resumen', key='home_refresh', use_container_width=True, help='Vuelve a leer los datos guardados. No genera predicciones.'):
+            summary.load_snapshot.clear(); st.rerun()
     services=data['services']
     sports=[services[k] for k in ('mlb','mlb_total','nfl_totales','nfl_props','liga_mx','nba') if k in services]
     cols=st.columns(3)
     cols[0].metric('Picks disponibles hoy',partial_count(sports,'picks_today'))
-    cols[1].metric('Registros por revisar',partial_count(sports,'pending'))
+    cols[1].metric('Pendientes de resultado',partial_count(sports,'pending'))
     cols[2].metric('Partidos pendientes hoy',partial_count([services[k] for k in ('mlb','nfl_totales','liga_mx','nba') if k in services],'games_today'))
     st.markdown('''<style>
 .st-key-home_sports [data-testid="stHorizontalBlock"],.st-key-home_tools [data-testid="stHorizontalBlock"]{align-items:stretch}
