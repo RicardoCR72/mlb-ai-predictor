@@ -42,18 +42,6 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# Hero Banner descriptivo
-st.markdown(
-    '<div class="nfl-view-hero">'
-    '<div>'
-    '<div class="nfl-eyebrow">FÚTBOL AMERICANO PROFESIONAL · NFL AI</div>'
-    '<h1 style="margin:.25rem 0 .2rem;color:#f0fdf4;">Moneylines, Totales & Props</h1>'
-    '<div class="nfl-subtitle">Modelos cuantitativos de ganador directo (Moneyline), totales de puntos y props individuales con cuotas DraftKings.</div>'
-    '</div>'
-    '</div>',
-    unsafe_allow_html=True
-)
-
 # Selector de navegación interna compatible con suite de pruebas y responsive
 vista = st.radio(
     "Sección NFL",

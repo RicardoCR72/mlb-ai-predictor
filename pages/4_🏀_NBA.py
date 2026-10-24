@@ -680,18 +680,6 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# Hero Banner descriptivo
-st.markdown(
-    """<div class="nba-view-hero">
-<div>
-<div class="nba-eyebrow">BALONCESTO PROFESIONAL · NBA ANALYTICS</div>
-<h1 style="margin:.25rem 0 .2rem;color:#fff4f0;">Centro de Inteligencia Deportiva · NBA</h1>
-<div class="nba-subtitle">Modelos cuantitativos de Totales Over/Under, ganador directo (Moneyline) y Spreads con analítica Four Factors y cuotas DraftKings.</div>
-</div>
-</div>""",
-    unsafe_allow_html=True,
-)
-
 # Cargar estado de predicciones de hoy
 predicciones_actuales = cargar_predicciones(forzar=False)
 hay_pendientes_por_liquidar = any(

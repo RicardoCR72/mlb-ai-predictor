@@ -45,18 +45,6 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# Hero Banner descriptivo
-st.markdown(
-    '<div class="mlb-view-hero">'
-    '<div>'
-    '<div class="mlb-eyebrow">BÉISBOL DE GRANDES LIGAS · MLB ANALYTICS</div>'
-    '<h1 style="margin:.25rem 0 .2rem;color:#f0f7ff;">Pronósticos y Métricas Sabermétricas</h1>'
-    '<div class="mlb-subtitle">Modelado cuantitativo para líneas de Moneyline y Totales de Carreras (O/U).</div>'
-    '</div>'
-    '</div>',
-    unsafe_allow_html=True
-)
-
 # Nivel 1: Selector principal de mercado (idéntico a NFL en disposición horizontal)
 mercado = st.radio(
     "Mercado MLB",
