@@ -1153,6 +1153,116 @@ h1{letter-spacing:-.035em}h2,h3{letter-spacing:-.02em}
     margin-top: 0.35rem;
 }
 
+/* ==========================================================================
+   Encabezados Shell de Marca por Deporte (MLB, Fútbol, NBA)
+   ========================================================================== */
+.mlb-shell {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: .78rem .95rem;
+    border: 1px solid #16263d;
+    border-radius: 13px;
+    background: #091524;
+    margin-bottom: .75rem;
+}
+.mlb-brand {
+    display: flex;
+    align-items: center;
+    gap: .65rem;
+    font-weight: 800;
+    letter-spacing: .02em;
+}
+.mlb-logo {
+    width: 34px;
+    height: 34px;
+    display: inline-grid;
+    place-items: center;
+    border-radius: 10px;
+    background: #00e5ff;
+    color: #031422;
+    font-weight: 900;
+}
+.mlb-accent { color: #00e5ff; }
+.mlb-status { color: #8295b3; font-size: .78rem; font-weight: 600; }
+
+.futbol-shell {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: .78rem .95rem;
+    border: 1px solid #143523;
+    border-radius: 13px;
+    background: #0b1f15;
+    margin-bottom: .75rem;
+}
+.futbol-brand {
+    display: flex;
+    align-items: center;
+    gap: .65rem;
+    font-weight: 800;
+    letter-spacing: .02em;
+}
+.futbol-logo {
+    width: 34px;
+    height: 34px;
+    display: inline-grid;
+    place-items: center;
+    border-radius: 10px;
+    background: #00e676;
+    color: #04150b;
+    font-weight: 900;
+}
+.futbol-accent { color: #00e676; }
+.futbol-status { color: #8ba797; font-size: .78rem; font-weight: 600; }
+
+.nba-shell {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: .78rem .95rem;
+    border: 1px solid #352114;
+    border-radius: 13px;
+    background: #140e09;
+    margin-bottom: .75rem;
+}
+.nba-brand {
+    display: flex;
+    align-items: center;
+    gap: .65rem;
+    font-weight: 800;
+    letter-spacing: .02em;
+}
+.nba-logo {
+    width: 34px;
+    height: 34px;
+    display: inline-grid;
+    place-items: center;
+    border-radius: 10px;
+    background: #ff6b00;
+    color: #ffffff;
+    font-weight: 900;
+}
+.nba-accent { color: #ff8c33; }
+.nba-status { color: #a4978e; font-size: .78rem; font-weight: 600; }
+
+.badge-league {
+    background: #113322;
+    color: #00e676;
+    border: 1px solid #1b4d33;
+    padding: 0.25rem 0.6rem;
+    border-radius: 6px;
+    font-weight: 800;
+    font-size: 0.78rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+
 
 
 
