@@ -71,5 +71,5 @@ def action_button(service,label,*,key,help=None,payload=None,disabled=False,deta
 
 
 def render_generate_mlb():
-    action_button('mlb_predictions','Generar predicciones MLB con cuotas guardadas',key='mlb_generate',
+    action_button('mlb_predictions','Generar predicciones MLB',key='mlb_generate',
         help='Usa las cuotas ya registradas. No consulta The Odds API ni consume créditos de cuotas.')
