@@ -91,6 +91,9 @@ def modern_sport_card_html(pick, *, market, state='', details=()):
         eq_vis, eq_loc = partido_str.split(' @ ', 1)
     elif ' vs ' in partido_str:
         eq_vis, eq_loc = partido_str.split(' vs ', 1)
+    elif partido_str:
+        eq_vis = partido_str
+        eq_loc = str(pick.get('equipo_local') or pick.get('local') or '')
     else:
         eq_vis = str(pick.get('equipo_visitante') or pick.get('visitante') or 'Visitante')
         eq_loc = str(pick.get('equipo_local') or pick.get('local') or 'Local')
@@ -150,12 +153,12 @@ def modern_sport_card_html(pick, *, market, state='', details=()):
     # Detección de resultado para Liga MX histórica u otros deportes
     if 'GANADA' in status or (sport == 'Liga MX' and 'REAL:' in status and (('OVER' in status and 'OVER' in str(pick.get('seleccion')).upper()) or ('UNDER' in status and 'UNDER' in str(pick.get('seleccion')).upper()))):
         color_res = '#4ade80'
-        badge_top_right = '<span style="background: rgba(34, 197, 94, 0.16); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.55); padding: 0.25rem 0.65rem; border-radius: 6px; font-weight: 850; font-size: 0.8rem; white-space: nowrap; display: inline-block;">🏆 GANADA</span>'
-        status_label = '🏆 GANADA'
+        badge_top_right = '<span style="background: rgba(34, 197, 94, 0.16); color: #4ade80; border: 1px solid rgba(34, 197, 94, 0.55); padding: 0.25rem 0.65rem; border-radius: 6px; font-weight: 850; font-size: 0.8rem; white-space: nowrap; display: inline-block;">🏆 Ganada</span>'
+        status_label = '🏆 Ganada'
     elif 'PERDIDA' in status or (sport == 'Liga MX' and 'REAL:' in status):
         color_res = '#f87171'
-        badge_top_right = '<span style="background: rgba(239, 68, 68, 0.16); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.55); padding: 0.25rem 0.65rem; border-radius: 6px; font-weight: 850; font-size: 0.8rem; white-space: nowrap; display: inline-block;">❌ PERDIDA</span>'
-        status_label = '❌ PERDIDA'
+        badge_top_right = '<span style="background: rgba(239, 68, 68, 0.16); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.55); padding: 0.25rem 0.65rem; border-radius: 6px; font-weight: 850; font-size: 0.8rem; white-space: nowrap; display: inline-block;">❌ Perdida</span>'
+        status_label = '❌ Perdida'
     elif 'PUSH' in status:
         color_res = '#cbd5e1'
         badge_top_right = '<span style="background: rgba(148, 163, 184, 0.16); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.55); padding: 0.25rem 0.65rem; border-radius: 6px; font-weight: 850; font-size: 0.8rem; white-space: nowrap; display: inline-block;">🤝 PUSH</span>'

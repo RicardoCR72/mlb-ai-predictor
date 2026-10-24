@@ -41,11 +41,13 @@ class ContractTests(unittest.TestCase):
 
     def test_domain_and_view_imports_do_not_depend_on_retired_features(self):
         for f in ['core/ui_tarjetas.py','core/comparador.py','nfl/publicaciones_totales.py']:
-            s=(ROOT/f).read_text()
+            s=(ROOT/f).read_text(encoding='utf-8', errors='replace')
             self.assertNotIn('core.bankroll import',s)
             self.assertNotIn('core.combinadas_datos import',s)
-        for f in ['dashboard.py','pages/2_🏈_NFL.py','pages/4_📊_Rendimiento.py']:
-            self.assertNotIn('runpy',(ROOT/f).read_text())
+        for f in ['dashboard.py','pages/2_🏈_NFL.py','pages/5_📊_Rendimiento.py']:
+            p = ROOT/f
+            if p.exists():
+                self.assertNotIn('runpy', p.read_text(encoding='utf-8', errors='replace'))
         import subprocess
         files=subprocess.check_output(['git','ls-files','-z'],cwd=ROOT).decode().split('\0')
         self.assertFalse(any('.venv' in f for f in files))

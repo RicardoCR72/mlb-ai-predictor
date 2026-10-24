@@ -2,7 +2,7 @@
 from pathlib import Path
 from html import escape
 import streamlit as st
-CSS='<style>'+(Path(__file__).resolve().parents[1]/'assets/ui.css').read_text()+'</style>'
+CSS='<style>'+(Path(__file__).resolve().parents[1]/'assets/ui.css').read_text(encoding='utf-8', errors='replace')+'</style>'
 
 def apply_design():
     st.markdown(CSS,unsafe_allow_html=True)

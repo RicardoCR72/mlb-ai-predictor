@@ -344,3 +344,188 @@ h1{letter-spacing:-.035em}h2,h3{letter-spacing:-.02em}
 @media(max-width:760px){.oracle-sport-header{padding:.8rem}.oracle-back-top{bottom:calc(4.5rem + env(safe-area-inset-bottom))}}
 
 .oracle-job-status{padding:.5rem .65rem;border-left:3px solid var(--oracle-accent);background:var(--oracle-surface);color:var(--oracle-muted);font-size:.8rem;overflow-wrap:anywhere}
+
+/* Modern Tabs styling */
+.stTabs [data-baseweb="tab-list"] {
+    gap: 8px;
+    background-color: #0d1522;
+    padding: 6px;
+    border-radius: 12px;
+    border: 1px solid #1c2b42;
+}
+.stTabs [data-baseweb="tab"] {
+    height: 42px;
+    border-radius: 8px;
+    color: #8295b3;
+    font-weight: 700;
+    font-size: 0.9rem;
+    border: none;
+    background-color: transparent;
+    padding: 0 1.2rem;
+    transition: all 0.2s ease;
+}
+.stTabs [aria-selected="true"] {
+    background-color: rgba(0, 229, 255, 0.12) !important;
+    color: #00e5ff !important;
+    border: 1px solid rgba(0, 229, 255, 0.4) !important;
+    box-shadow: 0 0 12px rgba(0, 229, 255, 0.2);
+}
+.stTabs [data-baseweb="tab-highlight"] { display: none; }
+
+/* MLB Diamond Cyan Styles */
+.mlb-shell {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: .78rem .95rem;
+    border: 1px solid #1c2b42;
+    border-radius: 13px;
+    background: #0b1424;
+    margin-bottom: .75rem;
+}
+.mlb-brand {
+    display: flex;
+    align-items: center;
+    gap: .65rem;
+    font-weight: 800;
+    letter-spacing: .02em;
+}
+.mlb-logo {
+    width: 34px;
+    height: 34px;
+    display: inline-grid;
+    place-items: center;
+    border-radius: 10px;
+    background: #00e5ff;
+    color: #040d1a;
+    font-weight: 900;
+    font-size: 1.15rem;
+}
+.mlb-accent { color: #00e5ff; }
+.mlb-status { color: #8295b3; font-size: .78rem; font-weight: 700; }
+.mlb-view-hero {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 1rem;
+    margin: .9rem 0 1.25rem;
+    padding: 1.15rem;
+    border: 1px solid #1c2b42;
+    border-radius: 14px;
+    background: #0b1424;
+}
+.mlb-eyebrow {
+    color: #00e5ff;
+    font-size: .72rem;
+    font-weight: 800;
+    letter-spacing: .12em;
+}
+.mlb-view-hero h1 {
+    margin: .22rem 0 .15rem;
+    color: #f5f8fb;
+    font-size: clamp(1.75rem, 3vw, 2.45rem);
+}
+.mlb-subtitle { color: #8295b3; font-size: .88rem; }
+
+/* NBA Orange Glow Styles */
+.nba-shell {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: .78rem .95rem;
+    border: 1px solid #2d1810;
+    border-radius: 13px;
+    background: #140b08;
+    margin-bottom: .75rem;
+}
+.nba-brand {
+    display: flex;
+    align-items: center;
+    gap: .65rem;
+    font-weight: 800;
+    letter-spacing: .02em;
+}
+.nba-logo {
+    width: 34px;
+    height: 34px;
+    display: inline-grid;
+    place-items: center;
+    border-radius: 10px;
+    background: #ff6b35;
+    color: #ffffff;
+    font-weight: 900;
+    font-size: 1.15rem;
+}
+.nba-accent { color: #ff6b35; }
+.nba-status { color: #b38b7d; font-size: .78rem; font-weight: 700; }
+.nba-view-hero {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 1rem;
+    margin: .9rem 0 1.25rem;
+    padding: 1.15rem;
+    border: 1px solid #2d1810;
+    border-radius: 14px;
+    background: #140b08;
+}
+.nba-eyebrow {
+    color: #ff6b35;
+    font-size: .72rem;
+    font-weight: 800;
+    letter-spacing: .12em;
+}
+.nba-view-hero h1 {
+    margin: .22rem 0 .15rem;
+    color: #fff4f0;
+    font-size: clamp(1.75rem, 3vw, 2.45rem);
+}
+.nba-subtitle { color: #b38b7d; font-size: .88rem; }
+.nba-card {
+    background: linear-gradient(145deg, #140b08, #0a0604) !important;
+    border: 1px solid #2d1810 !important;
+    border-radius: 16px !important;
+    padding: 1.4rem !important;
+    margin-bottom: 1.25rem !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important;
+    transition: transform 0.15s ease, border-color 0.15s ease !important;
+}
+.nba-card:hover {
+    border-color: rgba(255, 107, 53, 0.45) !important;
+    box-shadow: 0 6px 24px rgba(255, 107, 53, 0.15) !important;
+}
+.nba-rec-box {
+    background: linear-gradient(145deg, #241108, #140b08) !important;
+    border: 1px solid rgba(255, 107, 53, 0.45) !important;
+    border-radius: 12px;
+    padding: 0.85rem 1.15rem;
+    margin-top: 0.85rem;
+    margin-bottom: 0.6rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 4px 18px rgba(255, 107, 53, 0.15) !important;
+}
+.nba-rec-title {
+    color: #ff6b35;
+    font-size: 0.72rem;
+    font-weight: 850;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+.nba-rec-sel {
+    color: #ffffff;
+    font-size: 1.05rem;
+    font-weight: 800;
+}
+.nba-stat-pill {
+    background: #1c0e09;
+    padding: 0.35rem 0.65rem;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    color: #e0a38f;
+    border: 1px solid #3d1c10;
+}
+

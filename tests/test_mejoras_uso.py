@@ -80,7 +80,7 @@ render_status('interrupted',previous=True)
     def test_mobile_anchor_is_installed_once_per_page(self):
         root=Path(__file__).resolve().parents[1]
         for p in [root/'dashboard.py',*sorted((root/'pages').glob('*.py'))]:
-            source=p.read_text()
+            source=p.read_text(encoding='utf-8', errors='replace')
             self.assertEqual(source.count('install_navigation()'),1,str(p))
 
     def test_period_comparison_chart_renders_when_both_periods_have_results(self):

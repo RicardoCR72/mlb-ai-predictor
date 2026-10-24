@@ -142,4 +142,4 @@ class ArchitectureTests(TestCase):
         stamp=datetime(2026,10,18,6,30,tzinfo=timezone.utc)
         self.assertEqual(stamp.astimezone(ZONA_MX).date(),stamp.astimezone(ZONA_CDMX).date())
         for page in (ROOT/'pages').glob('*.py'):
-            self.assertNotIn('<style>',page.read_text(),str(page))
+            self.assertNotIn('<style>',page.read_text(encoding='utf-8', errors='replace'),str(page))
