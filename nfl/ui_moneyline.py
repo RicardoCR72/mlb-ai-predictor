@@ -217,6 +217,9 @@ def render_cartelera(predicciones: list[dict]):
 <div style="font-size: 0.68rem; color: #8fa899; text-transform: uppercase;">Valor Esp. (EV)</div>
 <div style="font-weight: 800; color: {'#b7ff3c' if pick_ev >= 0 else '#ff6b6b'}; font-size: 0.95rem;">{pick_ev:+.1f}%</div>
 </div>
+</div>
+</div>
+</div>"""
         st.markdown(card_html, unsafe_allow_html=True)
 
         if resultado_pick not in ["GANADA", "PERDIDA", "PUSH"]:
