@@ -885,6 +885,111 @@ h1{letter-spacing:-.035em}h2,h3{letter-spacing:-.02em}
 .agenda-match.nfl { border-left-color: #b7ff3c !important; }
 .agenda-match.nfl .agenda-sport { color: #b7ff3c !important; }
 
+/* Sport Hub Market Chips */
+.sport-market-chip {
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 10px;
+    padding: 0.65rem 0.8rem;
+    margin: 0.45rem 0;
+}
+.sport-chip-badge {
+    background: rgba(255, 255, 255, 0.08);
+    color: #e2e8f0;
+    font-size: 0.72rem;
+    font-weight: 850;
+    padding: 0.2rem 0.5rem;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+}
+.perf-tag-badge {
+    background: rgba(167, 139, 250, 0.14);
+    color: #a78bfa;
+    border: 1px solid rgba(167, 139, 250, 0.35);
+    font-size: 0.7rem;
+    font-weight: 850;
+    letter-spacing: 0.08em;
+    padding: 0.22rem 0.65rem;
+    border-radius: 20px;
+}
+
+/* Sport Buttons in Home Dashboard */
+.st-key-home_sport_mlb [data-testid="stPageLink"] a {
+    background: rgba(0, 229, 255, 0.08) !important;
+    border: 1px solid rgba(0, 229, 255, 0.35) !important;
+    color: #00e5ff !important;
+    font-weight: 850 !important;
+    border-radius: 9px !important;
+    justify-content: center !important;
+    transition: all 0.2s ease !important;
+}
+.st-key-home_sport_mlb [data-testid="stPageLink"] a:hover {
+    background: #00e5ff !important;
+    color: #040d1a !important;
+    box-shadow: 0 0 16px rgba(0, 229, 255, 0.45) !important;
+}
+
+.st-key-home_sport_nfl_totales [data-testid="stPageLink"] a {
+    background: rgba(183, 255, 60, 0.08) !important;
+    border: 1px solid rgba(183, 255, 60, 0.35) !important;
+    color: #b7ff3c !important;
+    font-weight: 850 !important;
+    border-radius: 9px !important;
+    justify-content: center !important;
+    transition: all 0.2s ease !important;
+}
+.st-key-home_sport_nfl_totales [data-testid="stPageLink"] a:hover {
+    background: #b7ff3c !important;
+    color: #071006 !important;
+    box-shadow: 0 0 16px rgba(183, 255, 60, 0.45) !important;
+}
+
+.st-key-home_sport_liga_mx [data-testid="stPageLink"] a {
+    background: rgba(0, 230, 118, 0.08) !important;
+    border: 1px solid rgba(0, 230, 118, 0.35) !important;
+    color: #00e676 !important;
+    font-weight: 850 !important;
+    border-radius: 9px !important;
+    justify-content: center !important;
+    transition: all 0.2s ease !important;
+}
+.st-key-home_sport_liga_mx [data-testid="stPageLink"] a:hover {
+    background: #00e676 !important;
+    color: #03140a !important;
+    box-shadow: 0 0 16px rgba(0, 230, 118, 0.45) !important;
+}
+
+.st-key-home_sport_nba [data-testid="stPageLink"] a {
+    background: rgba(255, 107, 53, 0.08) !important;
+    border: 1px solid rgba(255, 107, 53, 0.35) !important;
+    color: #ff6b35 !important;
+    font-weight: 850 !important;
+    border-radius: 9px !important;
+    justify-content: center !important;
+    transition: all 0.2s ease !important;
+}
+.st-key-home_sport_nba [data-testid="stPageLink"] a:hover {
+    background: #ff6b35 !important;
+    color: #ffffff !important;
+    box-shadow: 0 0 16px rgba(255, 107, 53, 0.45) !important;
+}
+
+.st-key-home_performance_card [data-testid="stPageLink"] a {
+    background: rgba(167, 139, 250, 0.08) !important;
+    border: 1px solid rgba(167, 139, 250, 0.35) !important;
+    color: #a78bfa !important;
+    font-weight: 850 !important;
+    border-radius: 9px !important;
+    justify-content: center !important;
+    transition: all 0.2s ease !important;
+}
+.st-key-home_performance_card [data-testid="stPageLink"] a:hover {
+    background: #a78bfa !important;
+    color: #0f0a1c !important;
+    box-shadow: 0 0 16px rgba(167, 139, 250, 0.45) !important;
+}
+
+
 
 
 

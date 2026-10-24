@@ -4,28 +4,35 @@ import pandas as pd
 import streamlit as st
 
 CSS='''<style>
-.st-key-home_agenda_controls{padding:1rem 1.15rem;border:1px solid #2b3a30;border-radius:15px;background:linear-gradient(125deg,#172219,#111720 65%);margin-bottom:.5rem}
-.st-key-home_agenda_controls [data-testid="stRadio"] [role="radiogroup"]{width:100%;background:#0c1314;border-color:#314334;margin-bottom:0;gap:.4rem}
-.st-key-home_agenda_controls [data-testid="stRadio"] label{min-height:44px;font-variant-numeric:tabular-nums}
-.agenda-kicker{font-size:.66rem;letter-spacing:.15em;color:#b7ff3c;font-weight:800}
-.agenda-heading{display:flex;justify-content:space-between;align-items:center;gap:.7rem;margin-bottom:.55rem}
-.agenda-heading strong{font-size:1rem;color:#eef3f8}.agenda-note{color:#9cabbc;font-size:.78rem;line-height:1.5}
-.agenda-count{color:#b7ff3c;background:#20301b;border:1px solid #3a512b;padding:.28rem .6rem;border-radius:20px;white-space:nowrap;font-size:.73rem}
-.agenda-day{display:flex;gap:.6rem;align-items:center;margin:1.1rem 0 .55rem;color:#edf3f8;font-size:.92rem;font-weight:750}
-.agenda-day::after{content:"";height:1px;background:#273245;flex:1}
-.agenda-match{display:grid;grid-template-columns:54px minmax(0,1fr) auto;gap:1rem;align-items:center;padding:1rem;margin:.5rem 0;background:linear-gradient(125deg,#141d29,#0e151f);border:1px solid #2b3748;border-radius:13px;border-left:3px solid #b7ff3c;color:#eef3f8}
-.agenda-date{border-right:1px solid #2b3748;padding-right:.75rem;text-align:center}.agenda-date b{display:block;font-size:1.4rem;line-height:1.1}.agenda-date span{color:#9cabbc;font-size:.66rem;text-transform:uppercase}
-.agenda-teams{font-size:.98rem;font-weight:750;overflow-wrap:anywhere;margin-top:.35rem}.agenda-sport{display:inline-block;color:#b7ff3c;font-size:.65rem;font-weight:800;letter-spacing:.06em}
-.agenda-match.nfl{border-left-color:#73b6ff}.agenda-match.nfl .agenda-sport{color:#73b6ff}.agenda-match.liga{border-left-color:#bc9dff}.agenda-match.liga .agenda-sport{color:#bc9dff}
-.agenda-time{font-size:.8rem;color:#a9bacd;background:#1b2634;border-radius:8px;padding:.45rem .65rem;max-width:190px;text-align:right}
-.st-key-home_calendar_full [data-testid="stExpander"],.st-key-home_availability_full [data-testid="stExpander"]{border:1px solid #334253!important;border-radius:14px!important;background:linear-gradient(125deg,#131d28,#0e151e)}
-.st-key-home_calendar_full [data-testid="stExpander"] summary,.st-key-home_availability_full [data-testid="stExpander"] summary{min-height:58px;padding:.9rem 1rem;color:#edf3f8;font-weight:750}
-.st-key-home_calendar_full [data-testid="stExpander"] summary:hover,.st-key-home_availability_full [data-testid="stExpander"] summary:hover{background:#192839;border-radius:13px}
-.availability-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.7rem;margin:.7rem 0}
-.availability-card{padding:1rem;border:1px solid #2c3849;border-radius:12px;background:#111a25;color:#edf3f8;overflow-wrap:anywhere}
-.availability-head{display:flex;justify-content:space-between;gap:.5rem;align-items:flex-start;font-weight:750;font-size:.87rem}.availability-state{font-size:.63rem;border:1px solid #3d4e63;border-radius:20px;padding:.25rem .5rem;color:#adbbcb;white-space:nowrap}
-.availability-state.fresh{border-color:#40552d;color:#b7ff3c;background:#1b2915}.availability-state.review{border-color:#69502c;color:#eac384;background:#2b2218}
-.availability-values{display:flex;gap:1.5rem;margin:.8rem 0}.availability-values strong{display:block;font-size:1.15rem}.availability-values span{font-size:.7rem;color:#9cabbc}
+.st-key-home_agenda_controls{padding:1.1rem 1.25rem;border:1px solid #1e2c3f;border-radius:15px;background:linear-gradient(135deg,#101826,#090e17);margin-bottom:.65rem;box-shadow:0 4px 18px rgba(0,0,0,0.25)}
+.st-key-home_agenda_controls [data-testid="stRadio"] [role="radiogroup"]{width:100%;background:#060a10;border:1px solid #1c2738;border-radius:10px;margin-bottom:0;gap:.4rem;padding:.3rem}
+.st-key-home_agenda_controls [data-testid="stRadio"] label{min-height:38px;font-variant-numeric:tabular-nums;border-radius:8px;padding:0 .75rem;font-weight:700}
+.agenda-kicker{font-size:.68rem;letter-spacing:.15em;color:#b7ff3c;font-weight:850;text-transform:uppercase}
+.agenda-heading{display:flex;justify-content:space-between;align-items:center;gap:.7rem;margin-bottom:.45rem}
+.agenda-heading strong{font-size:1.1rem;color:#ffffff;font-weight:850}.agenda-note{color:#94a3b8;font-size:.8rem;line-height:1.5}
+.agenda-count{color:#b7ff3c;background:rgba(183,255,60,0.12);border:1px solid rgba(183,255,60,0.35);padding:.25rem .65rem;border-radius:20px;white-space:nowrap;font-size:.75rem;font-weight:800}
+.agenda-day{display:flex;gap:.6rem;align-items:center;margin:1.15rem 0 .55rem;color:#edf3f8;font-size:.92rem;font-weight:800}
+.agenda-day::after{content:"";height:1px;background:#202c3e;flex:1}
+.agenda-match{display:grid;grid-template-columns:56px minmax(0,1fr) auto;gap:1rem;align-items:center;padding:0.95rem 1.1rem;margin:.55rem 0;background:linear-gradient(135deg,#101826,#090e17);border:1px solid #1e2c3f;border-radius:14px;border-left:4px solid #b7ff3c;color:#eef3f8;transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease}
+.agenda-match:hover{transform:translateY(-2px);box-shadow:0 6px 22px rgba(0,0,0,0.35);border-color:#2a3b52}
+.agenda-date{border-right:1px solid #1e2c3f;padding-right:.75rem;text-align:center}.agenda-date b{display:block;font-size:1.4rem;line-height:1.1;color:#ffffff;font-weight:850}.agenda-date span{color:#8fa0b5;font-size:.68rem;text-transform:uppercase;font-weight:750}
+.agenda-teams{font-size:1rem;font-weight:800;color:#f1f5f9;overflow-wrap:anywhere;margin-top:.25rem}.agenda-sport{display:inline-block;font-size:.68rem;font-weight:850;letter-spacing:.08em;text-transform:uppercase}
+.agenda-match.nfl{border-left-color:#b7ff3c}.agenda-match.nfl .agenda-sport{color:#b7ff3c}
+.agenda-match.liga{border-left-color:#00e676}.agenda-match.liga .agenda-sport{color:#00e676}
+.agenda-match.futbol{border-left-color:#00e676}.agenda-match.futbol .agenda-sport{color:#00e676}
+.agenda-match.nba{border-left-color:#ff6b35}.agenda-match.nba .agenda-sport{color:#ff6b35}
+.agenda-match.mlb{border-left-color:#00e5ff}.agenda-match.mlb .agenda-sport{color:#00e5ff}
+.agenda-time{font-size:.8rem;color:#cbd5e1;background:rgba(0,0,0,0.45);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:.45rem .75rem;max-width:210px;text-align:right;font-weight:750}
+.st-key-home_calendar_full [data-testid="stExpander"],.st-key-home_availability_full [data-testid="stExpander"]{border:1px solid #1e2c3f!important;border-radius:14px!important;background:linear-gradient(135deg,#101826,#090e17)!important}
+.st-key-home_calendar_full [data-testid="stExpander"] summary,.st-key-home_availability_full [data-testid="stExpander"] summary{min-height:52px;padding:.85rem 1rem;color:#edf3f8;font-weight:750}
+.st-key-home_calendar_full [data-testid="stExpander"] summary:hover,.st-key-home_availability_full [data-testid="stExpander"] summary:hover{background:#152033;border-radius:13px}
+.availability-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.85rem;margin:.75rem 0}
+.availability-card{padding:1.1rem;border:1px solid #1e2c3f;border-radius:14px;background:linear-gradient(135deg,#101826,#090e17);color:#edf3f8;overflow-wrap:anywhere;box-shadow:0 4px 14px rgba(0,0,0,0.2);transition:transform .2s ease}
+.availability-card:hover{transform:translateY(-2px);border-color:#2b3e58}
+.availability-head{display:flex;justify-content:space-between;gap:.5rem;align-items:center;font-weight:800;font-size:.92rem}.availability-state{font-size:.68rem;border-radius:20px;padding:.25rem .6rem;font-weight:800;letter-spacing:.04em;white-space:nowrap}
+.availability-state.fresh{border:1px solid rgba(0,230,118,0.35);color:#00e676;background:rgba(0,230,118,0.12)}
+.availability-state.review{border:1px solid rgba(255,170,0,0.35);color:#ffaa00;background:rgba(255,170,0,0.12)}
+.availability-values{display:flex;gap:1.8rem;margin:.85rem 0}.availability-values strong{display:block;font-size:1.35rem;font-weight:850;color:#ffffff}.availability-values span{font-size:.72rem;color:#8fa0b5;font-weight:700}
 @media(max-width:760px){.agenda-match{grid-template-columns:40px minmax(0,1fr);gap:.7rem;padding:.85rem}.agenda-time{grid-column:2;justify-self:start;text-align:left;max-width:100%;font-size:.73rem}.agenda-teams{font-size:.92rem}.agenda-heading{align-items:flex-start;flex-wrap:wrap}.availability-grid{grid-template-columns:1fr}.availability-head{flex-wrap:wrap}.st-key-home_agenda_controls{padding:.85rem}}
 </style>'''
 
@@ -78,19 +85,20 @@ def render_agenda(calendar):
 
 def render_availability(table):
     with st.container(key='home_availability_full'):
-        with st.expander('Detalle de disponibilidad'):
-            st.markdown(header('Disponibilidad de tus deportes','Consulta los picks, pendientes y la fecha del último registro.',f'{len(table)} servicios'),unsafe_allow_html=True)
+        with st.expander('Detalle de disponibilidad y estado de fuentes'):
+            st.markdown(header('Monitor de Fuentes y Datos','Consulta los picks, pendientes y la fecha del último registro de cada deporte.',f'{len(table)} servicios'),unsafe_allow_html=True)
             cards=[]
             for row in table:
                 state=row['Estado']
                 css='fresh' if state=='Actualizado' else 'review' if state!='Sin datos' else ''
-                label='Dato reciente' if state=='Actualizado' else 'Consulta parcial' if state=='Consulta parcial' else 'Sin datos' if state=='Sin datos' else 'Revisar fecha'
+                label='● Actualizado' if state=='Actualizado' else '● Consulta parcial' if state=='Consulta parcial' else '● Sin datos' if state=='Sin datos' else '● Revisar fecha'
                 cards.append('<div class="availability-card"><div class="availability-head">'
                     f'<span>{escape(row["Servicio"])}</span><span class="availability-state {css}">{label}</span></div>'
                     f'<div class="availability-values"><div><strong>{escape(row["Picks hoy"])}</strong><span>Picks hoy</span></div>'
                     f'<div><strong>{escape(row["Por revisar"])}</strong><span>Por revisar</span></div></div>'
-                    f'<div class="agenda-note">Último registro<br>{escape(row["Último registro"])}</div></div>')
+                    f'<div class="agenda-note" style="border-top:1px solid rgba(255,255,255,0.06); padding-top:0.4rem; margin-top:0.3rem;">Último registro · <b style="color:#ffffff;">{escape(row["Último registro"])}</b></div></div>')
             st.markdown('<div class="availability-grid">'+''.join(cards)+'</div>',unsafe_allow_html=True)
             st.caption('Por revisar cuenta selecciones sin resultado. Una fecha antigua puede corresponder a días sin partidos.')
             with st.expander('Ver disponibilidad en tabla'):
                 st.dataframe(pd.DataFrame(table),hide_index=True,use_container_width=True)
+

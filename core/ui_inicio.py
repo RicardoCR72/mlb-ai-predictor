@@ -65,15 +65,33 @@ def render_home():
                 for key in keys:
                     item=services[key]
                     label=item['label'].split(' · ')[-1]
-                    st.write(f"**{label}** · {count(item['picks_today'])} picks")
-                    st.caption('Último registro: '+timestamp(item['last_data'],key=='mlb',key in ('mlb_total','liga_mx','nba')))
+                    p_today = count(item['picks_today'])
+                    t_last = timestamp(item['last_data'],key=='mlb',key in ('mlb_total','liga_mx','nba'))
+                    st.markdown(
+                        f'<div class="sport-market-chip">'
+                        f'<div style="display:flex; justify-content:space-between; align-items:center;">'
+                        f'<b style="color:#f1f5f9; font-size:0.82rem;">{label}</b>'
+                        f'<span class="sport-chip-badge">{p_today} picks</span>'
+                        f'</div>'
+                        f'<div style="font-size:0.68rem; color:#8fa0b5; margin-top:0.25rem;">Último registro · {t_last}</div>'
+                        f'</div>',
+                        unsafe_allow_html=True
+                    )
                 if any(services[key]['errors'] for key in keys):st.caption('Información parcial · vuelve a consultar o actualiza este deporte.')
                 st.page_link(page,label='Abrir '+name,use_container_width=True)
     st.caption('Fútbol cubre 8 ligas principales con cuotas oficiales DraftKings. NBA y Fútbol operan sin consumo de créditos.')
     with st.container(key='home_tools'):
         with st.container(border=True,key='home_performance_card'):
-            st.markdown('### Rendimiento')
-            st.write('Evolución, comparación de mercados y validación de los modelos en un solo lugar.')
+            st.markdown(
+                '<div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:0.5rem; margin-bottom:0.4rem;">'
+                '<div>'
+                '<span class="perf-tag-badge">AUDITORÍA Y VALIDACIÓN</span>'
+                '<h3 style="margin:0.35rem 0 0.15rem; font-size:1.25rem; font-weight:900; color:#ffffff;">📊 Rendimiento del Oráculo</h3>'
+                '<p style="margin:0; font-size:0.84rem; color:#94a3b8;">Evolución de bankroll, comparación de mercados, ROI verificado y validación estadística de todos los modelos.</p>'
+                '</div>'
+                '</div>',
+                unsafe_allow_html=True
+            )
             st.page_link('pages/5_📊_Rendimiento.py',label='Abrir Rendimiento',use_container_width=True)
     from core.ui_agenda import render_availability,CSS
     st.markdown(CSS,unsafe_allow_html=True)
