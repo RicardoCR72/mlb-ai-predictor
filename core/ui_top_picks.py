@@ -240,12 +240,16 @@ def render_top_picks_section():
     )
     st.caption("Las 3 mejores selecciones con mayor probabilidad y ventaja matemática combinando todos los deportes.")
 
+    from core.ui_boleta import render_boton_boleta, render_widget_boleta
+
     cols = st.columns(len(top_picks), gap="medium")
     for idx, (col, p) in enumerate(zip(cols, top_picks)):
         with col:
             hora_str = f"{p['hora']} CDMX" if p.get("hora") else "Hoy"
             cuota_str = p.get("cuota") or "N/D"
             sport_key = p["deporte"].lower().replace("ú", "u")
+            edge_val = float(p.get("edge") or 0.0)
+            ev_html = f'<span class="badge-ev" style="margin-left:0.4rem;">🔥 +EV +{edge_val*100:.1f}%</span>' if edge_val > 0.01 else ""
 
             card_html = (
                 f'<div class="top-pick-card" style="border-top: 3px solid {p["color"]}; margin-bottom: 0.4rem;">'
@@ -274,15 +278,36 @@ def render_top_picks_section():
                 f'<div style="font-size:0.68rem; color:#8fa0b5; font-weight:700;">PROBABILIDAD ORÁCULO</div>'
                 f'<div class="top-pick-prob" style="color:{p["color"]};">{p["probabilidad"]*100:.1f}%</div>'
                 f'</div>'
+                f'<div style="display:flex; align-items:center;">'
                 f'<span style="background:{p["color_bg"]}; color:{p["color"]}; border: 1px solid {p["color_border"]}; padding: 0.25rem 0.65rem; border-radius: 8px; font-size: 0.75rem; font-weight: 850;">'
                 f'★ ALTO VALOR'
                 f'</span>'
+                f'{ev_html}'
+                f'</div>'
                 f'</div>'
                 f'</div>'
             )
             st.markdown(card_html, unsafe_allow_html=True)
-            if st.button(f"Ver análisis en {p['deporte']} →", key=f"btn_top_pick_{sport_key}_{idx}", use_container_width=True):
-                st.switch_page(p["pagina"])
+
+            slip_item = {
+                "id": f"{p['deporte']}_{p['partido']}_{p['mercado']}_{p['seleccion']}",
+                "deporte": p["deporte"],
+                "icono": p["icono"],
+                "partido": p["partido"],
+                "mercado": p["mercado"],
+                "seleccion": p["seleccion"],
+                "cuota": cuota_str,
+                "prob": p["probabilidad"],
+            }
+
+            b_c1, b_c2 = st.columns([1, 1], gap="small")
+            with b_c1:
+                render_boton_boleta(slip_item, key=f"btn_slip_{sport_key}_{idx}")
+            with b_c2:
+                if st.button(f"Análisis {p['icono']} →", key=f"btn_top_pick_{sport_key}_{idx}", use_container_width=True):
+                    st.switch_page(p["pagina"])
+
+    render_widget_boleta()
     st.markdown("<div style='margin-bottom: 0.8rem;'></div>", unsafe_allow_html=True)
 
 

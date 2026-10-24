@@ -165,7 +165,9 @@ def modern_sport_card_html(pick, *, market, state='', details=()):
         status_label = '🤝 PUSH'
     else:
         conf_lbl = 'ALTA' if prob_pct >= 58.0 else 'MEDIA'
-        badge_top_right = f'<span class="badge-conf-alta" style="white-space: nowrap; display: inline-block;">CONFIANZA {conf_lbl}</span>'
+        ev_calc = (probability * odds - 1.0) * 100.0 if (odds and odds > 1.0 and probability > 0) else None
+        ev_badge = f'<span class="badge-ev" style="margin-left: 0.4rem; white-space: nowrap;">🔥 +EV +{ev_calc:.1f}%</span>' if (ev_calc is not None and ev_calc >= 1.0) else ""
+        badge_top_right = f'<div style="display:inline-flex; align-items:center;"><span class="badge-conf-alta" style="white-space: nowrap; display: inline-block;">CONFIANZA {conf_lbl}</span>{ev_badge}</div>'
         status_label = 'PENDIENTE'
 
     # Fila de equipos

@@ -238,11 +238,47 @@ Los partidos de la cartelera anterior ({n_liquidados} juegos) ya finalizaron y h
         )
         return
 
+    from core.ui_boleta import render_boton_boleta, render_widget_boleta
+
+    f_col1, f_col2 = st.columns([2, 1], gap="medium")
+    with f_col1:
+        busqueda_nba = st.text_input(
+            "Buscar equipo NBA",
+            key="nba_search_input",
+            placeholder="🔍 Ej: Lakers, Celtics, GSW, Warriors, Miami...",
+        ).strip().lower()
+    with f_col2:
+        st.markdown("<div style='margin-top: 1.8rem;'></div>", unsafe_allow_html=True)
+        solo_ev = st.checkbox("🔥 Solo picks con Valor (+EV)", key="nba_ev_filter")
+
+    lista_mostrar = predicciones
+    if busqueda_nba:
+        lista_mostrar = [
+            p for p in lista_mostrar
+            if (busqueda_nba in str(p.get("equipo_local", "")).lower() or
+                busqueda_nba in str(p.get("equipo_visita", "")).lower() or
+                busqueda_nba in str(p.get("abbr_local", "")).lower() or
+                busqueda_nba in str(p.get("abbr_visita", "")).lower() or
+                busqueda_nba in str(p.get("partido", "")).lower())
+        ]
+    if solo_ev:
+        lista_mostrar = [
+            p for p in lista_mostrar
+            if (obtener_pick_para_mercado(p, mercado).get("edge", 0.0) >= 0.02 or
+                obtener_pick_para_mercado(p, mercado).get("confianza") == "ALTA")
+        ]
+
+    if not lista_mostrar:
+        st.warning("No hay partidos o picks que coincidan con los filtros de búsqueda seleccionados.")
+        return
+
     # Renderizado de Tarjetas de partidos individuales para el mercado seleccionado
-    for p in predicciones:
+    for p in lista_mostrar:
         pick_info = obtener_pick_para_mercado(p, mercado)
         conf = pick_info["confianza"]
         badge_conf = "badge-conf-alta" if conf == "ALTA" else "badge-conf-media"
+        edge_val = float(pick_info.get("edge") or 0.0)
+        ev_badge = f'<span class="badge-ev" style="margin-left: 0.45rem;">🔥 +EV +{edge_val*100:.1f}%</span>' if edge_val >= 0.02 else ""
 
         resultado_pick = p.get("resultado")
         u_gan = p.get("unidades_ganadas")
@@ -267,7 +303,7 @@ Los partidos de la cartelera anterior ({n_liquidados} juegos) ya finalizaron y h
         elif resultado_pick == "PUSH":
             badge_top_right = '<span style="background: rgba(148, 163, 184, 0.16); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.55); padding: 0.25rem 0.75rem; border-radius: 6px; font-weight: 850; font-size: 0.8rem;">🤝 PUSH (0.00 u)</span>'
         else:
-            badge_top_right = f'<span class="{badge_conf}">CONFIANZA {conf}</span>'
+            badge_top_right = f'<div style="display:inline-flex; align-items:center;"><span class="{badge_conf}">CONFIANZA {conf}</span>{ev_badge}</div>'
 
         card_top_html = (
             f'<div class="card-top">'
@@ -337,6 +373,18 @@ Los partidos de la cartelera anterior ({n_liquidados} juegos) ya finalizaron y h
         with st.container(border=True):
             st.markdown(card_top_html + teams_html + pick_box_html, unsafe_allow_html=True)
 
+            slip_item = {
+                "id": f"NBA_{p.get('partido')}_{mercado}_{pick_info['seleccion']}",
+                "deporte": "NBA",
+                "icono": "🏀",
+                "partido": p.get("partido") or f"{p.get('equipo_visita')} @ {p.get('equipo_local')}",
+                "mercado": mercado,
+                "seleccion": pick_info["seleccion"],
+                "momio": pick_info["momio"],
+                "prob": pick_info["probabilidad"],
+            }
+            render_boton_boleta(slip_item, key=f"btn_nba_slip_{p.get('id_juego')}_{mercado}")
+
             with st.expander("📊 Ver desglose analítico completo (Spreads, Totales y Probabilidades 1X2)"):
                 col_c1, col_c2, col_c3 = st.columns(3)
                 with col_c1:
@@ -364,6 +412,8 @@ Los partidos de la cartelera anterior ({n_liquidados} juegos) ya finalizaron y h
                     prob_cov_vis = float(p.get("prob_cover_away") or 0.5) * 100
                     st.write(f"Línea: **{spread_det}**")
                     st.markdown(f"<span class='stat-pill'>Cubrir spread: Local {prob_cov_loc:.1f}% | Visita {prob_cov_vis:.1f}%</span>", unsafe_allow_html=True)
+
+    render_widget_boleta()
 
 
 def render_historial_nba(mercado_filtro: str = ""):

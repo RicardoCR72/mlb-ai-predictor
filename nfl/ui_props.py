@@ -493,7 +493,7 @@ def render():
                 "participación, lesión y movimiento de la línea antes de "
                 "utilizarlos."
             )
-            selector_partido, selector_mercado = st.columns(2, gap="medium")
+            selector_partido, selector_mercado, selector_busqueda = st.columns([1, 1, 1], gap="medium")
             with selector_partido:
                 partidos_candidatos = opciones_partidos(candidatos_mostrar)
                 partido_candidato = safe_select(
@@ -508,6 +508,12 @@ def render():
                     + list(NOMBRES_MERCADOS.values()),
                     key="props_mercado_candidatos",
                 )
+            with selector_busqueda:
+                busqueda_jugador = st.text_input(
+                    "Buscar jugador o equipo",
+                    key="nfl_props_search_input",
+                    placeholder="🔍 Ej: Mahomes, Kelce, KC...",
+                ).strip().lower()
 
             if partidos_candidatos[partido_candidato] is not None:
                 candidatos_mostrar = candidatos_mostrar[
@@ -516,6 +522,13 @@ def render():
             if mercado_candidatos != "Todos los mercados":
                 candidatos_mostrar = candidatos_mostrar[
                     candidatos_mostrar["mercado"] == mercado_candidatos
+                ]
+            if busqueda_jugador:
+                candidatos_mostrar = candidatos_mostrar[
+                    candidatos_mostrar["player_name"].astype(str).str.lower().str.contains(busqueda_jugador, na=False) |
+                    candidatos_mostrar.get("team", pd.Series("", index=candidatos_mostrar.index)).astype(str).str.lower().str.contains(busqueda_jugador, na=False) |
+                    candidatos_mostrar.get("home_team", pd.Series("", index=candidatos_mostrar.index)).astype(str).str.lower().str.contains(busqueda_jugador, na=False) |
+                    candidatos_mostrar.get("away_team", pd.Series("", index=candidatos_mostrar.index)).astype(str).str.lower().str.contains(busqueda_jugador, na=False)
                 ]
 
             if candidatos_mostrar.empty:

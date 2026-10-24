@@ -30,5 +30,7 @@ st.markdown(hero_html, unsafe_allow_html=True)
 from core.ui_inicio import render_home
 render_home()
 with st.sidebar:
+    from core.ui_boleta import render_widget_boleta
+    render_widget_boleta(sidebar=True)
     st.caption('MLB, NFL, Fútbol (8 Ligas), NBA y Rendimiento')
 
