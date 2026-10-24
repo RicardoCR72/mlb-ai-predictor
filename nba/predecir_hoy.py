@@ -251,11 +251,13 @@ def predecir_partidos_hoy(force_refresh: bool = False, fecha: Optional[str] = No
 
         # Candidato 1: Totales
         if res_tot["recomendacion"] != "PASAR":
+            prob_tot = res_tot["prob_over"] if res_tot["recomendacion"] == "OVER" else res_tot["prob_under"]
+            edge_tot = prob_tot - 0.5238  # Ventaja probabilística real vs cuota estándar de -110 (52.38%)
             picks_candidatos.append({
                 "mercado": f"Totales ({res_tot['recomendacion']})",
                 "seleccion": f"{res_tot['recomendacion']} {linea_tot}",
-                "probabilidad": res_tot["prob_over"] if res_tot["recomendacion"] == "OVER" else res_tot["prob_under"],
-                "edge": abs(res_tot["edge_puntos"]) / 10.0,
+                "probabilidad": prob_tot,
+                "edge": round(edge_tot, 4),
                 "detalle": f"Proyección: {res_tot['total_proyectado']} pts (Edge: {res_tot['edge_puntos']} pts)"
             })
 
@@ -295,8 +297,16 @@ def predecir_partidos_hoy(force_refresh: bool = False, fecha: Optional[str] = No
                 "detalle": f"Margen estimado local: {res_spread['margen_local_esperado']:+0.1f} pts"
             })
 
-        # Ordenar candidatos por mayor Edge
-        picks_candidatos.sort(key=lambda x: x["edge"], reverse=True)
+        # Ordenar candidatos: priorizar selecciones con alta probabilidad y ventaja matemática positiva
+        picks_candidatos.sort(
+            key=lambda x: (
+                x["edge"] > 0,
+                x["probabilidad"] >= 0.70,
+                round(x["probabilidad"], 4),
+                round(x["edge"], 4),
+            ),
+            reverse=True,
+        )
         mejor_pick = picks_candidatos[0] if picks_candidatos else {
             "mercado": "Moneyline",
             "seleccion": f"{j['equipo_local'] if res_spread['prob_local_win'] > 0.5 else j['equipo_visita']} ML",

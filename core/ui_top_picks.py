@@ -65,7 +65,72 @@ def obtener_top_picks_del_dia(max_picks: int = 3) -> list[dict]:
                     prob = float(j.get("pick_probabilidad", 0.5))
                     edge = float(j.get("pick_edge", 0.0))
                     sel = j.get("pick_seleccion") or ""
-                    c = j.get("ml_local") if "Local" in sel else (j.get("ml_visita") or "-110")
+                    mercado = j.get("pick_mercado", "Totales")
+
+                    # Evaluar los mejores mercados del partido para extraer la máxima ventaja probabilística
+                    candidatos_juego = [
+                        {"mercado": mercado, "seleccion": sel, "prob": prob, "edge": edge}
+                    ]
+                    linea_tot = j.get("linea_total")
+                    p_under = float(j.get("prob_under") or 0.0)
+                    if p_under >= 0.70 and linea_tot:
+                        candidatos_juego.append({
+                            "mercado": "Totales (UNDER)",
+                            "seleccion": f"UNDER {linea_tot}",
+                            "prob": p_under,
+                            "edge": round(p_under - 0.5238, 4),
+                        })
+                    p_over = float(j.get("prob_over") or 0.0)
+                    if p_over >= 0.70 and linea_tot:
+                        candidatos_juego.append({
+                            "mercado": "Totales (OVER)",
+                            "seleccion": f"OVER {linea_tot}",
+                            "prob": p_over,
+                            "edge": round(p_over - 0.5238, 4),
+                        })
+                    p_loc = float(j.get("prob_local_win") or 0.0)
+                    c_loc_dec = float(j.get("ml_local_dec") or 1.91)
+                    edge_loc = p_loc - (1.0 / c_loc_dec if c_loc_dec > 0 else 0.5238)
+                    if p_loc >= 0.70 and edge_loc >= 0.02 and j.get("equipo_local"):
+                        candidatos_juego.append({
+                            "mercado": "Moneyline",
+                            "seleccion": f"{j['equipo_local']} ML",
+                            "prob": p_loc,
+                            "edge": round(edge_loc, 4),
+                        })
+                    p_vis = float(j.get("prob_visita_win") or 0.0)
+                    c_vis_dec = float(j.get("ml_visita_dec") or 1.91)
+                    edge_vis = p_vis - (1.0 / c_vis_dec if c_vis_dec > 0 else 0.5238)
+                    if p_vis >= 0.70 and edge_vis >= 0.02 and j.get("equipo_visita"):
+                        candidatos_juego.append({
+                            "mercado": "Moneyline",
+                            "seleccion": f"{j['equipo_visita']} ML",
+                            "prob": p_vis,
+                            "edge": round(edge_vis, 4),
+                        })
+
+                    candidatos_juego.sort(key=lambda x: (x["edge"] > 0, round(x["prob"], 4), round(x["edge"], 4)), reverse=True)
+                    best_cand = candidatos_juego[0]
+                    prob = best_cand["prob"]
+                    edge = best_cand["edge"]
+                    sel = best_cand["seleccion"]
+                    mercado = best_cand["mercado"]
+
+                    # Cuota exacta de mercado
+                    if "Totales" in mercado:
+                        c = "-110"
+                    elif "Moneyline" in mercado:
+                        eq_loc = j.get("equipo_local", "")
+                        eq_vis = j.get("equipo_visita", "")
+                        if eq_loc and eq_loc in sel:
+                            c = j.get("ml_local") or "-110"
+                        elif eq_vis and eq_vis in sel:
+                            c = j.get("ml_visita") or "-110"
+                        else:
+                            c = j.get("ml_local") or j.get("ml_visita") or "-110"
+                    else:
+                        c = "-110"
+
                     picks.append({
                         "deporte": "NBA",
                         "icono": "🏀",
@@ -76,7 +141,7 @@ def obtener_top_picks_del_dia(max_picks: int = 3) -> list[dict]:
                         "partido": j.get("partido") or f"{j.get('equipo_visitante')} @ {j.get('equipo_local')}",
                         "fecha": j.get("fecha_cdmx") or j.get("fecha", ""),
                         "hora": j.get("hora_cdmx", ""),
-                        "mercado": j.get("pick_mercado", "Totales"),
+                        "mercado": mercado,
                         "seleccion": sel,
                         "cuota": str(c or "-110"),
                         "probabilidad": prob,
@@ -152,8 +217,8 @@ def obtener_top_picks_del_dia(max_picks: int = 3) -> list[dict]:
         except Exception:
             pass
 
-    # Clasificar: mayor probabilidad y mayor edge
-    picks.sort(key=lambda x: (x.get("probabilidad", 0.0), x.get("edge", 0.0)), reverse=True)
+    # Clasificar: mayor probabilidad y mayor edge (orden estrictamente determinista)
+    picks.sort(key=lambda x: (round(x.get("probabilidad", 0.0), 4), round(x.get("edge", 0.0), 4), x.get("partido", "")), reverse=True)
     return picks[:max_picks]
 
 

@@ -1047,6 +1047,113 @@ h1{letter-spacing:-.035em}h2,h3{letter-spacing:-.02em}
     border-color: #00e5ff !important;
 }
 
+/* ==========================================================================
+   Tarjetas de Partidos NBA (pages/4_🏀_NBA.py)
+   ========================================================================== */
+.card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.8rem;
+    color: #a4978e;
+    margin-bottom: 0.85rem;
+    border-bottom: 1px solid #23160e;
+    padding-bottom: 0.55rem;
+}
+
+.badge-time {
+    background: #23160e;
+    color: #ff8c33;
+    border: 1px solid #3d2415;
+    padding: 0.25rem 0.65rem;
+    border-radius: 6px;
+    font-weight: 750;
+    font-size: 0.8rem;
+}
+
+.badge-conf-alta {
+    background: rgba(255, 107, 0, 0.22);
+    color: #ff8c33;
+    border: 1px solid rgba(255, 107, 0, 0.65);
+    padding: 0.25rem 0.7rem;
+    border-radius: 6px;
+    font-weight: 850;
+    font-size: 0.78rem;
+    white-space: nowrap;
+}
+
+.badge-conf-media {
+    background: rgba(255, 140, 51, 0.12);
+    color: #ffaa66;
+    border: 1px solid rgba(255, 140, 51, 0.4);
+    padding: 0.25rem 0.7rem;
+    border-radius: 6px;
+    font-weight: 750;
+    font-size: 0.78rem;
+    white-space: nowrap;
+}
+
+.teams-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.85rem;
+    padding-bottom: 0.85rem;
+    border-bottom: 1px solid #23160e;
+}
+
+.team-name {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #ffffff;
+}
+
+.team-sub {
+    color: #a4978e;
+    font-size: 0.82rem;
+    margin-top: 0.15rem;
+}
+
+.pick-box {
+    background: linear-gradient(145deg, rgba(255, 107, 0, 0.12), rgba(255, 60, 0, 0.05)) !important;
+    border: 1px solid rgba(255, 140, 51, 0.5) !important;
+    border-radius: 12px;
+    padding: 0.85rem 1.15rem;
+    margin-top: 0.85rem;
+    margin-bottom: 0.65rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 4px 18px rgba(255, 107, 0, 0.15);
+}
+
+.pick-title {
+    color: #ff8c33;
+    font-size: 0.72rem;
+    font-weight: 850;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.pick-sel {
+    color: #ffffff;
+    font-size: 1.18rem;
+    font-weight: 900;
+    margin: 0.15rem 0;
+}
+
+.stat-pill {
+    display: inline-block;
+    background: #1e150e;
+    padding: 0.35rem 0.65rem;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    color: #d8c6b8;
+    border: 1px solid #382518;
+    margin-top: 0.35rem;
+}
+
+
 
 
 
