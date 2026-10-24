@@ -1262,6 +1262,65 @@ h1{letter-spacing:-.035em}h2,h3{letter-spacing:-.02em}
     gap: 0.35rem;
 }
 
+/* ==========================================================================
+   ESTILOS PREMIUM PARA TABLAS Y DATAFRAMES (STREAMLIT DATA GRIDS)
+   ========================================================================== */
+[data-testid="stDataFrame"] {
+    border: 1px solid rgba(255, 255, 255, 0.09) !important;
+    border-radius: 12px !important;
+    overflow: hidden !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.28) !important;
+    background: rgba(14, 20, 32, 0.65) !important;
+    backdrop-filter: blur(8px) !important;
+    margin-top: 0.4rem !important;
+    margin-bottom: 1.1rem !important;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+[data-testid="stDataFrame"]:hover {
+    border-color: rgba(0, 229, 255, 0.3) !important;
+    box-shadow: 0 8px 28px rgba(0, 229, 255, 0.08), 0 4px 20px rgba(0, 0, 0, 0.35) !important;
+}
+
+[data-testid="stTable"] {
+    border: 1px solid rgba(255, 255, 255, 0.09) !important;
+    border-radius: 12px !important;
+    overflow: hidden !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.28) !important;
+    background: rgba(14, 20, 32, 0.65) !important;
+    backdrop-filter: blur(8px) !important;
+    margin-top: 0.4rem !important;
+    margin-bottom: 1.1rem !important;
+}
+
+[data-testid="stTable"] table {
+    width: 100% !important;
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+    color: #e2e8f0 !important;
+    font-size: 0.88rem !important;
+}
+
+[data-testid="stTable"] th {
+    background: rgba(22, 31, 48, 0.9) !important;
+    color: #94a3b8 !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    font-size: 0.76rem !important;
+    letter-spacing: 0.05em !important;
+    padding: 0.75rem 1rem !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-testid="stTable"] td {
+    padding: 0.7rem 1rem !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04) !important;
+}
+
+[data-testid="stTable"] tr:hover td {
+    background: rgba(255, 255, 255, 0.03) !important;
+}
+
 
 
 

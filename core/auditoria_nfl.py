@@ -95,8 +95,24 @@ def render_receiving_audit(picks, history):
             return
         st.caption('Usa los filtros de rendimiento actuales. Errores positivos indican sobreestimación. '
                    'Las proyecciones sin registro de publicación se distinguen; no se reconstruyen como si fueran originales.')
-        st.dataframe(summarize(frame,['season','week','seleccion']),hide_index=True,use_container_width=True)
-        st.dataframe(summarize(frame,['Lesiones','Confianza']),hide_index=True,use_container_width=True)
+        audit_summary_cfg = {
+            'season': st.column_config.TextColumn('Temporada', width='small'),
+            'week': st.column_config.TextColumn('Semana', width='small'),
+            'seleccion': st.column_config.TextColumn('Selección', width='small'),
+            'Lesiones': st.column_config.TextColumn('Lesiones', width='medium'),
+            'Confianza': st.column_config.TextColumn('Confianza', width='medium'),
+            'Picks': st.column_config.NumberColumn('Picks', format='%d'),
+            'Muestra_ROI': st.column_config.NumberColumn('Con Cuota', format='%d'),
+            'Unidades': st.column_config.NumberColumn('Unidades', format='%+.2f u'),
+            'Acierto (%)': st.column_config.ProgressColumn('Acierto (%)', format='%.1f%%', min_value=0, max_value=100),
+            'ROI (%)': st.column_config.NumberColumn('ROI (%)', format='%+.1f%%'),
+            'Sesgo_yardas': st.column_config.NumberColumn('Sesgo Yardas', format='%+.1f yds'),
+            'MAE_yardas': st.column_config.NumberColumn('MAE Yardas', format='%.1f yds'),
+            'Error_volumen': st.column_config.NumberColumn('Error Vol', format='%+.1f yds'),
+            'Error_eficiencia': st.column_config.NumberColumn('Error Efic', format='%+.1f yds'),
+        }
+        st.dataframe(summarize(frame,['season','week','seleccion']),hide_index=True,use_container_width=True,column_config=audit_summary_cfg)
+        st.dataframe(summarize(frame,['Lesiones','Confianza']),hide_index=True,use_container_width=True,column_config=audit_summary_cfg)
         st.caption('La descomposición requiere recepciones proyectadas y reales mayores que cero. '
                    'Error de yardas = error por volumen + error por eficiencia. Los datos faltantes no cuentan como cero. '
                    'Los picks de un mismo partido o jugador pueden estar relacionados; una diferencia no demuestra causalidad.')
@@ -104,6 +120,22 @@ def render_receiving_audit(picks, history):
             'valor_real','recepciones_proyectadas','recepciones_reales','Error yardas','Error recepciones',
             'Error yardas/recepción','Error por volumen (yds)','Error por eficiencia (yds)',
             'probabilidad_pick','cuota_pick','modelo_version','Lesiones','Fuente','timestamp_captura','contexto_lesiones','resultado_pick','Unidades conocidas'] if c in frame]
-        st.dataframe(frame[columns],hide_index=True,use_container_width=True)
+        audit_detail_cfg = {
+            'season': st.column_config.TextColumn('Temporada', width='small'),
+            'week': st.column_config.TextColumn('Semana', width='small'),
+            'player_name': st.column_config.TextColumn('Jugador', width='medium'),
+            'away_team': st.column_config.TextColumn('Vis', width='small'),
+            'home_team': st.column_config.TextColumn('Loc', width='small'),
+            'seleccion': st.column_config.TextColumn('Pick', width='small'),
+            'linea': st.column_config.NumberColumn('Línea', format='%.1f'),
+            'proyeccion': st.column_config.NumberColumn('Proy', format='%.1f'),
+            'valor_real': st.column_config.NumberColumn('Real', format='%.1f'),
+            'resultado_pick': st.column_config.TextColumn('Resultado', width='small'),
+            'Unidades conocidas': st.column_config.NumberColumn('Unidades', format='%+.2f u'),
+            'probabilidad_pick': st.column_config.ProgressColumn('Probabilidad', format='%.1%', min_value=0.0, max_value=1.0),
+            'cuota_pick': st.column_config.NumberColumn('Cuota', format='%.2f'),
+            'Error yardas': st.column_config.NumberColumn('Err Yds', format='%+.1f'),
+        }
+        st.dataframe(frame[columns],hide_index=True,use_container_width=True,column_config=audit_detail_cfg)
         st.download_button('Descargar auditoría de yardas',frame[columns].to_csv(index=False).encode('utf-8-sig'),
                            'auditoria_yardas_recepcion.csv','text/csv',key='nfl_receiving_audit_download')

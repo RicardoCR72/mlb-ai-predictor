@@ -62,5 +62,20 @@ def render(frame):
                          'Picks con beneficio conocido · actual:Q','Picks con beneficio conocido · anterior:Q'])
             st.altair_chart(bars.properties(height=max(160,35*len(valid))),width='stretch',key='period_change_chart')
         st.caption('Verde: el ROI aumentó · Rojo: disminuyó. Un cambio positivo puede seguir correspondiendo a un ROI negativo. Sin beneficio conocido en ambos periodos no se calcula el cambio.')
-        st.dataframe(visible,hide_index=True,width='stretch')
+        comp_period_cfg = {
+            'Deporte': st.column_config.TextColumn('Deporte', width='small'),
+            'Mercado': st.column_config.TextColumn('Mercado', width='medium'),
+            'Modelo': st.column_config.TextColumn('Modelo', width='medium'),
+            'Procedencia': st.column_config.TextColumn('Procedencia', width='medium'),
+            'Picks evaluados · actual': st.column_config.NumberColumn('Picks Act.', format='%d'),
+            'Acierto (%) · actual': st.column_config.ProgressColumn('Acierto Act.', format='%.1f%%', min_value=0, max_value=100),
+            'Unidades · actual': st.column_config.NumberColumn('Unidades Act.', format='%+.2f u'),
+            'ROI (%) · actual': st.column_config.NumberColumn('ROI Act.', format='%+.1f%%'),
+            'Picks evaluados · anterior': st.column_config.NumberColumn('Picks Ant.', format='%d'),
+            'Acierto (%) · anterior': st.column_config.ProgressColumn('Acierto Ant.', format='%.1f%%', min_value=0, max_value=100),
+            'Unidades · anterior': st.column_config.NumberColumn('Unidades Ant.', format='%+.2f u'),
+            'ROI (%) · anterior': st.column_config.NumberColumn('ROI Ant.', format='%+.1f%%'),
+            'Cambio ROI (pp)': st.column_config.NumberColumn('Cambio ROI (pp)', format='%+.1f pp', help='Variación en puntos porcentuales respecto al periodo anterior'),
+        }
+        st.dataframe(visible, hide_index=True, width='stretch', column_config=comp_period_cfg)
         st.download_button('Descargar comparación de periodos',table.to_csv(index=False),'comparacion_periodos.csv','text/csv')

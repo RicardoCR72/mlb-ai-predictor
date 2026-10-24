@@ -106,10 +106,33 @@ def render_overview():
             st.write(f'Importe simulado: ${n*value:,.2f} MXN · Beneficio simulado: ${profit*value:+,.2f} MXN')
         st.caption('Conversión local ilustrativa; no guarda movimientos ni modifica las métricas del modelo.')
     with st.expander('Análisis por mercado y semana'):
-        st.dataframe(comparison(frame),hide_index=True,width='stretch')
+        comp_df = comparison(frame)
+        comp_cfg = {
+            'Deporte': st.column_config.TextColumn('Deporte', width='small'),
+            'Mercado': st.column_config.TextColumn('Mercado', width='medium'),
+            'Modelo': st.column_config.TextColumn('Modelo', width='medium'),
+            'Procedencia': st.column_config.TextColumn('Procedencia', width='medium'),
+            'Picks evaluados': st.column_config.NumberColumn('Picks', format='%d', help='Picks totales evaluados'),
+            'Picks con beneficio conocido': st.column_config.NumberColumn('Con Cuota', format='%d', help='Picks con ROI medible'),
+            'Acierto (%)': st.column_config.ProgressColumn('Acierto (%)', format='%.1f%%', min_value=0, max_value=100),
+            'Unidades': st.column_config.NumberColumn('Unidades (u)', format='%+.2f u'),
+            'ROI (%)': st.column_config.NumberColumn('ROI (%)', format='%+.1f%%'),
+        }
+        st.dataframe(comp_df, hide_index=True, width='stretch', column_config=comp_cfg)
         if not week.empty:
-            st.dataframe(week,hide_index=True,width='stretch')
-            st.download_button('Descargar análisis semanal',week.to_csv(index=False),'rendimiento_semanal.csv','text/csv')
+            week_cfg = {
+                'Semana': st.column_config.TextColumn('Semana 📅', width='medium'),
+                'Picks': st.column_config.NumberColumn('Picks', format='%d'),
+                'Ganadas': st.column_config.NumberColumn('Ganadas ✅', format='%d'),
+                'Perdidas': st.column_config.NumberColumn('Perdidas ❌', format='%d'),
+                'Push': st.column_config.NumberColumn('Push ↔', format='%d'),
+                'Acierto (%)': st.column_config.ProgressColumn('Acierto (%)', format='%.1f%%', min_value=0, max_value=100),
+                'Unidades': st.column_config.NumberColumn('Unidades (u)', format='%+.2f u'),
+                'ROI (%)': st.column_config.NumberColumn('ROI (%)', format='%+.1f%%'),
+                'Muestra_ROI': st.column_config.NumberColumn('Con Cuota', format='%d'),
+            }
+            st.dataframe(week, hide_index=True, width='stretch', column_config=week_cfg)
+            st.download_button('Descargar análisis semanal', week.to_csv(index=False), 'rendimiento_semanal.csv', 'text/csv')
         st.caption('NFL usa su semana oficial cuando está disponible. Para otros deportes se indica la semana ISO. Versiones y procedencias permanecen separadas.')
     with st.expander('Explorar umbrales históricos'):
         st.caption('Exploración descriptiva: elegir el umbral con mayor ROI en estos mismos datos no valida su rendimiento futuro.')
@@ -121,11 +144,33 @@ def render_overview():
                 if not stats.empty:stats['Confianza mínima (%)']=threshold;output.append(stats)
             if output:
                 result=pd.concat(output,ignore_index=True)
-                st.dataframe(result,hide_index=True,width='stretch')
-                st.download_button('Descargar umbrales',result.to_csv(index=False),'umbrales_historicos.csv','text/csv')
+                thresh_cfg = {
+                    'Confianza mínima (%)': st.column_config.NumberColumn('Confianza Mínima', format='%d%%'),
+                    'Deporte': st.column_config.TextColumn('Deporte', width='small'),
+                    'Mercado': st.column_config.TextColumn('Mercado', width='medium'),
+                    'Modelo': st.column_config.TextColumn('Modelo', width='medium'),
+                    'Picks evaluados': st.column_config.NumberColumn('Picks', format='%d'),
+                    'Picks con beneficio conocido': st.column_config.NumberColumn('Con Cuota', format='%d'),
+                    'Acierto (%)': st.column_config.ProgressColumn('Acierto (%)', format='%.1f%%', min_value=0, max_value=100),
+                    'Unidades': st.column_config.NumberColumn('Unidades (u)', format='%+.2f u'),
+                    'ROI (%)': st.column_config.NumberColumn('ROI (%)', format='%+.1f%%'),
+                }
+                st.dataframe(result, hide_index=True, width='stretch', column_config=thresh_cfg)
+                st.download_button('Descargar umbrales', result.to_csv(index=False), 'umbrales_historicos.csv', 'text/csv')
     with st.expander('Datos de la muestra'):
-        st.dataframe(frame,hide_index=True,width='stretch')
-        st.download_button('Descargar rendimiento filtrado',frame.to_csv(index=False),'rendimiento_filtrado.csv','text/csv')
+        sample_cfg = {
+            'fecha': st.column_config.TextColumn('Fecha', width='small'),
+            'deporte': st.column_config.TextColumn('Deporte', width='small'),
+            'mercado': st.column_config.TextColumn('Mercado', width='medium'),
+            'modelo_visible': st.column_config.TextColumn('Modelo', width='medium'),
+            'resultado': st.column_config.TextColumn('Resultado', width='small'),
+            'probabilidad': st.column_config.NumberColumn('Probabilidad', format='%.1%'),
+            'cuota': st.column_config.NumberColumn('Cuota', format='%.2f'),
+            'unidades': st.column_config.NumberColumn('Unidades', format='%+.2f u'),
+            'semana_nfl': st.column_config.TextColumn('Semana NFL', width='small'),
+        }
+        st.dataframe(frame, hide_index=True, width='stretch', column_config=sample_cfg)
+        st.download_button('Descargar rendimiento filtrado', frame.to_csv(index=False), 'rendimiento_filtrado.csv', 'text/csv')
 
 
 def render_audit():
@@ -154,14 +199,26 @@ def render_liga_validation():
         item=report.get('confirmation',{}).get(kind,{})
         if item:records.append(dict(Modelo=label,Partidos=item.get('n'),Brier=item.get('brier'),Logloss=item.get('logloss'),
                                      Probabilidad_media=item.get('prob_media'),Tasa_real_over=item.get('real_over')))
-    st.dataframe(pd.DataFrame(records),hide_index=True,width='stretch')
+    rec_cfg = {
+        'Modelo': st.column_config.TextColumn('Modelo', width='medium'),
+        'Partidos': st.column_config.NumberColumn('Partidos', format='%d'),
+        'Brier': st.column_config.NumberColumn('Brier Score', format='%.4f', help='Menor puntaje indica mejor calibración'),
+        'Logloss': st.column_config.NumberColumn('Log-Loss', format='%.4f'),
+        'Probabilidad_media': st.column_config.ProgressColumn('Prob. Media', format='%.1%', min_value=0.0, max_value=1.0),
+        'Tasa_real_over': st.column_config.ProgressColumn('Tasa Real Over', format='%.1%', min_value=0.0, max_value=1.0),
+    }
+    st.dataframe(pd.DataFrame(records), hide_index=True, width='stretch', column_config=rec_cfg)
     with st.expander('Metodología y muestra de validación'):
         st.json(report)
     coverage=report.get('coverage',{})
     if coverage:
         table=pd.DataFrame(list(coverage.items()),columns=['Temporada','Partidos'])
         st.bar_chart(table.set_index('Temporada'),color='#b7ff3c')
-        st.dataframe(table,hide_index=True,width='stretch')
+        cov_cfg = {
+            'Temporada': st.column_config.TextColumn('Temporada', width='medium'),
+            'Partidos': st.column_config.NumberColumn('Partidos Analizados', format='%d')
+        }
+        st.dataframe(table, hide_index=True, width='stretch', column_config=cov_cfg)
     try:
         from core.confianza import prepare,reliability
         from core.comparador import normalize
@@ -173,7 +230,13 @@ def render_liga_validation():
         f=performance_filters(f,'fecha','center_liga',probability_col='probabilidad',probability_scale=100,result_col='resultado')
         st.caption('La muestra siguiente corresponde al archivo de confirmación. Sin cuotas históricas no se calcula ROI ni beneficio.')
         prepared,_=prepare(f)
-        st.dataframe(reliability(prepared),hide_index=True,width='stretch')
+        rel_cfg = {
+            'Decil': st.column_config.TextColumn('Rango / Decil', width='medium'),
+            'Partidos': st.column_config.NumberColumn('Partidos', format='%d'),
+            'Probabilidad media': st.column_config.ProgressColumn('Prob. Estimada', format='%.1%', min_value=0.0, max_value=1.0),
+            'Tasa real': st.column_config.ProgressColumn('Tasa Real', format='%.1%', min_value=0.0, max_value=1.0),
+        }
+        st.dataframe(reliability(prepared), hide_index=True, width='stretch', column_config=rel_cfg)
         st.download_button('Descargar confirmación Liga MX',f.to_csv(index=False),'confirmacion_liga_mx.csv','text/csv')
     except (OSError,ValueError,KeyError):state_message('La muestra de confirmación no está disponible.',kind='offline')
 

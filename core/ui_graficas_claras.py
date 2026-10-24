@@ -233,8 +233,27 @@ def render_visual_performance(frame, *, date_col, profit_col, result_col, group_
             if data['missing']:
                 st.caption(f"{data['missing']} picks sin fecha válida cuentan en el ROI, pero no aparecen en la curva.")
             with st.expander('Ver cifras de las gráficas'):
-                st.dataframe(data['distribution'], hide_index=True, width='stretch', column_config={'Porcentaje': st.column_config.NumberColumn(format='percent')})
-                st.dataframe(data['roi'], hide_index=True, width='stretch')
+                st.dataframe(
+                    data['distribution'],
+                    hide_index=True,
+                    width='stretch',
+                    column_config={
+                        'Resultado': st.column_config.TextColumn('Resultado'),
+                        'Picks': st.column_config.NumberColumn('Picks', format='%d'),
+                        'Porcentaje': st.column_config.ProgressColumn('Porcentaje', format='%.1%', min_value=0.0, max_value=1.0)
+                    }
+                )
+                st.dataframe(
+                    data['roi'],
+                    hide_index=True,
+                    width='stretch',
+                    column_config={
+                        'Mercado': st.column_config.TextColumn('Mercado', width='medium'),
+                        'Muestra': st.column_config.NumberColumn('Picks con Cuota', format='%d'),
+                        'Unidades': st.column_config.NumberColumn('Unidades (u)', format='%+.2f u'),
+                        'ROI (%)': st.column_config.NumberColumn('ROI (%)', format='%+.1f%%'),
+                    }
+                )
                 st.caption('Las gráficas usan la misma muestra filtrada. Las probabilidades del modelo no son garantías de acierto.')
 
         with t_calib:
@@ -266,9 +285,11 @@ def render_visual_performance(frame, *, date_col, profit_col, result_col, group_
                     hide_index=True,
                     width='stretch',
                     column_config={
-                        'Acierto Real (%)': st.column_config.NumberColumn(format='%.1f %%'),
-                        'Esperado por Modelo (%)': st.column_config.NumberColumn(format='%.1f %%'),
-                        'Diferencia (%)': st.column_config.NumberColumn(format='%+.1f %%'),
+                        'Rango de Probabilidad': st.column_config.TextColumn('Rango de Confianza'),
+                        'Picks Evaluados': st.column_config.NumberColumn('Picks', format='%d'),
+                        'Acierto Real (%)': st.column_config.ProgressColumn('Acierto Real (%)', format='%.1f%%', min_value=0, max_value=100),
+                        'Esperado por Modelo (%)': st.column_config.ProgressColumn('Esperado por IA (%)', format='%.1f%%', min_value=0, max_value=100),
+                        'Diferencia (%)': st.column_config.NumberColumn('Diferencia (%)', format='%+.1f%%'),
                     }
                 )
                 st.caption('💡 Una diferencia cercana al 0% indica una calibración matemática perfecta entre la confianza del modelo y la realidad.')
@@ -327,9 +348,11 @@ def render_visual_performance(frame, *, date_col, profit_col, result_col, group_
                     hide_index=True,
                     width='stretch',
                     column_config={
-                        'Acierto (%)': st.column_config.NumberColumn(format='%.1f %%'),
-                        'Unidades': st.column_config.NumberColumn(format='%+.2f u'),
-                        'ROI (%)': st.column_config.NumberColumn(format='%+.1f %%'),
+                        'Rango de Cuotas': st.column_config.TextColumn('Rango de Momios / Cuotas', width='medium'),
+                        'Picks': st.column_config.NumberColumn('Picks', format='%d'),
+                        'Acierto (%)': st.column_config.ProgressColumn('Acierto (%)', format='%.1f%%', min_value=0, max_value=100),
+                        'Unidades': st.column_config.NumberColumn('Unidades (u)', format='%+.2f u'),
+                        'ROI (%)': st.column_config.NumberColumn('ROI (%)', format='%+.1f%%'),
                     }
                 )
 
