@@ -108,7 +108,7 @@ class SummaryTests(TestCase):
             self.assertFalse(app.exception)
             self.assertTrue(any('parcial' in metric.value for metric in app.metric))
             self.assertTrue(any(metric.value=='No disponible' for metric in app.metric))
-            self.assertGreaterEqual(len(app.dataframe),2)
+            self.assertGreaterEqual(len(app.dataframe),1)
             app=AppTest.from_string("from core.ui_resumen import render_service_status\nrender_service_status('mlb')").run()
             self.assertFalse(app.exception)
             self.assertTrue(any('No disponible' in c.value for c in app.caption))
@@ -147,4 +147,4 @@ class SummaryTests(TestCase):
                          ['5 partidos','10 partidos','20 partidos','Todos'])
         html=''.join(m.value for m in app.markdown)
         self.assertIn('agenda-match',html)
-        self.assertIn('availability-card',html)
+

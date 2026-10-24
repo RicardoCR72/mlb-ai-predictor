@@ -25,17 +25,6 @@ def render_home():
 .st-key-home_sports [data-testid="stColumn"] > [data-testid="stVerticalBlock"],.st-key-home_tools [data-testid="stColumn"] > [data-testid="stVerticalBlock"]{height:100%;flex:1}
 .st-key-home_sports [data-testid="stElementContainer"]:has(> [data-testid="stPageLink"]),.st-key-home_tools [data-testid="stElementContainer"]:has(> [data-testid="stPageLink"]){margin-top:auto}
 </style>''',unsafe_allow_html=True)
-    attention=[]
-    for item in sports:
-        if item['errors']:attention.append(item['label']+': consulta parcial')
-        elif item['pending'] is not None and item['pending']>0:
-            attention.append(item['label']+f": {item['pending']} resultados por actualizar")
-        elif item['games_today'] is not None and item['games_today']>0 and item['picks_today']==0:
-            attention.append(item['label']+': hay partidos hoy y no hay picks disponibles')
-    if attention:
-        with st.expander('Necesita atención',expanded=False):
-            for item in attention:st.write('• '+item)
-            st.caption('Abre el deporte para revisar calendario, resultados o predicciones. Una consulta parcial no significa que falten partidos.')
     from core.ui_top_picks import render_top_picks_section
     render_top_picks_section()
     st.subheader('Tu agenda · hoy primero')
@@ -93,10 +82,4 @@ def render_home():
                 unsafe_allow_html=True
             )
             st.page_link('pages/5_📊_Rendimiento.py',label='Abrir Rendimiento',use_container_width=True)
-    from core.ui_agenda import render_availability,CSS
-    st.markdown(CSS,unsafe_allow_html=True)
-    table=[{'Servicio':item['label'],'Picks hoy':count(item['picks_today']),
-            'Por revisar':count(item['pending']),
-            'Último registro':timestamp(item['last_data'],item['service']=='mlb',item['service'] in ('mlb_total','liga_mx','nba')),
-            'Estado':'Consulta parcial' if item['errors'] else age_status(item['last_data'])} for item in sports]
-    render_availability(table)
+
