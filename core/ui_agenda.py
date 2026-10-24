@@ -49,7 +49,7 @@ def agenda_html(frame, *, grouped=False):
             previous=day
         number=stamp.strftime('%d') if pd.notna(stamp) else '—'
         month=months[stamp.month-1] if pd.notna(stamp) else ''
-        sport=str(row['Deporte']);css={'NFL':'nfl','Liga MX':'liga'}.get(sport,'mlb')
+        sport=str(row['Deporte']);css={'NFL':'nfl','Liga MX':'liga','Fútbol':'futbol','NBA':'nba'}.get(sport,'mlb')
         parts.append(f'<article class="agenda-match {css}"><div class="agenda-date"><b>{number}</b><span>{month}</span></div>'
             f'<div><span class="agenda-sport">{escape(sport)}</span><div class="agenda-teams">{escape(str(row["Partido"]))}</div></div>'
             f'<div class="agenda-time">{escape(str(row["Horario"]))}</div></article>')

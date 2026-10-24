@@ -36,6 +36,8 @@ def render_home():
         with st.expander('Necesita atención',expanded=False):
             for item in attention:st.write('• '+item)
             st.caption('Abre el deporte para revisar calendario, resultados o predicciones. Una consulta parcial no significa que falten partidos.')
+    from core.ui_top_picks import render_top_picks_section
+    render_top_picks_section()
     st.subheader('Tu agenda · hoy primero')
     games=[]
     for source,sport in [('mlb','MLB'),('nfl_totales','NFL'),('liga_mx','Fútbol'),('nba','NBA')]:

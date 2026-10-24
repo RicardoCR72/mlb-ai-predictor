@@ -664,4 +664,227 @@ h1{letter-spacing:-.035em}h2,h3{letter-spacing:-.02em}
 .futbol-accent { color: #00e676; }
 .futbol-status { color: #8ba797; font-size: .78rem; font-weight: 700; }
 
+/* ==========================================================================
+   Home & Dashboard Styles (Oráculo Sports AI)
+   ========================================================================== */
+.home-hero-card {
+    background: linear-gradient(135deg, rgba(16, 24, 38, 0.95), rgba(8, 12, 19, 0.98));
+    border: 1px solid #1e2c3f;
+    border-radius: 16px;
+    padding: 1.25rem 1.4rem;
+    margin-bottom: 1.2rem;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+    position: relative;
+    overflow: hidden;
+}
+.home-hero-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #00e5ff 0%, #b7ff3c 33%, #00e676 66%, #ff6b35 100%);
+}
+.home-hero-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+.home-hero-title {
+    font-size: 1.65rem;
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    color: #ffffff;
+    margin: 0.2rem 0;
+}
+.home-hero-sub {
+    font-size: 0.85rem;
+    color: #94a3b8;
+    margin: 0;
+}
+.home-sport-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.75rem;
+    font-weight: 750;
+    padding: 0.25rem 0.55rem;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.home-live-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.7rem;
+    font-weight: 850;
+    letter-spacing: 0.08em;
+    padding: 0.3rem 0.7rem;
+    border-radius: 20px;
+    background: rgba(0, 230, 118, 0.12);
+    color: #00e676;
+    border: 1px solid rgba(0, 230, 118, 0.35);
+}
+.home-pulse-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #00e676;
+    box-shadow: 0 0 8px #00e676;
+}
+
+/* Top Picks Cards */
+.top-pick-card {
+    background: linear-gradient(145deg, #101826, #090e17);
+    border: 1px solid #1e2c3f;
+    border-radius: 14px;
+    padding: 1.15rem;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+.top-pick-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.4);
+}
+.top-pick-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.25rem 0.65rem;
+    border-radius: 20px;
+    font-size: 0.74rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+}
+.top-pick-match {
+    font-size: 0.98rem;
+    font-weight: 800;
+    color: #f1f5f9;
+    margin: 0.45rem 0;
+    line-height: 1.35;
+    min-height: 2.7rem;
+}
+.top-pick-box {
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 10px;
+    padding: 0.75rem 0.9rem;
+    margin: 0.5rem 0;
+}
+.top-pick-sel {
+    color: #ffffff;
+    font-size: 1.18rem;
+    font-weight: 900;
+    letter-spacing: -0.01em;
+    margin: 0.2rem 0 0.35rem;
+}
+.top-pick-prob {
+    font-size: 1.65rem;
+    font-weight: 900;
+    line-height: 1;
+    font-family: monospace;
+    letter-spacing: -0.02em;
+}
+.top-pick-btn {
+    display: block;
+    text-align: center;
+    padding: 0.5rem 0.8rem;
+    border-radius: 9px;
+    font-size: 0.82rem;
+    font-weight: 800;
+    text-decoration: none !important;
+    transition: all 0.2s ease;
+    margin-top: 0.6rem;
+    border: 1px solid transparent;
+}
+.top-pick-btn:hover {
+    filter: brightness(1.15);
+    transform: scale(1.01);
+}
+
+/* Tus deportes card highlights */
+.st-key-home_sport_mlb [data-testid="stVerticalBlockBorderWrapper"] {
+    border-top: 3px solid #00e5ff !important;
+    border-radius: 14px !important;
+    transition: box-shadow 0.2s ease;
+}
+.st-key-home_sport_mlb [data-testid="stVerticalBlockBorderWrapper"]:hover {
+    box-shadow: 0 4px 20px rgba(0, 229, 255, 0.15) !important;
+}
+
+.st-key-home_sport_nfl_totales [data-testid="stVerticalBlockBorderWrapper"] {
+    border-top: 3px solid #b7ff3c !important;
+    border-radius: 14px !important;
+    transition: box-shadow 0.2s ease;
+}
+.st-key-home_sport_nfl_totales [data-testid="stVerticalBlockBorderWrapper"]:hover {
+    box-shadow: 0 4px 20px rgba(183, 255, 60, 0.15) !important;
+}
+
+.st-key-home_sport_liga_mx [data-testid="stVerticalBlockBorderWrapper"] {
+    border-top: 3px solid #00e676 !important;
+    border-radius: 14px !important;
+    transition: box-shadow 0.2s ease;
+}
+.st-key-home_sport_liga_mx [data-testid="stVerticalBlockBorderWrapper"]:hover {
+    box-shadow: 0 4px 20px rgba(0, 230, 118, 0.15) !important;
+}
+
+.st-key-home_sport_nba [data-testid="stVerticalBlockBorderWrapper"] {
+    border-top: 3px solid #ff6b35 !important;
+    border-radius: 14px !important;
+    transition: box-shadow 0.2s ease;
+}
+.st-key-home_sport_nba [data-testid="stVerticalBlockBorderWrapper"]:hover {
+    box-shadow: 0 4px 20px rgba(255, 107, 53, 0.15) !important;
+}
+
+.st-key-home_performance_card [data-testid="stVerticalBlockBorderWrapper"] {
+    border-top: 3px solid #a78bfa !important;
+    border-radius: 14px !important;
+    transition: box-shadow 0.2s ease;
+}
+.st-key-home_performance_card [data-testid="stVerticalBlockBorderWrapper"]:hover {
+    box-shadow: 0 4px 20px rgba(167, 139, 250, 0.15) !important;
+}
+
+/* Metric Cards in Dashboard */
+[data-testid="stMetric"] {
+    background: linear-gradient(135deg, #101826, #090e17) !important;
+    border: 1px solid #1e2c3f !important;
+    border-radius: 12px !important;
+    padding: 0.85rem 1.1rem !important;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2) !important;
+}
+[data-testid="stMetricLabel"] {
+    color: #94a3b8 !important;
+    font-size: 0.8rem !important;
+    font-weight: 700 !important;
+}
+[data-testid="stMetricValue"] {
+    color: #ffffff !important;
+    font-size: 1.55rem !important;
+    font-weight: 850 !important;
+}
+
+/* Agenda Matches Sport Accents */
+.agenda-match.nba { border-left-color: #ff6b35 !important; }
+.agenda-match.nba .agenda-sport { color: #ff6b35 !important; }
+.agenda-match.futbol { border-left-color: #00e676 !important; }
+.agenda-match.futbol .agenda-sport { color: #00e676 !important; }
+.agenda-match.mlb { border-left-color: #00e5ff !important; }
+.agenda-match.mlb .agenda-sport { color: #00e5ff !important; }
+.agenda-match.nfl { border-left-color: #b7ff3c !important; }
+.agenda-match.nfl .agenda-sport { color: #b7ff3c !important; }
+
+
+
 
