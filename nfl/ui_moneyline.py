@@ -127,7 +127,7 @@ def render_cartelera(predicciones: list[dict]):
     st.markdown("<div style='margin-bottom: 1.25rem;'></div>", unsafe_allow_html=True)
 
     # Renderizar tarjetas individuales
-    for p in predicciones:
+    for idx, p in enumerate(predicciones):
         home = p["equipo_local"]
         away = p["equipo_visita"]
         prob_h = p.get("prob_local", 0.5) * 100
