@@ -42,71 +42,128 @@ from futbol.predecir_jornada import (
     RUTA_PREDICCIONES_JSON,
 )
 
-# Header de navegación
-st.markdown(
-    """<div class="futbol-shell">
-<div class="futbol-brand">
-<span class="futbol-logo">⚽</span>
-<div>
-<div style="font-size: 1.05rem; font-weight: 900; color: #ffffff;">FÚTBOL MUNDIAL <span class="futbol-accent">ORÁCULO AI</span></div>
-<div class="futbol-status">8 Ligas Principales · Cuotas DraftKings · Modelo Bivariado Calibrado</div>
-</div>
-</div>
-<div style="text-align: right;">
-<div style="font-size: 0.78rem; color: #8ba797;">Ligas Activas</div>
-<div style="font-size: 0.95rem; font-weight: 800; color: #00e676;">🇲🇽 🏴󠁧󠁢󠁥󠁮󠁧󠁿 🇪🇸 🇮🇹 🇩🇪 🇫🇷 🇳🇱 🇺🇸</div>
-</div>
-</div>""",
-    unsafe_allow_html=True,
-)
 
-# Hero Section
-st.markdown(
-    """<div class="futbol-view-hero">
-<div>
-<h1 class="futbol-hero-title">Centro de Inteligencia Deportiva · Fútbol</h1>
-<div class="futbol-hero-sub">Proyecciones matemáticas de goles (xG), Moneyline (1X2) y Totales Over/Under con momios oficiales en vivo.</div>
-</div>
-</div>""",
-    unsafe_allow_html=True,
-)
+def obtener_pick_para_mercado_futbol(p: dict, mercado_tipo: str) -> dict:
+    """Extrae o proyecta la recomendación del partido adaptada al mercado seleccionado."""
+    info = {
+        "mercado": mercado_tipo,
+        "seleccion": p.get("pick_seleccion", "N/D"),
+        "cuota": p.get("pick_cuota", "N/D"),
+        "probabilidad": float(p.get("pick_probabilidad", 0.5)),
+        "edge": float(p.get("pick_edge", 0.0)),
+        "detalle": p.get("pick_detalle", ""),
+        "confianza": p.get("confianza", "MEDIA"),
+        "resultado": p.get("resultado_pick", "PENDIENTE"),
+        "unidades": p.get("beneficio_unidades"),
+    }
 
-# Acciones superiores (Actualización y Liquidación)
-top_col1, top_col2, top_col3 = st.columns([2, 1, 1])
+    if "Totales" in mercado_tipo:
+        if "Totales" in str(p.get("pick_mercado", "")):
+            return info
 
-with top_col2:
-    if st.button("🔄 Actualizar Cuotas", use_container_width=True, key="btn_act_cuotas_futbol"):
-        with st.spinner("Descargando partidos y momios oficiales de DraftKings para todas las ligas..."):
-            predecir_futbol_mundial(force_refresh=True)
-            st.success("✅ Cuotas y cartelera actualizadas.")
-            st.rerun()
+        lin_tot = float(p.get("linea_total", 2.5))
+        p_ov = float(p.get("prob_over", 0.5))
+        p_un = float(p.get("prob_under", 0.5))
+        ed_ov = float(p.get("edge_over", 0.0))
+        ed_un = float(p.get("edge_under", 0.0))
+        tot_proj = float(p.get("total_proyectado", 2.5))
 
-with top_col3:
-    if st.button("✅ Liquidar Partidos", use_container_width=True, key="btn_liq_futbol"):
-        with st.spinner("Evaluando partidos concluidos y liquidando picks..."):
-            res = liquidar_partidos_pendientes_futbol()
-            st.success(f"✅ Evaluados: {res['resueltas']} picks | Ganadas: {res['ganadas']} | PnL: {res['unidades_netas']:+.2f} u")
-            st.rerun()
+        if ed_ov >= ed_un:
+            info["seleccion"] = f"OVER {lin_tot:g} Goles"
+            info["cuota"] = p.get("over_momio") or "-110"
+            info["probabilidad"] = p_ov
+            info["edge"] = ed_ov
+            info["detalle"] = f"Total proyectado: {tot_proj:.2f} goles vs línea {lin_tot:g} DK"
+        else:
+            info["seleccion"] = f"UNDER {lin_tot:g} Goles"
+            info["cuota"] = p.get("under_momio") or "-110"
+            info["probabilidad"] = p_un
+            info["edge"] = ed_un
+            info["detalle"] = f"Total proyectado: {tot_proj:.2f} goles vs línea {lin_tot:g} DK"
 
-# Carga de datos
-if not RUTA_PREDICCIONES_JSON.exists():
-    with st.spinner("Generando predicciones iniciales para las 8 ligas..."):
-        predicciones = predecir_futbol_mundial(force_refresh=True)
-else:
-    try:
-        with open(RUTA_PREDICCIONES_JSON, "r", encoding="utf-8") as f:
-            predicciones = json.load(f)
-    except Exception:
-        predicciones = predecir_futbol_mundial(force_refresh=False)
+        info["confianza"] = "ALTA" if abs(info["edge"]) >= 0.05 else "MEDIA"
+        return info
 
-if not predicciones:
-    st.info("⚽ No hay partidos registrados en la cartelera. Pulsa 'Actualizar Cuotas' para consultar ESPN.")
-    st.stop()
+    elif "Moneyline" in mercado_tipo:
+        if "Moneyline" in str(p.get("pick_mercado", "")):
+            return info
 
-tab_cartelera, tab_historial = st.tabs(["⚽ Cartelera y Predicciones en Vivo", "📊 Historial y Rendimiento Auditado"])
+        p_loc = float(p.get("prob_local", 0.4))
+        p_emp = float(p.get("prob_empate", 0.3))
+        p_vis = float(p.get("prob_visita", 0.3))
+        ed_loc = float(p.get("edge_local", 0.0))
+        ed_emp = float(p.get("edge_empate", 0.0))
+        ed_vis = float(p.get("edge_visita", 0.0))
 
-with tab_cartelera:
-    # Selector de Ligas (League Filter)
+        max_ed = max(ed_loc, ed_emp, ed_vis)
+        if max_ed == ed_loc and ed_loc > 0:
+            sel = f"{p.get('equipo_local')} (Victoria Local)"
+            c = p.get("moneyline_local") or "+100"
+            pr = p_loc
+            ed = ed_loc
+        elif max_ed == ed_vis and ed_vis > 0:
+            sel = f"{p.get('equipo_visita')} (Victoria Visitante)"
+            c = p.get("moneyline_visita") or "+100"
+            pr = p_vis
+            ed = ed_vis
+        elif max_ed == ed_emp and ed_emp > 0:
+            sel = "Empate (X)"
+            c = p.get("moneyline_empate") or "+250"
+            pr = p_emp
+            ed = ed_emp
+        else:
+            if p_loc >= max(p_emp, p_vis):
+                sel = f"{p.get('equipo_local')} (Victoria Local)"
+                c = p.get("moneyline_local") or "+100"
+                pr = p_loc
+                ed = ed_loc
+            elif p_vis >= max(p_loc, p_emp):
+                sel = f"{p.get('equipo_visita')} (Victoria Visitante)"
+                c = p.get("moneyline_visita") or "+100"
+                pr = p_vis
+                ed = ed_vis
+            else:
+                sel = "Empate (X)"
+                c = p.get("moneyline_empate") or "+250"
+                pr = p_emp
+                ed = ed_emp
+
+        info["seleccion"] = sel
+        info["cuota"] = c
+        info["probabilidad"] = pr
+        info["edge"] = ed
+        info["detalle"] = f"Probabilidad modelo: {pr*100:.1f}% · Cuota {c}"
+        info["confianza"] = "ALTA" if abs(ed) >= 0.05 else "MEDIA"
+        return info
+
+    return info
+
+
+def render_cartelera_futbol(predicciones: list[dict], mercado_activo: str):
+    """Renderiza las métricas y tarjetas de partidos de la jornada para el mercado seleccionado."""
+    tot_partidos = len(predicciones)
+    n_pendientes = sum(1 for p in predicciones if p.get("resultado_pick") not in ["GANADA", "PERDIDA", "PUSH"])
+    n_finalizados = sum(
+        1 for p in predicciones
+        if p.get("resultado_pick") in ["GANADA", "PERDIDA", "PUSH"]
+        or "FINAL" in str(p.get("estado", "")).upper()
+        or "FULL_TIME" in str(p.get("estado", "")).upper()
+    )
+    n_alto_valor = sum(
+        1 for p in predicciones
+        if p.get("confianza") == "ALTA" or float(p.get("pick_edge", 0.0)) >= 0.05
+    )
+
+    # Nivel 4: 4 Tarjetas Métricas
+    mcol1, mcol2, mcol3, mcol4 = st.columns(4)
+    mcol1.metric("Total Partidos", f"{tot_partidos} juegos")
+    mcol2.metric("Pendientes", n_pendientes)
+    mcol3.metric("Finalizados", n_finalizados)
+    mcol4.metric("Picks de Alto Valor", n_alto_valor)
+
+    st.markdown("<div style='margin-bottom: 0.8rem;'></div>", unsafe_allow_html=True)
+
+    # Selector de Ligas y Filtros
     nombres_ligas = {
         "todas": "🌍 Todas las Ligas",
         "eng.1": "🏴󠁧󠁢󠁥󠁮󠁧󠁿 Premier League",
@@ -119,7 +176,6 @@ with tab_cartelera:
         "usa.1": "🇺🇸 MLS",
     }
 
-    # Conteo de partidos por liga
     conteo_por_liga = {}
     for p in predicciones:
         cod = p.get("liga_codigo", "mex.1")
@@ -131,53 +187,34 @@ with tab_cartelera:
         for c in opciones_selector
     ]
 
-    liga_sel_idx = st.selectbox(
-        "Selecciona Liga:",
-        range(len(opciones_selector)),
-        format_func=lambda i: etiquetas_selector[i],
-        key="sel_liga_futbol",
-    )
-    liga_seleccionada = opciones_selector[liga_sel_idx]
-
-    # Filtrar por liga
-    if liga_seleccionada != "todas":
-        predicciones_liga = [p for p in predicciones if p.get("liga_codigo") == liga_seleccionada]
-    else:
-        predicciones_liga = list(predicciones)
-
-    # Métricas del panel
-    mcol1, mcol2, mcol3, mcol4 = st.columns(4)
-    mcol1.metric("Partidos en Cartelera", f"{len(predicciones_liga)} partidos")
-    mcol2.metric("Picks Alta Confianza", sum(1 for p in predicciones_liga if p.get("confianza") == "ALTA"))
-    mcol3.metric("Picks Over/Under", sum(1 for p in predicciones_liga if "Totales" in p.get("pick_mercado", "")))
-    mcol4.metric("Picks Moneyline (1X2)", sum(1 for p in predicciones_liga if "Moneyline" in p.get("pick_mercado", "")))
-
-    # Filtros adicionales
-    fcol1, fcol2, fcol3 = st.columns(3)
-    with fcol1:
-        filtro_mercado = st.selectbox(
-            "Mercado:",
-            ["Todos los mercados", "Totales (Over/Under)", "Moneyline"],
-            key="f_mercado"
+    f_lig_col, f_conf_col, f_est_col = st.columns([2, 1, 1])
+    with f_lig_col:
+        liga_sel_idx = st.selectbox(
+            "Filtrar por Liga:",
+            range(len(opciones_selector)),
+            format_func=lambda i: etiquetas_selector[i],
+            key="sel_liga_futbol",
         )
-    with fcol2:
+        liga_seleccionada = opciones_selector[liga_sel_idx]
+
+    with f_conf_col:
         filtro_confianza = st.selectbox(
             "Nivel de Confianza:",
             ["Todas las selecciones", "Solo ALTA confianza", "Solo MEDIA confianza"],
-            key="f_confianza"
+            key="f_confianza_futbol",
         )
-    with fcol3:
+
+    with f_est_col:
         filtro_estado = st.selectbox(
             "Estado del Partido:",
             ["Todos los estados", "Solo Próximos", "Solo En Vivo", "Solo Finalizados"],
-            key="f_estado"
+            key="f_estado_futbol",
         )
 
-    filtrados = list(predicciones_liga)
-    if filtro_mercado == "Totales (Over/Under)":
-        filtrados = [p for p in filtrados if "Totales" in p.get("pick_mercado", "")]
-    elif filtro_mercado == "Moneyline":
-        filtrados = [p for p in filtrados if "Moneyline" in p.get("pick_mercado", "")]
+    # Filtrar predicciones
+    filtrados = list(predicciones)
+    if liga_seleccionada != "todas":
+        filtrados = [p for p in filtrados if p.get("liga_codigo") == liga_seleccionada]
 
     if filtro_confianza == "Solo ALTA confianza":
         filtrados = [p for p in filtrados if p.get("confianza") == "ALTA"]
@@ -189,193 +226,301 @@ with tab_cartelera:
     elif filtro_estado == "Solo En Vivo":
         filtrados = [p for p in filtrados if "PROGRESS" in str(p.get("estado", "")).upper()]
     elif filtro_estado == "Solo Finalizados":
-        filtrados = [p for p in filtrados if ("FINAL" in str(p.get("estado", "")).upper() or "FULL_TIME" in str(p.get("estado", "")).upper())]
+        filtrados = [
+            p for p in filtrados
+            if ("FINAL" in str(p.get("estado", "")).upper() or "FULL_TIME" in str(p.get("estado", "")).upper())
+        ]
 
     if not filtrados:
         st.warning("No hay partidos que coincidan con los filtros seleccionados.")
-    else:
-        # Despliegue de tarjetas de partidos
-        for p in filtrados:
-            estado = str(p.get("estado", "")).upper()
-            es_final = "FINAL" in estado or "FULL_TIME" in estado
-            en_vivo = "PROGRESS" in estado
+        return
 
-            m_loc = p.get("marcador_local")
-            m_vis = p.get("marcador_visita")
-            tiene_marcador = (es_final or en_vivo) and (m_loc is not None and m_vis is not None)
+    # Despliegue de tarjetas de partidos
+    for p in filtrados:
+        pick_data = obtener_pick_para_mercado_futbol(p, mercado_activo)
 
-            confianza = p.get("confianza", "MEDIA")
-            badge_conf_cls = "badge-conf-alta" if confianza == "ALTA" else "badge-conf-media"
+        estado = str(p.get("estado", "")).upper()
+        es_final = "FINAL" in estado or "FULL_TIME" in estado
+        en_vivo = "PROGRESS" in estado
 
-            bandera = p.get("liga_bandera", "⚽")
-            liga_nom = p.get("liga_nombre", "Fútbol")
-            hora_txt = f"{p.get('fecha_cdmx', '')} · {p.get('hora_cdmx', '')} CDMX"
+        m_loc = p.get("marcador_local")
+        m_vis = p.get("marcador_visita")
+        tiene_marcador = (es_final or en_vivo) and (m_loc is not None and m_vis is not None)
 
-            if es_final:
-                badge_status = '<span class="badge-time">🏁 FINAL</span>'
-            elif en_vivo:
-                badge_status = '<span class="badge-time" style="background:#27150a;color:#ff8c33;border-color:#ff6b00;">🔴 EN VIVO</span>'
-            else:
-                badge_status = f'<span class="badge-time">⏰ {hora_txt}</span>'
+        confianza = pick_data.get("confianza", "MEDIA")
+        badge_conf_cls = "badge-conf-alta" if confianza == "ALTA" else "badge-conf-media"
 
-            # Fila de equipos y marcadores
-            vis_name = p.get("equipo_visita")
-            loc_name = p.get("equipo_local")
-            vis_ml = p.get("moneyline_visita") or "N/D"
-            loc_ml = p.get("moneyline_local") or "N/D"
-            emp_ml = p.get("moneyline_empate") or "N/D"
+        bandera = p.get("liga_bandera", "⚽")
+        liga_nom = p.get("liga_nombre", "Fútbol")
+        hora_txt = f"{p.get('fecha_cdmx', '')} · {p.get('hora_cdmx', '')} CDMX"
 
-            if tiene_marcador:
-                score_center = (
-                    f'<div style="font-size: 1.35rem; color: #00e676; font-weight: 900; background: #092416; '
-                    f'border: 1px solid #00e676; padding: 0.2rem 0.8rem; border-radius: 8px;">'
-                    f'{int(m_vis)} - {int(m_loc)}</div>'
+        if es_final:
+            badge_status = '<span class="badge-time">🏁 FINAL</span>'
+        elif en_vivo:
+            badge_status = '<span class="badge-time" style="background:#27150a;color:#ff8c33;border-color:#ff6b00;">🔴 EN VIVO</span>'
+        else:
+            badge_status = f'<span class="badge-time">⏰ {hora_txt}</span>'
+
+        vis_name = p.get("equipo_visita")
+        loc_name = p.get("equipo_local")
+        vis_ml = p.get("moneyline_visita") or "N/D"
+        loc_ml = p.get("moneyline_local") or "N/D"
+        emp_ml = p.get("moneyline_empate") or "N/D"
+
+        if tiene_marcador:
+            score_center = (
+                f'<div style="font-size: 1.35rem; color: #00e676; font-weight: 900; background: #092416; '
+                f'border: 1px solid #00e676; padding: 0.2rem 0.8rem; border-radius: 8px;">'
+                f'{int(m_vis)} - {int(m_loc)}</div>'
+            )
+        else:
+            score_center = '<div style="font-size: 1.1rem; color: #446452; font-weight: 800;">vs</div>'
+
+        teams_html = (
+            f'<div class="teams-row">'
+            f'<div>'
+            f'<div class="team-name">{vis_name}</div>'
+            f'<div class="team-sub">Visitante · ML: <b>{vis_ml}</b></div>'
+            f'</div>'
+            f'<div style="text-align: center;">{score_center}</div>'
+            f'<div style="text-align: right;">'
+            f'<div class="team-name" style="justify-content: flex-end;">{loc_name}</div>'
+            f'<div class="team-sub">Local · ML: <b>{loc_ml}</b></div>'
+            f'</div>'
+            f'</div>'
+        )
+
+        card_top_html = (
+            f'<div class="card-top">'
+            f'<div style="display: flex; align-items: center; gap: 0.5rem;">'
+            f'<span class="badge-league">{bandera} {liga_nom}</span>'
+            f'{badge_status}'
+            f'</div>'
+            f'<div>'
+            f'<span class="{badge_conf_cls}">CONFIANZA {confianza}</span>'
+            f'</div>'
+            f'</div>'
+        )
+
+        with st.container(border=True):
+            st.markdown(card_top_html + teams_html, unsafe_allow_html=True)
+
+            col_c1, col_c2, col_c3 = st.columns(3)
+            with col_c1:
+                st.caption("⚽ **Moneyline (1X2 Modelo)**")
+                p_loc = p.get("prob_local", 0.4) * 100
+                p_emp = p.get("prob_empate", 0.3) * 100
+                p_vis = p.get("prob_visita", 0.3) * 100
+                st.write(f"Loc: **{p_loc:.1f}%** · Emp: **{p_emp:.1f}%** · Vis: **{p_vis:.1f}%**")
+                st.markdown(f"<span class='stat-pill'>Marcador más probable: <b>{p.get('marcador_mas_probable', 'N/D')}</b></span>", unsafe_allow_html=True)
+
+            with col_c2:
+                lin_tot = p.get("linea_total", 2.5)
+                st.caption(f"🎯 **Totales (Línea {lin_tot:g})**")
+                p_ov = p.get("prob_over", 0.5) * 100
+                p_un = p.get("prob_under", 0.5) * 100
+                tot_proj = p.get("total_proyectado", 2.6)
+                st.write(f"Over: **{p_ov:.1f}%** · Under: **{p_un:.1f}%**")
+                st.markdown(f"<span class='stat-pill'>Goles esperados: <b>{tot_proj:.2f}</b></span>", unsafe_allow_html=True)
+
+            with col_c3:
+                st.caption("📊 **xG y Momios de Mercado**")
+                xg_h = p.get("xg_local", 1.4)
+                xg_a = p.get("xg_visita", 1.2)
+                st.write(f"Local xG: **{xg_h:.2f}** | Visita xG: **{xg_a:.2f}**")
+                st.markdown(f"<span class='stat-pill'>Momio Empate: <b>{emp_ml}</b></span>", unsafe_allow_html=True)
+
+            # Caja de Recomendación Oficial para el mercado activo
+            res_pick = pick_data.get("resultado")
+            u_gan = pick_data.get("unidades")
+            momio_pick_str = f" · Momio: {pick_data.get('cuota', '')}" if pick_data.get("cuota") else ""
+
+            if res_pick in ["GANADA", "PERDIDA", "PUSH"]:
+                color_res = "#4ade80" if res_pick == "GANADA" else ("#f87171" if res_pick == "PERDIDA" else "#cbd5e1")
+                val_u = f"{u_gan:+.2f} u" if u_gan is not None else ""
+                res_box_html = (
+                    f'<div style="text-align: right;">'
+                    f'<div style="font-size: 0.72rem; color: #8ba797; font-weight: 700;">RESULTADO AUDITADO</div>'
+                    f'<div style="font-size: 1.15rem; font-weight: 900; color: {color_res};">{res_pick} ({val_u})</div>'
+                    f'</div>'
                 )
             else:
-                score_center = '<div style="font-size: 1.1rem; color: #446452; font-weight: 800;">vs</div>'
-
-            teams_html = (
-                f'<div class="teams-row">'
-                f'<div>'
-                f'<div class="team-name">{vis_name}</div>'
-                f'<div class="team-sub">Visitante · ML: <b>{vis_ml}</b></div>'
-                f'</div>'
-                f'<div style="text-align: center;">{score_center}</div>'
-                f'<div style="text-align: right;">'
-                f'<div class="team-name" style="justify-content: flex-end;">{loc_name}</div>'
-                f'<div class="team-sub">Local · ML: <b>{loc_ml}</b></div>'
-                f'</div>'
-                f'</div>'
-            )
-
-            card_top_html = (
-                f'<div class="card-top">'
-                f'<div style="display: flex; align-items: center; gap: 0.5rem;">'
-                f'<span class="badge-league">{bandera} {liga_nom}</span>'
-                f'{badge_status}'
-                f'</div>'
-                f'<div>'
-                f'<span class="{badge_conf_cls}">CONFIANZA {confianza}</span>'
-                f'</div>'
-                f'</div>'
-            )
-
-            with st.container(border=True):
-                st.markdown(card_top_html + teams_html, unsafe_allow_html=True)
-
-                col_c1, col_c2, col_c3 = st.columns(3)
-                with col_c1:
-                    st.caption("⚽ **Moneyline (1X2 Modelo)**")
-                    p_loc = p.get("prob_local", 0.4) * 100
-                    p_emp = p.get("prob_empate", 0.3) * 100
-                    p_vis = p.get("prob_visita", 0.3) * 100
-                    st.write(f"Loc: **{p_loc:.1f}%** · Emp: **{p_emp:.1f}%** · Vis: **{p_vis:.1f}%**")
-                    st.markdown(f"<span class='stat-pill'>Marcador más probable: <b>{p.get('marcador_mas_probable', 'N/D')}</b></span>", unsafe_allow_html=True)
-
-                with col_c2:
-                    lin_tot = p.get("linea_total", 2.5)
-                    st.caption(f"🎯 **Totales (Línea {lin_tot:g})**")
-                    p_ov = p.get("prob_over", 0.5) * 100
-                    p_un = p.get("prob_under", 0.5) * 100
-                    tot_proj = p.get("total_proyectado", 2.6)
-                    st.write(f"Over: **{p_ov:.1f}%** · Under: **{p_un:.1f}%**")
-                    st.markdown(f"<span class='stat-pill'>Goles esperados: <b>{tot_proj:.2f}</b></span>", unsafe_allow_html=True)
-
-                with col_c3:
-                    st.caption("📊 **xG y Momios de Mercado**")
-                    xg_h = p.get("xg_local", 1.4)
-                    xg_a = p.get("xg_visita", 1.2)
-                    st.write(f"Local xG: **{xg_h:.2f}** | Visita xG: **{xg_a:.2f}**")
-                    st.markdown(f"<span class='stat-pill'>Momio Empate: <b>{emp_ml}</b></span>", unsafe_allow_html=True)
-
-                # Caja de Recomendación Oficial
-                res_pick = p.get("resultado_pick")
-                u_gan = p.get("beneficio_unidades")
-                momio_pick_str = f" · Momio: {p.get('pick_cuota', '')}" if p.get("pick_cuota") else ""
-
-                if res_pick in ["GANADA", "PERDIDA", "PUSH"]:
-                    color_res = "#4ade80" if res_pick == "GANADA" else ("#f87171" if res_pick == "PERDIDA" else "#cbd5e1")
-                    val_u = f"{u_gan:+.2f} u" if u_gan is not None else ""
-                    res_box_html = (
-                        f'<div style="text-align: right;">'
-                        f'<div style="font-size: 0.72rem; color: #8ba797; font-weight: 700;">RESULTADO AUDITADO</div>'
-                        f'<div style="font-size: 1.15rem; font-weight: 900; color: {color_res};">{res_pick} ({val_u})</div>'
-                        f'</div>'
-                    )
-                else:
-                    prob_hit = p.get("pick_probabilidad", 0.5) * 100
-                    res_box_html = (
-                        f'<div style="text-align: right;">'
-                        f'<div style="font-size: 0.72rem; color: #8ba797; font-weight: 700;">PROBABILIDAD ORÁCULO</div>'
-                        f'<div style="font-size: 1.25rem; font-weight: 900; color: #00e676;">{prob_hit:.1f}%</div>'
-                        f'</div>'
-                    )
-
-                pick_box_html = (
-                    f'<div class="pick-box">'
-                    f'<div style="min-width: 0; flex: 1;">'
-                    f'<div class="pick-title">Recomendación Oficial ({p.get("pick_mercado")})<span style="color:#ffffff;font-weight:700;">{momio_pick_str}</span></div>'
-                    f'<div class="pick-sel">{p.get("pick_seleccion")}</div>'
-                    f'<div style="font-size: 0.82rem; color: #8ba797; margin-top: 0.2rem;">{p.get("pick_detalle", "")}</div>'
-                    f'</div>'
-                    f'{res_box_html}'
+                prob_hit = float(pick_data.get("probabilidad", 0.5)) * 100
+                res_box_html = (
+                    f'<div style="text-align: right;">'
+                    f'<div style="font-size: 0.72rem; color: #8ba797; font-weight: 700;">PROBABILIDAD ORÁCULO</div>'
+                    f'<div style="font-size: 1.25rem; font-weight: 900; color: #00e676;">{prob_hit:.1f}%</div>'
                     f'</div>'
                 )
 
-                st.markdown(pick_box_html, unsafe_allow_html=True)
+            pick_box_html = (
+                f'<div class="pick-box">'
+                f'<div style="min-width: 0; flex: 1;">'
+                f'<div class="pick-title">Recomendación Oficial ({pick_data.get("mercado")})<span style="color:#ffffff;font-weight:700;">{momio_pick_str}</span></div>'
+                f'<div class="pick-sel">{pick_data.get("seleccion")}</div>'
+                f'<div style="font-size: 0.82rem; color: #8ba797; margin-top: 0.2rem;">{pick_data.get("detalle", "")}</div>'
+                f'</div>'
+                f'{res_box_html}'
+                f'</div>'
+            )
 
-                with st.expander("Ver detalles de cuotas y desglose"):
-                    col_d1, col_d2 = st.columns(2)
-                    with col_d1:
-                        st.write("**Cuotas DraftKings Moneyline:**")
-                        st.write(f"- {p.get('equipo_local')} (Local): {p.get('moneyline_local')} ({p.get('ml_local_dec')})")
-                        st.write(f"- Empate: {p.get('moneyline_empate')} ({p.get('ml_empate_dec')})")
-                        st.write(f"- {p.get('equipo_visita')} (Visita): {p.get('moneyline_visita')} ({p.get('ml_visita_dec')})")
-                    with col_d2:
-                        st.write("**Cuotas DraftKings Totales:**")
-                        st.write(f"- OVER {p.get('linea_total', 2.5):g}: {p.get('over_momio')} ({p.get('over_momio_dec')})")
-                        st.write(f"- UNDER {p.get('linea_total', 2.5):g}: {p.get('under_momio')} ({p.get('under_momio_dec')})")
-                        st.write(f"- Edge del Pick: **+{p.get('pick_edge', 0.0)*100:.1f}%**")
+            st.markdown(pick_box_html, unsafe_allow_html=True)
 
-with tab_historial:
+            with st.expander("Ver detalles de cuotas y desglose"):
+                col_d1, col_d2 = st.columns(2)
+                with col_d1:
+                    st.write("**Cuotas DraftKings Moneyline:**")
+                    st.write(f"- {p.get('equipo_local')} (Local): {p.get('moneyline_local')} ({p.get('ml_local_dec')})")
+                    st.write(f"- Empate: {p.get('moneyline_empate')} ({p.get('ml_empate_dec')})")
+                    st.write(f"- {p.get('equipo_visita')} (Visita): {p.get('moneyline_visita')} ({p.get('ml_visita_dec')})")
+                with col_d2:
+                    st.write("**Cuotas DraftKings Totales:**")
+                    st.write(f"- OVER {p.get('linea_total', 2.5):g}: {p.get('over_momio')} ({p.get('over_momio_dec')})")
+                    st.write(f"- UNDER {p.get('linea_total', 2.5):g}: {p.get('under_momio')} ({p.get('under_momio_dec')})")
+                    st.write(f"- Edge del Pick: **+{pick_data.get('edge', 0.0)*100:.1f}%**")
+
+
+def render_historial_futbol(mercado_activo: str):
+    """Renderiza la auditoría y rendimiento histórico de selecciones de fútbol."""
     st.subheader("Auditoría Histórica de Selecciones Oficiales")
     df_hist = cargar_historial_futbol()
     if df_hist.empty:
         st.info("Aún no hay historial de partidos liquidados en el registro de fútbol mundial.")
+        return
+
+    df_filtrado = performance_filters(
+        df_hist,
+        "fecha",
+        "hist_futbol_tab",
+        probability_col="probabilidad",
+        result_col="resultado",
+    )
+    if df_filtrado.empty:
+        st.warning("No hay registros en el rango seleccionado.")
+        return
+
+    # Filtrar por mercado activo si hay coincidencias
+    if "Totales" in mercado_activo:
+        df_mercado = df_filtrado[df_filtrado["pick_mercado"].astype(str).str.contains("Total|Over|Under", case=False, na=False)]
+    elif "Moneyline" in mercado_activo:
+        df_mercado = df_filtrado[df_filtrado["pick_mercado"].astype(str).str.contains("Moneyline|1X2", case=False, na=False)]
     else:
-        df_filtrado = performance_filters(
-            df_hist,
-            "fecha",
-            "hist_futbol_tab",
-            probability_col="probabilidad",
-            result_col="resultado",
-        )
-        if not df_filtrado.empty:
-            total_picks = len(df_filtrado)
-            ganados = sum(df_filtrado["resultado"] == "GANADA")
-            perdidos = sum(df_filtrado["resultado"] == "PERDIDA")
-            resueltos = ganados + perdidos
-            win_rate = (ganados / resueltos * 100) if resueltos > 0 else 0.0
-            pnl_tot = sum(df_filtrado.get("beneficio_unidades", 0.0).fillna(0))
+        df_mercado = df_filtrado
 
-            hc1, hc2, hc3, hc4 = st.columns(4)
-            hc1.metric("Picks Auditados", total_picks)
-            hc2.metric("Tasa de Acierto", f"{win_rate:.1f}%", f"{ganados}W - {perdidos}L")
-            hc3.metric("Beneficio Acumulado", f"{pnl_tot:+.2f} u")
-            hc4.metric("ROI Estimado", f"{(pnl_tot/max(resueltos, 1))*100:+.1f}%")
+    df_mostrar = df_mercado if not df_mercado.empty else df_filtrado
 
-            st.dataframe(
-                df_filtrado[[
-                    "fecha_cdmx", "liga_nombre", "partido", "pick_mercado",
-                    "pick_seleccion", "pick_cuota", "pick_probabilidad", "resultado", "beneficio_unidades"
-                ]].rename(columns={
-                    "fecha_cdmx": "Fecha", "liga_nombre": "Liga", "partido": "Partido",
-                    "pick_mercado": "Mercado", "pick_seleccion": "Pick", "pick_cuota": "Cuota",
-                    "pick_probabilidad": "Prob", "resultado": "Estado", "beneficio_unidades": "Unidades"
-                }),
-                use_container_width=True,
-                hide_index=True,
-            )
-        else:
-            st.warning("No hay registros en el rango seleccionado.")
+    total_picks = len(df_mostrar)
+    ganados = sum(df_mostrar["resultado"] == "GANADA")
+    perdidos = sum(df_mostrar["resultado"] == "PERDIDA")
+    resueltos = ganados + perdidos
+    win_rate = (ganados / resueltos * 100) if resueltos > 0 else 0.0
+    pnl_tot = sum(df_mostrar.get("beneficio_unidades", 0.0).fillna(0))
 
+    hc1, hc2, hc3, hc4 = st.columns(4)
+    hc1.metric("Picks Auditados", total_picks)
+    hc2.metric("Tasa de Acierto", f"{win_rate:.1f}%", f"{ganados}W - {perdidos}L")
+    hc3.metric("Beneficio Acumulado", f"{pnl_tot:+.2f} u")
+    hc4.metric("ROI Estimado", f"{(pnl_tot/max(resueltos, 1))*100:+.1f}%")
+
+    st.markdown("<div style='margin-bottom: 0.8rem;'></div>", unsafe_allow_html=True)
+
+    columnas_mostrar = [
+        "fecha_cdmx", "liga_nombre", "partido", "pick_mercado",
+        "pick_seleccion", "pick_cuota", "pick_probabilidad", "resultado", "beneficio_unidades"
+    ]
+    renombres = {
+        "fecha_cdmx": "Fecha", "liga_nombre": "Liga", "partido": "Partido",
+        "pick_mercado": "Mercado", "pick_seleccion": "Pick", "pick_cuota": "Cuota",
+        "pick_probabilidad": "Prob", "resultado": "Estado", "beneficio_unidades": "Unidades"
+    }
+    cols_existentes = [c for c in columnas_mostrar if c in df_mostrar.columns]
+    st.dataframe(
+        df_mostrar[cols_existentes].rename(columns=renombres),
+        use_container_width=True,
+        hide_index=True,
+    )
+
+
+# ==========================================================
+# ESTRUCTURA PRINCIPAL HOMOLOGADA A MLB, NFL Y NBA
+# ==========================================================
+
+hora_actual_cdmx = datetime.now(ZONA_CDMX).strftime("%H:%M")
+
+# Header de navegación y marca
+st.markdown(
+    f"""<div class="futbol-shell">
+<div class="futbol-brand">
+<span class="futbol-logo">⚽</span>
+<div>
+<div style="font-size: 1.05rem; font-weight: 900; color: #ffffff;">FÚTBOL MUNDIAL <span class="futbol-accent">ORÁCULO AI</span></div>
+<div class="futbol-status">8 Ligas Principales · Cuotas DraftKings · Modelo Bivariado Calibrado</div>
+</div>
+</div>
+<div style="text-align: right;">
+<span style="background: #092416; color: #00e676; padding: 0.3rem 0.75rem; border-radius: 8px; font-size: 0.78rem; font-weight: 800; border: 1px solid #00e676;">
+🕒 {hora_actual_cdmx} CDMX
+</span>
+</div>
+</div>""",
+    unsafe_allow_html=True,
+)
+
+# Carga de datos de partidos
+if not RUTA_PREDICCIONES_JSON.exists():
+    with st.spinner("Generando predicciones iniciales para las 8 ligas..."):
+        predicciones = predecir_futbol_mundial(force_refresh=True)
+else:
+    try:
+        with open(RUTA_PREDICCIONES_JSON, "r", encoding="utf-8") as f:
+            predicciones = json.load(f)
+    except Exception:
+        predicciones = predecir_futbol_mundial(force_refresh=False)
+
+if not predicciones:
+    st.info("⚽ No hay partidos registrados en la cartelera. Pulsa 'Actualizar Cuotas' para consultar ESPN y DraftKings.")
+    st.stop()
+
+# Nivel 1: Selector principal de mercado
+mercado = st.radio(
+    "Mercado Fútbol",
+    ["Totales (Over/Under)", "Moneyline (1X2)"],
+    horizontal=True,
+    label_visibility="collapsed",
+    key="futbol_mercado_principal",
+)
+
+# Nivel 2: Selector interno de sección (abajo de mercado)
+seccion = st.radio(
+    "Sección Fútbol",
+    ["Picks de hoy", "Rendimiento e Historial"],
+    horizontal=True,
+    label_visibility="collapsed",
+    key="futbol_seccion",
+)
+
+# Nivel 3: Barra superior de 2 botones al 50%/50% en estilo dark glassmorphic
+st.markdown("<div style='margin-bottom: 0.8rem;'></div>", unsafe_allow_html=True)
+col1, col2 = st.columns(2, gap="medium")
+
+with col1:
+    if st.button("🏁 Liquidar Partidos", key="btn_liq_futbol", type="primary", use_container_width=True, help="Consulta marcadores finales en ESPN, evalúa apuestas concluidas y registra el PnL auditado."):
+        with st.spinner("Evaluando partidos concluidos y liquidando picks de fútbol..."):
+            res = liquidar_partidos_pendientes_futbol()
+            st.success(f"✅ Evaluados: {res['resueltas']} picks | Ganadas: {res['ganadas']} | PnL: {res['unidades_netas']:+.2f} u")
+            st.rerun()
+
+with col2:
+    if st.button("🔄 Actualizar Cuotas DraftKings", key="btn_act_cuotas_futbol", type="primary", use_container_width=True, help="Descarga los partidos más recientes de ESPN y las líneas oficiales de DraftKings para todas las ligas."):
+        with st.spinner("Descargando partidos y momios oficiales de DraftKings para todas las ligas..."):
+            predecir_futbol_mundial(force_refresh=True)
+            st.success("✅ Cuotas y cartelera actualizadas desde DraftKings.")
+            st.rerun()
+
+st.markdown("<div style='margin-bottom: 1.1rem;'></div>", unsafe_allow_html=True)
+
+# Nivel 4 y 5: Renderizado de la sección seleccionada
+if seccion == "Rendimiento e Historial":
+    render_historial_futbol(mercado)
+else:
+    render_cartelera_futbol(predicciones, mercado)

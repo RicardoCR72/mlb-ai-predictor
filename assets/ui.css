@@ -282,6 +282,20 @@ h1{letter-spacing:-.035em}h2,h3{letter-spacing:-.02em}
 .stApp .st-key-btn_act_cuotas_nba button:hover {
  background:#1a2535!important;color:#fff4f0!important;border-color:#ff6b35!important;box-shadow:0 0 10px rgba(255,107,53,0.3)!important
 }
+[class*="st-key-futbol_"] [role="radiogroup"] label:has(input:checked),
+.st-key-futbol_mercado_principal [role="radiogroup"] label:has(input:checked),
+.st-key-futbol_seccion [role="radiogroup"] label:has(input:checked){
+ background:#00e676!important;color:#03140a!important;font-weight:850!important;box-shadow:0 0 14px rgba(0,230,118,0.45)!important
+}
+[class*="st-key-futbol_"] [role="radiogroup"] label:has(input:checked) p,
+.st-key-futbol_mercado_principal [role="radiogroup"] label:has(input:checked) p,
+.st-key-futbol_seccion [role="radiogroup"] label:has(input:checked) p {
+ color:#03140a!important;font-weight:850!important
+}
+.stApp .st-key-btn_liq_futbol button:hover,
+.stApp .st-key-btn_act_cuotas_futbol button:hover {
+ background:#122b1e!important;color:#f0fff4!important;border-color:#00e676!important;box-shadow:0 0 10px rgba(0,230,118,0.3)!important
+}
 @media(max-width:760px){
  .block-container{padding-left:.8rem!important;padding-right:.8rem!important;padding-top:.8rem!important}
  [data-testid="stHorizontalBlock"]{flex-direction:column!important;gap:.7rem!important}
