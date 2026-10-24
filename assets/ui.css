@@ -184,9 +184,24 @@
 .block-container{max-width:1450px;padding-bottom:2rem}
 h1{letter-spacing:-.035em}h2,h3{letter-spacing:-.02em}
 [data-testid="stMetric"]{border:1px solid #263143;border-radius:12px;padding:.65rem .8rem;background:#111720}
-[data-testid="stRadio"] [role="radiogroup"]{display:flex;gap:.4rem;width:fit-content;max-width:100%;padding:.35rem;margin-bottom:1rem;border:1px solid #202938;border-radius:11px;background:#0d131d}
-[data-testid="stRadio"] [role="radiogroup"] label{flex:1;justify-content:center;padding:.42rem .8rem;border-radius:8px}
-[data-testid="stRadio"] [role="radiogroup"] label:has(input:checked){background:#b7ff3c;color:#071006;font-weight:850}
+[data-testid="stRadio"] [role="radiogroup"] [role="radio"],
+[data-testid="stRadio"] [role="radiogroup"] label > div:first-child:not(:has(p)) {
+ display: none !important;
+}
+[data-testid="stRadio"] [role="radiogroup"]{display:flex;gap:.4rem;width:fit-content;max-width:100%;padding:.32rem;margin-bottom:.85rem;border:1px solid #1c2b42;border-radius:11px;background:#09121f}
+[data-testid="stRadio"] [role="radiogroup"] label{flex:1;justify-content:center;padding:.42rem 1.05rem;border-radius:8px;cursor:pointer;color:#8295b3;font-weight:650;transition:all 0.15s ease}
+[data-testid="stRadio"] [role="radiogroup"] label:hover{color:#f1f5f9;background:rgba(255,255,255,0.06)}
+[data-testid="stRadio"] [role="radiogroup"] label:has(input:checked){background:#00e5ff;color:#040d1a;font-weight:850;box-shadow:0 0 14px rgba(0,229,255,0.45)}
+.st-key-mlb_section [role="radiogroup"] label:has(input:checked),
+.st-key-mlb_today_market_sel [role="radiogroup"] label:has(input:checked),
+.st-key-mlb_hist_market_sel [role="radiogroup"] label:has(input:checked){
+ background:#00e5ff!important;color:#040d1a!important;font-weight:850!important;box-shadow:0 0 14px rgba(0,229,255,0.45)!important
+}
+.st-key-nfl_vista_principal [role="radiogroup"] label:has(input:checked),
+.st-key-nfl_totales_seccion [role="radiogroup"] label:has(input:checked),
+.st-key-nfl_props_seccion [role="radiogroup"] label:has(input:checked){
+ background:#b7ff3c!important;color:#071006!important;font-weight:850!important;box-shadow:0 0 14px rgba(183,255,60,0.45)!important
+}
 @media(max-width:760px){
  .block-container{padding-left:.8rem!important;padding-right:.8rem!important;padding-top:.8rem!important}
  [data-testid="stHorizontalBlock"]{flex-direction:column!important;gap:.7rem!important}
@@ -226,8 +241,11 @@ h1{letter-spacing:-.035em}h2,h3{letter-spacing:-.02em}
 .stApp [data-testid="stButton"] button,.stApp [data-testid="stDownloadButton"] button,.stApp [data-testid="stFormSubmitButton"] button,.stApp [data-testid="stPageLink"] a{
  background:#111720!important;color:#c6d1df!important;border:1px solid #45546a!important;border-radius:9px!important;min-height:44px; font-weight:650!important
 }
-.stApp [class*="st-key-actualizacion_manual_nfl"] button,.stApp .st-key-nfl_predicciones_creditos button,.stApp .st-key-parlay_reload button,.stApp .st-key-comparison_refresh button,.stApp [data-testid="stFormSubmitButton"] button[kind="primary"]{
+.stApp [class*="st-key-actualizacion_manual_nfl"] button,.stApp .st-key-nfl_preparar_predicciones button,.stApp .st-key-nfl_predicciones_creditos button,.stApp .st-key-parlay_reload button,.stApp .st-key-comparison_refresh button,.stApp [data-testid="stFormSubmitButton"] button[kind="primary"]{
  background:#b7ff3c!important;color:#071006!important;border-color:#b7ff3c!important
+}
+.stApp [class*="st-key-actualizacion_manual_nfl"] button *,.stApp .st-key-nfl_preparar_predicciones button *,.stApp .st-key-nfl_predicciones_creditos button * {
+ color:#071006!important;font-weight:850!important
 }
 .stApp [class*="st-key-actualizacion_manual_liga_mx"] button {
  background:#00e676!important;color:#04150b!important;border-color:#00e676!important;box-shadow:0 4px 14px rgba(0, 230, 118, 0.4)!important

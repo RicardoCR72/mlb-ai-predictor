@@ -57,47 +57,51 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# Toolbar de acciones compacta en la parte superior
-c_desc, c_btn1, c_btn2 = st.columns([2.5, 1, 1], gap="small")
-with c_desc:
-    st.caption("⚡ Actualización de cuotas DraftKings y liquidación oficial de partidos")
-with c_btn1:
-    render_update_button("mlb", compact=True)
-with c_btn2:
-    render_generate_mlb()
+# Navegación y mercado alineados en una sola fila limpia
+col_nav, col_mkt = st.columns([1.1, 1.1], gap="medium")
+with col_nav:
+    seccion_guardada = st.session_state.get("mlb_section", "Picks de hoy")
+    idx_defecto = 1 if seccion_guardada == "Rendimiento" else 0
+    view = st.radio(
+        "Sección MLB",
+        ["Picks de hoy", "Rendimiento"],
+        index=idx_defecto,
+        horizontal=True,
+        label_visibility="collapsed",
+        key="mlb_section",
+    )
 
-st.markdown("<div style='margin-bottom: 0.75rem;'></div>", unsafe_allow_html=True)
-
-# Navegación estandarizada
-seccion_guardada = st.session_state.get("mlb_section", "Picks de hoy")
-idx_defecto = 1 if seccion_guardada == "Rendimiento" else 0
-
-view = st.radio(
-    "Sección MLB",
-    ["Picks de hoy", "Rendimiento"],
-    index=idx_defecto,
-    horizontal=True,
-    label_visibility="collapsed",
-    key="mlb_section",
-)
-
-if view == "Rendimiento":
-    col_sub1, col_sub2 = st.columns([1, 3])
-    with col_sub1:
-        mercado_hist = st.radio(
+with col_mkt:
+    if view == "Rendimiento":
+        mercado = st.radio(
             "Mercado de rendimiento",
             ["Moneyline", "Totales"],
             horizontal=True,
+            label_visibility="collapsed",
             key="mlb_hist_market_sel",
         )
-    render_history("MLB", mercado_hist, key=f"mlb_{mercado_hist.lower()}_perf")
-else:
-    col_sub1, col_sub2 = st.columns([1, 3])
-    with col_sub1:
-        mercado_hoy = st.radio(
+    else:
+        mercado = st.radio(
             "Mercado",
             ["Moneyline", "Totales"],
             horizontal=True,
+            label_visibility="collapsed",
             key="mlb_today_market_sel",
         )
-    render_mlb_today(mercado_hoy)
+
+# Toolbar de acciones compacta: botones con ancho adecuado para no truncar texto
+with st.container():
+    c_btn1, c_btn2, c_desc = st.columns([1.2, 1.2, 1.6], gap="small")
+    with c_btn1:
+        render_update_button("mlb", compact=True)
+    with c_btn2:
+        render_generate_mlb()
+    with c_desc:
+        st.caption("⚡ Sincronización oficial con DraftKings y liquidación de apuestas.")
+
+st.markdown("<div style='margin-bottom: 0.85rem;'></div>", unsafe_allow_html=True)
+
+if view == "Rendimiento":
+    render_history("MLB", mercado, key=f"mlb_{mercado.lower()}_perf")
+else:
+    render_mlb_today(mercado)
