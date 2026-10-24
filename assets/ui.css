@@ -254,12 +254,16 @@ h1{letter-spacing:-.035em}h2,h3{letter-spacing:-.02em}
 .st-key-mlb_hist_market_sel [role="radiogroup"] label:has(input:checked) p {
  color:#040d1a!important;font-weight:850!important
 }
+[class*="st-key-nfl_"] [role="radiogroup"] label:has(input:checked),
 .st-key-nfl_vista_principal [role="radiogroup"] label:has(input:checked),
+.st-key-nfl_ml_subvista [role="radiogroup"] label:has(input:checked),
 .st-key-nfl_totales_seccion [role="radiogroup"] label:has(input:checked),
 .st-key-nfl_props_seccion [role="radiogroup"] label:has(input:checked){
  background:#b7ff3c!important;color:#071006!important;font-weight:850!important;box-shadow:0 0 14px rgba(183,255,60,0.45)!important
 }
+[class*="st-key-nfl_"] [role="radiogroup"] label:has(input:checked) p,
 .st-key-nfl_vista_principal [role="radiogroup"] label:has(input:checked) p,
+.st-key-nfl_ml_subvista [role="radiogroup"] label:has(input:checked) p,
 .st-key-nfl_totales_seccion [role="radiogroup"] label:has(input:checked) p,
 .st-key-nfl_props_seccion [role="radiogroup"] label:has(input:checked) p {
  color:#071006!important;font-weight:850!important

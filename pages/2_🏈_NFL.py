@@ -67,28 +67,26 @@ if vista == "Moneyline (Ganador Directo)":
     from nfl.ui_moneyline import render
     render()
 elif "Totales" in vista:
-    # Toolbar de acciones con ancho suficiente para evitar truncamiento
-    col_btn1, col_btn2, col_info = st.columns([1.2, 1.2, 1.6], gap="small")
-    with col_btn1:
+    # Toolbar de acciones (2 columnas simétricas idénticas a Moneyline)
+    st.markdown("<div style='margin-bottom: 0.8rem;'></div>", unsafe_allow_html=True)
+    col1, col2 = st.columns(2, gap="medium")
+    with col1:
         render_update_button("nfl_totales", compact=True)
-    with col_btn2:
+    with col2:
         render_prediction_button()
-    with col_info:
-        st.caption("⚡ Sincronización oficial de líneas de totales DraftKings.")
-    st.markdown("<div style='margin-bottom: 0.65rem;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='margin-bottom: 1.1rem;'></div>", unsafe_allow_html=True)
 
     from nfl.ui_totales import render
     render()
 else:
-    # Toolbar de acciones con ancho suficiente para evitar truncamiento
-    col_btn1, col_btn2, col_info = st.columns([1.2, 1.2, 1.6], gap="small")
-    with col_btn1:
+    # Toolbar de acciones (2 columnas simétricas idénticas a Moneyline)
+    st.markdown("<div style='margin-bottom: 0.8rem;'></div>", unsafe_allow_html=True)
+    col1, col2 = st.columns(2, gap="medium")
+    with col1:
         render_update_button("nfl_props", compact=True)
-    with col_btn2:
+    with col2:
         render_prediction_button()
-    with col_info:
-        st.caption("⚡ Proyecciones individuales de props y análisis de lesiones.")
-    st.markdown("<div style='margin-bottom: 0.65rem;'></div>", unsafe_allow_html=True)
+    st.markdown("<div style='margin-bottom: 1.1rem;'></div>", unsafe_allow_html=True)
 
     from nfl.ui_props import render
     render()

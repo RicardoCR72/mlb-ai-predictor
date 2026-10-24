@@ -66,15 +66,14 @@ mercado = st.radio(
     key="mlb_mercado_principal",
 )
 
-# Nivel 2: Barra de botones de acción
-col_btn1, col_btn2, col_info = st.columns([1.2, 1.2, 1.6], gap="small")
-with col_btn1:
+# Nivel 2: Barra superior de botones idéntica a NFL (2 columnas iguales)
+st.markdown("<div style='margin-bottom: 0.8rem;'></div>", unsafe_allow_html=True)
+col1, col2 = st.columns(2, gap="medium")
+with col1:
     render_update_button("mlb", compact=True)
-with col_btn2:
+with col2:
     render_generate_mlb()
-with col_info:
-    st.caption("⚡ Sincronización oficial con DraftKings y liquidación de apuestas.")
-st.markdown("<div style='margin-bottom: 0.65rem;'></div>", unsafe_allow_html=True)
+st.markdown("<div style='margin-bottom: 1.1rem;'></div>", unsafe_allow_html=True)
 
 # Nivel 3: Selector interno de sección (idéntico a NFL en disposición horizontal)
 seccion_guardada = st.session_state.get("mlb_section", "Picks de hoy")
