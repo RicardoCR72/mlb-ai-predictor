@@ -42,9 +42,6 @@ def render_mlb_today(market):
     st.markdown("<div style='margin-bottom: 1.25rem;'></div>", unsafe_allow_html=True)
 
     if frame.empty:state_message('No hay picks publicados para partidos de hoy sin iniciar.');return
-    minimum=st.slider('Confianza mínima (%)',0,100,50,key='mlb_today_'+market)
-    frame=frame[frame.probabilidad.ge(minimum/100)]
-    if frame.empty:state_message('No hay picks que cumplan el filtro.',kind='filters');return
     shown=frame.sort_values('probabilidad',ascending=False)
     for start in range(0,len(shown),2):
         columns=st.columns(2,gap='medium')
