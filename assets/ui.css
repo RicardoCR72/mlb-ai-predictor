@@ -307,11 +307,8 @@ h1{letter-spacing:-.035em}h2,h3{letter-spacing:-.02em}
 .stApp [data-testid="stButton"] button,.stApp [data-testid="stDownloadButton"] button,.stApp [data-testid="stFormSubmitButton"] button,.stApp [data-testid="stPageLink"] a{
  background:#111720!important;color:#c6d1df!important;border:1px solid #45546a!important;border-radius:9px!important;min-height:44px; font-weight:650!important
 }
-.stApp [class*="st-key-actualizacion_manual_nfl"] button,.stApp .st-key-nfl_preparar_predicciones button,.stApp .st-key-nfl_predicciones_creditos button,.stApp .st-key-parlay_reload button,.stApp .st-key-comparison_refresh button,.stApp [data-testid="stFormSubmitButton"] button[kind="primary"]{
+.stApp .st-key-parlay_reload button,.stApp .st-key-comparison_refresh button,.stApp [data-testid="stFormSubmitButton"] button[kind="primary"]{
  background:#b7ff3c!important;color:#071006!important;border-color:#b7ff3c!important
-}
-.stApp [class*="st-key-actualizacion_manual_nfl"] button *,.stApp .st-key-nfl_preparar_predicciones button *,.stApp .st-key-nfl_predicciones_creditos button * {
- color:#071006!important;font-weight:850!important
 }
 .stApp [class*="st-key-actualizacion_manual_liga_mx"] button {
  background:#00e676!important;color:#04150b!important;border-color:#00e676!important;box-shadow:0 4px 14px rgba(0, 230, 118, 0.4)!important

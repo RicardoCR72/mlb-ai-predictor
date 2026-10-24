@@ -368,6 +368,19 @@ def render():
         label_visibility="collapsed",
         key="nfl_props_seccion",
     )
+
+    # Barra de botones idéntica a Moneyline (2 columnas)
+    from core.ui_actualizacion import render_update_button
+    from core.ui_nfl_creditos import render_prediction_button
+
+    st.markdown("<div style='margin-bottom: 0.8rem;'></div>", unsafe_allow_html=True)
+    col1, col2 = st.columns(2, gap="medium")
+    with col1:
+        render_update_button("nfl_props", compact=True)
+    with col2:
+        render_prediction_button()
+    st.markdown("<div style='margin-bottom: 1.1rem;'></div>", unsafe_allow_html=True)
+
     if seccion_props == "📈 Rendimiento":
         from core.ui_historial_publicado import render_history
         render_history("NFL", None, key='nfl_prop_perf')

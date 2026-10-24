@@ -54,7 +54,7 @@ def render_job(service):
 
 def action_button(service,label,*,key,help=None,payload=None,disabled=False,details_on_click=False,kind=None):
     btn_type = kind if kind else ('secondary' if service.startswith('mlb') else ('primary' if service.endswith('predictions') else 'secondary'))
-    clicked=st.button(label,key=key,help=help,disabled=disabled,type=btn_type)
+    clicked=st.button(label,key=key,help=help,disabled=disabled,type=btn_type,use_container_width=True)
     visibility_key = '_show_update_details_' + service
     if clicked:
         if details_on_click:
@@ -65,9 +65,8 @@ def action_button(service,label,*,key,help=None,payload=None,disabled=False,deta
         except Exception:st.caption('No se pudo registrar la solicitud. Revisa la conexión.')
     if not details_on_click or st.session_state.get(visibility_key, False):
         render_job(service)
-        if details_on_click and st.button('Ocultar detalles', key=key+'_hide'):
-            st.session_state[visibility_key] = False
-            st.rerun()
+        if details_on_click:
+            st.button('Ocultar detalles', key=key+'_hide', on_click=lambda: st.session_state.update({visibility_key: False}))
 
 
 def render_generate_mlb():

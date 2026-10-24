@@ -67,26 +67,8 @@ if vista == "Moneyline (Ganador Directo)":
     from nfl.ui_moneyline import render
     render()
 elif "Totales" in vista:
-    # Toolbar de acciones (2 columnas simétricas idénticas a Moneyline)
-    st.markdown("<div style='margin-bottom: 0.8rem;'></div>", unsafe_allow_html=True)
-    col1, col2 = st.columns(2, gap="medium")
-    with col1:
-        render_update_button("nfl_totales", compact=True)
-    with col2:
-        render_prediction_button()
-    st.markdown("<div style='margin-bottom: 1.1rem;'></div>", unsafe_allow_html=True)
-
     from nfl.ui_totales import render
     render()
 else:
-    # Toolbar de acciones (2 columnas simétricas idénticas a Moneyline)
-    st.markdown("<div style='margin-bottom: 0.8rem;'></div>", unsafe_allow_html=True)
-    col1, col2 = st.columns(2, gap="medium")
-    with col1:
-        render_update_button("nfl_props", compact=True)
-    with col2:
-        render_prediction_button()
-    st.markdown("<div style='margin-bottom: 1.1rem;'></div>", unsafe_allow_html=True)
-
     from nfl.ui_props import render
     render()

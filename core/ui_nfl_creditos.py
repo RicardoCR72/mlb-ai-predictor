@@ -11,7 +11,7 @@ def consultar(day, todos=False):
 
 def render_prediction_button():
     opened = '_nfl_prediction_panel'
-    if st.button('Actualizar predicciones NFL', key='nfl_preparar_predicciones'):
+    if st.button('Actualizar predicciones NFL', key='nfl_preparar_predicciones', use_container_width=True):
         st.session_state[opened] = not st.session_state.get(opened, False)
     if not st.session_state.get(opened, False):
         return
