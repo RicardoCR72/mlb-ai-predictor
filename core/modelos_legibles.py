@@ -3,7 +3,7 @@ import re
 import pandas as pd
 
 KNOWN={'MLB V4':'Moneyline MLB · V4', 'totales_v2_seleccion_automatica':'Totales NFL · V2',
-       'props_nfl_v2':'Props NFL · V2'}
+       'props_nfl_v2':'Props NFL · V2', 'Poisson Bivariado':'Fútbol Mundial · Poisson Bivariado'}
 
 
 def model_names(frame):

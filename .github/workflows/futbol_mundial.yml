@@ -1,0 +1,50 @@
+name: Actualizar Fútbol Mundial (8 Ligas)
+
+on:
+  schedule:
+    # Diario a las 11:30 UTC (05:30 CDMX)
+    - cron: '30 11 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: actualizar-futbol-mundial
+  cancel-in-progress: false
+
+jobs:
+  futbol-mundial:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Instalar dependencias
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas numpy scipy requests pyarrow
+
+      - name: Ingestión, predicciones y liquidación Fútbol Mundial
+        run: python futbol/predecir_jornada.py
+
+      - name: Guardar y subir predicciones actualizadas
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/futbol/
+          if git diff --staged --quiet; then
+            echo "Sin cambios en predicciones de fútbol."
+          else
+            git commit -m "chore(futbol): actualizar predicciones y resultados 8 ligas $(date -u +%Y-%m-%d)"
+            git push
+          fi

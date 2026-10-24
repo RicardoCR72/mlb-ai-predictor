@@ -18,7 +18,24 @@ def load_comparison():
     try:
         conn=get_db_connection()
         reader=runpy.run_path(str(Path(__file__).with_name('comparador.py')),run_name='comparison_reader')
-        return reader['read_models'](conn)
+        frame,errors = reader['read_models'](conn)
+        try:
+            from futbol.predecir_jornada import cargar_historial_futbol
+            from core.comparador import normalize
+            df_fut = cargar_historial_futbol()
+            if not df_fut.empty:
+                df_fut = df_fut.rename(columns={
+                    'id_evento': 'id_partido_futbol',
+                    'pick_mercado': 'mercado',
+                    'pick_seleccion': 'seleccion',
+                    'pick_cuota': 'cuota',
+                })
+                df_fut['modelo'] = 'Poisson Bivariado'
+                fut_norm = normalize(df_fut, sport='Fútbol', market=None, identity=['id_partido_futbol'], american=True, verified=True)
+                frame = pd.concat([frame, fut_norm], ignore_index=True)
+        except Exception:
+            pass
+        return frame,errors
     except Exception:return pd.DataFrame(columns=COLUMNS),['Datos guardados']
     finally:
         if conn is not None:conn.close()

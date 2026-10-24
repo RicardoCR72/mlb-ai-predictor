@@ -122,6 +122,32 @@ def resultados_nfl_publicos(fecha):
             for row in games.itertuples(index=False)]
 
 
+def futbol_mundial_resumen():
+    """Obtiene resultados de ayer y picks destacados de hoy para Fútbol Mundial (8 Ligas)."""
+    ruta = RAIZ / "data" / "futbol" / "predicciones_futbol_mundial.json"
+    if not ruta.exists():
+        return [], []
+    try:
+        with open(ruta, "r", encoding="utf-8") as f:
+            preds = json.load(f)
+        hoy = datetime.now(MX).date().isoformat()
+        ayer = (datetime.now(MX).date() - timedelta(days=1)).isoformat()
+
+        finalizados = []
+        picks_hoy = []
+        for p in preds:
+            fecha_p = p.get("fecha_cdmx")
+            if fecha_p == ayer and "FINAL" in str(p.get("estado", "")).upper():
+                finalizados.append(f"{p.get('liga_bandera','')} {p.get('equipo_visita')} {p.get('marcador_visita')}–{p.get('marcador_local')} {p.get('equipo_local')}")
+            if fecha_p == hoy and p.get("confianza") == "ALTA":
+                momio = f" ({p.get('pick_cuota')})" if p.get("pick_cuota") else ""
+                picks_hoy.append(f"{p.get('liga_bandera','')} {p.get('partido')}: {p.get('pick_seleccion')}{momio} [Prob: {p.get('pick_probabilidad', 0)*100:.0f}%]")
+        return finalizados, picks_hoy
+    except Exception as exc:
+        print("Fútbol mundial sin datos:", exc)
+        return [], []
+
+
 def section(title, rows):
     if rows is None:
         return f"{title}: no se pudo consultar."
@@ -130,14 +156,17 @@ def section(title, rows):
     return f"{title}: {len(rows)} finalizados\n" + "\n".join(f"• {row}" for row in rows)
 
 
-def build_report(mlb, nfl, soccer, quota, yesterday):
-    return "\n\n".join([
+def build_report(mlb, nfl, soccer, futbol_picks, quota, yesterday):
+    sections = [
         f"📊 Resultados del {yesterday:%d/%m/%Y}",
         section("⚾ MLB", mlb),
         section("🏈 NFL", nfl),
-        section("⚽ Liga MX", soccer),
-        f"💳 The Odds API: {quota}",
-    ])
+        section("⚽ Fútbol Mundial (Ayer)", soccer),
+    ]
+    if futbol_picks:
+        sections.append("🎯 Picks Oficiales Fútbol Hoy (Alta Confianza):\n" + "\n".join(f"• {pick}" for pick in futbol_picks[:6]))
+    sections.append(f"💳 The Odds API: {quota}")
+    return "\n\n".join(sections)
 
 
 def send_telegram(message, token, chat_id):
@@ -183,10 +212,15 @@ def main():
         except Exception as error:
             print("Calendario NFL no disponible:", type(error).__name__)
 
+    fut_ayer, fut_picks_hoy = futbol_mundial_resumen()
+
     try:
         soccer = liga_mx_resultados(yesterday, os.environ.get("API_FOOTBALL_KEY"))
     except Exception as error:
-        print("Liga MX sin datos:", type(error).__name__)
+        soccer = fut_ayer
+
+    if not soccer and fut_ayer:
+        soccer = fut_ayer
 
     try:
         quota = saldo_odds(os.environ.get("ODDS_API_KEY") or os.environ.get("THE_ODDS_API_KEY"))
@@ -194,7 +228,7 @@ def main():
         print("Saldo no disponible:", type(error).__name__)
         quota = "no disponible (error al consultar la API)"
 
-    message = build_report(mlb, nfl, soccer, quota, yesterday)
+    message = build_report(mlb, nfl, soccer, fut_picks_hoy, quota, yesterday)
     send_telegram(message, os.environ.get("TELEGRAM_BOT_TOKEN"),
                   os.environ.get("TELEGRAM_CHAT_ID"))
     print("Resumen enviado a Telegram. Cuota:", quota)
