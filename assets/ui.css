@@ -243,11 +243,13 @@ h1{letter-spacing:-.035em}h2,h3{letter-spacing:-.02em}
 [data-testid="stRadio"] [role="radiogroup"] label:hover{color:#f1f5f9;background:rgba(255,255,255,0.06)}
 [data-testid="stRadio"] [role="radiogroup"] label:has(input:checked){background:#00e5ff;color:#040d1a;font-weight:850;box-shadow:0 0 14px rgba(0,229,255,0.45)}
 .st-key-mlb_section [role="radiogroup"] label:has(input:checked),
+.st-key-mlb_mercado_principal [role="radiogroup"] label:has(input:checked),
 .st-key-mlb_today_market_sel [role="radiogroup"] label:has(input:checked),
 .st-key-mlb_hist_market_sel [role="radiogroup"] label:has(input:checked){
  background:#00e5ff!important;color:#040d1a!important;font-weight:850!important;box-shadow:0 0 14px rgba(0,229,255,0.45)!important
 }
 .st-key-mlb_section [role="radiogroup"] label:has(input:checked) p,
+.st-key-mlb_mercado_principal [role="radiogroup"] label:has(input:checked) p,
 .st-key-mlb_today_market_sel [role="radiogroup"] label:has(input:checked) p,
 .st-key-mlb_hist_market_sel [role="radiogroup"] label:has(input:checked) p {
  color:#040d1a!important;font-weight:850!important

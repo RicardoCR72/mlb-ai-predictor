@@ -1,4 +1,4 @@
-"""Página interactiva del Oráculo AI para la MLB en Streamlit con interfaz distintiva Diamond Cyan."""
+"""Página interactiva del Oráculo AI para la MLB en Streamlit con diseño simétrico a NFL y paleta Diamond Cyan."""
 from __future__ import annotations
 
 from datetime import datetime
@@ -57,50 +57,41 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-col_nav, col_mkt = st.columns([1, 1], gap="medium")
-with col_nav:
-    seccion_guardada = st.session_state.get("mlb_section", "Picks de hoy")
-    idx_defecto = 1 if seccion_guardada == "Rendimiento" else 0
-    view = st.radio(
-        "Sección MLB",
-        ["Picks de hoy", "Rendimiento"],
-        index=idx_defecto,
-        horizontal=True,
-        label_visibility="collapsed",
-        key="mlb_section",
-    )
+# Nivel 1: Selector principal de mercado (idéntico a NFL en disposición horizontal)
+mercado = st.radio(
+    "Mercado MLB",
+    ["Moneyline (Ganador Directo)", "Totales de Carreras"],
+    horizontal=True,
+    label_visibility="collapsed",
+    key="mlb_mercado_principal",
+)
 
-with col_mkt:
-    if view == "Rendimiento":
-        mercado = st.radio(
-            "Mercado de rendimiento",
-            ["Moneyline", "Totales"],
-            horizontal=True,
-            label_visibility="collapsed",
-            key="mlb_hist_market_sel",
-        )
-    else:
-        mercado = st.radio(
-            "Mercado",
-            ["Moneyline", "Totales"],
-            horizontal=True,
-            label_visibility="collapsed",
-            key="mlb_today_market_sel",
-        )
+# Nivel 2: Barra de botones de acción
+col_btn1, col_btn2, col_info = st.columns([1.2, 1.2, 1.6], gap="small")
+with col_btn1:
+    render_update_button("mlb", compact=True)
+with col_btn2:
+    render_generate_mlb()
+with col_info:
+    st.caption("⚡ Sincronización oficial con DraftKings y liquidación de apuestas.")
+st.markdown("<div style='margin-bottom: 0.65rem;'></div>", unsafe_allow_html=True)
 
-# Toolbar de acciones compacta: botones con ancho adecuado para no truncar texto
-with st.container():
-    c_btn1, c_btn2, c_desc = st.columns([1.2, 1.2, 1.6], gap="small")
-    with c_btn1:
-        render_update_button("mlb", compact=True)
-    with c_btn2:
-        render_generate_mlb()
-    with c_desc:
-        st.caption("⚡ Sincronización oficial con DraftKings y liquidación de apuestas.")
+# Nivel 3: Selector interno de sección (idéntico a NFL en disposición horizontal)
+seccion_guardada = st.session_state.get("mlb_section", "Picks de hoy")
+idx_defecto = 1 if seccion_guardada == "Rendimiento" else 0
 
-st.markdown("<div style='margin-bottom: 0.85rem;'></div>", unsafe_allow_html=True)
+view = st.radio(
+    "Sección MLB",
+    ["Picks de hoy", "Rendimiento"],
+    index=idx_defecto,
+    horizontal=True,
+    label_visibility="collapsed",
+    key="mlb_section",
+)
+
+mercado_tipo = "Totales" if "Totales" in mercado else "Moneyline"
 
 if view == "Rendimiento":
-    render_history("MLB", mercado, key=f"mlb_{mercado.lower()}_perf")
+    render_history("MLB", mercado_tipo, key=f"mlb_{mercado_tipo.lower()}_perf")
 else:
-    render_mlb_today(mercado)
+    render_mlb_today(mercado_tipo)
