@@ -268,6 +268,20 @@ h1{letter-spacing:-.035em}h2,h3{letter-spacing:-.02em}
 .st-key-nfl_props_seccion [role="radiogroup"] label:has(input:checked) p {
  color:#071006!important;font-weight:850!important
 }
+[class*="st-key-nba_"] [role="radiogroup"] label:has(input:checked),
+.st-key-nba_mercado_principal [role="radiogroup"] label:has(input:checked),
+.st-key-nba_seccion [role="radiogroup"] label:has(input:checked){
+ background:#ff6b35!important;color:#ffffff!important;font-weight:850!important;box-shadow:0 0 14px rgba(255,107,53,0.5)!important
+}
+[class*="st-key-nba_"] [role="radiogroup"] label:has(input:checked) p,
+.st-key-nba_mercado_principal [role="radiogroup"] label:has(input:checked) p,
+.st-key-nba_seccion [role="radiogroup"] label:has(input:checked) p {
+ color:#ffffff!important;font-weight:850!important
+}
+.stApp .st-key-btn_act_res_nba button:hover,
+.stApp .st-key-btn_act_cuotas_nba button:hover {
+ background:#1a2535!important;color:#fff4f0!important;border-color:#ff6b35!important;box-shadow:0 0 10px rgba(255,107,53,0.3)!important
+}
 @media(max-width:760px){
  .block-container{padding-left:.8rem!important;padding-right:.8rem!important;padding-top:.8rem!important}
  [data-testid="stHorizontalBlock"]{flex-direction:column!important;gap:.7rem!important}
