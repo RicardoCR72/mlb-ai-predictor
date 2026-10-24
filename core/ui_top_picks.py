@@ -109,6 +109,25 @@ def obtener_top_picks_del_dia(max_picks: int = 3) -> list[dict]:
                             "edge": round(edge_vis, 4),
                         })
 
+                    # Spread / Hándicap NBA
+                    spread_val = float(j.get("linea_spread") or 0.0)
+                    p_cov_loc = float(j.get("prob_cover_home") or 0.0)
+                    p_cov_vis = float(j.get("prob_cover_away") or 0.0)
+                    if p_cov_loc >= 0.60 and j.get("equipo_local"):
+                        candidatos_juego.append({
+                            "mercado": "Spread",
+                            "seleccion": f"{j.get('equipo_local')} {spread_val:+0.1f}",
+                            "prob": p_cov_loc,
+                            "edge": round(p_cov_loc - 0.5238, 4),
+                        })
+                    if p_cov_vis >= 0.60 and j.get("equipo_visita"):
+                        candidatos_juego.append({
+                            "mercado": "Spread",
+                            "seleccion": f"{j.get('equipo_visita')} {-spread_val:+0.1f}",
+                            "prob": p_cov_vis,
+                            "edge": round(p_cov_vis - 0.5238, 4),
+                        })
+
                     candidatos_juego.sort(key=lambda x: (x["edge"] > 0, round(x["prob"], 4), round(x["edge"], 4)), reverse=True)
                     best_cand = candidatos_juego[0]
                     prob = best_cand["prob"]
@@ -118,6 +137,8 @@ def obtener_top_picks_del_dia(max_picks: int = 3) -> list[dict]:
 
                     # Cuota exacta de mercado
                     if "Totales" in mercado:
+                        c = "-110"
+                    elif "Spread" in mercado:
                         c = "-110"
                     elif "Moneyline" in mercado:
                         eq_loc = j.get("equipo_local", "")
