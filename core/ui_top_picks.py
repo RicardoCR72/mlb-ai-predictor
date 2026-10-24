@@ -176,13 +176,14 @@ def render_top_picks_section():
     st.caption("Las 3 mejores selecciones con mayor probabilidad y ventaja matemática combinando todos los deportes.")
 
     cols = st.columns(len(top_picks), gap="medium")
-    for col, p in zip(cols, top_picks):
+    for idx, (col, p) in enumerate(zip(cols, top_picks)):
         with col:
             hora_str = f"{p['hora']} CDMX" if p.get("hora") else "Hoy"
             cuota_str = p.get("cuota") or "N/D"
+            sport_key = p["deporte"].lower().replace("ú", "u")
 
             card_html = (
-                f'<div class="top-pick-card" style="border-top: 3px solid {p["color"]};">'
+                f'<div class="top-pick-card" style="border-top: 3px solid {p["color"]}; margin-bottom: 0.4rem;">'
                 f'<div>'
                 f'<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem;">'
                 f'<span class="top-pick-badge" style="background:{p["color_bg"]}; color:{p["color"]}; border: 1px solid {p["color_border"]};">'
@@ -203,8 +204,7 @@ def render_top_picks_section():
                 f'</div>'
                 f'</div>'
                 f'</div>'
-                f'<div>'
-                f'<div style="display:flex; justify-content:space-between; align-items:flex-end; margin:0.4rem 0 0.2rem;">'
+                f'<div style="display:flex; justify-content:space-between; align-items:flex-end; margin:0.4rem 0 0.1rem;">'
                 f'<div>'
                 f'<div style="font-size:0.68rem; color:#8fa0b5; font-weight:700;">PROBABILIDAD ORÁCULO</div>'
                 f'<div class="top-pick-prob" style="color:{p["color"]};">{p["probabilidad"]*100:.1f}%</div>'
@@ -213,12 +213,11 @@ def render_top_picks_section():
                 f'★ ALTO VALOR'
                 f'</span>'
                 f'</div>'
-                f'<a href="{p["pagina"]}" target="_self" class="top-pick-btn" style="background:{p["color_bg"]}; color:{p["color"]}; border-color:{p["color_border"]};">'
-                f'Ver análisis en {p["deporte"]} →'
-                f'</a>'
-                f'</div>'
                 f'</div>'
             )
             st.markdown(card_html, unsafe_allow_html=True)
+            if st.button(f"Ver análisis en {p['deporte']} →", key=f"btn_top_pick_{sport_key}_{idx}", use_container_width=True):
+                st.switch_page(p["pagina"])
     st.markdown("<div style='margin-bottom: 0.8rem;'></div>", unsafe_allow_html=True)
+
 

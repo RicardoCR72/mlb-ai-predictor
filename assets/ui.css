@@ -989,6 +989,65 @@ h1{letter-spacing:-.035em}h2,h3{letter-spacing:-.02em}
     box-shadow: 0 0 16px rgba(167, 139, 250, 0.45) !important;
 }
 
+/* Top Picks Action Buttons */
+.stApp [class*="st-key-btn_top_pick_"] button {
+    border-radius: 9px !important;
+    min-height: 42px !important;
+    font-weight: 850 !important;
+    font-size: 0.85rem !important;
+    transition: all 0.2s ease !important;
+    letter-spacing: 0.02em !important;
+}
+
+.stApp [class*="st-key-btn_top_pick_nba"] button {
+    background: rgba(255, 107, 53, 0.1) !important;
+    color: #ff6b35 !important;
+    border: 1px solid rgba(255, 107, 53, 0.45) !important;
+}
+.stApp [class*="st-key-btn_top_pick_nba"] button:hover {
+    background: #ff6b35 !important;
+    color: #ffffff !important;
+    box-shadow: 0 0 16px rgba(255, 107, 53, 0.5) !important;
+    border-color: #ff6b35 !important;
+}
+
+.stApp [class*="st-key-btn_top_pick_nfl"] button {
+    background: rgba(183, 255, 60, 0.1) !important;
+    color: #b7ff3c !important;
+    border: 1px solid rgba(183, 255, 60, 0.45) !important;
+}
+.stApp [class*="st-key-btn_top_pick_nfl"] button:hover {
+    background: #b7ff3c !important;
+    color: #071006 !important;
+    box-shadow: 0 0 16px rgba(183, 255, 60, 0.5) !important;
+    border-color: #b7ff3c !important;
+}
+
+.stApp [class*="st-key-btn_top_pick_futbol"] button {
+    background: rgba(0, 230, 118, 0.1) !important;
+    color: #00e676 !important;
+    border: 1px solid rgba(0, 230, 118, 0.45) !important;
+}
+.stApp [class*="st-key-btn_top_pick_futbol"] button:hover {
+    background: #00e676 !important;
+    color: #03140a !important;
+    box-shadow: 0 0 16px rgba(0, 230, 118, 0.5) !important;
+    border-color: #00e676 !important;
+}
+
+.stApp [class*="st-key-btn_top_pick_mlb"] button {
+    background: rgba(0, 229, 255, 0.1) !important;
+    color: #00e5ff !important;
+    border: 1px solid rgba(0, 229, 255, 0.45) !important;
+}
+.stApp [class*="st-key-btn_top_pick_mlb"] button:hover {
+    background: #00e5ff !important;
+    color: #040d1a !important;
+    box-shadow: 0 0 16px rgba(0, 229, 255, 0.5) !important;
+    border-color: #00e5ff !important;
+}
+
+
 
 
 
