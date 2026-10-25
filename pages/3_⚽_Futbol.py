@@ -58,36 +58,40 @@ def obtener_pick_para_mercado_futbol(p: dict, mercado_tipo: str) -> dict:
     }
 
     if "Totales" in mercado_tipo:
-        if "Totales" in str(p.get("pick_mercado", "")):
-            return info
-
         lin_tot = float(p.get("linea_total", 2.5))
         p_ov = float(p.get("prob_over", 0.5))
         p_un = float(p.get("prob_under", 0.5))
         ed_ov = float(p.get("edge_over", 0.0))
         ed_un = float(p.get("edge_under", 0.0))
         tot_proj = float(p.get("total_proyectado", 2.5))
+        delta_xg = tot_proj - lin_tot
 
         if ed_ov >= ed_un:
             info["seleccion"] = f"OVER {lin_tot:g} Goles"
             info["cuota"] = p.get("over_momio") or "-110"
             info["probabilidad"] = p_ov
             info["edge"] = ed_ov
-            info["detalle"] = f"Total proyectado: {tot_proj:.2f} goles vs línea {lin_tot:g} DK"
+            if delta_xg >= 0.28 and ed_ov >= 0.045 and p_ov >= 0.54:
+                info["confianza"] = "ALTA" if ed_ov >= 0.07 else "MEDIA"
+                info["detalle"] = f"xG Proyectado: {tot_proj:.2f} goles vs línea {lin_tot:g} (Edge: {ed_ov*100:+.1f}%)"
+            else:
+                info["confianza"] = "NEUTRAL"
+                info["detalle"] = f"Línea de mercado eficiente (xG: {tot_proj:.2f} vs {lin_tot:g}). Sin ventaja estadística clara."
         else:
             info["seleccion"] = f"UNDER {lin_tot:g} Goles"
             info["cuota"] = p.get("under_momio") or "-110"
             info["probabilidad"] = p_un
             info["edge"] = ed_un
-            info["detalle"] = f"Total proyectado: {tot_proj:.2f} goles vs línea {lin_tot:g} DK"
+            if delta_xg <= -0.28 and ed_un >= 0.045 and p_un >= 0.54:
+                info["confianza"] = "ALTA" if ed_un >= 0.07 else "MEDIA"
+                info["detalle"] = f"xG Proyectado: {tot_proj:.2f} goles vs línea {lin_tot:g} (Edge: {ed_un*100:+.1f}%)"
+            else:
+                info["confianza"] = "NEUTRAL"
+                info["detalle"] = f"Línea de mercado eficiente (xG: {tot_proj:.2f} vs {lin_tot:g}). Sin ventaja estadística clara."
 
-        info["confianza"] = "ALTA" if abs(info["edge"]) >= 0.05 else "MEDIA"
         return info
 
     elif "Moneyline" in mercado_tipo:
-        if "Moneyline" in str(p.get("pick_mercado", "")):
-            return info
-
         p_loc = float(p.get("prob_local", 0.4))
         p_emp = float(p.get("prob_empate", 0.3))
         p_vis = float(p.get("prob_visita", 0.3))
@@ -112,28 +116,30 @@ def obtener_pick_para_mercado_futbol(p: dict, mercado_tipo: str) -> dict:
             pr = p_emp
             ed = ed_emp
         else:
-            if p_loc >= max(p_emp, p_vis):
-                sel = f"{p.get('equipo_local')} (Victoria Local)"
-                c = p.get("moneyline_local") or "+100"
-                pr = p_loc
-                ed = ed_loc
-            elif p_vis >= max(p_loc, p_emp):
-                sel = f"{p.get('equipo_visita')} (Victoria Visitante)"
-                c = p.get("moneyline_visita") or "+100"
-                pr = p_vis
-                ed = ed_vis
-            else:
-                sel = "Empate (X)"
-                c = p.get("moneyline_empate") or "+250"
-                pr = p_emp
-                ed = ed_emp
+            sel = f"{p.get('equipo_local')} ML"
+            c = p.get("moneyline_local") or "+100"
+            pr = p_loc
+            ed = ed_loc
 
         info["seleccion"] = sel
         info["cuota"] = c
         info["probabilidad"] = pr
         info["edge"] = ed
-        info["detalle"] = f"Probabilidad modelo: {pr*100:.1f}% · Cuota {c}"
-        info["confianza"] = "ALTA" if abs(ed) >= 0.05 else "MEDIA"
+
+        if ed >= 0.045:
+            if pr < 0.45:
+                info["confianza"] = "LONGSHOT"
+                info["detalle"] = f"🎯 Longshot (+EV {ed*100:+.1f}%). Probabilidad de victoria ({pr*100:.1f}%) moderada/baja."
+            elif ed >= 0.065 and pr >= 0.50:
+                info["confianza"] = "ALTA"
+                info["detalle"] = f"Probabilidad calibrada: {pr*100:.1f}% vs Book (Edge: {ed*100:+.1f}%)"
+            else:
+                info["confianza"] = "MEDIA"
+                info["detalle"] = f"Probabilidad calibrada: {pr*100:.1f}% vs Book (Edge: {ed*100:+.1f}%)"
+        else:
+            info["confianza"] = "NEUTRAL"
+            info["detalle"] = f"Sin ventaja sobre la cuota ({ed*100:+.1f}% edge). Partido en Zona Muerta descartado."
+
         return info
 
     elif "Ambos Anotan" in mercado_tipo or "BTTS" in mercado_tipo:
@@ -374,16 +380,22 @@ def render_cartelera_futbol(predicciones: list[dict], mercado_activo: str):
             f'</div>'
         )
 
+        if confianza == "ALTA":
+            badge_top_right = f'<div style="display:inline-flex; align-items:center;"><span class="badge-conf-alta">CONFIANZA ALTA</span>{ev_badge_f}</div>'
+        elif confianza == "MEDIA":
+            badge_top_right = f'<div style="display:inline-flex; align-items:center;"><span class="badge-conf-media">CONFIANZA MEDIA</span>{ev_badge_f}</div>'
+        elif confianza == "LONGSHOT":
+            badge_top_right = f'<div style="display:inline-flex; align-items:center;"><span style="background: rgba(245, 158, 11, 0.16); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.55); padding: 0.25rem 0.65rem; border-radius: 6px; font-weight: 850; font-size: 0.8rem;">🎯 LONGSHOT (+EV ALTO RIESGO)</span>{ev_badge_f}</div>'
+        else:
+            badge_top_right = '<span style="background: rgba(148, 163, 184, 0.12); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.35); padding: 0.25rem 0.65rem; border-radius: 6px; font-weight: 700; font-size: 0.8rem;">⏸️ LÍNEA EFICIENTE (SIN EDGE)</span>'
+
         card_top_html = (
             f'<div class="card-top">'
             f'<div style="display: flex; align-items: center; gap: 0.5rem;">'
             f'<span class="badge-league">{bandera} {liga_nom}</span>'
             f'{badge_status}'
             f'</div>'
-            f'<div style="display:inline-flex; align-items:center;">'
-            f'<span class="{badge_conf_cls}">CONFIANZA {confianza}</span>'
-            f'{ev_badge_f}'
-            f'</div>'
+            f'<div>{badge_top_right}</div>'
             f'</div>'
         )
 
@@ -447,10 +459,17 @@ def render_cartelera_futbol(predicciones: list[dict], mercado_activo: str):
                     f'</div>'
                 )
 
+            if confianza in ["ALTA", "MEDIA"]:
+                titulo_box = f"Recomendación Oficial ({pick_data.get('mercado')})"
+            elif confianza == "LONGSHOT":
+                titulo_box = f"🎯 Longshot de Valor ({pick_data.get('mercado')}) · Alto Riesgo"
+            else:
+                titulo_box = f"Línea de Mercado ({pick_data.get('mercado')})"
+
             pick_box_html = (
                 f'<div class="pick-box">'
                 f'<div style="min-width: 0; flex: 1;">'
-                f'<div class="pick-title">Recomendación Oficial ({pick_data.get("mercado")})<span style="color:#ffffff;font-weight:700;">{momio_pick_str}</span></div>'
+                f'<div class="pick-title">{titulo_box}<span style="color:#ffffff;font-weight:700;">{momio_pick_str}</span></div>'
                 f'<div class="pick-sel">{pick_data.get("seleccion")}</div>'
                 f'<div style="font-size: 0.82rem; color: #8ba797; margin-top: 0.2rem;">{pick_data.get("detalle", "")}</div>'
                 f'</div>'
@@ -460,20 +479,39 @@ def render_cartelera_futbol(predicciones: list[dict], mercado_activo: str):
 
             st.markdown(pick_box_html, unsafe_allow_html=True)
 
-            from core.ui_boleta import render_boton_boleta
-            partido_id = str(p.get("id_partido") or p.get("id_evento") or f"{p.get('equipo_visita')}_{p.get('equipo_local')}_{idx}")
-            clean_mercado = str(pick_data.get("mercado")).replace(" ", "_").replace("(", "").replace(")", "")
-            slip_item = {
-                "id": f"FUTBOL_{partido_id}_{clean_mercado}_{pick_data.get('seleccion')}",
-                "deporte": f"Fútbol ({p.get('liga_nombre', 'Ligas')})",
-                "icono": "⚽",
-                "partido": f"{p.get('equipo_visita')} vs {p.get('equipo_local')}",
-                "mercado": pick_data.get("mercado"),
-                "seleccion": pick_data.get("seleccion"),
-                "momio": pick_data.get("cuota"),
-                "prob": pick_data.get("probabilidad"),
-            }
-            render_boton_boleta(slip_item, key=f"btn_futbol_slip_{partido_id}_{clean_mercado}_{idx}")
+            if confianza in ["ALTA", "MEDIA"]:
+                from core.ui_boleta import render_boton_boleta
+                partido_id = str(p.get("id_partido") or p.get("id_evento") or f"{p.get('equipo_visita')}_{p.get('equipo_local')}_{idx}")
+                clean_mercado = str(pick_data.get("mercado")).replace(" ", "_").replace("(", "").replace(")", "")
+                slip_item = {
+                    "id": f"FUTBOL_{partido_id}_{clean_mercado}_{pick_data.get('seleccion')}",
+                    "deporte": f"Fútbol ({p.get('liga_nombre', 'Ligas')})",
+                    "icono": "⚽",
+                    "partido": f"{p.get('equipo_visita')} vs {p.get('equipo_local')}",
+                    "mercado": pick_data.get("mercado"),
+                    "seleccion": pick_data.get("seleccion"),
+                    "momio": pick_data.get("cuota"),
+                    "prob": pick_data.get("probabilidad"),
+                }
+                render_boton_boleta(slip_item, key=f"btn_futbol_slip_{partido_id}_{clean_mercado}_{idx}")
+            elif confianza == "LONGSHOT":
+                st.warning(f"⚠️ **Longshot de Alto Riesgo:** Aunque tiene valor matemático (+EV +{ev_calc_f:.1f}%), la probabilidad de ganar es solo del {prob_f*100:.1f}%. Recomendación: Reducir stake a 0.25u o descartar.")
+                from core.ui_boleta import render_boton_boleta
+                partido_id = str(p.get("id_partido") or p.get("id_evento") or f"{p.get('equipo_visita')}_{p.get('equipo_local')}_{idx}")
+                clean_mercado = str(pick_data.get("mercado")).replace(" ", "_").replace("(", "").replace(")", "")
+                slip_item = {
+                    "id": f"FUTBOL_{partido_id}_{clean_mercado}_{pick_data.get('seleccion')}",
+                    "deporte": f"Fútbol ({p.get('liga_nombre', 'Ligas')})",
+                    "icono": "⚽",
+                    "partido": f"{p.get('equipo_visita')} vs {p.get('equipo_local')}",
+                    "mercado": pick_data.get("mercado"),
+                    "seleccion": pick_data.get("seleccion"),
+                    "momio": pick_data.get("cuota"),
+                    "prob": pick_data.get("probabilidad"),
+                }
+                render_boton_boleta(slip_item, key=f"btn_futbol_slip_{partido_id}_{clean_mercado}_{idx}")
+            else:
+                st.caption("🛡️ *Filtro de Disciplina Activo: Este partido está en la Zona Muerta (edge < +4.5% o margen de goles insuficiente). Descartado para apuestas.*")
 
             with st.expander("Ver detalles de cuotas y desglose"):
                 col_d1, col_d2 = st.columns(2)

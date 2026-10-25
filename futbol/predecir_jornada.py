@@ -277,20 +277,24 @@ def predecir_futbol_mundial(
 
             # Si ya terminó y aún está pendiente, liquidar
             if es_partido_finalizado(prev_act.get("estado", "")) and prev_act.get("resultado_pick") not in ["GANADA", "PERDIDA", "PUSH"]:
-                res, u_gan = liquidar_seleccion_futbol(
-                    mercado=prev_act.get("pick_mercado", ""),
-                    seleccion=prev_act.get("pick_seleccion", ""),
-                    linea=float(prev_act.get("linea_total", 2.5)),
-                    cuota_dec=float(prev_act.get("pick_cuota_dec", 1.85)),
-                    marcador_local=prev_act.get("marcador_local"),
-                    marcador_visita=prev_act.get("marcador_visita"),
-                    equipo_local=prev_act.get("equipo_local", ""),
-                    equipo_visita=prev_act.get("equipo_visita", ""),
-                )
-                if res != "PENDIENTE":
-                    prev_act["resultado_pick"] = res
-                    prev_act["beneficio_unidades"] = u_gan
-                    prev_act["evaluado_en"] = datetime.now(ZONA_CDMX).strftime("%Y-%m-%d %H:%M:%S")
+                if prev_act.get("confianza") == "NEUTRAL":
+                    prev_act["resultado_pick"] = "DESCARTADO"
+                    prev_act["beneficio_unidades"] = 0.0
+                else:
+                    res, u_gan = liquidar_seleccion_futbol(
+                        mercado=prev_act.get("pick_mercado", ""),
+                        seleccion=prev_act.get("pick_seleccion", ""),
+                        linea=float(prev_act.get("linea_total", 2.5)),
+                        cuota_dec=float(prev_act.get("pick_cuota_dec", 1.85)),
+                        marcador_local=prev_act.get("marcador_local"),
+                        marcador_visita=prev_act.get("marcador_visita"),
+                        equipo_local=prev_act.get("equipo_local", ""),
+                        equipo_visita=prev_act.get("equipo_visita", ""),
+                    )
+                    if res != "PENDIENTE":
+                        prev_act["resultado_pick"] = res
+                        prev_act["beneficio_unidades"] = u_gan
+                        prev_act["evaluado_en"] = datetime.now(ZONA_CDMX).strftime("%Y-%m-%d %H:%M:%S")
 
             predicciones.append(prev_act)
             continue

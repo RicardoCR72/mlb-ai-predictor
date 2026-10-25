@@ -193,87 +193,95 @@ def proyectar_partido_futbol(partido: Dict[str, Any]) -> Dict[str, Any]:
     marcador_esperado = f"{max_idx[0]} - {max_idx[1]}"
     prob_marcador = round(float(grid[max_idx]), 3)
 
-    # Edges directos (Diferencia contra probabilidad implícita del bookmaker)
-    edge_home = p_final_home - p_raw_h
-    edge_away = p_final_away - p_raw_a
-    edge_draw = p_final_draw - p_raw_d
-    edge_over = p_final_over - p_raw_o
-    edge_under = p_final_under - p_raw_u
-
     cuota_dec_home = float(partido.get("ml_local_dec") or 1.91)
     cuota_dec_away = float(partido.get("ml_visita_dec") or 1.91)
     cuota_dec_draw = float(partido.get("ml_empate_dec") or 3.20)
     cuota_dec_over = float(partido.get("over_momio_dec") or 1.87)
     cuota_dec_under = float(partido.get("under_momio_dec") or 1.87)
 
-    # EV para cada mercado estándar
-    ev_home = calcular_ev(p_final_home, cuota_dec_home)
-    ev_away = calcular_ev(p_final_away, cuota_dec_away)
+    # Calibración empírica Platt Scaling y Market Shrinkage
+    from core.calibracion_probabilidades import calibrar_probabilidad
+    p_final_home_cal = float(calibrar_probabilidad(p_final_home, cuota_dec_home))
+    p_final_away_cal = float(calibrar_probabilidad(p_final_away, cuota_dec_away))
+    p_final_over_cal = float(calibrar_probabilidad(p_final_over, cuota_dec_over))
+    p_final_under_cal = float(calibrar_probabilidad(p_final_under, cuota_dec_under))
+
+    # Edges directos calibrados contra probabilidad implícita del bookmaker
+    edge_home = p_final_home_cal - p_raw_h
+    edge_away = p_final_away_cal - p_raw_a
+    edge_draw = p_final_draw - p_raw_d
+    edge_over = p_final_over_cal - p_raw_o
+    edge_under = p_final_under_cal - p_raw_u
+
+    # EV para cada mercado estándar con probabilidades calibradas
+    ev_home = calcular_ev(p_final_home_cal, cuota_dec_home)
+    ev_away = calcular_ev(p_final_away_cal, cuota_dec_away)
     ev_draw = calcular_ev(p_final_draw, cuota_dec_draw)
-    ev_over = calcular_ev(p_final_over, cuota_dec_over)
-    ev_under = calcular_ev(p_final_under, cuota_dec_under)
+    ev_over = calcular_ev(p_final_over_cal, cuota_dec_over)
+    ev_under = calcular_ev(p_final_under_cal, cuota_dec_under)
 
     home_team = partido.get("equipo_local", "Local")
     away_team = partido.get("equipo_visita", "Visita")
+    xg_total = xg_local + xg_visita
+    delta_xg = xg_total - linea_tot
 
-    # 4. Generación y Evaluación de Candidatos con Filtro de Valor Riguroso
+    # 4. Generación y Evaluación de Candidatos con Filtro de Valor Riguroso y Margen de Goles
     candidatos: List[Dict[str, Any]] = []
 
-    # Mercado Totales: OVER
-    # Requiere edge real >= +2.5% y EV positivo
-    if edge_over >= 0.025 and ev_over >= 0.015 and p_final_over >= 0.52:
+    # Mercado Totales: OVER (Requiere margen de xG >= +0.28, Edge >= +4.5%, EV >= +2.5% y Prob >= 54%)
+    if delta_xg >= 0.28 and edge_over >= 0.045 and ev_over >= 0.025 and p_final_over_cal >= 0.54:
         candidatos.append({
             "mercado": "Totales (Over/Under)",
             "seleccion": f"OVER {linea_tot:g} Goles",
-            "probabilidad": p_final_over,
+            "probabilidad": p_final_over_cal,
             "edge": edge_over,
             "ev": ev_over,
             "cuota": partido.get("over_momio") or "-115",
             "cuota_dec": cuota_dec_over,
-            "detalle": f"xG Proyectado: {xg_local + xg_visita:.2f} goles vs línea {linea_tot:g} (Over: {p_final_over*100:.1f}%, EV: +{ev_over*100:.1f}%)",
+            "detalle": f"xG Proyectado: {xg_total:.2f} goles vs línea {linea_tot:g} (Over Calibrado: {p_final_over_cal*100:.1f}%, EV: +{ev_over*100:.1f}%)",
         })
 
-    # Mercado Totales: UNDER
-    if edge_under >= 0.025 and ev_under >= 0.015 and p_final_under >= 0.52:
+    # Mercado Totales: UNDER (Requiere margen de xG <= -0.28, Edge >= +4.5%, EV >= +2.5% y Prob >= 54%)
+    if delta_xg <= -0.28 and edge_under >= 0.045 and ev_under >= 0.025 and p_final_under_cal >= 0.54:
         candidatos.append({
             "mercado": "Totales (Over/Under)",
             "seleccion": f"UNDER {linea_tot:g} Goles",
-            "probabilidad": p_final_under,
+            "probabilidad": p_final_under_cal,
             "edge": edge_under,
             "ev": ev_under,
             "cuota": partido.get("under_momio") or "-115",
             "cuota_dec": cuota_dec_under,
-            "detalle": f"xG Proyectado: {xg_local + xg_visita:.2f} goles vs línea {linea_tot:g} (Under: {p_final_under*100:.1f}%, EV: +{ev_under*100:.1f}%)",
+            "detalle": f"xG Proyectado: {xg_total:.2f} goles vs línea {linea_tot:g} (Under Calibrado: {p_final_under_cal*100:.1f}%, EV: +{ev_under*100:.1f}%)",
         })
 
-    # Mercado Moneyline: Local (Favorito sólido con valor)
-    if p_final_home >= 0.45 and edge_home >= 0.020 and ev_home >= 0.015:
+    # Mercado Moneyline: Local (Favorito sólido con valor calibrado)
+    if p_final_home_cal >= 0.45 and edge_home >= 0.035 and ev_home >= 0.025:
         candidatos.append({
             "mercado": "Moneyline",
             "seleccion": f"{home_team} ML",
-            "probabilidad": p_final_home,
+            "probabilidad": p_final_home_cal,
             "edge": edge_home,
             "ev": ev_home,
             "cuota": partido.get("moneyline_local") or "-110",
             "cuota_dec": cuota_dec_home,
-            "detalle": f"Favorito con ventaja local (Prob: {p_final_home*100:.1f}%, xG: {xg_local:.2f} vs {xg_visita:.2f}, EV: +{ev_home*100:.1f}%)",
+            "detalle": f"Ventaja local proyectada (Prob Calibrada: {p_final_home_cal*100:.1f}%, xG: {xg_local:.2f} vs {xg_visita:.2f}, EV: +{ev_home*100:.1f}%)",
         })
 
-    # Mercado Moneyline: Visita (Favorito visitante con valor)
-    if p_final_away >= 0.45 and edge_away >= 0.020 and ev_away >= 0.015:
+    # Mercado Moneyline: Visita (Favorito visitante con valor calibrado)
+    if p_final_away_cal >= 0.45 and edge_away >= 0.035 and ev_away >= 0.025:
         candidatos.append({
             "mercado": "Moneyline",
             "seleccion": f"{away_team} ML",
-            "probabilidad": p_final_away,
+            "probabilidad": p_final_away_cal,
             "edge": edge_away,
             "ev": ev_away,
             "cuota": partido.get("moneyline_visita") or "-110",
             "cuota_dec": cuota_dec_away,
-            "detalle": f"Superioridad visitante proyectada (Prob: {p_final_away*100:.1f}%, xG: {xg_visita:.2f} vs {xg_local:.2f}, EV: +{ev_away*100:.1f}%)",
+            "detalle": f"Superioridad visitante proyectada (Prob Calibrada: {p_final_away_cal*100:.1f}%, xG: {xg_visita:.2f} vs {xg_local:.2f}, EV: +{ev_away*100:.1f}%)",
         })
 
     # Mercado Ambos Anotan (BTTS) si hay alta convicción ofensiva
-    if p_btts_si >= 0.58 and xg_local >= 1.15 and xg_visita >= 1.10:
+    if p_btts_si >= 0.58 and xg_local >= 1.25 and xg_visita >= 1.15:
         candidatos.append({
             "mercado": "Ambos Anotan (BTTS)",
             "seleccion": "Ambos Anotan: SÍ",
@@ -297,24 +305,30 @@ def proyectar_partido_futbol(partido: Dict[str, Any]) -> Dict[str, Any]:
         candidatos.sort(key=ranking_score, reverse=True)
         mejor = candidatos[0]
 
-        if mejor["probabilidad"] >= 0.58 and mejor.get("edge", 0.0) >= 0.04 and mejor.get("ev", 0.0) >= 0.03:
+        c_prob = mejor["probabilidad"]
+        c_edge = mejor.get("edge", 0.0)
+        c_ev = mejor.get("ev", 0.0)
+
+        if c_prob < 0.45:
+            confianza = "LONGSHOT"
+        elif c_prob >= 0.52 and c_edge >= 0.065 and c_ev >= 0.040:
             confianza = "ALTA"
-        elif mejor["probabilidad"] >= 0.48 or mejor.get("edge", 0.0) >= 0.02:
+        elif c_edge >= 0.045 and c_ev >= 0.025:
             confianza = "MEDIA"
         else:
-            confianza = "BAJA"
+            confianza = "NEUTRAL"
     else:
         # Selección pasiva (Lean neutral): Escoge el resultado de mayor probabilidad matemática
-        if p_final_over >= p_final_under:
+        if p_final_over_cal >= p_final_under_cal:
             sel_lean = f"OVER {linea_tot:g} Goles"
-            prob_lean = p_final_over
+            prob_lean = p_final_over_cal
             ed_lean = edge_over
             ev_lean = ev_over
             cuota_lean = partido.get("over_momio") or "-115"
             cuota_dec_lean = cuota_dec_over
         else:
             sel_lean = f"UNDER {linea_tot:g} Goles"
-            prob_lean = p_final_under
+            prob_lean = p_final_under_cal
             ed_lean = edge_under
             ev_lean = ev_under
             cuota_lean = partido.get("under_momio") or "-115"
@@ -328,7 +342,7 @@ def proyectar_partido_futbol(partido: Dict[str, Any]) -> Dict[str, Any]:
             "ev": ev_lean,
             "cuota": cuota_lean,
             "cuota_dec": cuota_dec_lean,
-            "detalle": f"Proyección neutra Dixon-Coles (xG Total: {xg_local + xg_visita:.2f} vs línea {linea_tot:g})",
+            "detalle": f"Línea de mercado eficiente (xG Total: {xg_total:.2f} vs línea {linea_tot:g}). Descartado para proteger bankroll.",
         }
         confianza = "NEUTRAL"
 
