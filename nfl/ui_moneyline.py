@@ -81,8 +81,9 @@ def render():
         help_res = "Consulta resultados oficiales en ESPN y liquida las apuestas concluidas."
         if st.button(lbl_res, key="btn_act_res_nfl_ml", type="primary", disabled=btn_disabled, use_container_width=True, help=help_res):
             with st.spinner("Liquidando partidos y actualizando historial Moneyline NFL..."):
-                res = liquidar_partidos_pendientes_moneyline()
-                if res.get("evaluados", 0) > 0:
+                from nfl.liquidar_nfl import liquidar_todo_nfl
+                res = liquidar_todo_nfl()
+                if res.get("total", 0) > 0 or res.get("evaluados", 0) > 0:
                     st.success(f"✅ {res['mensaje']}")
                 else:
                     st.info(f"ℹ️ {res['mensaje']}")

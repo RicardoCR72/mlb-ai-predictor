@@ -179,11 +179,9 @@ def run_update(service,root,on_step=None):
         if which=='mlb':
             step('Marcadores MLB',lambda:refresh_mlb_games(db()))
             step('Resultados MLB Totales V2',lambda:mlb_totals(db()))
-        elif which in SCRIPTS:
-            step('Resultados NFL totales' if which=='nfl_totales' else 'Resultados NFL props',lambda:run_script(which,root))
-        elif which=='nfl_moneyline':
-            from nfl.registro_moneyline import liquidar_partidos_pendientes_moneyline
-            step('Liquidación NFL Moneyline',lambda:liquidar_partidos_pendientes_moneyline().get('mensaje'))
+        elif which in ('nfl_totales', 'nfl_props', 'nfl_moneyline'):
+            from nfl.liquidar_nfl import liquidar_todo_nfl
+            step('Liquidación NFL (Totales, Moneyline y Props)', lambda: liquidar_todo_nfl().get('mensaje'))
         elif which=='liga_mx':
             step('Resultados y calendario Liga MX',lambda:refresh_liga(root))
             from futbol_liga_mx.registro import liquidar_partidos_pendientes_ligamx
