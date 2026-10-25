@@ -77,7 +77,7 @@ def cargar_lineas(conexion, game_ids):
         return lineas
     lineas["timestamp_captura"] = pd.to_datetime(lineas["timestamp_captura"])
     from core.domain.quotes import fresh_quotes
-    lineas = fresh_quotes(lineas)
+    lineas = fresh_quotes(lineas, max_age_minutes=1440)
     if lineas.empty:
         return lineas
     # MySQL devuelve las columnas DECIMAL como decimal.Decimal. Convertirlas
@@ -197,9 +197,9 @@ def guardar_proyecciones(conexion, df):
                     fila.probabilidad_pick, fila.probabilidad_over,
                     fila.probabilidad_under, fila.cuota_pick,
                     fila.ev_estimado, fila.estado_pick,
-                    fila.player_injury_status,
-                    fila.teammate_skill_injury_score,
-                    fila.contexto_lesiones,
+                    getattr(fila, 'player_injury_status', getattr(fila, 'estado_lesion', 'ACTIVE')),
+                    getattr(fila, 'teammate_skill_injury_score', getattr(fila, 'impacto_lesiones_companeros', 0.0)),
+                    getattr(fila, 'contexto_lesiones', ''),
                 ]
             )
         )

@@ -637,10 +637,10 @@ def agregar_lineas_y_probabilidades(proyecciones, lineas):
     es_over_rush = es_rushing & resultado["seleccion"].eq("OVER")
 
     carries_promedio = pd.to_numeric(
-        resultado.get("player_carries_avg_5"), errors="coerce"
+        resultado.get("player_carries_avg_5", pd.Series(0.0, index=resultado.index)), errors="coerce"
     ).fillna(0.0)
     principal = pd.to_numeric(
-        resultado.get("is_primary_rusher"), errors="coerce"
+        resultado.get("is_primary_rusher", pd.Series(0, index=resultado.index)), errors="coerce"
     ).fillna(0).eq(1)
     rushing_valido = (
         resultado["position"].eq("RB")

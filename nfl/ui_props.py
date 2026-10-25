@@ -17,8 +17,10 @@ ZONA_MEXICO = ZoneInfo("America/Mexico_City")
 
 
 def filtrar_partidos_pendientes(datos):
-    from nfl.services.eligibility import upcoming
-    return upcoming(datos)
+    if datos.empty:
+        return datos.copy()
+    states = datos.resultado_pick.fillna('PENDIENTE').astype(str).str.strip().str.upper()
+    return datos[~states.isin(['GANADA', 'PERDIDA', 'PUSH'])].copy()
 
 
 def opciones_partidos(datos):
