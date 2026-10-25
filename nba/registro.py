@@ -100,8 +100,52 @@ def guardar_predicciones_nba(predicciones: List[Dict[str, Any]]) -> None:
         m_loc = p.get("marcador_local")
         m_vis = p.get("marcador_visita") if p.get("marcador_visita") is not None else p.get("marcador_visitante")
 
-        # Si el objeto p ya es un pick atómico individual preformateado
-        if "prob_local_win" not in p and p.get("pick_mercado"):
+        # 1. Si el partido incluye candidatos específicos con ventaja matemática (picks_candidatos):
+        candidatos = p.get("candidatos", [])
+        if candidatos:
+            for cand in candidatos:
+                c_cuota = float(cand.get("cuota_dec") or 1.909)
+                c_mercado = cand.get("mercado", "")
+                c_sel = cand.get("seleccion", "")
+                c_prob = float(cand.get("probabilidad") or 0.5)
+                c_edge = float(cand.get("edge") or 0.0)
+                c_conf = cand.get("confianza", "MEDIA")
+
+                linea_cand = 0.0
+                if "Totales" in c_mercado:
+                    linea_cand = float(p.get("linea_total") or 228.0)
+                elif "Spread" in c_mercado:
+                    linea_cand = float(p.get("linea_spread") or 0.0)
+
+                suffix = "_ml" if "Moneyline" in c_mercado else ("_tot" if "Totales" in c_mercado else "_spread")
+                fila_c = {
+                    "id_juego": f"{id_ev}{suffix}",
+                    "fecha": fecha_cdmx,
+                    "hora_cdmx": hora_cdmx,
+                    "equipo_local": eq_loc,
+                    "equipo_visitante": eq_vis,
+                    "mercado": c_mercado,
+                    "seleccion": c_sel,
+                    "linea": linea_cand,
+                    "cuota": round(c_cuota, 3),
+                    "probabilidad": round(c_prob, 3),
+                    "edge": round(c_edge, 3),
+                    "confianza": c_conf,
+                    "marcador_local": m_loc,
+                    "marcador_visitante": m_vis,
+                    "resultado": "PENDIENTE",
+                    "unidades_ganadas": None,
+                    "actualizado_en": ahora_str,
+                }
+                if m_loc is not None and m_vis is not None:
+                    r_res, r_u = liquidar_partido(pd.Series(fila_c))
+                    fila_c["resultado"] = r_res
+                    fila_c["unidades_ganadas"] = r_u
+                nuevas_filas.append(fila_c)
+            continue
+
+        # 2. Si el objeto p ya es un pick atómico individual preformateado (con valor real probado)
+        if p.get("pick_mercado") and p.get("confianza") in ["ALTA", "MEDIA"]:
             cuota_dec = float(p.get("ml_local_dec") or 1.91)
             if "UNDER" in p.get("pick_seleccion", "") or "OVER" in p.get("pick_seleccion", ""):
                 cuota_dec = 1.909
@@ -139,104 +183,7 @@ def guardar_predicciones_nba(predicciones: List[Dict[str, Any]]) -> None:
             nuevas_filas.append(fila_unica)
             continue
 
-        # Generar las 3 dimensiones de mercado (Moneyline, Spread y Totales)
-        # 1. Moneyline
-        p_loc = float(p.get("prob_local_win") or 0.5)
-        p_vis = float(p.get("prob_visita_win") or 0.5)
-        cuota_ml = float(p.get("ml_local_dec") or 1.91) if p_loc >= p_vis else float(p.get("ml_visita_dec") or 1.91)
-        sel_ml = f"{eq_loc} ML" if p_loc >= p_vis else f"{eq_vis} ML"
-        pr_ml = p_loc if p_loc >= p_vis else p_vis
-        edge_ml = pr_ml - (1.0 / cuota_ml if cuota_ml > 0 else 0.5)
-        f_ml = {
-            "id_juego": f"{id_ev}_ml",
-            "fecha": fecha_cdmx,
-            "hora_cdmx": hora_cdmx,
-            "equipo_local": eq_loc,
-            "equipo_visitante": eq_vis,
-            "mercado": "Moneyline",
-            "seleccion": sel_ml,
-            "linea": 0.0,
-            "cuota": round(cuota_ml, 3),
-            "probabilidad": round(pr_ml, 3),
-            "edge": round(edge_ml, 3),
-            "confianza": "ALTA" if pr_ml >= 0.60 else "MEDIA",
-            "marcador_local": m_loc,
-            "marcador_visitante": m_vis,
-            "resultado": "PENDIENTE",
-            "unidades_ganadas": None,
-            "actualizado_en": ahora_str,
-        }
-        if m_loc is not None and m_vis is not None:
-            r_res, r_u = liquidar_partido(pd.Series(f_ml))
-            f_ml["resultado"] = r_res
-            f_ml["unidades_ganadas"] = r_u
-        nuevas_filas.append(f_ml)
-
-        # 2. Spread (solo para juegos de hoy en adelante con línea válida; en juegos pasados solo existían ML y Totales)
-        sp_val = float(p.get("linea_spread") or 0.0)
-        hoy_str = ahora_cdmx.strftime("%Y-%m-%d")
-        if fecha_cdmx >= hoy_str and sp_val != 0.0:
-            p_cov_h = float(p.get("prob_cover_home") or 0.5)
-            p_cov_v = float(p.get("prob_cover_away") or 0.5)
-            sel_sp = f"{eq_loc} {sp_val:+0.1f}" if p_cov_h >= p_cov_v else f"{eq_vis} {-sp_val:+0.1f}"
-            pr_sp = p_cov_h if p_cov_h >= p_cov_v else p_cov_v
-            f_sp = {
-                "id_juego": f"{id_ev}_spread",
-                "fecha": fecha_cdmx,
-                "hora_cdmx": hora_cdmx,
-                "equipo_local": eq_loc,
-                "equipo_visitante": eq_vis,
-                "mercado": "Spread",
-                "seleccion": sel_sp,
-                "linea": sp_val,
-                "cuota": 1.909,
-                "probabilidad": round(pr_sp, 3),
-                "edge": round(pr_sp - 0.5238, 3),
-                "confianza": "ALTA" if pr_sp >= 0.56 else "MEDIA",
-                "marcador_local": m_loc,
-                "marcador_visitante": m_vis,
-                "resultado": "PENDIENTE",
-                "unidades_ganadas": None,
-                "actualizado_en": ahora_str,
-            }
-            if m_loc is not None and m_vis is not None:
-                r_res, r_u = liquidar_partido(pd.Series(f_sp))
-                f_sp["resultado"] = r_res
-                f_sp["unidades_ganadas"] = r_u
-            nuevas_filas.append(f_sp)
-
-        # 3. Totales
-        tot_linea = float(p.get("linea_total") or 228.0)
-        p_over = float(p.get("prob_over") or 0.5)
-        p_under = float(p.get("prob_under") or 0.5)
-        es_over = p_over > p_under
-        pr_tot = p_over if es_over else p_under
-        tipo_tot = "OVER" if es_over else "UNDER"
-        sel_tot = f"{tipo_tot} {tot_linea}"
-        f_tot = {
-            "id_juego": f"{id_ev}_tot",
-            "fecha": fecha_cdmx,
-            "hora_cdmx": hora_cdmx,
-            "equipo_local": eq_loc,
-            "equipo_visitante": eq_vis,
-            "mercado": f"Totales ({tipo_tot})",
-            "seleccion": sel_tot,
-            "linea": tot_linea,
-            "cuota": 1.909,
-            "probabilidad": round(pr_tot, 3),
-            "edge": round(abs(float(p.get("edge_puntos_total") or 0.0)) / 10.0, 3),
-            "confianza": "ALTA" if abs(float(p.get("edge_puntos_total") or 0.0)) >= 4.0 else "MEDIA",
-            "marcador_local": m_loc,
-            "marcador_visitante": m_vis,
-            "resultado": "PENDIENTE",
-            "unidades_ganadas": None,
-            "actualizado_en": ahora_str,
-        }
-        if m_loc is not None and m_vis is not None:
-            r_res, r_u = liquidar_partido(pd.Series(f_tot))
-            f_tot["resultado"] = r_res
-            f_tot["unidades_ganadas"] = r_u
-        nuevas_filas.append(f_tot)
+        # Si el partido no tiene edge ni candidatos calificados (confianza NEUTRAL), no forzar apuestas en contra del casino
 
     df_nuevas = pd.DataFrame(nuevas_filas)
 

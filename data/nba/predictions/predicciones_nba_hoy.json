@@ -8,7 +8,7 @@
     "abbr_visita": "LAL",
     "fecha_cdmx": "2026-10-25",
     "hora_cdmx": "15:00",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_IN_PROGRESS",
     "provider": "Draft Kings",
     "linea_spread": 6.5,
     "spread_detalles": "LAL -6.5",
@@ -35,7 +35,23 @@
     "pick_cuota_dec": 1.42,
     "pick_detalle": "Prob Modelo: 75.5% vs Book: 70.4% (EV: +7.2%)",
     "confianza": "ALTA",
-    "timestamp": "2026-10-25T00:35:02.580829-06:00"
+    "timestamp": "2026-10-25T00:35:02.580829-06:00",
+    "descripcion_estado": "In Progress",
+    "marcador_local": 92,
+    "marcador_visita": 95,
+    "candidatos": [
+      {
+        "mercado": "Moneyline",
+        "seleccion": "Los Angeles Lakers ML",
+        "probabilidad": 0.7547,
+        "edge": 0.0505,
+        "ev": 0.0717,
+        "cuota": "-238",
+        "cuota_dec": 1.42,
+        "confianza": "ALTA",
+        "detalle": "Prob Modelo: 75.5% vs Book: 70.4% (EV: +7.2%)"
+      }
+    ]
   },
   {
     "id_evento": "401909862",
@@ -46,7 +62,7 @@
     "abbr_visita": "IND",
     "fecha_cdmx": "2026-10-25",
     "hora_cdmx": "16:00",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_IN_PROGRESS",
     "provider": "DraftKings",
     "linea_spread": 6.5,
     "spread_detalles": "IND -6.5",
@@ -73,7 +89,23 @@
     "pick_cuota_dec": 1.909,
     "pick_detalle": "Proyección Shrunk: 228.8 pts vs línea 232.5 (Edge: -3.7 pts, EV: +16.3%)",
     "confianza": "ALTA",
-    "timestamp": "2026-10-25T00:35:02.590834-06:00"
+    "timestamp": "2026-10-25T00:35:02.590834-06:00",
+    "descripcion_estado": "In Progress",
+    "marcador_local": 35,
+    "marcador_visita": 35,
+    "candidatos": [
+      {
+        "mercado": "Totales (UNDER)",
+        "seleccion": "UNDER 232.5",
+        "probabilidad": 0.609,
+        "edge": 0.0852,
+        "ev": 0.1626,
+        "cuota": "-110",
+        "cuota_dec": 1.909,
+        "confianza": "ALTA",
+        "detalle": "Proyección Shrunk: 228.8 pts vs línea 232.5 (Edge: -3.7 pts, EV: +16.3%)"
+      }
+    ]
   },
   {
     "id_evento": "401909863",
@@ -111,7 +143,23 @@
     "pick_cuota_dec": 1.909,
     "pick_detalle": "Margen Proyectado Visita: -3.1 pts (Spread: +7.5)",
     "confianza": "ALTA",
-    "timestamp": "2026-10-25T00:35:02.600836-06:00"
+    "timestamp": "2026-10-25T00:35:02.600836-06:00",
+    "descripcion_estado": "Scheduled",
+    "marcador_local": 0,
+    "marcador_visita": 0,
+    "candidatos": [
+      {
+        "mercado": "Spread",
+        "seleccion": "Orlando Magic +7.5",
+        "probabilidad": 0.6456,
+        "edge": 0.1218,
+        "ev": 0.2325,
+        "cuota": "-110",
+        "cuota_dec": 1.909,
+        "confianza": "ALTA",
+        "detalle": "Margen Proyectado Visita: -3.1 pts (Spread: +7.5)"
+      }
+    ]
   },
   {
     "id_evento": "401909864",
@@ -149,7 +197,23 @@
     "pick_cuota_dec": 1.909,
     "pick_detalle": "Proyección Shrunk: 228.9 pts vs línea 231.5 (Edge: -2.6 pts, EV: +10.3%)",
     "confianza": "ALTA",
-    "timestamp": "2026-10-25T00:35:02.612835-06:00"
+    "timestamp": "2026-10-25T00:35:02.612835-06:00",
+    "descripcion_estado": "Scheduled",
+    "marcador_local": 0,
+    "marcador_visita": 0,
+    "candidatos": [
+      {
+        "mercado": "Totales (UNDER)",
+        "seleccion": "UNDER 231.5",
+        "probabilidad": 0.5777,
+        "edge": 0.0539,
+        "ev": 0.1028,
+        "cuota": "-110",
+        "cuota_dec": 1.909,
+        "confianza": "ALTA",
+        "detalle": "Proyección Shrunk: 228.9 pts vs línea 231.5 (Edge: -2.6 pts, EV: +10.3%)"
+      }
+    ]
   },
   {
     "id_evento": "401909865",
@@ -187,7 +251,23 @@
     "pick_cuota_dec": 1.909,
     "pick_detalle": "Margen Proyectado Visita: -6.8 pts (Spread: +14.5)",
     "confianza": "ALTA",
-    "timestamp": "2026-10-25T00:35:02.623827-06:00"
+    "timestamp": "2026-10-25T00:35:02.623827-06:00",
+    "descripcion_estado": "Scheduled",
+    "marcador_local": 0,
+    "marcador_visita": 0,
+    "candidatos": [
+      {
+        "mercado": "Spread",
+        "seleccion": "Los Angeles Clippers +14.5",
+        "probabilidad": 0.7417,
+        "edge": 0.2179,
+        "ev": 0.4159,
+        "cuota": "-110",
+        "cuota_dec": 1.909,
+        "confianza": "ALTA",
+        "detalle": "Margen Proyectado Visita: -6.8 pts (Spread: +14.5)"
+      }
+    ]
   },
   {
     "id_evento": "401909866",
@@ -225,7 +305,23 @@
     "pick_cuota_dec": 1.909,
     "pick_detalle": "Margen Proyectado Visita: +2.3 pts (Spread: +2.5)",
     "confianza": "ALTA",
-    "timestamp": "2026-10-25T00:35:02.633830-06:00"
+    "timestamp": "2026-10-25T00:35:02.633830-06:00",
+    "descripcion_estado": "Scheduled",
+    "marcador_local": 0,
+    "marcador_visita": 0,
+    "candidatos": [
+      {
+        "mercado": "Spread",
+        "seleccion": "Detroit Pistons +2.5",
+        "probabilidad": 0.6584,
+        "edge": 0.1346,
+        "ev": 0.2569,
+        "cuota": "-110",
+        "cuota_dec": 1.909,
+        "confianza": "ALTA",
+        "detalle": "Margen Proyectado Visita: +2.3 pts (Spread: +2.5)"
+      }
+    ]
   },
   {
     "id_evento": "401909867",
@@ -263,6 +359,22 @@
     "pick_cuota_dec": 1.909,
     "pick_detalle": "Proyección Shrunk: 232.6 pts vs línea 236.5 (Edge: -3.9 pts, EV: +17.0%)",
     "confianza": "ALTA",
-    "timestamp": "2026-10-25T00:35:02.642834-06:00"
+    "timestamp": "2026-10-25T00:35:02.642834-06:00",
+    "descripcion_estado": "Scheduled",
+    "marcador_local": 0,
+    "marcador_visita": 0,
+    "candidatos": [
+      {
+        "mercado": "Totales (UNDER)",
+        "seleccion": "UNDER 236.5",
+        "probabilidad": 0.6131,
+        "edge": 0.0893,
+        "ev": 0.1704,
+        "cuota": "-110",
+        "cuota_dec": 1.909,
+        "confianza": "ALTA",
+        "detalle": "Proyección Shrunk: 232.6 pts vs línea 236.5 (Edge: -3.9 pts, EV: +17.0%)"
+      }
+    ]
   }
 ]

@@ -33,6 +33,7 @@ from nba.proveedor_cuotas import (
 from nba.entrenar_spread_ml import proyectar_partido_spread, FEATURES_SPREAD
 from nba.entrenar_totales import proyectar_partido_totales, FEATURES_TOTALES
 from core.constants import NBA_TEAMS, ZONA_CDMX
+from core.calibracion_probabilidades import calibrar_probabilidad
 
 RUTA_DATASET = RAIZ / "data" / "nba" / "processed" / "dataset_partidos_nba.parquet"
 RUTA_MODELO_SPREAD = RAIZ / "modelos_nba" / "modelo_spread_ml.joblib"
@@ -149,6 +150,22 @@ def predecir_partidos_hoy(force_refresh: bool = False, fecha: Optional[str] = No
             if j.get("marcador_visita") is not None:
                 prev_actualizado["marcador_visita"] = j["marcador_visita"]
 
+            if "candidatos" not in prev_actualizado or not prev_actualizado["candidatos"]:
+                if prev_actualizado.get("confianza") in ["ALTA", "MEDIA"] and prev_actualizado.get("pick_seleccion"):
+                    prev_actualizado["candidatos"] = [{
+                        "mercado": prev_actualizado.get("pick_mercado", "Moneyline"),
+                        "seleccion": prev_actualizado.get("pick_seleccion"),
+                        "probabilidad": float(prev_actualizado.get("pick_probabilidad") or 0.5),
+                        "edge": float(prev_actualizado.get("pick_edge") or 0.0),
+                        "ev": float(prev_actualizado.get("pick_ev") or 0.0),
+                        "cuota": str(prev_actualizado.get("pick_cuota") or "-110"),
+                        "cuota_dec": float(prev_actualizado.get("pick_cuota_dec") or 1.91),
+                        "confianza": prev_actualizado.get("confianza", "MEDIA"),
+                        "detalle": prev_actualizado.get("pick_detalle", ""),
+                    }]
+                else:
+                    prev_actualizado["candidatos"] = []
+
             # Si ya terminó y aún está pendiente, liquidar
             if es_final and prev_actualizado.get("marcador_local") is not None:
                 try:
@@ -255,81 +272,103 @@ def predecir_partidos_hoy(force_refresh: bool = False, fecha: Optional[str] = No
         cuota_dec_away = float(j.get("moneyline_visita_dec") or 1.91)
         cuota_dec_std = 1.909  # -110
 
-        edge_ml_home = res_spread["prob_local_win"] - prob_ml_home_book
-        edge_ml_away = res_spread["prob_visita_win"] - prob_ml_away_book
-        ev_ml_home = (res_spread["prob_local_win"] * cuota_dec_home) - 1.0
-        ev_ml_away = (res_spread["prob_visita_win"] * cuota_dec_away) - 1.0
+        # Calibración Logística (Platt Scaling) de Moneyline
+        prob_ml_home_raw = res_spread["prob_local_win"]
+        prob_ml_away_raw = res_spread["prob_visita_win"]
+        prob_ml_home_cal = float(calibrar_probabilidad(prob_ml_home_raw, cuota_dec_home))
+        prob_ml_away_cal = float(calibrar_probabilidad(prob_ml_away_raw, cuota_dec_away))
+
+        edge_ml_home = prob_ml_home_cal - prob_ml_home_book
+        edge_ml_away = prob_ml_away_cal - prob_ml_away_book
+        ev_ml_home = (prob_ml_home_cal * cuota_dec_home) - 1.0
+        ev_ml_away = (prob_ml_away_cal * cuota_dec_away) - 1.0
 
         # Selección rigurosa de candidatos con filtro EV > 0 y Dead Zone
         picks_candidatos = []
 
-        # 1. Totales Over / Under
+        # 1. Totales Over / Under (Calibrado)
         if res_tot["recomendacion"] in ["OVER", "UNDER"]:
-            prob_tot = res_tot["prob_over"] if res_tot["recomendacion"] == "OVER" else res_tot["prob_under"]
-            edge_tot = prob_tot - 0.5238
-            ev_tot = (prob_tot * cuota_dec_std) - 1.0
-            if edge_tot >= 0.025 and ev_tot >= 0.015:
+            prob_tot_raw = res_tot["prob_over"] if res_tot["recomendacion"] == "OVER" else res_tot["prob_under"]
+            prob_tot_cal = float(calibrar_probabilidad(prob_tot_raw, cuota_dec_std))
+            edge_tot = prob_tot_cal - 0.5238
+            ev_tot = (prob_tot_cal * cuota_dec_std) - 1.0
+            if edge_tot >= 0.045 and ev_tot >= 0.025:
                 picks_candidatos.append({
                     "mercado": f"Totales ({res_tot['recomendacion']})",
                     "seleccion": f"{res_tot['recomendacion']} {linea_tot}",
-                    "probabilidad": prob_tot,
+                    "probabilidad": round(prob_tot_cal, 4),
+                    "probabilidad_cruda": round(prob_tot_raw, 4),
                     "edge": round(edge_tot, 4),
                     "ev": round(ev_tot, 4),
                     "cuota": "-110",
                     "cuota_dec": cuota_dec_std,
-                    "detalle": f"Proyección Shrunk: {res_tot['total_proyectado']} pts vs línea {linea_tot} (Edge: {res_tot['edge_puntos']:+0.1f} pts, EV: +{ev_tot*100:.1f}%)"
+                    "confianza": "ALTA" if edge_tot >= 0.065 and ev_tot >= 0.04 else "MEDIA",
+                    "detalle": f"Proyección Calibrada: {res_tot['total_proyectado']} pts vs línea {linea_tot} (Edge: {edge_tot*100:+.1f}%, EV: {ev_tot*100:+.1f}%)"
                 })
 
-        # 2. Moneyline con valor real
-        if edge_ml_home >= 0.025 and ev_ml_home >= 0.015 and res_spread["prob_local_win"] >= 0.46:
+        # 2. Moneyline con valor real calibrado
+        if edge_ml_home >= 0.045 and ev_ml_home >= 0.025 and prob_ml_home_cal >= 0.45:
             picks_candidatos.append({
                 "mercado": "Moneyline",
                 "seleccion": f"{j['equipo_local']} ML",
-                "probabilidad": res_spread["prob_local_win"],
+                "probabilidad": round(prob_ml_home_cal, 4),
+                "probabilidad_cruda": round(prob_ml_home_raw, 4),
                 "edge": round(edge_ml_home, 4),
                 "ev": round(ev_ml_home, 4),
                 "cuota": j.get("moneyline_local") or "-110",
                 "cuota_dec": cuota_dec_home,
-                "detalle": f"Prob Modelo: {res_spread['prob_local_win']*100:.1f}% vs Book: {prob_ml_home_book*100:.1f}% (EV: +{ev_ml_home*100:.1f}%)"
+                "confianza": "ALTA" if edge_ml_home >= 0.065 and ev_ml_home >= 0.04 else "MEDIA",
+                "detalle": f"Prob Calibrada: {prob_ml_home_cal*100:.1f}% vs Book: {prob_ml_home_book*100:.1f}% (EV: +{ev_ml_home*100:.1f}%)"
             })
-        elif edge_ml_away >= 0.025 and ev_ml_away >= 0.015 and res_spread["prob_visita_win"] >= 0.46:
+        elif edge_ml_away >= 0.045 and ev_ml_away >= 0.025 and prob_ml_away_cal >= 0.45:
             picks_candidatos.append({
                 "mercado": "Moneyline",
                 "seleccion": f"{j['equipo_visita']} ML",
-                "probabilidad": res_spread["prob_visita_win"],
+                "probabilidad": round(prob_ml_away_cal, 4),
+                "probabilidad_cruda": round(prob_ml_away_raw, 4),
                 "edge": round(edge_ml_away, 4),
                 "ev": round(ev_ml_away, 4),
                 "cuota": j.get("moneyline_visita") or "-110",
                 "cuota_dec": cuota_dec_away,
-                "detalle": f"Prob Modelo: {res_spread['prob_visita_win']*100:.1f}% vs Book: {prob_ml_away_book*100:.1f}% (EV: +{ev_ml_away*100:.1f}%)"
+                "confianza": "ALTA" if edge_ml_away >= 0.065 and ev_ml_away >= 0.04 else "MEDIA",
+                "detalle": f"Prob Calibrada: {prob_ml_away_cal*100:.1f}% vs Book: {prob_ml_away_book*100:.1f}% (EV: +{ev_ml_away*100:.1f}%)"
             })
 
-        # 3. Spread / Hándicap
-        edge_cov_home = res_spread["prob_cover_home"] - 0.5238
-        edge_cov_away = res_spread["prob_cover_away"] - 0.5238
-        ev_cov_home = (res_spread["prob_cover_home"] * cuota_dec_std) - 1.0
-        ev_cov_away = (res_spread["prob_cover_away"] * cuota_dec_std) - 1.0
+        # 3. Spread / Hándicap (Calibrado)
+        prob_cov_home_raw = res_spread["prob_cover_home"]
+        prob_cov_away_raw = res_spread["prob_cover_away"]
+        prob_cov_home_cal = float(calibrar_probabilidad(prob_cov_home_raw, cuota_dec_std))
+        prob_cov_away_cal = float(calibrar_probabilidad(prob_cov_away_raw, cuota_dec_std))
 
-        if edge_cov_home >= 0.030 and ev_cov_home >= 0.020:
+        edge_cov_home = prob_cov_home_cal - 0.5238
+        edge_cov_away = prob_cov_away_cal - 0.5238
+        ev_cov_home = (prob_cov_home_cal * cuota_dec_std) - 1.0
+        ev_cov_away = (prob_cov_away_cal * cuota_dec_std) - 1.0
+
+        if edge_cov_home >= 0.035 and ev_cov_home >= 0.02:
             picks_candidatos.append({
                 "mercado": "Spread",
                 "seleccion": f"{j['equipo_local']} {spread_val:+0.1f}",
-                "probabilidad": res_spread["prob_cover_home"],
+                "probabilidad": round(prob_cov_home_cal, 4),
+                "probabilidad_cruda": round(prob_cov_home_raw, 4),
                 "edge": round(edge_cov_home, 4),
                 "ev": round(ev_cov_home, 4),
                 "cuota": "-110",
                 "cuota_dec": cuota_dec_std,
+                "confianza": "ALTA" if edge_cov_home >= 0.06 and ev_cov_home >= 0.04 else "MEDIA",
                 "detalle": f"Margen Proyectado: {res_spread['margen_local_esperado']:+0.1f} pts (Spread: {spread_val:+0.1f})"
             })
-        elif edge_cov_away >= 0.030 and ev_cov_away >= 0.020:
+        elif edge_cov_away >= 0.035 and ev_cov_away >= 0.02:
             picks_candidatos.append({
                 "mercado": "Spread",
                 "seleccion": f"{j['equipo_visita']} {-spread_val:+0.1f}",
-                "probabilidad": res_spread["prob_cover_away"],
+                "probabilidad": round(prob_cov_away_cal, 4),
+                "probabilidad_cruda": round(prob_cov_away_raw, 4),
                 "edge": round(edge_cov_away, 4),
                 "ev": round(ev_cov_away, 4),
                 "cuota": "-110",
                 "cuota_dec": cuota_dec_std,
+                "confianza": "ALTA" if edge_cov_away >= 0.06 and ev_cov_away >= 0.04 else "MEDIA",
                 "detalle": f"Margen Proyectado Visita: {-res_spread['margen_local_esperado']:+0.1f} pts (Spread: {-spread_val:+0.1f})"
             })
 
@@ -340,19 +379,19 @@ def predecir_partidos_hoy(force_refresh: bool = False, fecha: Optional[str] = No
                 reverse=True
             )
             mejor_pick = picks_candidatos[0]
-            confianza = "ALTA" if mejor_pick["edge"] >= 0.05 and mejor_pick["probabilidad"] >= 0.56 else "MEDIA"
+            confianza = mejor_pick.get("confianza", "MEDIA")
         else:
             # Lean pasivo neutral sin inventar edge artificial
             if res_spread["prob_local_win"] >= res_spread["prob_visita_win"]:
                 sel_lean = f"{j['equipo_local']} ML"
-                pr_lean = res_spread["prob_local_win"]
+                pr_lean = prob_ml_home_cal
                 ed_lean = edge_ml_home
                 ev_lean = ev_ml_home
                 c_lean = j.get("moneyline_local") or "-110"
                 c_dec_lean = cuota_dec_home
             else:
                 sel_lean = f"{j['equipo_visita']} ML"
-                pr_lean = res_spread["prob_visita_win"]
+                pr_lean = prob_ml_away_cal
                 ed_lean = edge_ml_away
                 ev_lean = ev_ml_away
                 c_lean = j.get("moneyline_visita") or "-110"
@@ -361,12 +400,12 @@ def predecir_partidos_hoy(force_refresh: bool = False, fecha: Optional[str] = No
             mejor_pick = {
                 "mercado": "Moneyline",
                 "seleccion": sel_lean,
-                "probabilidad": pr_lean,
-                "edge": ed_lean,
-                "ev": ev_lean,
+                "probabilidad": round(pr_lean, 4),
+                "edge": round(ed_lean, 4),
+                "ev": round(ev_lean, 4),
                 "cuota": c_lean,
                 "cuota_dec": c_dec_lean,
-                "detalle": f"Líneas de mercado eficientes (Margen proy: {res_spread['margen_local_esperado']:+0.1f} pts)"
+                "detalle": f"Líneas de mercado eficientes (Sin ventaja clara. Margen: {res_spread['margen_local_esperado']:+0.1f} pts)"
             }
             confianza = "NEUTRAL"
 
@@ -391,15 +430,17 @@ def predecir_partidos_hoy(force_refresh: bool = False, fecha: Optional[str] = No
             "ml_visita_dec": j["moneyline_visita_dec"],
             # Proyecciones del Modelo V2
             "margen_local_esperado": res_spread["margen_local_esperado"],
-            "prob_local_win": res_spread["prob_local_win"],
-            "prob_visita_win": res_spread["prob_visita_win"],
-            "prob_cover_home": res_spread["prob_cover_home"],
-            "prob_cover_away": res_spread["prob_cover_away"],
+            "prob_local_win": round(prob_ml_home_cal, 4),
+            "prob_visita_win": round(prob_ml_away_cal, 4),
+            "prob_local_win_cruda": round(prob_ml_home_raw, 4),
+            "prob_visita_win_cruda": round(prob_ml_away_raw, 4),
+            "prob_cover_home": round(prob_cov_home_cal, 4),
+            "prob_cover_away": round(prob_cov_away_cal, 4),
             "total_proyectado": res_tot["total_proyectado"],
-            "prob_over": res_tot["prob_over"],
-            "prob_under": res_tot["prob_under"],
+            "prob_over": round(res_tot["prob_over"], 4),
+            "prob_under": round(res_tot["prob_under"], 4),
             "edge_puntos_total": res_tot["edge_puntos"],
-            # Recomendación final
+            # Recomendación final y candidatos con valor
             "pick_mercado": mejor_pick["mercado"],
             "pick_seleccion": mejor_pick["seleccion"],
             "pick_probabilidad": round(float(mejor_pick["probabilidad"]), 4),
@@ -409,6 +450,7 @@ def predecir_partidos_hoy(force_refresh: bool = False, fecha: Optional[str] = No
             "pick_cuota_dec": mejor_pick.get("cuota_dec", 1.91),
             "pick_detalle": mejor_pick["detalle"],
             "confianza": confianza,
+            "candidatos": picks_candidatos,
             "timestamp": datetime.now(ZONA_CDMX).isoformat(),
         }
 

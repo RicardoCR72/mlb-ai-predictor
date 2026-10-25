@@ -80,14 +80,36 @@ def cargar_predicciones(forzar: bool = False):
 
 
 def obtener_pick_para_mercado(p: dict, mercado_tipo: str) -> dict:
-    """Calcula la recomendación, momio, probabilidad, edge real y EV para el mercado elegido."""
+    """Calcula la recomendación, momio, probabilidad calibrada, edge y EV para el mercado elegido."""
     from core.ui_boleta import parsear_cuota_decimal
+    from core.calibracion_probabilidades import calibrar_probabilidad
 
+    # 1. Si el partido ya tiene un pick candidato validado por el filtro Dead Zone para este mercado
+    candidatos = p.get("candidatos") or []
+    for cand in candidatos:
+        c_mercado = cand.get("mercado", "")
+        if (
+            ("Totales" in mercado_tipo and "Totales" in c_mercado)
+            or ("Moneyline" in mercado_tipo and "Moneyline" in c_mercado)
+            or ("Spread" in mercado_tipo and "Spread" in c_mercado)
+        ):
+            return {
+                "mercado": cand.get("mercado", mercado_tipo),
+                "seleccion": cand.get("seleccion", "N/D"),
+                "probabilidad": float(cand.get("probabilidad", 0.5)),
+                "edge": float(cand.get("edge", 0.0)),
+                "ev": float(cand.get("ev", 0.0)),
+                "momio": str(cand.get("cuota", "-110")),
+                "detalle": cand.get("detalle", ""),
+                "confianza": cand.get("confianza", "MEDIA"),
+            }
+
+    # 2. Si no hay candidato calificado (Zona Muerta / Dead Zone o sin edge), calcular lean pasivo calibrado
     if "Totales" in mercado_tipo:
         linea = p.get("linea_total")
         proy = float(p.get("total_proyectado") or 0.0)
-        p_over = float(p.get("prob_over") or 0.5)
-        p_under = float(p.get("prob_under") or 0.5)
+        p_over_raw = float(p.get("prob_over") or 0.5)
+        p_under_raw = float(p.get("prob_under") or 0.5)
         edge_pts = float(p.get("edge_puntos_total") or 0.0)
 
         if linea is None or linea <= 0:
@@ -102,22 +124,33 @@ def obtener_pick_para_mercado(p: dict, mercado_tipo: str) -> dict:
                 "confianza": "NEUTRAL",
             }
 
-        if proy >= linea:
+        p_over_cal = float(calibrar_probabilidad(p_over_raw, 1.909))
+        p_under_cal = float(calibrar_probabilidad(p_under_raw, 1.909))
+        edge_over = p_over_cal - 0.5238
+        edge_under = p_under_cal - 0.5238
+        ev_over = (p_over_cal * 1.909) - 1.0
+        ev_under = (p_under_cal * 1.909) - 1.0
+
+        if edge_over >= edge_under:
             sel = f"OVER {linea}"
-            prob = p_over
+            prob = p_over_cal
+            edge = edge_over
+            ev = ev_over
         else:
             sel = f"UNDER {linea}"
-            prob = p_under
+            prob = p_under_cal
+            edge = edge_under
+            ev = ev_under
 
-        edge = prob - 0.5238
-        ev = (prob * 1.909) - 1.0
-
-        if edge >= 0.04 and ev >= 0.03:
+        if edge >= 0.065 and ev >= 0.04:
             conf = "ALTA"
-        elif edge >= 0.02 and ev >= 0.015:
+            det = f"Proyección: {proy:.1f} pts vs Línea {linea} (Edge Cal: {edge*100:+.1f}%, EV: {ev*100:+.1f}%)"
+        elif edge >= 0.045 and ev >= 0.025:
             conf = "MEDIA"
+            det = f"Proyección: {proy:.1f} pts vs Línea {linea} (Edge Cal: {edge*100:+.1f}%, EV: {ev*100:+.1f}%)"
         else:
             conf = "NEUTRAL"
+            det = f"Línea de mercado eficiente. Edge calibrado ({edge*100:+.1f}%) debajo del umbral (+4.5%). Descartado para proteger bankroll."
 
         return {
             "mercado": "Totales",
@@ -126,45 +159,51 @@ def obtener_pick_para_mercado(p: dict, mercado_tipo: str) -> dict:
             "edge": edge,
             "ev": ev,
             "momio": "-110 (1.91)",
-            "detalle": f"Proyección Shrunk: {proy:.1f} pts vs Línea {linea} (Edge: {edge_pts:+.1f} pts, EV: {ev*100:+.1f}%)",
+            "detalle": det,
             "confianza": conf,
         }
 
     elif "Moneyline" in mercado_tipo:
-        p_loc = float(p.get("prob_local_win") or 0.5)
-        p_vis = float(p.get("prob_visita_win") or 0.5)
+        p_loc_raw = float(p.get("prob_local_win") or 0.5)
+        p_vis_raw = float(p.get("prob_visita_win") or 0.5)
         ml_loc = p.get("ml_local", "N/D")
         ml_vis = p.get("ml_visita", "N/D")
 
-        cuota_dec_loc = float(p.get("ml_local_dec") or parsear_cuota_decimal(ml_loc))
-        cuota_dec_vis = float(p.get("ml_visita_dec") or parsear_cuota_decimal(ml_vis))
+        cuota_dec_loc = float(p.get("ml_local_dec") or parsear_cuota_decimal(ml_loc) or 1.91)
+        cuota_dec_vis = float(p.get("ml_visita_dec") or parsear_cuota_decimal(ml_vis) or 1.91)
+
+        p_loc_cal = float(calibrar_probabilidad(p_loc_raw, cuota_dec_loc))
+        p_vis_cal = float(calibrar_probabilidad(p_vis_raw, cuota_dec_vis))
 
         prob_loc_book = american_to_prob(ml_loc) if ml_loc != "N/D" else 0.5
         prob_vis_book = american_to_prob(ml_vis) if ml_vis != "N/D" else 0.5
-        edge_loc = p_loc - prob_loc_book
-        edge_vis = p_vis - prob_vis_book
-        ev_loc = (p_loc * cuota_dec_loc) - 1.0
-        ev_vis = (p_vis * cuota_dec_vis) - 1.0
+        edge_loc = p_loc_cal - prob_loc_book
+        edge_vis = p_vis_cal - prob_vis_book
+        ev_loc = (p_loc_cal * cuota_dec_loc) - 1.0
+        ev_vis = (p_vis_cal * cuota_dec_vis) - 1.0
 
-        if p_loc >= p_vis:
+        if ev_loc >= ev_vis:
             sel = f"{p.get('equipo_local')} ML"
-            prob = p_loc
+            prob = p_loc_cal
             momio = ml_loc
             edge = edge_loc
             ev = ev_loc
         else:
             sel = f"{p.get('equipo_visita')} ML"
-            prob = p_vis
+            prob = p_vis_cal
             momio = ml_vis
             edge = edge_vis
             ev = ev_vis
 
-        if edge >= 0.04 and ev >= 0.03:
+        if edge >= 0.065 and ev >= 0.04:
             conf = "ALTA"
-        elif edge >= 0.02 and ev >= 0.015:
+            det = f"Prob Calibrada: {prob*100:.1f}% vs Book: {(prob - edge)*100:.1f}% (Edge: {edge*100:+.1f}%, EV: {ev*100:+.1f}%)"
+        elif edge >= 0.045 and ev >= 0.025:
             conf = "MEDIA"
+            det = f"Prob Calibrada: {prob*100:.1f}% vs Book: {(prob - edge)*100:.1f}% (Edge: {edge*100:+.1f}%, EV: {ev*100:+.1f}%)"
         else:
             conf = "NEUTRAL"
+            det = f"Sin ventaja sobre la cuota ({edge*100:+.1f}% edge calibrado). Partido en Zona Muerta descartado."
 
         return {
             "mercado": "Moneyline",
@@ -173,7 +212,7 @@ def obtener_pick_para_mercado(p: dict, mercado_tipo: str) -> dict:
             "edge": edge,
             "ev": ev,
             "momio": str(momio),
-            "detalle": f"Prob Modelo: {prob*100:.1f}% vs Book: {(prob - edge)*100:.1f}% (EV: {ev*100:+.1f}%)",
+            "detalle": det,
             "confianza": conf,
         }
 
@@ -181,25 +220,37 @@ def obtener_pick_para_mercado(p: dict, mercado_tipo: str) -> dict:
         spread_val = float(p.get("linea_spread") or 0.0)
         spread_det = p.get("spread_detalles", "N/D")
         margen = float(p.get("margen_local_esperado") or 0.0)
-        p_cov_loc = float(p.get("prob_cover_home") or 0.5)
-        p_cov_vis = float(p.get("prob_cover_away") or 0.5)
+        p_cov_loc_raw = float(p.get("prob_cover_home") or 0.5)
+        p_cov_vis_raw = float(p.get("prob_cover_away") or 0.5)
 
-        if p_cov_loc >= p_cov_vis:
+        p_cov_loc_cal = float(calibrar_probabilidad(p_cov_loc_raw, 1.909))
+        p_cov_vis_cal = float(calibrar_probabilidad(p_cov_vis_raw, 1.909))
+
+        edge_cov_loc = p_cov_loc_cal - 0.5238
+        edge_cov_vis = p_cov_vis_cal - 0.5238
+        ev_cov_loc = (p_cov_loc_cal * 1.909) - 1.0
+        ev_cov_vis = (p_cov_vis_cal * 1.909) - 1.0
+
+        if edge_cov_loc >= edge_cov_vis:
             sel = f"{p.get('equipo_local')} {spread_val:+0.1f}"
-            prob = p_cov_loc
+            prob = p_cov_loc_cal
+            edge = edge_cov_loc
+            ev = ev_cov_loc
         else:
             sel = f"{p.get('equipo_visita')} {-spread_val:+0.1f}"
-            prob = p_cov_vis
+            prob = p_cov_vis_cal
+            edge = edge_cov_vis
+            ev = ev_cov_vis
 
-        edge = prob - 0.5238
-        ev = (prob * 1.909) - 1.0
-
-        if edge >= 0.04 and ev >= 0.03:
+        if edge >= 0.06 and ev >= 0.04:
             conf = "ALTA"
-        elif edge >= 0.02 and ev >= 0.015:
+            det = f"Margen estimado: {margen:+0.1f} pts · Línea: {spread_det} (Edge Cal: {edge*100:+.1f}%, EV: {ev*100:+.1f}%)"
+        elif edge >= 0.045 and ev >= 0.025:
             conf = "MEDIA"
+            det = f"Margen estimado: {margen:+0.1f} pts · Línea: {spread_det} (Edge Cal: {edge*100:+.1f}%, EV: {ev*100:+.1f}%)"
         else:
             conf = "NEUTRAL"
+            det = f"Margen estimado ({margen:+0.1f} pts) alineado al mercado ({spread_det}). Sin ventaja estadística suficiente."
 
         return {
             "mercado": "Spread",
@@ -208,9 +259,10 @@ def obtener_pick_para_mercado(p: dict, mercado_tipo: str) -> dict:
             "edge": edge,
             "ev": ev,
             "momio": "-110 (1.91)",
-            "detalle": f"Margen estimado: {margen:+0.1f} pts · Línea: {spread_det} (EV: {ev*100:+.1f}%)",
+            "detalle": det,
             "confianza": conf,
         }
+
 
 
 def render_cartelera_nba(predicciones: list[dict], mercado: str):
@@ -232,10 +284,10 @@ def render_cartelera_nba(predicciones: list[dict], mercado: str):
     n_pendientes = len(partidos_pendientes)
     n_liquidados = len(partidos_liquidados)
 
-    # Picks de alto valor en el mercado activo
-    picks_alto_valor = sum(
+    # Picks calificados (+EV fuera de Dead Zone) en el mercado activo
+    picks_calificados = sum(
         1 for p in partidos_pendientes
-        if obtener_pick_para_mercado(p, mercado).get("confianza") == "ALTA"
+        if obtener_pick_para_mercado(p, mercado).get("confianza") in ["ALTA", "MEDIA"]
     )
 
     # 4 tarjetas métricas ejecutivas homologadas
@@ -247,7 +299,7 @@ def render_cartelera_nba(predicciones: list[dict], mercado: str):
     with c3:
         st.metric("Finalizados", n_liquidados)
     with c4:
-        st.metric("Picks de Alto Valor", picks_alto_valor)
+        st.metric("Picks Calificados (+EV)", picks_calificados)
     st.markdown("<div style='margin-bottom: 1.25rem;'></div>", unsafe_allow_html=True)
 
     if n_pendientes == 0 and total_partidos > 0:
@@ -274,7 +326,7 @@ Los partidos de la cartelera anterior ({n_liquidados} juegos) ya finalizaron y h
         ).strip().lower()
     with f_col2:
         st.markdown("<div style='margin-top: 1.8rem;'></div>", unsafe_allow_html=True)
-        solo_ev = st.checkbox("🔥 Solo picks con Valor (+EV)", key="nba_ev_filter")
+        solo_ev = st.checkbox("🔥 Solo picks Calificados (+EV)", key="nba_ev_filter")
 
     lista_mostrar = predicciones
     if busqueda_nba:
@@ -289,8 +341,7 @@ Los partidos de la cartelera anterior ({n_liquidados} juegos) ya finalizaron y h
     if solo_ev:
         lista_mostrar = [
             p for p in lista_mostrar
-            if (obtener_pick_para_mercado(p, mercado).get("edge", 0.0) >= 0.02 or
-                obtener_pick_para_mercado(p, mercado).get("confianza") == "ALTA")
+            if obtener_pick_para_mercado(p, mercado).get("confianza") in ["ALTA", "MEDIA"]
         ]
 
     if not lista_mostrar:
@@ -301,14 +352,19 @@ Los partidos de la cartelera anterior ({n_liquidados} juegos) ya finalizaron y h
     for idx, p in enumerate(lista_mostrar):
         pick_info = obtener_pick_para_mercado(p, mercado)
         conf = pick_info["confianza"]
-        badge_conf = "badge-conf-alta" if conf == "ALTA" else "badge-conf-media"
+        if conf == "ALTA":
+            badge_conf = "badge-conf-alta"
+        elif conf == "MEDIA":
+            badge_conf = "badge-conf-media"
+        else:
+            badge_conf = "badge-conf-media"
         
         # Cálculo del Valor Esperado real: EV% = (probabilidad * cuota_decimal - 1.0) * 100
         from core.ui_boleta import parsear_cuota_decimal
         c_dec = parsear_cuota_decimal(pick_info.get("momio"))
         prob = float(pick_info.get("probabilidad") or 0.5)
         ev_calc = (prob * c_dec - 1.0) * 100.0 if (c_dec > 1.0 and prob > 0) else 0.0
-        ev_badge = f'<span class="badge-ev" style="margin-left: 0.45rem;">🔥 +EV +{ev_calc:.1f}%</span>' if ev_calc >= 2.0 else ""
+        ev_badge = f'<span class="badge-ev" style="margin-left: 0.45rem;">🔥 +EV +{ev_calc:.1f}%</span>' if (ev_calc >= 2.0 and conf != "NEUTRAL") else ""
 
         resultado_pick = p.get("resultado")
         u_gan = p.get("unidades_ganadas")
@@ -333,7 +389,12 @@ Los partidos de la cartelera anterior ({n_liquidados} juegos) ya finalizaron y h
         elif resultado_pick == "PUSH":
             badge_top_right = '<span style="background: rgba(148, 163, 184, 0.16); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.55); padding: 0.25rem 0.75rem; border-radius: 6px; font-weight: 850; font-size: 0.8rem;">🤝 PUSH (0.00 u)</span>'
         else:
-            badge_top_right = f'<div style="display:inline-flex; align-items:center;"><span class="{badge_conf}">CONFIANZA {conf}</span>{ev_badge}</div>'
+            if conf == "ALTA":
+                badge_top_right = f'<div style="display:inline-flex; align-items:center;"><span class="badge-conf-alta">CONFIANZA ALTA</span>{ev_badge}</div>'
+            elif conf == "MEDIA":
+                badge_top_right = f'<div style="display:inline-flex; align-items:center;"><span class="badge-conf-media">CONFIANZA MEDIA</span>{ev_badge}</div>'
+            else:
+                badge_top_right = '<span style="background: rgba(148, 163, 184, 0.12); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.35); padding: 0.25rem 0.65rem; border-radius: 6px; font-weight: 700; font-size: 0.8rem;">⏸️ LÍNEA EFICIENTE (SIN EDGE)</span>'
 
         card_top_html = (
             f'<div class="card-top">'
@@ -382,17 +443,20 @@ Los partidos de la cartelera anterior ({n_liquidados} juegos) ya finalizaron y h
             )
         else:
             prob_pct = pick_info["probabilidad"] * 100
+            lbl_prob = "PROBABILIDAD CALIBRADA" if conf in ["ALTA", "MEDIA"] else "ESTIMACIÓN NEUTRAL"
+            clr_prob = "#ff8c33" if conf in ["ALTA", "MEDIA"] else "#94a3b8"
             pick_res_html = (
                 f'<div style="text-align: right;">'
-                f'<div style="font-size: 0.72rem; color: #a4978e; font-weight: 700;">PROBABILIDAD MODELO</div>'
-                f'<div style="font-size: 1.35rem; font-weight: 900; color: #ff8c33;">{prob_pct:.1f}%</div>'
+                f'<div style="font-size: 0.72rem; color: #a4978e; font-weight: 700;">{lbl_prob}</div>'
+                f'<div style="font-size: 1.35rem; font-weight: 900; color: {clr_prob};">{prob_pct:.1f}%</div>'
                 f'</div>'
             )
 
+        titulo_box = f"Recomendación ({pick_info['mercado']})" if conf in ["ALTA", "MEDIA"] else f"Línea de Referencia ({pick_info['mercado']})"
         pick_box_html = (
             f'<div class="pick-box">'
             f'<div style="min-width: 0; flex: 1;">'
-            f'<div class="pick-title">Recomendación ({pick_info["mercado"]})<span style="color:#ffffff;font-weight:700;">{cuota_str}</span></div>'
+            f'<div class="pick-title">{titulo_box}<span style="color:#ffffff;font-weight:700;">{cuota_str}</span></div>'
             f'<div class="pick-sel">{pick_info["seleccion"]}</div>'
             f'<div style="font-size: 0.82rem; color: #a4978e; margin-top: 0.2rem;">{pick_info["detalle"]}</div>'
             f'</div>'
@@ -403,19 +467,22 @@ Los partidos de la cartelera anterior ({n_liquidados} juegos) ya finalizaron y h
         with st.container(border=True):
             st.markdown(card_top_html + teams_html + pick_box_html, unsafe_allow_html=True)
 
-            evento_id = str(p.get("id_evento") or p.get("id_juego") or f"{p.get('abbr_visita')}_{p.get('abbr_local')}_{idx}")
-            clean_mercado = str(mercado).replace(" ", "_").replace("(", "").replace(")", "")
-            slip_item = {
-                "id": f"NBA_{evento_id}_{clean_mercado}_{pick_info['seleccion']}",
-                "deporte": "NBA",
-                "icono": "🏀",
-                "partido": p.get("partido") or f"{p.get('equipo_visita')} @ {p.get('equipo_local')}",
-                "mercado": mercado,
-                "seleccion": pick_info["seleccion"],
-                "momio": pick_info["momio"],
-                "prob": pick_info["probabilidad"],
-            }
-            render_boton_boleta(slip_item, key=f"btn_nba_slip_{evento_id}_{clean_mercado}_{idx}")
+            if conf in ["ALTA", "MEDIA"]:
+                evento_id = str(p.get("id_evento") or p.get("id_juego") or f"{p.get('abbr_visita')}_{p.get('abbr_local')}_{idx}")
+                clean_mercado = str(mercado).replace(" ", "_").replace("(", "").replace(")", "")
+                slip_item = {
+                    "id": f"NBA_{evento_id}_{clean_mercado}_{pick_info['seleccion']}",
+                    "deporte": "NBA",
+                    "icono": "🏀",
+                    "partido": p.get("partido") or f"{p.get('equipo_visita')} @ {p.get('equipo_local')}",
+                    "mercado": mercado,
+                    "seleccion": pick_info["seleccion"],
+                    "momio": pick_info["momio"],
+                    "prob": pick_info["probabilidad"],
+                }
+                render_boton_boleta(slip_item, key=f"btn_nba_slip_{evento_id}_{clean_mercado}_{idx}")
+            else:
+                st.caption("🛡️ *Filtro de Disciplina Activo: Este partido está en la Zona Muerta (edge < +4.5%). Descartado para apuestas.*")
 
             with st.expander("📊 Ver desglose analítico completo (Spreads, Totales y Probabilidades 1X2)"):
                 col_c1, col_c2, col_c3 = st.columns(3)
