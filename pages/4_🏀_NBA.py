@@ -573,12 +573,12 @@ def render_historial_nba(mercado_filtro: str = ""):
     rmcols[0].metric("Picks Evaluados", f"{n_eval:,}")
     rmcols[1].metric("Acierto", f"{acierto_pct:.1f}%", f"{ganadas}G - {perdidas}P" + (f" ({pushes} Push)" if pushes else ""))
     rmcols[2].metric("Unidades Netas", f"{beneficio_u:+.2f} u")
-    rmcols[3].metric("ROI Simulado", f"{roi_pct:+.2f}%")
+    rmcols[3].metric("ROI", f"{roi_pct:+.2f}%")
 
     # Gráfica de evolución acumulada
     if len(f_liq) > 1 and f_liq["fecha"].nunique() > 1:
         st.write("")
-        st.subheader("📈 Evolución de Unidades en el Tiempo (Simulación 1 u por pick)")
+        st.subheader("📈 Evolución de Unidades en el Tiempo (1 u plana)")
         f_liq_chart = f_liq.copy()
         f_liq_chart["fecha_dt"] = pd.to_datetime(f_liq_chart["fecha"])
         evolucion = f_liq_chart.sort_values("fecha_dt").copy()

@@ -414,117 +414,8 @@ def liquidar_partido(fila: pd.Series) -> Tuple[str, Optional[float]]:
 
 
 def inicializar_historial_simulado() -> pd.DataFrame:
-    """Genera el histórico evaluado de la temporada 2024-25 para tener rendimiento visible desde el primer día."""
-    logger.info("🏀 Generando historial de rendimiento validado de la NBA (Temporada 2024-25)...")
-    if not RUTA_DATASET_PARTIDOS.exists():
-        return pd.DataFrame()
-
-    import joblib
-    from nba.entrenar_spread_ml import proyectar_partido_spread
-    from nba.entrenar_totales import proyectar_partido_totales
-
-    df_partidos = pd.read_parquet(RUTA_DATASET_PARTIDOS)
-    df_24_25 = df_partidos[df_partidos["SEASON"] == "2024-25"].sort_values("GAME_DATE").copy()
-
-    bundle_spread = joblib.load(RAIZ / "modelos_nba" / "modelo_spread_ml.joblib")
-    bundle_tot = joblib.load(RAIZ / "modelos_nba" / "modelo_totales.joblib")
-
-    registros = []
-    for _, row in df_24_25.iterrows():
-        # Predicción de Moneyline
-        m_local = row["HOME_PTS"]
-        m_visita = row["AWAY_PTS"]
-        margen_real = row["MARGIN_HOME"]
-        total_real = row["TOTAL_PTS"]
-
-        # Features
-        feats_sp = {c: float(row.get(c, 0.0)) for c in bundle_spread["features"]}
-        res_sp = proyectar_partido_spread(bundle_spread, feats_sp)
-
-        feats_tot = {c: float(row.get(c, 0.0)) for c in bundle_tot["features"]}
-        linea_tot_base = round(row["PACE_PROYECTADO_L10"] * 2.25, 1)  # Estimación de línea de cierre
-        res_tot = proyectar_partido_totales(bundle_tot, feats_tot, linea_tot_base)
-
-        # Generar pick Moneyline si hay ventaja clara
-        prob_local = res_sp["prob_local_win"]
-        if prob_local >= 0.58:
-            sel = f"{row['HOME_TEAM']} ML"
-            gano = (margen_real > 0)
-            cuota = 1.65 if prob_local > 0.65 else 1.85
-            registros.append({
-                "id_juego": str(row["GAME_ID"]),
-                "fecha": row["GAME_DATE"].strftime("%Y-%m-%d"),
-                "hora_cdmx": "19:00",
-                "equipo_local": row["HOME_TEAM"],
-                "equipo_visitante": row["AWAY_TEAM"],
-                "mercado": "Moneyline",
-                "seleccion": sel,
-                "linea": 0.0,
-                "cuota": cuota,
-                "probabilidad": round(prob_local, 3),
-                "edge": round(prob_local - (1.0 / cuota), 3),
-                "confianza": "ALTA" if prob_local >= 0.65 else "MEDIA",
-                "marcador_local": int(m_local),
-                "marcador_visitante": int(m_visita),
-                "resultado": "GANADA" if gano else "PERDIDA",
-                "unidades_ganadas": round(cuota - 1.0, 3) if gano else -1.0,
-                "actualizado_en": row["GAME_DATE"].strftime("%Y-%m-%d 23:00:00")
-            })
-        elif prob_local <= 0.42:
-            sel = f"{row['AWAY_TEAM']} ML"
-            gano = (margen_real < 0)
-            cuota = 2.10 if prob_local < 0.35 else 1.90
-            registros.append({
-                "id_juego": str(row["GAME_ID"]),
-                "fecha": row["GAME_DATE"].strftime("%Y-%m-%d"),
-                "hora_cdmx": "19:00",
-                "equipo_local": row["HOME_TEAM"],
-                "equipo_visitante": row["AWAY_TEAM"],
-                "mercado": "Moneyline",
-                "seleccion": sel,
-                "linea": 0.0,
-                "cuota": cuota,
-                "probabilidad": round(1.0 - prob_local, 3),
-                "edge": round((1.0 - prob_local) - (1.0 / cuota), 3),
-                "confianza": "ALTA" if prob_local <= 0.35 else "MEDIA",
-                "marcador_local": int(m_local),
-                "marcador_visitante": int(m_visita),
-                "resultado": "GANADA" if gano else "PERDIDA",
-                "unidades_ganadas": round(cuota - 1.0, 3) if gano else -1.0,
-                "actualizado_en": row["GAME_DATE"].strftime("%Y-%m-%d 23:00:00")
-            })
-
-        # Generar pick Totales si hay Edge > 3.0 pts
-        if abs(res_tot["edge_puntos"]) >= 3.0:
-            es_over = res_tot["recomendacion"] == "OVER"
-            linea = linea_tot_base
-            cuota = 1.909
-            acierto = (total_real > linea) if es_over else (total_real < linea)
-            registros.append({
-                "id_juego": str(row["GAME_ID"]) + "_tot",
-                "fecha": row["GAME_DATE"].strftime("%Y-%m-%d"),
-                "hora_cdmx": "19:00",
-                "equipo_local": row["HOME_TEAM"],
-                "equipo_visitante": row["AWAY_TEAM"],
-                "mercado": f"Totales ({res_tot['recomendacion']})",
-                "seleccion": f"{res_tot['recomendacion']} {linea}",
-                "linea": linea,
-                "cuota": cuota,
-                "probabilidad": round(res_tot["prob_over"] if es_over else res_tot["prob_under"], 3),
-                "edge": round(abs(res_tot["edge_puntos"]) / 10.0, 3),
-                "confianza": "ALTA" if abs(res_tot["edge_puntos"]) >= 5.0 else "MEDIA",
-                "marcador_local": int(m_local),
-                "marcador_visitante": int(m_visita),
-                "resultado": "GANADA" if acierto else ("PUSH" if total_real == linea else "PERDIDA"),
-                "unidades_ganadas": round(cuota - 1.0, 3) if acierto else (-1.0 if total_real != linea else 0.0),
-                "actualizado_en": row["GAME_DATE"].strftime("%Y-%m-%d 23:00:00")
-            })
-
-    df_hist = pd.DataFrame(registros)
-    df_hist.to_parquet(RUTA_HISTORIAL_PARQUET, index=False)
-    df_hist.to_csv(RUTA_HISTORIAL_CSV, index=False, encoding="utf-8")
-    logger.info(f"✅ Historial inicial generado con {len(df_hist):,} picks evaluados.")
-    return df_hist
+    """Carga únicamente el historial verídico de la temporada actual desde MySQL o local."""
+    return cargar_historial_rendimiento()
 
 
 def liquidar_partidos_pendientes_nba() -> dict[str, Any]:
@@ -743,18 +634,37 @@ def liquidar_partidos_pendientes_nba() -> dict[str, Any]:
 
 
 def cargar_historial_rendimiento() -> pd.DataFrame:
-    """Carga el historial completo de picks evaluados de la NBA."""
-    # Intentar cargar desde Parquet local
-    if not RUTA_HISTORIAL_PARQUET.exists():
-        return inicializar_historial_simulado()
-
+    """Carga el historial verídico de picks evaluados de la NBA (solo temporada actual)."""
+    # 1. Intentar cargar desde MySQL (fuente en vivo y verídica de la temporada actual)
     try:
-        df = pd.read_parquet(RUTA_HISTORIAL_PARQUET)
-        if df.empty or len(df) < 5:
-            return inicializar_historial_simulado()
-        return df
-    except Exception:
-        return inicializar_historial_simulado()
+        conn = obtener_conexion_mysql(timeout=3)
+        if conn:
+            cursor = conn.cursor(dictionary=True)
+            cursor.execute("SELECT * FROM nba_registro_picks ORDER BY fecha DESC, id DESC;")
+            rows = cursor.fetchall()
+            cursor.close()
+            conn.close()
+            if rows:
+                df = pd.DataFrame(rows)
+                if "fecha" in df.columns:
+                    df["fecha"] = df["fecha"].astype(str)
+                RUTA_PROCESSED.mkdir(parents=True, exist_ok=True)
+                df.to_parquet(RUTA_HISTORIAL_PARQUET, index=False)
+                df.to_csv(RUTA_HISTORIAL_CSV, index=False, encoding="utf-8")
+                return df
+    except Exception as err:
+        logger.warning(f"No se pudo consultar MySQL para historial NBA: {err}")
+
+    # 2. Si MySQL no está disponible, intentar desde Parquet local
+    if RUTA_HISTORIAL_PARQUET.exists():
+        try:
+            df = pd.read_parquet(RUTA_HISTORIAL_PARQUET)
+            if not df.empty:
+                return df
+        except Exception as err:
+            logger.warning(f"Error cargando parquet de historial NBA: {err}")
+
+    return pd.DataFrame()
 
 
 if __name__ == "__main__":
