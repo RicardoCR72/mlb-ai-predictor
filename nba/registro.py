@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 import logging
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 from zoneinfo import ZoneInfo
@@ -82,48 +82,159 @@ def preparar_tablas_nba(conn) -> bool:
 
 
 def guardar_predicciones_nba(predicciones: List[Dict[str, Any]]) -> None:
-    """Guarda las predicciones del día en MySQL y en el archivo local de historial."""
+    """Guarda las predicciones del día en MySQL y en el archivo local de historial para todos los mercados."""
     if not predicciones:
         return
 
     ahora = datetime.now(ZONA_CDMX)
     ahora_str = ahora.strftime("%Y-%m-%d %H:%M:%S")
 
-    # 1. Preparar filas con formato uniforme
+    # 1. Preparar filas con formato uniforme para todos los mercados disponibles
     nuevas_filas = []
     for p in predicciones:
-        cuota_dec = float(p.get("ml_local_dec") or 1.91)
-        if "UNDER" in p.get("pick_seleccion", "") or "OVER" in p.get("pick_seleccion", ""):
-            cuota_dec = 1.909  # Cuota estándar -110 para Totales
-        elif p.get("abbr_visita") in p.get("pick_seleccion", ""):
-            cuota_dec = float(p.get("ml_visita_dec") or 1.91)
+        id_ev = str(p.get("id_evento") or p.get("id_juego") or "").strip()
+        fecha_cdmx = str(p.get("fecha_cdmx", ahora.strftime("%Y-%m-%d")))
+        hora_cdmx = str(p.get("hora_cdmx", "TBD"))
+        eq_loc = str(p.get("equipo_local", ""))
+        eq_vis = str(p.get("equipo_visita") or p.get("equipo_visitante", ""))
+        m_loc = p.get("marcador_local")
+        m_vis = p.get("marcador_visita") if p.get("marcador_visita") is not None else p.get("marcador_visitante")
 
-        linea_val = p.get("linea_total") if "Totales" in p.get("pick_mercado", "") else p.get("linea_spread")
-        if linea_val is None:
-            import re
-            m_l = re.search(r'([+-]?\d+(?:\.\d+)?)', p.get("pick_seleccion", ""))
-            linea_val = float(m_l.group(1)) if m_l else 0.0
+        # Si el objeto p ya es un pick atómico individual preformateado
+        if "prob_local_win" not in p and p.get("pick_mercado"):
+            cuota_dec = float(p.get("ml_local_dec") or 1.91)
+            if "UNDER" in p.get("pick_seleccion", "") or "OVER" in p.get("pick_seleccion", ""):
+                cuota_dec = 1.909
+            elif p.get("abbr_visita") in p.get("pick_seleccion", ""):
+                cuota_dec = float(p.get("ml_visita_dec") or 1.91)
+            linea_val = p.get("linea_total") if "Totales" in p.get("pick_mercado", "") else p.get("linea_spread")
+            if linea_val is None:
+                import re
+                m_l = re.search(r'([+-]?\d+(?:\.\d+)?)', p.get("pick_seleccion", ""))
+                linea_val = float(m_l.group(1)) if m_l else 0.0
 
-        fila = {
-            "id_juego": str(p.get("id_evento", "")),
-            "fecha": str(p.get("fecha_cdmx", ahora.strftime("%Y-%m-%d"))),
-            "hora_cdmx": str(p.get("hora_cdmx", "TBD")),
-            "equipo_local": str(p.get("equipo_local", "")),
-            "equipo_visitante": str(p.get("equipo_visita", "")),
-            "mercado": str(p.get("pick_mercado", "")),
-            "seleccion": str(p.get("pick_seleccion", "")),
-            "linea": float(linea_val or 0.0),
-            "cuota": round(cuota_dec, 3),
-            "probabilidad": float(p.get("pick_probabilidad") or 0.5),
-            "edge": float(p.get("pick_edge") or 0.0),
-            "confianza": str(p.get("confianza") or "MEDIA"),
-            "marcador_local": p.get("marcador_local"),
-            "marcador_visitante": p.get("marcador_visita"),
-            "resultado": p.get("resultado") or "PENDIENTE",
-            "unidades_ganadas": p.get("unidades_ganadas"),
+            fila_unica = {
+                "id_juego": id_ev,
+                "fecha": fecha_cdmx,
+                "hora_cdmx": hora_cdmx,
+                "equipo_local": eq_loc,
+                "equipo_visitante": eq_vis,
+                "mercado": str(p.get("pick_mercado", "")),
+                "seleccion": str(p.get("pick_seleccion", "")),
+                "linea": float(linea_val or 0.0),
+                "cuota": round(cuota_dec, 3),
+                "probabilidad": float(p.get("pick_probabilidad") or 0.5),
+                "edge": float(p.get("pick_edge") or 0.0),
+                "confianza": str(p.get("confianza") or "MEDIA"),
+                "marcador_local": m_loc,
+                "marcador_visitante": m_vis,
+                "resultado": p.get("resultado") or "PENDIENTE",
+                "unidades_ganadas": p.get("unidades_ganadas"),
+                "actualizado_en": ahora_str,
+            }
+            if m_loc is not None and m_vis is not None and fila_unica["resultado"] == "PENDIENTE":
+                r_res, r_u = liquidar_partido(pd.Series(fila_unica))
+                fila_unica["resultado"] = r_res
+                fila_unica["unidades_ganadas"] = r_u
+            nuevas_filas.append(fila_unica)
+            continue
+
+        # Generar las 3 dimensiones de mercado (Moneyline, Spread y Totales)
+        # 1. Moneyline
+        p_loc = float(p.get("prob_local_win") or 0.5)
+        p_vis = float(p.get("prob_visita_win") or 0.5)
+        cuota_ml = float(p.get("ml_local_dec") or 1.91) if p_loc >= p_vis else float(p.get("ml_visita_dec") or 1.91)
+        sel_ml = f"{eq_loc} ML" if p_loc >= p_vis else f"{eq_vis} ML"
+        pr_ml = p_loc if p_loc >= p_vis else p_vis
+        edge_ml = pr_ml - (1.0 / cuota_ml if cuota_ml > 0 else 0.5)
+        f_ml = {
+            "id_juego": f"{id_ev}_ml",
+            "fecha": fecha_cdmx,
+            "hora_cdmx": hora_cdmx,
+            "equipo_local": eq_loc,
+            "equipo_visitante": eq_vis,
+            "mercado": "Moneyline",
+            "seleccion": sel_ml,
+            "linea": 0.0,
+            "cuota": round(cuota_ml, 3),
+            "probabilidad": round(pr_ml, 3),
+            "edge": round(edge_ml, 3),
+            "confianza": "ALTA" if pr_ml >= 0.60 else "MEDIA",
+            "marcador_local": m_loc,
+            "marcador_visitante": m_vis,
+            "resultado": "PENDIENTE",
+            "unidades_ganadas": None,
             "actualizado_en": ahora_str,
         }
-        nuevas_filas.append(fila)
+        if m_loc is not None and m_vis is not None:
+            r_res, r_u = liquidar_partido(pd.Series(f_ml))
+            f_ml["resultado"] = r_res
+            f_ml["unidades_ganadas"] = r_u
+        nuevas_filas.append(f_ml)
+
+        # 2. Spread
+        sp_val = float(p.get("linea_spread") or 0.0)
+        p_cov_h = float(p.get("prob_cover_home") or 0.5)
+        p_cov_v = float(p.get("prob_cover_away") or 0.5)
+        sel_sp = f"{eq_loc} {sp_val:+0.1f}" if p_cov_h >= p_cov_v else f"{eq_vis} {-sp_val:+0.1f}"
+        pr_sp = p_cov_h if p_cov_h >= p_cov_v else p_cov_v
+        f_sp = {
+            "id_juego": f"{id_ev}_spread",
+            "fecha": fecha_cdmx,
+            "hora_cdmx": hora_cdmx,
+            "equipo_local": eq_loc,
+            "equipo_visitante": eq_vis,
+            "mercado": "Spread",
+            "seleccion": sel_sp,
+            "linea": sp_val,
+            "cuota": 1.909,
+            "probabilidad": round(pr_sp, 3),
+            "edge": round(pr_sp - 0.5238, 3),
+            "confianza": "ALTA" if pr_sp >= 0.56 else "MEDIA",
+            "marcador_local": m_loc,
+            "marcador_visitante": m_vis,
+            "resultado": "PENDIENTE",
+            "unidades_ganadas": None,
+            "actualizado_en": ahora_str,
+        }
+        if m_loc is not None and m_vis is not None:
+            r_res, r_u = liquidar_partido(pd.Series(f_sp))
+            f_sp["resultado"] = r_res
+            f_sp["unidades_ganadas"] = r_u
+        nuevas_filas.append(f_sp)
+
+        # 3. Totales
+        tot_linea = float(p.get("linea_total") or 228.0)
+        p_over = float(p.get("prob_over") or 0.5)
+        p_under = float(p.get("prob_under") or 0.5)
+        es_over = p_over > p_under
+        pr_tot = p_over if es_over else p_under
+        tipo_tot = "OVER" if es_over else "UNDER"
+        sel_tot = f"{tipo_tot} {tot_linea}"
+        f_tot = {
+            "id_juego": f"{id_ev}_tot",
+            "fecha": fecha_cdmx,
+            "hora_cdmx": hora_cdmx,
+            "equipo_local": eq_loc,
+            "equipo_visitante": eq_vis,
+            "mercado": f"Totales ({tipo_tot})",
+            "seleccion": sel_tot,
+            "linea": tot_linea,
+            "cuota": 1.909,
+            "probabilidad": round(pr_tot, 3),
+            "edge": round(abs(float(p.get("edge_puntos_total") or 0.0)) / 10.0, 3),
+            "confianza": "ALTA" if abs(float(p.get("edge_puntos_total") or 0.0)) >= 4.0 else "MEDIA",
+            "marcador_local": m_loc,
+            "marcador_visitante": m_vis,
+            "resultado": "PENDIENTE",
+            "unidades_ganadas": None,
+            "actualizado_en": ahora_str,
+        }
+        if m_loc is not None and m_vis is not None:
+            r_res, r_u = liquidar_partido(pd.Series(f_tot))
+            f_tot["resultado"] = r_res
+            f_tot["unidades_ganadas"] = r_u
+        nuevas_filas.append(f_tot)
 
     df_nuevas = pd.DataFrame(nuevas_filas)
 
@@ -180,28 +291,16 @@ def guardar_predicciones_nba(predicciones: List[Dict[str, Any]]) -> None:
             pass
 
     if not df_existente.empty:
-        # Partidos ya liquidados (bloqueados permanentemente para no duplicar datos)
+        # Partidos ya liquidados (bloqueados permanentemente para no sobreescribir auditorías ganadas/perdidas)
         liquidados_prev = df_existente[df_existente["resultado"].isin(["GANADA", "PERDIDA", "PUSH"])]
-        if not liquidados_prev.empty:
-            ids_liquidados = set(liquidados_prev["id_juego"].astype(str))
-            partidos_liquidados = set(zip(
-                liquidados_prev["fecha"].astype(str),
-                liquidados_prev["equipo_local"].astype(str).str.upper(),
-                liquidados_prev["equipo_visitante"].astype(str).str.upper()
-            ))
-            # Descartar cualquier predicción cuyo juego ya esté liquidado en el historial
-            df_nuevas_filtradas = df_nuevas[~df_nuevas.apply(
-                lambda r: (str(r["id_juego"]) in ids_liquidados) or (
-                    (str(r["fecha"]), str(r["equipo_local"]).upper(), str(r["equipo_visitante"]).upper()) in partidos_liquidados
-                ), axis=1
-            )]
-        else:
-            df_nuevas_filtradas = df_nuevas
+        ids_liquidados = set(liquidados_prev["id_juego"].astype(str)) if not liquidados_prev.empty else set()
+
+        # Descartar cualquier predicción cuyo id_juego ya esté liquidado en el historial
+        df_nuevas_filtradas = df_nuevas[~df_nuevas["id_juego"].astype(str).isin(ids_liquidados)]
 
         if not df_nuevas_filtradas.empty:
             df_total = pd.concat([df_existente, df_nuevas_filtradas], ignore_index=True)
-            # Garantizar que cada id_juego solo tenga un único registro en todo el historial
-            df_total = df_total.drop_duplicates(subset=["id_juego"], keep="first")
+            df_total = df_total.drop_duplicates(subset=["id_juego"], keep="last")
         else:
             df_total = df_existente
     else:
@@ -454,32 +553,30 @@ def liquidar_partidos_pendientes_nba() -> dict[str, Any]:
             conn.close()
             if pendientes_db:
                 df_db = pd.DataFrame(pendientes_db)
-                df = pd.concat([df, df_db], ignore_index=True).drop_duplicates(subset=["id_juego"], keep="first")
+                if "fecha" in df_db.columns:
+                    df_db["fecha"] = df_db["fecha"].astype(str)
+                if "fecha" in df.columns:
+                    df["fecha"] = df["fecha"].astype(str)
+                df = pd.concat([df, df_db], ignore_index=True).drop_duplicates(subset=["id_juego"], keep="last")
     except Exception:
         pass
 
+    # 2. Consultar marcadores de ESPN para hoy y las últimas fechas (al menos los últimos 5 días)
+    hoy_dt = datetime.now(ZONA_CDMX)
+    fechas = {(hoy_dt - timedelta(days=d)).strftime("%Y-%m-%d") for d in range(5)}
     pendientes = df[df["resultado"] == "PENDIENTE"]
-    if pendientes.empty:
-        return {
-            "ok": True,
-            "evaluados": 0,
-            "ya_liquidados": True,
-            "mensaje": "Todos los partidos disponibles ya han sido liquidados y registrados en Rendimiento e Historial. La acción está al día."
-        }
-
-    # 2. Consultar marcadores de ESPN para hoy y las fechas de los juegos pendientes
-    fechas = set(pendientes["fecha"].dropna().astype(str).tolist())
-    hoy_str = datetime.now(ZONA_CDMX).strftime("%Y-%m-%d")
-    fechas.add(hoy_str)
+    if not pendientes.empty:
+        fechas.update(pendientes["fecha"].dropna().astype(str).tolist())
 
     partidos_espn = []
-    for f_str in fechas:
+    for f_str in sorted(fechas):
         partidos_espn.extend(obtener_calendario_y_cuotas_nba(fecha=f_str, force_refresh=True, ttl_minutes=0))
     # Consulta por defecto sin fecha
     partidos_espn.extend(obtener_calendario_y_cuotas_nba(force_refresh=True, ttl_minutes=0))
 
     marcadores_por_id = {}
     marcadores_por_equipos = {}
+    partidos_finales_map = {}
     for ev in partidos_espn:
         ev_id = str(ev.get("id_evento", "")).strip()
         estado = str(ev.get("estado", "")).upper()
@@ -493,6 +590,7 @@ def liquidar_partidos_pendientes_nba() -> dict[str, Any]:
                     mv = int(sc_away)
                     if ev_id:
                         marcadores_por_id[ev_id] = (ml, mv)
+                        partidos_finales_map[ev_id] = ev
                     eq_loc = str(ev.get("equipo_local", "")).strip().upper()
                     eq_vis = str(ev.get("equipo_visita", "")).strip().upper()
                     ab_loc = str(ev.get("abbr_local", "")).strip().upper()
@@ -504,7 +602,24 @@ def liquidar_partidos_pendientes_nba() -> dict[str, Any]:
                 except (ValueError, TypeError):
                     pass
 
+    # Backfill automático de partidos finalizados de ESPN que falten en el historial
+    ids_existentes = set(df["id_juego"].astype(str).apply(lambda x: x.split("_")[0]))
+    partidos_faltantes = [ev for ev_id, ev in partidos_finales_map.items() if ev_id not in ids_existentes]
+    if partidos_faltantes:
+        try:
+            from nba.predecir_hoy import generar_predicciones_nba_hoy, cargar_perfiles_recientes_equipos
+            import joblib
+            b_sp = joblib.load(RAIZ / "modelos_nba" / "modelo_spread_ml.joblib")
+            b_tot = joblib.load(RAIZ / "modelos_nba" / "modelo_totales.joblib")
+            perfs = cargar_perfiles_recientes_equipos()
+            nuevas_preds = generar_predicciones_nba_hoy(partidos_faltantes, perfs, b_sp, b_tot)
+            guardar_predicciones_nba(nuevas_preds)
+            df = pd.read_parquet(RUTA_HISTORIAL_PARQUET)
+        except Exception as e_gen:
+            logger.warning(f"Error generando predicciones para partidos faltantes: {e_gen}")
+
     liquidados_count = 0
+    liquidados_indices = []
     ahora_str = datetime.now(ZONA_CDMX).strftime("%Y-%m-%d %H:%M:%S")
 
     for idx, row in df[df["resultado"] == "PENDIENTE"].iterrows():
@@ -525,17 +640,20 @@ def liquidar_partidos_pendientes_nba() -> dict[str, Any]:
             df.at[idx, "unidades_ganadas"] = u_gan
             df.at[idx, "actualizado_en"] = ahora_str
             liquidados_count += 1
+            liquidados_indices.append(idx)
 
     if liquidados_count > 0:
-        df = df.drop_duplicates(subset=["id_juego"], keep="first")
+        df = df.drop_duplicates(subset=["id_juego"], keep="last")
+        if "fecha" in df.columns:
+            df["fecha"] = df["fecha"].astype(str)
         df.to_parquet(RUTA_HISTORIAL_PARQUET, index=False)
         df.to_csv(RUTA_HISTORIAL_CSV, index=False, encoding="utf-8")
 
-        # Sincronizar en MySQL
+        # Sincronizar en MySQL solo los registros recién liquidados
         conn = None
         try:
             conn = obtener_conexion_mysql(timeout=2)
-            if conn:
+            if conn and liquidados_indices:
                 cursor = conn.cursor()
                 sql_update = """
                 UPDATE nba_registro_picks
@@ -543,11 +661,14 @@ def liquidar_partidos_pendientes_nba() -> dict[str, Any]:
                     unidades_ganadas = %s, actualizado_en = %s
                 WHERE id_juego = %s AND mercado = %s AND seleccion = %s;
                 """
-                for idx, row in df[df["resultado"].isin(["GANADA", "PERDIDA", "PUSH"])].iterrows():
-                    cursor.execute(sql_update, (
-                        row["marcador_local"], row["marcador_visitante"], row["resultado"],
-                        row["unidades_ganadas"], ahora_str, row["id_juego"], row["mercado"], row["seleccion"]
-                    ))
+                params_list = [
+                    (
+                        df.at[i, "marcador_local"], df.at[i, "marcador_visitante"], df.at[i, "resultado"],
+                        df.at[i, "unidades_ganadas"], ahora_str, df.at[i, "id_juego"], df.at[i, "mercado"], df.at[i, "seleccion"]
+                    )
+                    for i in liquidados_indices
+                ]
+                cursor.executemany(sql_update, params_list)
                 conn.commit()
                 cursor.close()
         except Exception as e:

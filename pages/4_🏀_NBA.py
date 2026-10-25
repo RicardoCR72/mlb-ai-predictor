@@ -500,14 +500,14 @@ def render_historial_nba(mercado_filtro: str = ""):
     st.markdown("<div style='font-size: 0.82rem; font-weight: 800; color: #ff8c33; letter-spacing: 0.08em; margin-top: 0.4rem; margin-bottom: 0.35rem;'>CRITERIOS DE AUDITORÍA</div>", unsafe_allow_html=True)
     rcol1, rcol2, rcol3 = st.columns(3)
     with rcol1:
-        mercados_disp = ["Todos los mercados"] + sorted(list(liquidados["mercado"].unique()))
+        mercados_disp = ["Todos los mercados", "Totales (Over y Under)", "Moneyline", "Spread", "Totales (OVER)", "Totales (UNDER)"]
         idx_mercado = 0
-        if "Totales" in mercado_filtro and any("Totales" in m for m in mercados_disp):
-            idx_mercado = next(i for i, m in enumerate(mercados_disp) if "Totales" in m)
-        elif "Moneyline" in mercado_filtro and any("Moneyline" in m for m in mercados_disp):
-            idx_mercado = next(i for i, m in enumerate(mercados_disp) if "Moneyline" in m)
-        elif "Spread" in mercado_filtro and any("Spread" in m for m in mercados_disp):
-            idx_mercado = next(i for i, m in enumerate(mercados_disp) if "Spread" in m)
+        if "Totales" in mercado_filtro:
+            idx_mercado = 1
+        elif "Moneyline" in mercado_filtro:
+            idx_mercado = 2
+        elif "Spread" in mercado_filtro:
+            idx_mercado = 3
 
         sel_mercado = st.selectbox("Mercado para Auditoría", mercados_disp, index=idx_mercado)
     with rcol2:
@@ -532,7 +532,9 @@ def render_historial_nba(mercado_filtro: str = ""):
                     (f_liq["equipo_local"] == parts[2])
                 ]
                 break
-    if sel_mercado != "Todos los mercados":
+    if sel_mercado == "Totales (Over y Under)":
+        f_liq = f_liq[f_liq["mercado"].str.startswith("Totales")]
+    elif sel_mercado != "Todos los mercados":
         f_liq = f_liq[f_liq["mercado"] == sel_mercado]
     if sel_conf == "Solo ALTA":
         f_liq = f_liq[f_liq["confianza"] == "ALTA"]
@@ -784,15 +786,10 @@ st.markdown("<div style='margin-bottom: 0.8rem;'></div>", unsafe_allow_html=True
 col1, col2 = st.columns(2, gap="medium")
 
 with col1:
-    btn_deshabilitado = not hay_pendientes_por_liquidar
-    lbl_btn_res = "Resultados Ya Registrados" if btn_deshabilitado else "Liquidar Resultados"
-    help_btn_res = (
-        "Todos los partidos disponibles ya fueron liquidados y registrados en Rendimiento e Historial."
-        if btn_deshabilitado else
-        "Consulta marcadores finales de ESPN, liquida las apuestas concluidas y las registra en Rendimiento e Historial."
-    )
-    if st.button(lbl_btn_res, key="btn_act_res_nba", type="primary", disabled=btn_deshabilitado, use_container_width=True, help=help_btn_res):
-        with st.spinner("Liquidando partidos y actualizando historial NBA..."):
+    lbl_btn_res = "Liquidar / Sincronizar Resultados"
+    help_btn_res = "Consulta marcadores finales de ESPN, liquida las apuestas concluidas y las registra en Rendimiento e Historial."
+    if st.button(lbl_btn_res, key="btn_act_res_nba", type="primary", use_container_width=True, help=help_btn_res):
+        with st.spinner("Consultando marcadores ESPN y liquidando partidos NBA..."):
             res = liquidar_partidos_pendientes_nba()
             if res.get("evaluados", 0) > 0:
                 st.success(f"✅ {res['mensaje']}")
