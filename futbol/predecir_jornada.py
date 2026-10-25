@@ -127,6 +127,23 @@ def cargar_historial_futbol() -> pd.DataFrame:
     return pd.DataFrame()
 
 
+def es_partido_en_curso(estado: str) -> bool:
+    """Determina si un encuentro está disputándose en este momento."""
+    st = str(estado).upper()
+    return any(x in st for x in ["PROGRESS", "LIVE", "FIRST_HALF", "SECOND_HALF", "HALFTIME", "EXTRA_TIME", "SHOOTOUT", "PENALTIES"])
+
+
+def es_partido_finalizado(estado: str) -> bool:
+    """Determina si un encuentro concluyó oficialmente (incluyendo tiempo regular, extra o penales)."""
+    st = str(estado).upper()
+    return any(x in st for x in ["FINAL", "FULL_TIME", "POST", "END", "FINISHED", "FT"]) and not es_partido_en_curso(estado)
+
+
+def es_partido_iniciado_o_final(estado: str) -> bool:
+    """Determina si el partido ya inició o ya concluyó para congelar cuotas y picks."""
+    return es_partido_en_curso(estado) or es_partido_finalizado(estado)
+
+
 def liquidar_seleccion_futbol(
     mercado: str,
     seleccion: str,
@@ -141,10 +158,37 @@ def liquidar_seleccion_futbol(
     if marcador_local is None or marcador_visita is None:
         return "PENDIENTE", 0.0
 
-    sel_upper = seleccion.upper()
+    sel_clean = seleccion.replace("LEAN:", "").strip()
+    sel_upper = sel_clean.upper()
     tot_goles = marcador_local + marcador_visita
+    ambos_marcaron = (marcador_local > 0 and marcador_visita > 0)
 
-    # 1. Totales Over / Under
+    # 1. Ambos Anotan (BTTS)
+    if "AMBOS ANOTAN" in sel_upper or "BTTS" in sel_upper:
+        if "SÍ" in sel_upper or "SI" in sel_upper or "YES" in sel_upper:
+            return ("GANADA", round(cuota_dec - 1.0, 2)) if ambos_marcaron else ("PERDIDA", -1.0)
+        elif "NO" in sel_upper:
+            return ("GANADA", round(cuota_dec - 1.0, 2)) if not ambos_marcaron else ("PERDIDA", -1.0)
+
+    # 2. Doble Oportunidad
+    if "DOBLE OPORTUNIDAD" in sel_upper or "1X" in sel_upper or "X2" in sel_upper or "12" in sel_upper:
+        if "1X" in sel_upper or "LOCAL O EMPATE" in sel_upper:
+            return ("GANADA", round(cuota_dec - 1.0, 2)) if marcador_local >= marcador_visita else ("PERDIDA", -1.0)
+        elif "X2" in sel_upper or "EMPATE O VISITA" in sel_upper:
+            return ("GANADA", round(cuota_dec - 1.0, 2)) if marcador_visita >= marcador_local else ("PERDIDA", -1.0)
+        elif "12" in sel_upper:
+            return ("GANADA", round(cuota_dec - 1.0, 2)) if marcador_local != marcador_visita else ("PERDIDA", -1.0)
+
+    # 3. Empate No Acción (Draw No Bet / DNB)
+    if "DNB" in sel_upper or "EMPATE NO ACCIÓN" in sel_upper or "DRAW NO BET" in sel_upper:
+        if marcador_local == marcador_visita:
+            return "PUSH", 0.0
+        if equipo_local.upper() in sel_upper or sel_upper.startswith("1"):
+            return ("GANADA", round(cuota_dec - 1.0, 2)) if marcador_local > marcador_visita else ("PERDIDA", -1.0)
+        if equipo_visita.upper() in sel_upper or sel_upper.startswith("2"):
+            return ("GANADA", round(cuota_dec - 1.0, 2)) if marcador_visita > marcador_local else ("PERDIDA", -1.0)
+
+    # 4. Totales Over / Under
     if "OVER" in sel_upper:
         if tot_goles > linea:
             return "GANADA", round(cuota_dec - 1.0, 2)
@@ -161,7 +205,7 @@ def liquidar_seleccion_futbol(
         else:
             return "PUSH", 0.0
 
-    # 2. Moneyline (1X2)
+    # 5. Moneyline (1X2)
     if "EMPATE" in sel_upper:
         if marcador_local == marcador_visita:
             return "GANADA", round(cuota_dec - 1.0, 2)
@@ -219,7 +263,7 @@ def predecir_futbol_mundial(
         prev = predicciones_previas.get(id_ev)
 
         estado_juego = str(j.get("estado", "")).upper()
-        ya_comenzo = ("PROGRESS" in estado_juego) or ("FINAL" in estado_juego)
+        ya_comenzo = es_partido_iniciado_o_final(estado_juego)
 
         # Si el partido ya inició o finalizó, CONSERVAR PICK CONGELADO pre-partido
         if prev and ya_comenzo and prev.get("pick_seleccion"):
@@ -232,7 +276,7 @@ def predecir_futbol_mundial(
                 prev_act["marcador_visita"] = j["marcador_visita"]
 
             # Si ya terminó y aún está pendiente, liquidar
-            if ("FINAL" in str(prev_act.get("estado", "")).upper()) and prev_act.get("resultado_pick") not in ["GANADA", "PERDIDA", "PUSH"]:
+            if es_partido_finalizado(prev_act.get("estado", "")) and prev_act.get("resultado_pick") not in ["GANADA", "PERDIDA", "PUSH"]:
                 res, u_gan = liquidar_seleccion_futbol(
                     mercado=prev_act.get("pick_mercado", ""),
                     seleccion=prev_act.get("pick_seleccion", ""),
@@ -297,6 +341,12 @@ def predecir_futbol_mundial(
             "prob_visita": proj["prob_visita"],
             "prob_over": proj["prob_over"],
             "prob_under": proj["prob_under"],
+            "prob_btts_si": proj.get("prob_btts_si", 0.52),
+            "prob_btts_no": proj.get("prob_btts_no", 0.48),
+            "prob_1x": proj.get("prob_1x", 0.70),
+            "prob_x2": proj.get("prob_x2", 0.60),
+            "prob_dnb_local": proj.get("prob_dnb_local", 0.55),
+            "prob_dnb_visita": proj.get("prob_dnb_visita", 0.45),
             "edge_local": proj["edge_local"],
             "edge_visita": proj["edge_visita"],
             "edge_empate": proj["edge_empate"],
@@ -307,6 +357,7 @@ def predecir_futbol_mundial(
             "pick_seleccion": proj["pick_seleccion"],
             "pick_probabilidad": proj["pick_probabilidad"],
             "pick_edge": proj["pick_edge"],
+            "pick_ev": proj.get("pick_ev", 0.0),
             "pick_cuota": proj["pick_cuota"],
             "pick_cuota_dec": proj["pick_cuota_dec"],
             "pick_detalle": proj["pick_detalle"],

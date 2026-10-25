@@ -15,6 +15,8 @@ LIGAS_DISPONIBLES: Dict[str, Dict[str, Any]] = {
         "media_goles_local": 1.68,
         "media_goles_visita": 1.34,
         "linea_default": 2.5,
+        "rho_dixon_coles": -0.110,
+        "media_btts_pct": 0.54,
     },
     "esp.1": {
         "codigo": "esp.1",
@@ -27,6 +29,8 @@ LIGAS_DISPONIBLES: Dict[str, Dict[str, Any]] = {
         "media_goles_local": 1.45,
         "media_goles_visita": 1.10,
         "linea_default": 2.5,
+        "rho_dixon_coles": -0.125,
+        "media_btts_pct": 0.49,
     },
     "mex.1": {
         "codigo": "mex.1",
@@ -39,6 +43,8 @@ LIGAS_DISPONIBLES: Dict[str, Dict[str, Any]] = {
         "media_goles_local": 1.48,
         "media_goles_visita": 1.15,
         "linea_default": 2.5,
+        "rho_dixon_coles": -0.120,
+        "media_btts_pct": 0.52,
     },
     "ita.1": {
         "codigo": "ita.1",
@@ -51,6 +57,8 @@ LIGAS_DISPONIBLES: Dict[str, Dict[str, Any]] = {
         "media_goles_local": 1.44,
         "media_goles_visita": 1.16,
         "linea_default": 2.5,
+        "rho_dixon_coles": -0.125,
+        "media_btts_pct": 0.50,
     },
     "ger.1": {
         "codigo": "ger.1",
@@ -63,6 +71,8 @@ LIGAS_DISPONIBLES: Dict[str, Dict[str, Any]] = {
         "media_goles_local": 1.74,
         "media_goles_visita": 1.38,
         "linea_default": 3.0,
+        "rho_dixon_coles": -0.095,
+        "media_btts_pct": 0.58,
     },
     "fra.1": {
         "codigo": "fra.1",
@@ -75,6 +85,8 @@ LIGAS_DISPONIBLES: Dict[str, Dict[str, Any]] = {
         "media_goles_local": 1.50,
         "media_goles_visita": 1.18,
         "linea_default": 2.5,
+        "rho_dixon_coles": -0.115,
+        "media_btts_pct": 0.51,
     },
     "ned.1": {
         "codigo": "ned.1",
@@ -87,6 +99,8 @@ LIGAS_DISPONIBLES: Dict[str, Dict[str, Any]] = {
         "media_goles_local": 1.76,
         "media_goles_visita": 1.36,
         "linea_default": 3.0,
+        "rho_dixon_coles": -0.095,
+        "media_btts_pct": 0.59,
     },
     "usa.1": {
         "codigo": "usa.1",
@@ -99,6 +113,8 @@ LIGAS_DISPONIBLES: Dict[str, Dict[str, Any]] = {
         "media_goles_local": 1.62,
         "media_goles_visita": 1.25,
         "linea_default": 2.5,
+        "rho_dixon_coles": -0.105,
+        "media_btts_pct": 0.56,
     },
 }
 

@@ -136,6 +136,53 @@ def obtener_pick_para_mercado_futbol(p: dict, mercado_tipo: str) -> dict:
         info["confianza"] = "ALTA" if abs(ed) >= 0.05 else "MEDIA"
         return info
 
+    elif "Ambos Anotan" in mercado_tipo or "BTTS" in mercado_tipo:
+        if "Ambos Anotan" in str(p.get("pick_mercado", "")) or "BTTS" in str(p.get("pick_mercado", "")):
+            return info
+
+        p_si = float(p.get("prob_btts_si", 0.52))
+        p_no = float(p.get("prob_btts_no", 0.48))
+        xg_h = float(p.get("xg_local", 1.4))
+        xg_a = float(p.get("xg_visita", 1.2))
+
+        if p_si >= p_no:
+            info["seleccion"] = "Ambos Anotan: SÍ"
+            info["cuota"] = "-125"
+            info["probabilidad"] = p_si
+            info["edge"] = p_si - 0.52
+            info["detalle"] = f"BTTS SÍ: {p_si*100:.1f}% · xG {xg_h:.2f} y {xg_a:.2f}"
+            info["confianza"] = "ALTA" if p_si >= 0.60 else "MEDIA"
+        else:
+            info["seleccion"] = "Ambos Anotan: NO"
+            info["cuota"] = "-110"
+            info["probabilidad"] = p_no
+            info["edge"] = p_no - 0.48
+            info["detalle"] = f"BTTS NO: {p_no*100:.1f}% · Superioridad defensiva proyectada"
+            info["confianza"] = "ALTA" if p_no >= 0.58 else "MEDIA"
+        return info
+
+    elif "Doble Oportunidad" in mercado_tipo:
+        p_1x = float(p.get("prob_1x", 0.70))
+        p_x2 = float(p.get("prob_x2", 0.60))
+        loc_team = p.get("equipo_local", "Local")
+        vis_team = p.get("equipo_visita", "Visita")
+
+        if p_1x >= p_x2:
+            info["seleccion"] = f"1X ({loc_team} o Empate)"
+            info["cuota"] = "-220"
+            info["probabilidad"] = p_1x
+            info["edge"] = max(p_1x - 0.68, 0.02)
+            info["detalle"] = f"Dixon-Coles 1X: {p_1x*100:.1f}% certidumbre"
+            info["confianza"] = "ALTA" if p_1x >= 0.75 else "MEDIA"
+        else:
+            info["seleccion"] = f"X2 ({vis_team} o Empate)"
+            info["cuota"] = "-200"
+            info["probabilidad"] = p_x2
+            info["edge"] = max(p_x2 - 0.60, 0.02)
+            info["detalle"] = f"Dixon-Coles X2: {p_x2*100:.1f}% certidumbre"
+            info["confianza"] = "ALTA" if p_x2 >= 0.70 else "MEDIA"
+        return info
+
     return info
 
 
@@ -343,30 +390,39 @@ def render_cartelera_futbol(predicciones: list[dict], mercado_activo: str):
         with st.container(border=True):
             st.markdown(card_top_html + teams_html, unsafe_allow_html=True)
 
-            col_c1, col_c2, col_c3 = st.columns(3)
+            col_c1, col_c2, col_c3, col_c4 = st.columns(4)
             with col_c1:
-                st.caption("⚽ **Moneyline (1X2 Modelo)**")
+                st.caption("⚽ **1X2 (Dixon-Coles)**")
                 p_loc = p.get("prob_local", 0.4) * 100
                 p_emp = p.get("prob_empate", 0.3) * 100
                 p_vis = p.get("prob_visita", 0.3) * 100
-                st.write(f"Loc: **{p_loc:.1f}%** · Emp: **{p_emp:.1f}%** · Vis: **{p_vis:.1f}%**")
-                st.markdown(f"<span class='stat-pill'>Marcador más probable: <b>{p.get('marcador_mas_probable', 'N/D')}</b></span>", unsafe_allow_html=True)
+                st.write(f"1: **{p_loc:.0f}%** · X: **{p_emp:.0f}%** · 2: **{p_vis:.0f}%**")
+                st.markdown(f"<span class='stat-pill'>Marcador: <b>{p.get('marcador_mas_probable', 'N/D')}</b></span>", unsafe_allow_html=True)
 
             with col_c2:
                 lin_tot = p.get("linea_total", 2.5)
-                st.caption(f"🎯 **Totales (Línea {lin_tot:g})**")
+                st.caption(f"🎯 **Totales ({lin_tot:g} Goles)**")
                 p_ov = p.get("prob_over", 0.5) * 100
                 p_un = p.get("prob_under", 0.5) * 100
+                st.write(f"Over: **{p_ov:.0f}%** · Under: **{p_un:.0f}%**")
                 tot_proj = p.get("total_proyectado", 2.6)
-                st.write(f"Over: **{p_ov:.1f}%** · Under: **{p_un:.1f}%**")
-                st.markdown(f"<span class='stat-pill'>Goles esperados: <b>{tot_proj:.2f}</b></span>", unsafe_allow_html=True)
+                st.markdown(f"<span class='stat-pill'>Total xG: <b>{tot_proj:.2f}</b></span>", unsafe_allow_html=True)
 
             with col_c3:
-                st.caption("📊 **xG y Momios de Mercado**")
+                st.caption("🔥 **Ambos Anotan (BTTS)**")
+                p_btts = p.get("prob_btts_si", 0.52) * 100
+                p_btts_no = p.get("prob_btts_no", 0.48) * 100
+                st.write(f"SÍ: **{p_btts:.0f}%** · NO: **{p_btts_no:.0f}%**")
+                st.markdown(f"<span class='stat-pill'>Empate DK: <b>{emp_ml}</b></span>", unsafe_allow_html=True)
+
+            with col_c4:
+                st.caption("🛡️ **Doble Oportunidad**")
+                p_1x_val = p.get("prob_1x", 0.70) * 100
+                p_x2_val = p.get("prob_x2", 0.60) * 100
+                st.write(f"1X: **{p_1x_val:.0f}%** · X2: **{p_x2_val:.0f}%**")
                 xg_h = p.get("xg_local", 1.4)
                 xg_a = p.get("xg_visita", 1.2)
-                st.write(f"Local xG: **{xg_h:.2f}** | Visita xG: **{xg_a:.2f}**")
-                st.markdown(f"<span class='stat-pill'>Momio Empate: <b>{emp_ml}</b></span>", unsafe_allow_html=True)
+                st.markdown(f"<span class='stat-pill'>xG: <b>{xg_h:.2f} - {xg_a:.2f}</b></span>", unsafe_allow_html=True)
 
             # Caja de Recomendación Oficial para el mercado activo
             res_pick = pick_data.get("resultado")
@@ -427,9 +483,11 @@ def render_cartelera_futbol(predicciones: list[dict], mercado_activo: str):
                     st.write(f"- Empate: {p.get('moneyline_empate')} ({p.get('ml_empate_dec')})")
                     st.write(f"- {p.get('equipo_visita')} (Visita): {p.get('moneyline_visita')} ({p.get('ml_visita_dec')})")
                 with col_d2:
-                    st.write("**Cuotas DraftKings Totales:**")
+                    st.write("**Totales y Mercados Alternativos:**")
                     st.write(f"- OVER {p.get('linea_total', 2.5):g}: {p.get('over_momio')} ({p.get('over_momio_dec')})")
                     st.write(f"- UNDER {p.get('linea_total', 2.5):g}: {p.get('under_momio')} ({p.get('under_momio_dec')})")
+                    st.write(f"- BTTS SÍ: **{p.get('prob_btts_si', 0.52)*100:.1f}%** · BTTS NO: **{p.get('prob_btts_no', 0.48)*100:.1f}%**")
+                    st.write(f"- Doble Op 1X: **{p.get('prob_1x', 0.70)*100:.1f}%** · X2: **{p.get('prob_x2', 0.60)*100:.1f}%**")
                     st.write(f"- Edge del Pick: **+{pick_data.get('edge', 0.0)*100:.1f}%**")
 
     from core.ui_boleta import render_widget_boleta
@@ -461,6 +519,10 @@ def render_historial_futbol(mercado_activo: str):
         df_mercado = df_filtrado[df_filtrado["pick_mercado"].astype(str).str.contains("Total|Over|Under", case=False, na=False)]
     elif "Moneyline" in mercado_activo:
         df_mercado = df_filtrado[df_filtrado["pick_mercado"].astype(str).str.contains("Moneyline|1X2", case=False, na=False)]
+    elif "Ambos Anotan" in mercado_activo or "BTTS" in mercado_activo:
+        df_mercado = df_filtrado[df_filtrado["pick_mercado"].astype(str).str.contains("Ambos|BTTS", case=False, na=False)]
+    elif "Doble Oportunidad" in mercado_activo:
+        df_mercado = df_filtrado[df_filtrado["pick_mercado"].astype(str).str.contains("Doble|1X|X2", case=False, na=False)]
     else:
         df_mercado = df_filtrado
 
@@ -510,8 +572,8 @@ st.markdown(
 <div class="futbol-brand">
 <span class="futbol-logo">⚽</span>
 <div>
-<div style="font-size: 1.05rem; font-weight: 900; color: #ffffff;">ORÁCULO <span class="futbol-accent">FÚTBOL AI</span></div>
-<div class="futbol-status">8 Ligas Principales · Cuotas DraftKings · Modelo Bivariado Calibrado</div>
+<div style="font-size: 1.05rem; font-weight: 900; color: #ffffff;">ORÁCULO <span class="futbol-accent">FÚTBOL AI V2</span></div>
+<div class="futbol-status">8 Ligas Mundiales · Cuotas DraftKings · Modelo Dixon-Coles Bivariado Calibrado</div>
 </div>
 </div>
 <div style="text-align: right;">
@@ -541,7 +603,7 @@ if not predicciones:
 # Nivel 1: Selector principal de mercado
 mercado = st.radio(
     "Mercado Fútbol",
-    ["Totales (Over/Under)", "Moneyline (1X2)"],
+    ["Totales (Over/Under)", "Moneyline (1X2)", "Ambos Anotan (BTTS)", "Doble Oportunidad (1X/X2)"],
     horizontal=True,
     label_visibility="collapsed",
     key="futbol_mercado_principal",
