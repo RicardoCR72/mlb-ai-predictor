@@ -279,13 +279,17 @@ def render():
     st.markdown("<div style='margin-bottom: 1.1rem;'></div>", unsafe_allow_html=True)
 
     if seccion_totales != "📈 Rendimiento":
+        finalizados = df[df["resultado_pick"].isin(["GANADA", "PERDIDA", "PUSH"]) | df.get("away_score", pd.Series(dtype=float)).notna()]
+        num_finalizados = len(finalizados)
+        num_pendientes = max(0, len(df) - num_finalizados)
+
         c1, c2, c3, c4 = st.columns(4)
         with c1:
             st.metric("Total Partidos", len(df))
         with c2:
-            st.metric("Pendientes", len(pendientes))
+            st.metric("Pendientes", num_pendientes)
         with c3:
-            st.metric("Finalizados", max(0, len(df) - len(pendientes)))
+            st.metric("Finalizados", num_finalizados)
         with c4:
             st.metric("Picks de Alto Valor", len(picks))
         st.markdown("<div style='margin-bottom: 1.25rem;'></div>", unsafe_allow_html=True)

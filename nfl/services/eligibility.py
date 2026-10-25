@@ -9,8 +9,7 @@ def upcoming(frame, now=None):
     if frame.empty:
         return frame.copy()
     now = pd.Timestamp(now or datetime.now(timezone.utc))
-    from core.domain.quotes import fresh_quotes
-    result = fresh_quotes(frame, now) if 'timestamp_captura' in frame else frame.copy()
+    result = frame.copy()
     starts = nfl_starts(Path(__file__).resolve().parents[2])
     if 'inicio_utc' in result:
         values = pd.to_datetime(result.inicio_utc, utc=True, errors='coerce')

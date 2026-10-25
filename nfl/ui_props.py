@@ -474,13 +474,17 @@ def render():
     )
 
     if seccion_props != "📈 Rendimiento":
+        juegos_resueltos = set(df[df["resultado_pick"].isin(["GANADA", "PERDIDA", "PUSH"])]["id_juego"].unique())
+        num_finalizados = len(juegos_resueltos)
+        num_pendientes = max(0, df["id_juego"].nunique() - num_finalizados)
+
         c1, c2, c3, c4 = st.columns(4)
         with c1:
             st.metric("Total Partidos", df["id_juego"].nunique())
         with c2:
-            st.metric("Pendientes", pendientes["id_juego"].nunique())
+            st.metric("Pendientes", num_pendientes)
         with c3:
-            st.metric("Finalizados", max(0, df["id_juego"].nunique() - pendientes["id_juego"].nunique()))
+            st.metric("Finalizados", num_finalizados)
         with c4:
             st.metric("Picks de Alto Valor", len(candidatos))
         st.markdown("<div style='margin-bottom: 1.25rem;'></div>", unsafe_allow_html=True)
