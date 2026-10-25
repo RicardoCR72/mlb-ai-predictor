@@ -55,7 +55,11 @@ def cargar_predicciones(forzar: bool = False):
             fecha_archivo = preds[0].get("fecha_cdmx")
             if fecha_archivo and fecha_archivo != hoy_cdmx:
                 with st.spinner(f"Actualizando cartelera de hoy ({hoy_cdmx})..."):
-                    return predecir_partidos_hoy(force_refresh=True)
+                    try:
+                        return predecir_partidos_hoy(force_refresh=True)
+                    except Exception as e_rf:
+                        logger.warning(f"Error refrescando cartelera: {e_rf}")
+                        return preds
 
         pendientes = [
             p for p in preds
@@ -67,8 +71,12 @@ def cargar_predicciones(forzar: bool = False):
             except Exception:
                 pass
         return preds
-    except Exception:
-        return predecir_partidos_hoy(force_refresh=True)
+    except Exception as e:
+        logger.warning(f"Error en predicciones NBA: {e}")
+        try:
+            return predecir_partidos_hoy(force_refresh=True)
+        except Exception:
+            return []
 
 
 def obtener_pick_para_mercado(p: dict, mercado_tipo: str) -> dict:

@@ -129,6 +129,7 @@ def entrenar_modelo_spread() -> Dict[str, Any]:
     logger.info(f"Desviación estándar de residuales (sigma): {sigma_residual:.2f} pts")
 
     bundle = {
+        "model": prod_hgb,
         "model_hgb": prod_hgb,
         "model_ridge": prod_ridge,
         "features": FEATURES_SPREAD,
@@ -165,7 +166,7 @@ def proyectar_partido_spread(
     spread_line: float = 0.0
 ) -> Dict[str, Any]:
     """Calcula el margen esperado y las probabilidades de cubrir el spread y ganar Moneyline."""
-    features = bundle["features"]
+    features = bundle.get("features", FEATURES_SPREAD)
     X = pd.DataFrame([{col: features_dict.get(col, 0.0) for col in features}])
 
     # Predecir con ensamble o fallback a modelo simple
@@ -175,8 +176,12 @@ def proyectar_partido_spread(
         w_hgb = bundle.get("peso_hgb", 0.65)
         w_ridge = bundle.get("peso_ridge", 0.35)
         raw_margin = (w_hgb * pred_hgb) + (w_ridge * pred_ridge)
-    else:
+    elif "model_hgb" in bundle:
+        raw_margin = float(bundle["model_hgb"].predict(X)[0])
+    elif "model" in bundle:
         raw_margin = float(bundle["model"].predict(X)[0])
+    else:
+        raw_margin = 0.0
 
     # Shrinkage Bayesiano hacia el spread de mercado si existe
     if spread_line != 0.0:

@@ -120,6 +120,7 @@ def entrenar_modelo_totales() -> Dict[str, Any]:
     logger.info(f"Desviación estándar de residuales (sigma): {sigma_residual:.2f} pts")
 
     bundle = {
+        "model": prod_hgb,
         "model_hgb": prod_hgb,
         "model_ridge": prod_ridge,
         "features": FEATURES_TOTALES,
@@ -158,7 +159,7 @@ def proyectar_partido_totales(
     linea_total: float = 225.0
 ) -> Dict[str, Any]:
     """Calcula los puntos proyectados con Shrinkage Bayesiano y probabilidades Over/Under."""
-    features = bundle["features"]
+    features = bundle.get("features", FEATURES_TOTALES)
     sigma = bundle.get("sigma_condicional", 13.5)
 
     DEFAULTS_TOTALES = {
@@ -180,8 +181,12 @@ def proyectar_partido_totales(
         w_hgb = bundle.get("peso_hgb", 0.65)
         w_ridge = bundle.get("peso_ridge", 0.35)
         raw_pred = (w_hgb * pred_hgb) + (w_ridge * pred_ridge)
-    else:
+    elif "model_hgb" in bundle:
+        raw_pred = float(bundle["model_hgb"].predict(X)[0])
+    elif "model" in bundle:
         raw_pred = float(bundle["model"].predict(X)[0])
+    else:
+        raw_pred = 225.0
 
     # Shrinkage Bayesiano: 45% Modelo cuantitativo + 55% Línea consensuada del mercado
     if linea_total > 0:
