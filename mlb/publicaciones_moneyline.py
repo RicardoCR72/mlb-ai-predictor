@@ -77,10 +77,24 @@ ON DUPLICATE KEY UPDATE
 
 def fingerprint(model,scaler,columns,adjustments):
     digest=hashlib.sha256()
-    for weight in model.get_weights():
-        digest.update(str(weight.shape).encode());digest.update(weight.tobytes())
+    if hasattr(model, 'get_weights'):
+        for weight in model.get_weights():
+            digest.update(str(weight.shape).encode());digest.update(weight.tobytes())
+    elif isinstance(model, (list, tuple)):
+        for m in model:
+            if hasattr(m, 'get_weights'):
+                for weight in m.get_weights():
+                    digest.update(str(weight.shape).encode());digest.update(weight.tobytes())
+            else:
+                digest.update(pickle.dumps(m, protocol=4))
+    else:
+        digest.update(pickle.dumps(model, protocol=4))
     digest.update(pickle.dumps((scaler,list(columns)),protocol=4))
-    for function in adjustments:digest.update(inspect.getsource(function).encode())
+    for function in adjustments:
+        try:
+            digest.update(inspect.getsource(function).encode())
+        except Exception:
+            digest.update(getattr(function, '__name__', str(function)).encode())
     return digest.hexdigest()
 
 

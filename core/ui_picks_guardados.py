@@ -53,7 +53,10 @@ def render_mlb_today(market):
                     probabilidad=row.probabilidad,cuota=row.cuota,casa='DraftKings',modelo=row.modelo,mercado_confianza=market,
                     origen='mlb_total' if market=='Totales' else 'mlb_ml',p_push=row.get('p_push',0),
                     referencia=dict(game_id=str(row.identidad),inicio_utc=pd.to_datetime(row.start_utc,utc=True).isoformat()))
-                render_pick(pick,market=market,state='Publicado',details=[('Procedencia',row.procedencia)])
+                details = [('Procedencia', row.procedencia)]
+                if market == 'Moneyline':
+                    details.append(('Motor IA', 'Ensamble V5.0 (LightGBM + DNN)'))
+                render_pick(pick, market=market, state='Publicado', details=details)
 
                 from core.ui_boleta import render_boton_boleta
                 clean_market = str(market).replace(' ', '_')

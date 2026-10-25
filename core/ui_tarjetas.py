@@ -201,7 +201,7 @@ def modern_sport_card_html(pick, *, market, state='', details=()):
     # Métricas y pastillas
     extra_pills = []
     for k, v in details:
-        if k in ('Total real', 'Resultado real', 'Marcador final', 'Procedencia', 'Jornada', 'Probabilidad Under 2.5', 'Probabilidad Over 2.5'):
+        if k in ('Total real', 'Resultado real', 'Marcador final', 'Procedencia', 'Jornada', 'Probabilidad Under 2.5', 'Probabilidad Over 2.5', 'Abridores', 'Pitchers', 'Motor IA'):
             extra_pills.append(f"<span class='stat-pill'>{safe(k)}: <b>{safe(v)}</b></span>")
     pills_html = f"<div style='display: flex; flex-wrap: wrap; gap: 0.45rem; margin-top: 0.5rem;'>{' '.join(extra_pills)}</div>" if extra_pills else ""
 

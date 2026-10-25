@@ -1,0 +1,52 @@
+{
+  "version": "5.0.0",
+  "tipo": "Ensemble (LightGBM 60% + DNN 40% + Isotonic Calibration)",
+  "columnas": [
+    "win_pct_team",
+    "win_pct_opp",
+    "run_diff_team",
+    "run_diff_opp",
+    "dias_descanso_team",
+    "dias_descanso_opp",
+    "racha_5_team",
+    "racha_5_opp",
+    "jetlag_team",
+    "jetlag_opp",
+    "ops_vs_mano_team",
+    "ops_vs_mano_opp",
+    "era_bullpen_team",
+    "era_bullpen_opp",
+    "fatiga_bullpen_team",
+    "fatiga_bullpen_opp",
+    "fip_team",
+    "fip_opp",
+    "xfip_team",
+    "xfip_opp",
+    "k_bb_team",
+    "k_bb_opp",
+    "whip_reciente_team",
+    "whip_reciente_opp",
+    "ventaja_fip",
+    "ventaja_k_bb",
+    "ventaja_whip_reciente",
+    "prob_pure_team",
+    "prob_pure_opp"
+  ],
+  "pesos": {
+    "lightgbm": 0.6,
+    "neural_network": 0.4
+  },
+  "umbrales": {
+    "min_confianza_general": 0.55,
+    "zona_muerta_min": 0.55,
+    "zona_muerta_max": 0.65,
+    "edge_min_zona_muerta": 0.045,
+    "alta_confianza": 0.65
+  },
+  "metricas_evaluacion": {
+    "brier_score_calibrado": 0.133,
+    "log_loss_calibrado": 0.3966,
+    "roi_con_filtro_zona_muerta": 66.77,
+    "roi_sin_filtro": 55.83
+  }
+}
