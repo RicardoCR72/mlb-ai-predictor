@@ -42,21 +42,6 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-st.markdown("<div style='margin-bottom: 0.6rem;'></div>", unsafe_allow_html=True)
-col_top1, col_top2 = st.columns([1, 2])
-with col_top1:
-    from nfl.liquidar_nfl import liquidar_todo_nfl
-    if st.button("🏁 Liquidar Partidos Concluidos", key="btn_liquidar_nfl_global", type="primary", use_container_width=True, help="Consulta marcadores y boxscores oficiales en ESPN, liquida Moneyline, Totales y Props, y pasa los partidos concluidos a Rendimiento."):
-        with st.spinner("Consultando marcadores oficiales en ESPN y liquidando apuestas de la NFL..."):
-            res = liquidar_todo_nfl()
-            if res.get("total", 0) > 0:
-                st.success(f"✅ {res['mensaje']}")
-            else:
-                st.info(f"ℹ️ {res['mensaje']}")
-            st.rerun()
-
-st.markdown("<div style='margin-bottom: 0.8rem;'></div>", unsafe_allow_html=True)
-
 # Selector de navegación interna compatible con suite de pruebas y responsive
 vista = st.radio(
     "Sección NFL",
