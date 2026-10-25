@@ -93,15 +93,19 @@ def obtener_pick_para_mercado(p: dict, mercado_tipo: str) -> dict:
             or ("Moneyline" in mercado_tipo and "Moneyline" in c_mercado)
             or ("Spread" in mercado_tipo and "Spread" in c_mercado)
         ):
+            c_prob = float(cand.get("probabilidad", 0.5))
+            c_conf = cand.get("confianza", "MEDIA")
+            if "Moneyline" in mercado_tipo and c_prob < 0.45:
+                c_conf = "LONGSHOT"
             return {
                 "mercado": cand.get("mercado", mercado_tipo),
                 "seleccion": cand.get("seleccion", "N/D"),
-                "probabilidad": float(cand.get("probabilidad", 0.5)),
+                "probabilidad": c_prob,
                 "edge": float(cand.get("edge", 0.0)),
                 "ev": float(cand.get("ev", 0.0)),
                 "momio": str(cand.get("cuota", "-110")),
                 "detalle": cand.get("detalle", ""),
-                "confianza": cand.get("confianza", "MEDIA"),
+                "confianza": c_conf,
             }
 
     # 2. Si no hay candidato calificado (Zona Muerta / Dead Zone o sin edge), calcular lean pasivo calibrado
@@ -182,6 +186,8 @@ def obtener_pick_para_mercado(p: dict, mercado_tipo: str) -> dict:
         ev_loc = (p_loc_cal * cuota_dec_loc) - 1.0
         ev_vis = (p_vis_cal * cuota_dec_vis) - 1.0
 
+        spread_det = p.get("spread_detalles", "Spread")
+
         if ev_loc >= ev_vis:
             sel = f"{p.get('equipo_local')} ML"
             prob = p_loc_cal
@@ -196,11 +202,22 @@ def obtener_pick_para_mercado(p: dict, mercado_tipo: str) -> dict:
             ev = ev_vis
 
         if edge >= 0.065 and ev >= 0.04:
-            conf = "ALTA"
-            det = f"Prob Calibrada: {prob*100:.1f}% vs Book: {(prob - edge)*100:.1f}% (Edge: {edge*100:+.1f}%, EV: {ev*100:+.1f}%)"
+            if prob >= 0.50:
+                conf = "ALTA"
+                det = f"Prob Calibrada: {prob*100:.1f}% vs Book: {(prob - edge)*100:.1f}% (Edge: {edge*100:+.1f}%, EV: {ev*100:+.1f}%)"
+            elif prob >= 0.45:
+                conf = "MEDIA"
+                det = f"Prob Calibrada: {prob*100:.1f}% vs Book: {(prob - edge)*100:.1f}% (Edge: {edge*100:+.1f}%, EV: {ev*100:+.1f}%)"
+            else:
+                conf = "LONGSHOT"
+                det = f"🎯 Longshot (+EV {ev*100:+.1f}%). Probabilidad de victoria baja ({prob*100:.1f}%). Se sugiere preferir el Spread ({spread_det})."
         elif edge >= 0.045 and ev >= 0.025:
-            conf = "MEDIA"
-            det = f"Prob Calibrada: {prob*100:.1f}% vs Book: {(prob - edge)*100:.1f}% (Edge: {edge*100:+.1f}%, EV: {ev*100:+.1f}%)"
+            if prob >= 0.45:
+                conf = "MEDIA"
+                det = f"Prob Calibrada: {prob*100:.1f}% vs Book: {(prob - edge)*100:.1f}% (Edge: {edge*100:+.1f}%, EV: {ev*100:+.1f}%)"
+            else:
+                conf = "LONGSHOT"
+                det = f"🎯 Longshot (+EV {ev*100:+.1f}%). Probabilidad de victoria baja ({prob*100:.1f}%). Se sugiere preferir el Spread ({spread_det})."
         else:
             conf = "NEUTRAL"
             det = f"Sin ventaja sobre la cuota ({edge*100:+.1f}% edge calibrado). Partido en Zona Muerta descartado."
@@ -393,6 +410,8 @@ Los partidos de la cartelera anterior ({n_liquidados} juegos) ya finalizaron y h
                 badge_top_right = f'<div style="display:inline-flex; align-items:center;"><span class="badge-conf-alta">CONFIANZA ALTA</span>{ev_badge}</div>'
             elif conf == "MEDIA":
                 badge_top_right = f'<div style="display:inline-flex; align-items:center;"><span class="badge-conf-media">CONFIANZA MEDIA</span>{ev_badge}</div>'
+            elif conf == "LONGSHOT":
+                badge_top_right = f'<div style="display:inline-flex; align-items:center;"><span style="background: rgba(245, 158, 11, 0.16); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.55); padding: 0.25rem 0.65rem; border-radius: 6px; font-weight: 850; font-size: 0.8rem;">🎯 LONGSHOT (+EV ALTO RIESGO)</span>{ev_badge}</div>'
             else:
                 badge_top_right = '<span style="background: rgba(148, 163, 184, 0.12); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.35); padding: 0.25rem 0.65rem; border-radius: 6px; font-weight: 700; font-size: 0.8rem;">⏸️ LÍNEA EFICIENTE (SIN EDGE)</span>'
 
@@ -443,8 +462,8 @@ Los partidos de la cartelera anterior ({n_liquidados} juegos) ya finalizaron y h
             )
         else:
             prob_pct = pick_info["probabilidad"] * 100
-            lbl_prob = "PROBABILIDAD CALIBRADA" if conf in ["ALTA", "MEDIA"] else "ESTIMACIÓN NEUTRAL"
-            clr_prob = "#ff8c33" if conf in ["ALTA", "MEDIA"] else "#94a3b8"
+            lbl_prob = "PROBABILIDAD CALIBRADA" if conf in ["ALTA", "MEDIA", "LONGSHOT"] else "ESTIMACIÓN NEUTRAL"
+            clr_prob = "#ff8c33" if conf in ["ALTA", "MEDIA"] else ("#fbbf24" if conf == "LONGSHOT" else "#94a3b8")
             pick_res_html = (
                 f'<div style="text-align: right;">'
                 f'<div style="font-size: 0.72rem; color: #a4978e; font-weight: 700;">{lbl_prob}</div>'
@@ -452,7 +471,13 @@ Los partidos de la cartelera anterior ({n_liquidados} juegos) ya finalizaron y h
                 f'</div>'
             )
 
-        titulo_box = f"Recomendación ({pick_info['mercado']})" if conf in ["ALTA", "MEDIA"] else f"Línea de Referencia ({pick_info['mercado']})"
+        if conf in ["ALTA", "MEDIA"]:
+            titulo_box = f"Recomendación ({pick_info['mercado']})"
+        elif conf == "LONGSHOT":
+            titulo_box = f"🎯 Longshot de Valor ({pick_info['mercado']}) · Alto Riesgo"
+        else:
+            titulo_box = f"Línea de Referencia ({pick_info['mercado']})"
+
         pick_box_html = (
             f'<div class="pick-box">'
             f'<div style="min-width: 0; flex: 1;">'
@@ -468,6 +493,21 @@ Los partidos de la cartelera anterior ({n_liquidados} juegos) ya finalizaron y h
             st.markdown(card_top_html + teams_html + pick_box_html, unsafe_allow_html=True)
 
             if conf in ["ALTA", "MEDIA"]:
+                evento_id = str(p.get("id_evento") or p.get("id_juego") or f"{p.get('abbr_visita')}_{p.get('abbr_local')}_{idx}")
+                clean_mercado = str(mercado).replace(" ", "_").replace("(", "").replace(")", "")
+                slip_item = {
+                    "id": f"NBA_{evento_id}_{clean_mercado}_{pick_info['seleccion']}",
+                    "deporte": "NBA",
+                    "icono": "🏀",
+                    "partido": p.get("partido") or f"{p.get('equipo_visita')} @ {p.get('equipo_local')}",
+                    "mercado": mercado,
+                    "seleccion": pick_info["seleccion"],
+                    "momio": pick_info["momio"],
+                    "prob": pick_info["probabilidad"],
+                }
+                render_boton_boleta(slip_item, key=f"btn_nba_slip_{evento_id}_{clean_mercado}_{idx}")
+            elif conf == "LONGSHOT":
+                st.warning(f"⚠️ **Longshot de Alto Riesgo:** Aunque tiene valor matemático (+EV +{ev_calc:.1f}%), la probabilidad de ganar es solo del **{prob*100:.1f}%**. Sugerencia: reduce el importe a 0.25u o prefiere el **Spread ({p.get('spread_detalles', 'Hándicap')})**.")
                 evento_id = str(p.get("id_evento") or p.get("id_juego") or f"{p.get('abbr_visita')}_{p.get('abbr_local')}_{idx}")
                 clean_mercado = str(mercado).replace(" ", "_").replace("(", "").replace(")", "")
                 slip_item = {
