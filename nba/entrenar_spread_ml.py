@@ -1,9 +1,10 @@
-"""Entrenamiento del modelo de Spread (Margen de Victoria) y Moneyline para la NBA.
+"""Entrenamiento del modelo de Spread (Margen de Victoria) y Moneyline para la NBA (V2).
 
-Utiliza HistGradientBoostingRegressor (equivalente C-optimizado de LightGBM) para estimar:
-1. Margen de victoria esperado del equipo local (MARGIN_HOME).
-2. Probabilidad de victoria de cada franquicia mediante distribución Normal ajustada a los residuales.
-3. Probabilidad de cubrir cualquier línea de Spread (Hándicap).
+Innovaciones V2:
+1. Ensamble híbrido regularizado: HistGradientBoostingRegressor (65%) + RidgeCV (35%).
+2. Calibración Logística de Moneyline: P(Win) = 1 / (1 + exp(-0.148 * Margen)), eliminando colas gruesas gaussianas.
+3. Shrinkage Bayesiano de Spread: Fusión del margen proyectado con el consenso del mercado (DraftKings)
+   para minimizar varianza en líneas ajustadas.
 """
 from __future__ import annotations
 
@@ -19,6 +20,9 @@ import numpy as np
 import pandas as pd
 from scipy.stats import norm
 from sklearn.ensemble import HistGradientBoostingRegressor
+from sklearn.linear_model import RidgeCV
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import make_pipeline
 from sklearn.metrics import mean_absolute_error, r2_score
 
 RAIZ = Path(__file__).resolve().parents[1]
@@ -53,9 +57,9 @@ FEATURES_SPREAD = [
 
 
 def entrenar_modelo_spread() -> Dict[str, Any]:
-    """Entrena y valida el modelo de Spread y Moneyline con split temporal estricto."""
-    logger.info("🏀 Iniciando entrenamiento del Modelo de Spread & Moneyline NBA...")
-    
+    """Entrena y valida el ensamble de Spread y Moneyline con split temporal estricto."""
+    logger.info("🏀 Iniciando entrenamiento del Ensamble Spread & Moneyline NBA V2...")
+
     if not RUTA_DATASET.exists():
         raise FileNotFoundError(f"No existe el dataset procesado en {RUTA_DATASET}. Ejecuta nba/construir_dataset.py primero.")
 
@@ -73,8 +77,8 @@ def entrenar_modelo_spread() -> Dict[str, Any]:
 
     logger.info(f"Partidos de entrenamiento: {len(X_train):,} | Partidos de prueba (2024-25): {len(X_test):,}")
 
-    # Modelo con regularización L2 para evitar sobreajuste en varianza alta de la NBA
-    val_model = HistGradientBoostingRegressor(
+    # Sub-modelo 1: HistGradientBoosting con regularización L2
+    val_hgb = HistGradientBoostingRegressor(
         max_iter=120,
         max_leaf_nodes=24,
         min_samples_leaf=30,
@@ -82,26 +86,31 @@ def entrenar_modelo_spread() -> Dict[str, Any]:
         l2_regularization=1.8,
         random_state=42
     )
-    val_model.fit(X_train, y_train)
+    val_hgb.fit(X_train, y_train)
 
-    # Evaluación Out-of-Sample
-    preds_val = val_model.predict(X_test)
+    # Sub-modelo 2: Ridge Regularizado L2
+    val_ridge = make_pipeline(StandardScaler(), RidgeCV(alphas=np.logspace(-2, 3, 20)))
+    val_ridge.fit(X_train, y_train)
+
+    # Ensamble Out-of-Sample
+    p_hgb = val_hgb.predict(X_test)
+    p_ridge = val_ridge.predict(X_test)
+    preds_val = 0.65 * p_hgb + 0.35 * p_ridge
+
     mae_val = mean_absolute_error(y_test, preds_val)
     rmse_val = np.sqrt(np.mean((y_test - preds_val) ** 2))
     r2_val = r2_score(y_test, preds_val)
-    
-    # Acierto en ganador directo (Moneyline)
     acc_win = np.mean((preds_val > 0) == (y_test > 0))
 
-    logger.info("--- MÉTRICAS OUT-OF-SAMPLE (Temporada 2024-25) ---")
+    logger.info("--- MÉTRICAS ENSAMBLE OUT-OF-SAMPLE (Temporada 2024-25) ---")
     logger.info(f"MAE Margen: {mae_val:.2f} pts")
     logger.info(f"RMSE Margen: {rmse_val:.2f} pts")
     logger.info(f"R² Margen: {r2_val:.4f}")
     logger.info(f"Precisión Ganador Directo (Moneyline): {acc_win * 100:.2f}%")
 
-    # 2. Entrenar Modelo de Producción sobre el 100% de los datos
-    logger.info("⚡ Entrenando modelo de producción final con el 100% del histórico...")
-    prod_model = HistGradientBoostingRegressor(
+    # 2. Entrenar Ensamble de Producción sobre el 100% de los datos
+    logger.info("⚡ Entrenando modelos de producción final con el 100% del histórico...")
+    prod_hgb = HistGradientBoostingRegressor(
         max_iter=120,
         max_leaf_nodes=24,
         min_samples_leaf=30,
@@ -109,18 +118,23 @@ def entrenar_modelo_spread() -> Dict[str, Any]:
         l2_regularization=1.8,
         random_state=42
     )
-    prod_model.fit(df[FEATURES_SPREAD], df["MARGIN_HOME"])
+    prod_hgb.fit(df[FEATURES_SPREAD], df["MARGIN_HOME"])
 
-    # Calcular la desviación estándar de los residuales (sigma) para derivar probabilidades normales
-    residuales = df["MARGIN_HOME"] - prod_model.predict(df[FEATURES_SPREAD])
+    prod_ridge = make_pipeline(StandardScaler(), RidgeCV(alphas=np.logspace(-2, 3, 20)))
+    prod_ridge.fit(df[FEATURES_SPREAD], df["MARGIN_HOME"])
+
+    preds_prod = 0.65 * prod_hgb.predict(df[FEATURES_SPREAD]) + 0.35 * prod_ridge.predict(df[FEATURES_SPREAD])
+    residuales = df["MARGIN_HOME"] - preds_prod
     sigma_residual = float(np.std(residuales))
     logger.info(f"Desviación estándar de residuales (sigma): {sigma_residual:.2f} pts")
 
-    # Guardar bundle completo
     bundle = {
-        "model": prod_model,
+        "model_hgb": prod_hgb,
+        "model_ridge": prod_ridge,
         "features": FEATURES_SPREAD,
         "sigma_residual": sigma_residual,
+        "peso_hgb": 0.65,
+        "peso_ridge": 0.35,
         "metrics_val": {
             "mae": float(mae_val),
             "rmse": float(rmse_val),
@@ -137,7 +151,6 @@ def entrenar_modelo_spread() -> Dict[str, Any]:
     joblib.dump(bundle, ruta_joblib)
     logger.info(f"💾 Modelo guardado en {ruta_joblib}")
 
-    # Guardar reporte de métricas en JSON
     ruta_json = RUTA_MODELOS / "metricas_spread_ml.json"
     with open(ruta_json, "w", encoding="utf-8") as f:
         json.dump(bundle["metrics_val"], f, indent=2)
@@ -152,28 +165,43 @@ def proyectar_partido_spread(
     spread_line: float = 0.0
 ) -> Dict[str, Any]:
     """Calcula el margen esperado y las probabilidades de cubrir el spread y ganar Moneyline."""
-    model = bundle["model"]
     features = bundle["features"]
-    sigma = bundle["sigma_residual"]
-
-    # Crear vector de entrada en el orden exacto de features
     X = pd.DataFrame([{col: features_dict.get(col, 0.0) for col in features}])
-    margen_pred = float(model.predict(X)[0])
 
-    # Probabilidad de que el local gane el partido (margen > 0)
-    # P(Home Win) = Phi(margen / sigma)
-    prob_home_win = float(norm.cdf(margen_pred / sigma))
+    # Predecir con ensamble o fallback a modelo simple
+    if "model_hgb" in bundle and "model_ridge" in bundle:
+        pred_hgb = float(bundle["model_hgb"].predict(X)[0])
+        pred_ridge = float(bundle["model_ridge"].predict(X)[0])
+        w_hgb = bundle.get("peso_hgb", 0.65)
+        w_ridge = bundle.get("peso_ridge", 0.35)
+        raw_margin = (w_hgb * pred_hgb) + (w_ridge * pred_ridge)
+    else:
+        raw_margin = float(bundle["model"].predict(X)[0])
+
+    # Shrinkage Bayesiano hacia el spread de mercado si existe
+    if spread_line != 0.0:
+        # El spread_line para el local: ej. BOS -6.5 -> mercado espera margen local de +6.5
+        margen_mercado = -float(spread_line)
+        margen_pred = 0.50 * raw_margin + 0.50 * margen_mercado
+    else:
+        margen_pred = raw_margin
+
+    # 1. Probabilidad de victoria Moneyline calibrada con función Logística
+    # P(Home Win) = 1 / (1 + exp(-0.148 * margen_pred))
+    prob_home_win = 1.0 / (1.0 + np.exp(-0.148 * margen_pred))
     prob_away_win = 1.0 - prob_home_win
 
-    # Probabilidad de cubrir el spread
-    # Si la línea es BOS -6.5 (spread_line = -6.5 para el local), el local cubre si MARGIN_HOME > 6.5
-    prob_cover_home = float(norm.cdf((margen_pred + spread_line) / sigma))
+    # 2. Probabilidad de cubrir el spread
+    # Desviación estándar típica del margen alrededor del spread de cierre: ~11.8 pts
+    sigma_spread = 11.8
+    z_spread = (margen_pred + spread_line) / sigma_spread
+    prob_cover_home = float(norm.cdf(z_spread))
     prob_cover_away = 1.0 - prob_cover_home
 
     return {
         "margen_local_esperado": round(margen_pred, 2),
-        "prob_local_win": round(prob_home_win, 4),
-        "prob_visita_win": round(prob_away_win, 4),
+        "prob_local_win": round(float(prob_home_win), 4),
+        "prob_visita_win": round(float(prob_away_win), 4),
         "prob_cover_home": round(prob_cover_home, 4),
         "prob_cover_away": round(prob_cover_away, 4),
     }
@@ -187,7 +215,7 @@ if __name__ == "__main__":
 
     bundle = entrenar_modelo_spread()
     m = bundle["metrics_val"]
-    print("\n✅ Resumen de Entrenamiento del Modelo de Spread & Moneyline:")
+    print("\n✅ Resumen de Entrenamiento del Ensamble Spread & Moneyline V2:")
     print(f"Precisión Out-of-Sample: {m['win_accuracy'] * 100:.2f}%")
     print(f"Error Medio Absoluto (MAE): {m['mae']:.2f} puntos")
     print(f"RMSE: {m['rmse']:.2f} puntos")

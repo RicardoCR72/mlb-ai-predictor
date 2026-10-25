@@ -72,7 +72,9 @@ def cargar_predicciones(forzar: bool = False):
 
 
 def obtener_pick_para_mercado(p: dict, mercado_tipo: str) -> dict:
-    """Calcula la recomendación, momio, probabilidad y edge para el mercado elegido."""
+    """Calcula la recomendación, momio, probabilidad, edge real y EV para el mercado elegido."""
+    from core.ui_boleta import parsear_cuota_decimal
+
     if "Totales" in mercado_tipo:
         linea = p.get("linea_total")
         proy = float(p.get("total_proyectado") or 0.0)
@@ -86,6 +88,7 @@ def obtener_pick_para_mercado(p: dict, mercado_tipo: str) -> dict:
                 "seleccion": "Línea N/D",
                 "probabilidad": 0.5,
                 "edge": 0.0,
+                "ev": 0.0,
                 "momio": "N/D",
                 "detalle": f"Proyección: {proy:.1f} pts · Sin línea oficial disponible",
                 "confianza": "NEUTRAL",
@@ -99,9 +102,11 @@ def obtener_pick_para_mercado(p: dict, mercado_tipo: str) -> dict:
             prob = p_under
 
         edge = prob - 0.5238
-        if edge >= 0.05 and prob >= 0.55:
+        ev = (prob * 1.909) - 1.0
+
+        if edge >= 0.04 and ev >= 0.03:
             conf = "ALTA"
-        elif edge >= 0.025:
+        elif edge >= 0.02 and ev >= 0.015:
             conf = "MEDIA"
         else:
             conf = "NEUTRAL"
@@ -110,9 +115,10 @@ def obtener_pick_para_mercado(p: dict, mercado_tipo: str) -> dict:
             "mercado": "Totales",
             "seleccion": sel,
             "probabilidad": prob,
-            "edge": max(0.0, edge),
+            "edge": edge,
+            "ev": ev,
             "momio": "-110 (1.91)",
-            "detalle": f"Proyección: {proy:.1f} pts · Línea DK: {linea} (Edge: {edge_pts:+.1f} pts)",
+            "detalle": f"Proyección Shrunk: {proy:.1f} pts vs Línea {linea} (Edge: {edge_pts:+.1f} pts, EV: {ev*100:+.1f}%)",
             "confianza": conf,
         }
 
@@ -122,25 +128,32 @@ def obtener_pick_para_mercado(p: dict, mercado_tipo: str) -> dict:
         ml_loc = p.get("ml_local", "N/D")
         ml_vis = p.get("ml_visita", "N/D")
 
+        cuota_dec_loc = float(p.get("ml_local_dec") or parsear_cuota_decimal(ml_loc))
+        cuota_dec_vis = float(p.get("ml_visita_dec") or parsear_cuota_decimal(ml_vis))
+
         prob_loc_book = american_to_prob(ml_loc) if ml_loc != "N/D" else 0.5
         prob_vis_book = american_to_prob(ml_vis) if ml_vis != "N/D" else 0.5
         edge_loc = p_loc - prob_loc_book
         edge_vis = p_vis - prob_vis_book
+        ev_loc = (p_loc * cuota_dec_loc) - 1.0
+        ev_vis = (p_vis * cuota_dec_vis) - 1.0
 
         if p_loc >= p_vis:
             sel = f"{p.get('equipo_local')} ML"
             prob = p_loc
             momio = ml_loc
             edge = edge_loc
+            ev = ev_loc
         else:
             sel = f"{p.get('equipo_visita')} ML"
             prob = p_vis
             momio = ml_vis
             edge = edge_vis
+            ev = ev_vis
 
-        if edge >= 0.05 and prob >= 0.55:
+        if edge >= 0.04 and ev >= 0.03:
             conf = "ALTA"
-        elif edge >= 0.025:
+        elif edge >= 0.02 and ev >= 0.015:
             conf = "MEDIA"
         else:
             conf = "NEUTRAL"
@@ -149,9 +162,10 @@ def obtener_pick_para_mercado(p: dict, mercado_tipo: str) -> dict:
             "mercado": "Moneyline",
             "seleccion": sel,
             "probabilidad": prob,
-            "edge": max(0.0, edge),
+            "edge": edge,
+            "ev": ev,
             "momio": str(momio),
-            "detalle": f"Prob Modelo: {prob*100:.1f}% vs Book: {(prob - edge)*100:.1f}% · Momio: {momio}",
+            "detalle": f"Prob Modelo: {prob*100:.1f}% vs Book: {(prob - edge)*100:.1f}% (EV: {ev*100:+.1f}%)",
             "confianza": conf,
         }
 
@@ -170,9 +184,11 @@ def obtener_pick_para_mercado(p: dict, mercado_tipo: str) -> dict:
             prob = p_cov_vis
 
         edge = prob - 0.5238
-        if edge >= 0.05:
+        ev = (prob * 1.909) - 1.0
+
+        if edge >= 0.04 and ev >= 0.03:
             conf = "ALTA"
-        elif edge >= 0.02:
+        elif edge >= 0.02 and ev >= 0.015:
             conf = "MEDIA"
         else:
             conf = "NEUTRAL"
@@ -181,9 +197,10 @@ def obtener_pick_para_mercado(p: dict, mercado_tipo: str) -> dict:
             "mercado": "Spread",
             "seleccion": sel,
             "probabilidad": prob,
-            "edge": max(0.0, edge),
+            "edge": edge,
+            "ev": ev,
             "momio": "-110 (1.91)",
-            "detalle": f"Margen estimado: {margen:+0.1f} pts · Línea: {spread_det}",
+            "detalle": f"Margen estimado: {margen:+0.1f} pts · Línea: {spread_det} (EV: {ev*100:+.1f}%)",
             "confianza": conf,
         }
 
@@ -724,8 +741,8 @@ st.markdown(
 <div class="nba-brand">
 <span class="nba-logo">🏀</span>
 <div>
-<div style="font-size: 1.05rem; font-weight: 900; color: #ffffff;">ORÁCULO <span class="nba-accent">NBA AI</span></div>
-<div class="nba-status">DraftKings Odds · Four Factors Analytics · Sincronizado con Base de Datos</div>
+<div style="font-size: 1.05rem; font-weight: 900; color: #ffffff;">ORÁCULO <span class="nba-accent">NBA AI V2</span></div>
+<div class="nba-status">DraftKings Odds · Ensamble Ridge-GradientBoosting · Shrinkage Bayesiano y Calibración Logística</div>
 </div>
 </div>
 <div style="text-align: right;">

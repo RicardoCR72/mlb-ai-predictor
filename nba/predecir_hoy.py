@@ -1,10 +1,11 @@
-"""Pipeline de inferencia diaria para la NBA.
+"""Pipeline de inferencia diaria para la NBA (V2).
 
-1. Consulta los partidos y líneas en vivo de ESPN (DraftKings) a costo cero.
-2. Recupera el perfil estadístico más reciente de cada franquicia.
-3. Ejecuta los modelos de Machine Learning (Spread/ML y Totales).
-4. Calcula el valor esperado (+EV), edges y recomendaciones de apuesta.
-5. Almacena las predicciones en data/nba/predictions/.
+Innovaciones V2:
+1. Regresión hacia la media de temporada regular para perfiles de equipo provenientes de playoffs pasados.
+2. Ensamble híbrido (HistGradientBoosting + RidgeCV) para Spread, Moneyline y Totales.
+3. Shrinkage Bayesiano hacia líneas de mercado DraftKings en Totales y Spreads.
+4. Filtro riguroso de Valor Esperado (EV > 0 y Edge >= +2.5%) eliminando el sesgo sistemático a UNDER.
+5. Congelación de momios previa al juego y liquidación automática de marcadores finales.
 """
 from __future__ import annotations
 
@@ -44,7 +45,7 @@ logger = logging.getLogger(__name__)
 
 
 def cargar_perfiles_recientes_equipos() -> Dict[str, Dict[str, float]]:
-    """Extrae el perfil rodante más reciente de cada una de las 30 franquicias de la NBA."""
+    """Extrae el perfil rodante más reciente de cada franquicia con regresión a medias de temporada regular."""
     if not RUTA_DATASET.exists():
         raise FileNotFoundError(f"Falta el dataset procesado en {RUTA_DATASET}.")
 
@@ -62,6 +63,11 @@ def cargar_perfiles_recientes_equipos() -> Dict[str, Dict[str, float]]:
     perfiles: Dict[str, Dict[str, float]] = {}
     todos_equipos = set(df["HOME_TEAM"].unique()).union(set(df["AWAY_TEAM"].unique()))
 
+    # Promedios de liga regular NBA moderna (para desinflar estadísticas de playoffs de junio 2025)
+    baseline_pts = 114.5
+    baseline_pace = 100.2
+    baseline_rtg = 114.5
+
     for team in todos_equipos:
         matches = df[(df["HOME_TEAM"] == team) | (df["AWAY_TEAM"] == team)].sort_values("GAME_DATE")
         if matches.empty:
@@ -69,16 +75,28 @@ def cargar_perfiles_recientes_equipos() -> Dict[str, Dict[str, float]]:
         last_match = matches.iloc[-1]
         is_home = (last_match["HOME_TEAM"] == team)
         pref = "HOME_" if is_home else "AWAY_"
-        
-        perfiles[team] = {c: float(last_match.get(pref + c, 0.0)) for c in cols_base}
-        perfiles[team]["LAST_DATE"] = str(last_match["GAME_DATE"])
+
+        prof = {c: float(last_match.get(pref + c, 0.0)) for c in cols_base}
+        last_dt = str(last_match["GAME_DATE"])
+
+        # Si el partido proviene de la postemporada anterior, regresionar hacia la media de regular season
+        if last_dt < "2026-01-01":
+            for c in ["PTS_L5", "PTS_L10", "PTS_L20", "OPP_PTS_L5", "OPP_PTS_L10", "OPP_PTS_L20"]:
+                prof[c] = 0.50 * prof.get(c, baseline_pts) + 0.50 * baseline_pts
+            for c in ["PACE_L5", "PACE_L10", "PACE_L20"]:
+                prof[c] = 0.50 * prof.get(c, baseline_pace) + 0.50 * baseline_pace
+            for c in ["ORTG_L5", "ORTG_L10", "ORTG_L20", "DRTG_L5", "DRTG_L10", "DRTG_L20"]:
+                prof[c] = 0.50 * prof.get(c, baseline_rtg) + 0.50 * baseline_rtg
+
+        prof["LAST_DATE"] = last_dt
+        perfiles[team] = prof
 
     return perfiles
 
 
 def predecir_partidos_hoy(force_refresh: bool = False, fecha: Optional[str] = None) -> List[Dict[str, Any]]:
-    """Genera las predicciones completas para la cartelera de hoy en la NBA."""
-    logger.info("🏀 Iniciando pipeline de predicciones diarias de la NBA...")
+    """Genera las predicciones completas para la cartelera de hoy en la NBA con el motor V2."""
+    logger.info("🏀 Iniciando pipeline de predicciones diarias NBA V2...")
 
     if not RUTA_MODELO_SPREAD.exists() or not RUTA_MODELO_TOTALES.exists():
         raise FileNotFoundError("Los modelos de la NBA no están entrenados. Ejecuta nba/entrenar_spread_ml.py y nba/entrenar_totales.py.")
@@ -87,7 +105,6 @@ def predecir_partidos_hoy(force_refresh: bool = False, fecha: Optional[str] = No
     bundle_totales = joblib.load(RUTA_MODELO_TOTALES)
     perfiles = cargar_perfiles_recientes_equipos()
 
-    # Consultar eventos del día (usar fecha actual CDMX o la fecha especificada)
     hoy_cdmx = fecha or datetime.now(ZONA_CDMX).strftime("%Y%m%d")
     juegos = obtener_calendario_y_cuotas_nba(fecha=hoy_cdmx, force_refresh=force_refresh)
     if not juegos and not fecha:
@@ -97,15 +114,9 @@ def predecir_partidos_hoy(force_refresh: bool = False, fecha: Optional[str] = No
 
     if not juegos:
         logger.info("No hay partidos programados para hoy en el calendario de ESPN.")
-        if archivo_json.exists():
-            try:
-                with open(archivo_json, "w", encoding="utf-8") as f:
-                    json.dump([], f)
-            except Exception:
-                pass
         return []
 
-    # Cargar predicciones previas para preservar picks congelados y cuotas pre-partido
+    # Cargar predicciones previas para congelar cuotas y selecciones pre-partido
     predicciones_previas: Dict[str, Dict[str, Any]] = {}
     if archivo_json.exists():
         try:
@@ -123,10 +134,10 @@ def predecir_partidos_hoy(force_refresh: bool = False, fecha: Optional[str] = No
         id_ev = str(j.get("id_evento", "")).strip()
         prev = predicciones_previas.get(id_ev)
 
-        # Si el partido ya inició (STATUS_IN_PROGRESS), finalizó (STATUS_FINAL)
-        # o ESPN retiró las cuotas pre-partido, PRESERVAR el pick y momios originales
         estado_juego = str(j.get("estado", "")).upper()
-        ya_comenzo = ("PROGRESS" in estado_juego) or ("FINAL" in estado_juego) or (j.get("marcador_local") is not None)
+        es_final = ("FINAL" in estado_juego) or ("FULL_TIME" in estado_juego) or ("STATUS_FINAL" in estado_juego)
+        en_vivo = ("PROGRESS" in estado_juego) or ("HALFTIME" in estado_juego)
+        ya_comenzo = es_final or en_vivo or (j.get("marcador_local") is not None)
         cuotas_vacias = (j.get("moneyline_local") is None and j.get("total_linea") is None)
 
         if prev and (ya_comenzo or cuotas_vacias) and prev.get("pick_seleccion"):
@@ -138,7 +149,8 @@ def predecir_partidos_hoy(force_refresh: bool = False, fecha: Optional[str] = No
             if j.get("marcador_visita") is not None:
                 prev_actualizado["marcador_visita"] = j["marcador_visita"]
 
-            if ("FINAL" in str(prev_actualizado.get("estado", "")).upper()) and prev_actualizado.get("marcador_local") is not None:
+            # Si ya terminó y aún está pendiente, liquidar
+            if es_final and prev_actualizado.get("marcador_local") is not None:
                 try:
                     from nba.registro import liquidar_partido
                     res, u_gan = liquidar_partido(pd.Series({
@@ -151,8 +163,9 @@ def predecir_partidos_hoy(force_refresh: bool = False, fecha: Optional[str] = No
                         "marcador_local": prev_actualizado.get("marcador_local"),
                         "marcador_visitante": prev_actualizado.get("marcador_visita"),
                     }))
-                    prev_actualizado["resultado"] = res
-                    prev_actualizado["unidades_ganadas"] = u_gan
+                    if res != "PENDIENTE":
+                        prev_actualizado["resultado"] = res
+                        prev_actualizado["unidades_ganadas"] = u_gan
                 except Exception:
                     pass
 
@@ -162,24 +175,22 @@ def predecir_partidos_hoy(force_refresh: bool = False, fecha: Optional[str] = No
         home_abbr = normalizar_equipo(j["abbr_local"])
         away_abbr = normalizar_equipo(j["abbr_visita"])
 
-        # Si el equipo no está en el perfil histórico, usar promedio de la liga
         home_prof = perfiles.get(home_abbr, perfiles.get("BOS", {}))
         away_prof = perfiles.get(away_abbr, perfiles.get("DET", {}))
 
-        # Construir variables diferenciales
+        # Diferenciales clave
         diff_net_l5 = home_prof.get("NET_RTG_L5", 0.0) - away_prof.get("NET_RTG_L5", 0.0)
         diff_net_l10 = home_prof.get("NET_RTG_L10", 0.0) - away_prof.get("NET_RTG_L10", 0.0)
         diff_net_l20 = home_prof.get("NET_RTG_L20", 0.0) - away_prof.get("NET_RTG_L20", 0.0)
-        diff_ortg_l10 = home_prof.get("ORTG_L10", 110.0) - away_prof.get("ORTG_L10", 110.0)
-        diff_drtg_l10 = home_prof.get("DRTG_L10", 110.0) - away_prof.get("DRTG_L10", 110.0)
-        diff_efg_l10 = home_prof.get("EFG_PCT_L10", 0.52) - away_prof.get("EFG_PCT_L10", 0.52)
+        diff_ortg_l10 = home_prof.get("ORTG_L10", 114.5) - away_prof.get("ORTG_L10", 114.5)
+        diff_drtg_l10 = home_prof.get("DRTG_L10", 114.5) - away_prof.get("DRTG_L10", 114.5)
+        diff_efg_l10 = home_prof.get("EFG_PCT_L10", 0.54) - away_prof.get("EFG_PCT_L10", 0.54)
         diff_win_l10 = home_prof.get("WIN_L10", 0.5) - away_prof.get("WIN_L10", 0.5)
         diff_rest = home_prof.get("REST_DAYS", 2.0) - away_prof.get("REST_DAYS", 2.0)
-        pace_proj = (home_prof.get("PACE_L10", 99.0) + away_prof.get("PACE_L10", 99.0)) / 2.0
-        off_vs_def_home = home_prof.get("ORTG_L10", 110.0) - away_prof.get("DRTG_L10", 110.0)
-        off_vs_def_away = away_prof.get("ORTG_L10", 110.0) - home_prof.get("DRTG_L10", 110.0)
+        pace_proj = (home_prof.get("PACE_L10", 100.2) + away_prof.get("PACE_L10", 100.2)) / 2.0
+        off_vs_def_home = home_prof.get("ORTG_L10", 114.5) - away_prof.get("DRTG_L10", 114.5)
+        off_vs_def_away = away_prof.get("ORTG_L10", 114.5) - home_prof.get("DRTG_L10", 114.5)
 
-        # Vector de features para el modelo de Spread y Moneyline
         feats_spread = {
             "DIFF_NET_RTG_L5": diff_net_l5,
             "DIFF_NET_RTG_L10": diff_net_l10,
@@ -191,12 +202,12 @@ def predecir_partidos_hoy(force_refresh: bool = False, fecha: Optional[str] = No
             "DIFF_REST": diff_rest,
             "HOME_NET_RTG_L10": home_prof.get("NET_RTG_L10", 0.0),
             "AWAY_NET_RTG_L10": away_prof.get("NET_RTG_L10", 0.0),
-            "HOME_ORTG_L10": home_prof.get("ORTG_L10", 110.0),
-            "AWAY_ORTG_L10": away_prof.get("ORTG_L10", 110.0),
-            "HOME_DRTG_L10": home_prof.get("DRTG_L10", 110.0),
-            "AWAY_DRTG_L10": away_prof.get("DRTG_L10", 110.0),
-            "HOME_EFG_PCT_L10": home_prof.get("EFG_PCT_L10", 0.52),
-            "AWAY_EFG_PCT_L10": away_prof.get("EFG_PCT_L10", 0.52),
+            "HOME_ORTG_L10": home_prof.get("ORTG_L10", 114.5),
+            "AWAY_ORTG_L10": away_prof.get("ORTG_L10", 114.5),
+            "HOME_DRTG_L10": home_prof.get("DRTG_L10", 114.5),
+            "AWAY_DRTG_L10": away_prof.get("DRTG_L10", 114.5),
+            "HOME_EFG_PCT_L10": home_prof.get("EFG_PCT_L10", 0.54),
+            "AWAY_EFG_PCT_L10": away_prof.get("EFG_PCT_L10", 0.54),
             "HOME_WIN_L10": home_prof.get("WIN_L10", 0.5),
             "AWAY_WIN_L10": away_prof.get("WIN_L10", 0.5),
             "HOME_REST_DAYS": home_prof.get("REST_DAYS", 2.0),
@@ -207,120 +218,156 @@ def predecir_partidos_hoy(force_refresh: bool = False, fecha: Optional[str] = No
             "OFF_VS_DEF_AWAY": off_vs_def_away,
         }
 
-        # Vector de features para Totales
         feats_totales = {
             "PACE_PROYECTADO_L10": pace_proj,
-            "HOME_PACE_L5": home_prof.get("PACE_L5", 99.0),
-            "AWAY_PACE_L5": away_prof.get("PACE_L5", 99.0),
-            "HOME_PACE_L10": home_prof.get("PACE_L10", 99.0),
-            "AWAY_PACE_L10": away_prof.get("PACE_L10", 99.0),
-            "HOME_PTS_L10": home_prof.get("PTS_L10", 112.0),
-            "AWAY_PTS_L10": away_prof.get("PTS_L10", 112.0),
-            "HOME_OPP_PTS_L10": home_prof.get("OPP_PTS_L10", 112.0),
-            "AWAY_OPP_PTS_L10": away_prof.get("OPP_PTS_L10", 112.0),
-            "HOME_ORTG_L10": home_prof.get("ORTG_L10", 110.0),
-            "AWAY_ORTG_L10": away_prof.get("ORTG_L10", 110.0),
-            "HOME_DRTG_L10": home_prof.get("DRTG_L10", 110.0),
-            "AWAY_DRTG_L10": away_prof.get("DRTG_L10", 110.0),
-            "HOME_EFG_PCT_L10": home_prof.get("EFG_PCT_L10", 0.52),
-            "AWAY_EFG_PCT_L10": away_prof.get("EFG_PCT_L10", 0.52),
-            "HOME_TOV_PCT_L10": home_prof.get("TOV_PCT_L10", 0.13),
-            "AWAY_TOV_PCT_L10": away_prof.get("TOV_PCT_L10", 0.13),
+            "HOME_PACE_L5": home_prof.get("PACE_L5", 100.2),
+            "AWAY_PACE_L5": away_prof.get("PACE_L5", 100.2),
+            "HOME_PACE_L10": home_prof.get("PACE_L10", 100.2),
+            "AWAY_PACE_L10": away_prof.get("PACE_L10", 100.2),
+            "HOME_PTS_L10": home_prof.get("PTS_L10", 114.5),
+            "AWAY_PTS_L10": away_prof.get("PTS_L10", 114.5),
+            "HOME_OPP_PTS_L10": home_prof.get("OPP_PTS_L10", 114.5),
+            "AWAY_OPP_PTS_L10": away_prof.get("OPP_PTS_L10", 114.5),
+            "HOME_ORTG_L10": home_prof.get("ORTG_L10", 114.5),
+            "AWAY_ORTG_L10": away_prof.get("ORTG_L10", 114.5),
+            "HOME_DRTG_L10": home_prof.get("DRTG_L10", 114.5),
+            "AWAY_DRTG_L10": away_prof.get("DRTG_L10", 114.5),
+            "HOME_EFG_PCT_L10": home_prof.get("EFG_PCT_L10", 0.54),
+            "AWAY_EFG_PCT_L10": away_prof.get("EFG_PCT_L10", 0.54),
+            "HOME_TOV_PCT_L10": home_prof.get("TOV_PCT_L10", 0.135),
+            "AWAY_TOV_PCT_L10": away_prof.get("TOV_PCT_L10", 0.135),
             "HOME_REST_DAYS": home_prof.get("REST_DAYS", 2.0),
             "AWAY_REST_DAYS": away_prof.get("REST_DAYS", 2.0),
             "HOME_IS_B2B": home_prof.get("IS_B2B", 0),
             "AWAY_IS_B2B": away_prof.get("IS_B2B", 0),
         }
 
-        # Ejecutar modelo de Spread / Moneyline
         spread_val = float(j.get("spread_linea") or 0.0)
         res_spread = proyectar_partido_spread(bundle_spread, feats_spread, spread_line=spread_val)
 
-        # Ejecutar modelo de Totales
-        linea_tot = float(j.get("total_linea") or 220.0)
+        linea_tot = float(j.get("total_linea") or 228.0)
         res_tot = proyectar_partido_totales(bundle_totales, feats_totales, linea_total=linea_tot)
 
-        # Cálculo de Edges y Valor Esperado (+EV)
-        prob_ml_home_book = j.get("moneyline_local_prob") or 0.5
-        prob_ml_away_book = j.get("moneyline_visita_prob") or 0.5
+        # Probabilidades implícitas desparasitadas de mercado
+        prob_ml_home_book = j.get("moneyline_local_prob") or 0.50
+        prob_ml_away_book = j.get("moneyline_visita_prob") or 0.50
+        cuota_dec_home = float(j.get("moneyline_local_dec") or 1.91)
+        cuota_dec_away = float(j.get("moneyline_visita_dec") or 1.91)
+        cuota_dec_std = 1.909  # -110
+
         edge_ml_home = res_spread["prob_local_win"] - prob_ml_home_book
         edge_ml_away = res_spread["prob_visita_win"] - prob_ml_away_book
+        ev_ml_home = (res_spread["prob_local_win"] * cuota_dec_home) - 1.0
+        ev_ml_away = (res_spread["prob_visita_win"] * cuota_dec_away) - 1.0
 
-        # Determinar el mejor PICK del encuentro
+        # Selección rigurosa de candidatos con filtro EV > 0 y Dead Zone
         picks_candidatos = []
 
-        # Candidato 1: Totales
-        if res_tot["recomendacion"] != "PASAR":
+        # 1. Totales Over / Under
+        if res_tot["recomendacion"] in ["OVER", "UNDER"]:
             prob_tot = res_tot["prob_over"] if res_tot["recomendacion"] == "OVER" else res_tot["prob_under"]
-            edge_tot = prob_tot - 0.5238  # Ventaja probabilística real vs cuota estándar de -110 (52.38%)
-            picks_candidatos.append({
-                "mercado": f"Totales ({res_tot['recomendacion']})",
-                "seleccion": f"{res_tot['recomendacion']} {linea_tot}",
-                "probabilidad": prob_tot,
-                "edge": round(edge_tot, 4),
-                "detalle": f"Proyección: {res_tot['total_proyectado']} pts (Edge: {res_tot['edge_puntos']} pts)"
-            })
+            edge_tot = prob_tot - 0.5238
+            ev_tot = (prob_tot * cuota_dec_std) - 1.0
+            if edge_tot >= 0.025 and ev_tot >= 0.015:
+                picks_candidatos.append({
+                    "mercado": f"Totales ({res_tot['recomendacion']})",
+                    "seleccion": f"{res_tot['recomendacion']} {linea_tot}",
+                    "probabilidad": prob_tot,
+                    "edge": round(edge_tot, 4),
+                    "ev": round(ev_tot, 4),
+                    "cuota": "-110",
+                    "cuota_dec": cuota_dec_std,
+                    "detalle": f"Proyección Shrunk: {res_tot['total_proyectado']} pts vs línea {linea_tot} (Edge: {res_tot['edge_puntos']:+0.1f} pts, EV: +{ev_tot*100:.1f}%)"
+                })
 
-        # Candidato 2: Moneyline con valor
-        if edge_ml_home >= 0.04 and res_spread["prob_local_win"] >= 0.45:
+        # 2. Moneyline con valor real
+        if edge_ml_home >= 0.025 and ev_ml_home >= 0.015 and res_spread["prob_local_win"] >= 0.46:
             picks_candidatos.append({
                 "mercado": "Moneyline",
                 "seleccion": f"{j['equipo_local']} ML",
                 "probabilidad": res_spread["prob_local_win"],
-                "edge": edge_ml_home,
-                "detalle": f"Prob Modelo: {res_spread['prob_local_win']*100:.1f}% vs Book: {prob_ml_home_book*100:.1f}%"
+                "edge": round(edge_ml_home, 4),
+                "ev": round(ev_ml_home, 4),
+                "cuota": j.get("moneyline_local") or "-110",
+                "cuota_dec": cuota_dec_home,
+                "detalle": f"Prob Modelo: {res_spread['prob_local_win']*100:.1f}% vs Book: {prob_ml_home_book*100:.1f}% (EV: +{ev_ml_home*100:.1f}%)"
             })
-        elif edge_ml_away >= 0.04 and res_spread["prob_visita_win"] >= 0.45:
+        elif edge_ml_away >= 0.025 and ev_ml_away >= 0.015 and res_spread["prob_visita_win"] >= 0.46:
             picks_candidatos.append({
                 "mercado": "Moneyline",
                 "seleccion": f"{j['equipo_visita']} ML",
                 "probabilidad": res_spread["prob_visita_win"],
-                "edge": edge_ml_away,
-                "detalle": f"Prob Modelo: {res_spread['prob_visita_win']*100:.1f}% vs Book: {prob_ml_away_book*100:.1f}%"
+                "edge": round(edge_ml_away, 4),
+                "ev": round(ev_ml_away, 4),
+                "cuota": j.get("moneyline_visita") or "-110",
+                "cuota_dec": cuota_dec_away,
+                "detalle": f"Prob Modelo: {res_spread['prob_visita_win']*100:.1f}% vs Book: {prob_ml_away_book*100:.1f}% (EV: +{ev_ml_away*100:.1f}%)"
             })
 
-        # Candidato 3: Spread si hay alta confianza
-        if res_spread["prob_cover_home"] >= 0.55:
+        # 3. Spread / Hándicap
+        edge_cov_home = res_spread["prob_cover_home"] - 0.5238
+        edge_cov_away = res_spread["prob_cover_away"] - 0.5238
+        ev_cov_home = (res_spread["prob_cover_home"] * cuota_dec_std) - 1.0
+        ev_cov_away = (res_spread["prob_cover_away"] * cuota_dec_std) - 1.0
+
+        if edge_cov_home >= 0.030 and ev_cov_home >= 0.020:
             picks_candidatos.append({
                 "mercado": "Spread",
                 "seleccion": f"{j['equipo_local']} {spread_val:+0.1f}",
                 "probabilidad": res_spread["prob_cover_home"],
-                "edge": res_spread["prob_cover_home"] - 0.5238,
-                "detalle": f"Margen estimado: {res_spread['margen_local_esperado']:+0.1f} pts"
+                "edge": round(edge_cov_home, 4),
+                "ev": round(ev_cov_home, 4),
+                "cuota": "-110",
+                "cuota_dec": cuota_dec_std,
+                "detalle": f"Margen Proyectado: {res_spread['margen_local_esperado']:+0.1f} pts (Spread: {spread_val:+0.1f})"
             })
-        elif res_spread["prob_cover_away"] >= 0.55:
+        elif edge_cov_away >= 0.030 and ev_cov_away >= 0.020:
             picks_candidatos.append({
                 "mercado": "Spread",
                 "seleccion": f"{j['equipo_visita']} {-spread_val:+0.1f}",
                 "probabilidad": res_spread["prob_cover_away"],
-                "edge": res_spread["prob_cover_away"] - 0.5238,
-                "detalle": f"Margen estimado local: {res_spread['margen_local_esperado']:+0.1f} pts"
+                "edge": round(edge_cov_away, 4),
+                "ev": round(ev_cov_away, 4),
+                "cuota": "-110",
+                "cuota_dec": cuota_dec_std,
+                "detalle": f"Margen Proyectado Visita: {-res_spread['margen_local_esperado']:+0.1f} pts (Spread: {-spread_val:+0.1f})"
             })
 
-        # Ordenar candidatos: priorizar selecciones con alta probabilidad y ventaja matemática positiva
-        picks_candidatos.sort(
-            key=lambda x: (
-                x["edge"] > 0,
-                x["probabilidad"] >= 0.70,
-                round(x["probabilidad"], 4),
-                round(x["edge"], 4),
-            ),
-            reverse=True,
-        )
-        mejor_pick = picks_candidatos[0] if picks_candidatos else {
-            "mercado": "Moneyline",
-            "seleccion": f"{j['equipo_local'] if res_spread['prob_local_win'] > 0.5 else j['equipo_visita']} ML",
-            "probabilidad": max(res_spread["prob_local_win"], res_spread["prob_visita_win"]),
-            "edge": max(edge_ml_home, edge_ml_away),
-            "detalle": "Líneas de mercado muy ajustadas."
-        }
-
-        # Nivel de confianza
-        if mejor_pick["edge"] >= 0.06 and mejor_pick["probabilidad"] >= 0.56:
-            confianza = "ALTA"
-        elif mejor_pick["edge"] >= 0.03:
-            confianza = "MEDIA"
+        # Ordenar candidatos priorizando P * (1 + Edge) * (1 + EV)
+        if picks_candidatos:
+            picks_candidatos.sort(
+                key=lambda x: x["probabilidad"] * (1.0 + 1.5 * max(x.get("edge", 0), 0)) * (1.0 + max(x.get("ev", 0), 0)),
+                reverse=True
+            )
+            mejor_pick = picks_candidatos[0]
+            confianza = "ALTA" if mejor_pick["edge"] >= 0.05 and mejor_pick["probabilidad"] >= 0.56 else "MEDIA"
         else:
+            # Lean pasivo neutral sin inventar edge artificial
+            if res_spread["prob_local_win"] >= res_spread["prob_visita_win"]:
+                sel_lean = f"{j['equipo_local']} ML"
+                pr_lean = res_spread["prob_local_win"]
+                ed_lean = edge_ml_home
+                ev_lean = ev_ml_home
+                c_lean = j.get("moneyline_local") or "-110"
+                c_dec_lean = cuota_dec_home
+            else:
+                sel_lean = f"{j['equipo_visita']} ML"
+                pr_lean = res_spread["prob_visita_win"]
+                ed_lean = edge_ml_away
+                ev_lean = ev_ml_away
+                c_lean = j.get("moneyline_visita") or "-110"
+                c_dec_lean = cuota_dec_away
+
+            mejor_pick = {
+                "mercado": "Moneyline",
+                "seleccion": sel_lean,
+                "probabilidad": pr_lean,
+                "edge": ed_lean,
+                "ev": ev_lean,
+                "cuota": c_lean,
+                "cuota_dec": c_dec_lean,
+                "detalle": f"Líneas de mercado eficientes (Margen proy: {res_spread['margen_local_esperado']:+0.1f} pts)"
+            }
             confianza = "NEUTRAL"
 
         prediccion_partido = {
@@ -342,7 +389,7 @@ def predecir_partidos_hoy(force_refresh: bool = False, fecha: Optional[str] = No
             "ml_visita": j["moneyline_visita"],
             "ml_local_dec": j["moneyline_local_dec"],
             "ml_visita_dec": j["moneyline_visita_dec"],
-            # Proyecciones del Modelo
+            # Proyecciones del Modelo V2
             "margen_local_esperado": res_spread["margen_local_esperado"],
             "prob_local_win": res_spread["prob_local_win"],
             "prob_visita_win": res_spread["prob_visita_win"],
@@ -355,8 +402,11 @@ def predecir_partidos_hoy(force_refresh: bool = False, fecha: Optional[str] = No
             # Recomendación final
             "pick_mercado": mejor_pick["mercado"],
             "pick_seleccion": mejor_pick["seleccion"],
-            "pick_probabilidad": round(mejor_pick["probabilidad"], 4),
-            "pick_edge": round(mejor_pick["edge"], 4),
+            "pick_probabilidad": round(float(mejor_pick["probabilidad"]), 4),
+            "pick_edge": round(float(mejor_pick.get("edge", 0.0)), 4),
+            "pick_ev": round(float(mejor_pick.get("ev", 0.0)), 4),
+            "pick_cuota": mejor_pick.get("cuota", "-110"),
+            "pick_cuota_dec": mejor_pick.get("cuota_dec", 1.91),
             "pick_detalle": mejor_pick["detalle"],
             "confianza": confianza,
             "timestamp": datetime.now(ZONA_CDMX).isoformat(),
@@ -364,7 +414,6 @@ def predecir_partidos_hoy(force_refresh: bool = False, fecha: Optional[str] = No
 
         predicciones.append(prediccion_partido)
 
-    # Guardar en JSON y Parquet
     archivo_json = RUTA_PREDICCIONES / "predicciones_nba_hoy.json"
     with open(archivo_json, "w", encoding="utf-8") as f:
         json.dump(predicciones, f, indent=2, ensure_ascii=False)
@@ -373,7 +422,6 @@ def predecir_partidos_hoy(force_refresh: bool = False, fecha: Optional[str] = No
     archivo_parquet = RUTA_PREDICCIONES / "predicciones_nba_hoy.parquet"
     pd.DataFrame(predicciones).to_parquet(archivo_parquet, index=False)
 
-    # Sincronización en Base de Datos MySQL e historial acumulado
     try:
         from nba.registro import guardar_predicciones_nba
         guardar_predicciones_nba(predicciones)
@@ -388,12 +436,7 @@ if __name__ == "__main__":
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     except Exception:
         pass
-
     preds = predecir_partidos_hoy(force_refresh=True)
-    print(f"\n🏀 Resumen de Predicciones NBA Hoy ({len(preds)} partidos):")
+    print(f"Total procesados: {len(preds)}")
     for p in preds:
-        print(f"\n[{p['hora_cdmx']} CDMX] {p['partido']}")
-        print(f"   Spread Book: {p['spread_detalles']} | Margen Proyectado: {p['margen_local_esperado']:+0.1f} pts")
-        print(f"   Moneyline Prob: {p['equipo_local']} {p['prob_local_win']*100:.1f}% vs {p['equipo_visita']} {p['prob_visita_win']*100:.1f}%")
-        print(f"   Totales: Línea {p['linea_total']} vs Proyectado {p['total_proyectado']} pts")
-        print(f"   🎯 PICK RECOMENDADO: {p['pick_seleccion']} ({p['confianza']}) -> {p['pick_detalle']}")
+        print(f"[{p['partido']}] -> {p['pick_mercado']}: {p['pick_seleccion']} ({p['pick_cuota']}) [Prob: {p['pick_probabilidad']*100:.1f}%, EV: {p.get('pick_ev', 0)*100:+.1f}%] [{p['confianza']}]")
