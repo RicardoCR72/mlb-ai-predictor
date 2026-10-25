@@ -128,6 +128,9 @@ def mostrar_partido(fila):
         ('P(Over) / P(Under)', formatear_porcentaje(fila['prob_over'])+' / '+formatear_porcentaje(fila['prob_under'])),
         ('Proyección base', formatear_numero(fila['pred_total_base'], 1))
     ]
+    if pd.notna(fila.get('wind')):
+        details.append(('Viento', f"{float(fila['wind']):.0f} mph"))
+
     if es_resuelta:
         if pd.notna(fila.get('total_real')):
             details.insert(0, ('Total real', formatear_numero(fila.get('total_real'), 1)))

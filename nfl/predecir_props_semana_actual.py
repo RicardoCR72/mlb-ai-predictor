@@ -67,7 +67,7 @@ RUTA_MODELO_ANYTIME_TD = DIRECTORIO_MODELOS / "props_anytime_td.joblib"
 RUTA_CALIBRACION_PC = DIRECTORIO_MODELOS / "calibracion_props_pase_carrera.json"
 RUTA_RESIDUOS_PC = DIRECTORIO_MODELOS / "residuos_props_pase_carrera.npz"
 
-MODELO_VERSION = "props_nfl_v2"
+MODELO_VERSION = "props_nfl_v3"
 POSICIONES_ELEGIBLES = ["WR", "TE", "RB"]
 TARGETS_PROMEDIO_MINIMO = 3.0
 
@@ -630,8 +630,12 @@ def agregar_lineas_y_probabilidades(proyecciones, lineas):
         & (resultado["cuota_pick"].abs() <= cuota_maxima)
     )
 
-    # Yardas terrestres: solamente el RB principal, con volumen reciente
-    # suficiente. Esto limita naturalmente a uno por equipo y dos por juego.
+    # Candado 1: Yardas terrestres: solamente el RB principal con volumen probado (mínimo 13 acarreos avg).
+    # Bloquea OVERs en corredores suplentes y bloquea UNDERs suicidas en corredores élite (línea >= 75 yardas).
+    linea_val = pd.to_numeric(resultado["linea"], errors="coerce").fillna(0.0)
+    es_under_rush = es_rushing & resultado["seleccion"].eq("UNDER")
+    es_over_rush = es_rushing & resultado["seleccion"].eq("OVER")
+
     carries_promedio = pd.to_numeric(
         resultado.get("player_carries_avg_5"), errors="coerce"
     ).fillna(0.0)
@@ -640,10 +644,17 @@ def agregar_lineas_y_probabilidades(proyecciones, lineas):
     ).fillna(0).eq(1)
     rushing_valido = (
         resultado["position"].eq("RB")
-        & (carries_promedio >= 10.0)
+        & (carries_promedio >= 13.0)
         & principal
+        & ~(es_under_rush & (linea_val >= 75.0))
+        & ~(es_over_rush & (carries_promedio < 13.0))
     )
     candidato &= ~es_rushing | rushing_valido
+
+    # Candado 2: Yardas de pase: PROHIBIR UNDER a mariscales de campo
+    # (El juego moderno y el garbage time del 4to cuarto invalidan sistemáticamente los UNDERs)
+    es_passing_under = resultado["tipo_prop"].eq("passing_yards") & resultado["seleccion"].eq("UNDER")
+    candidato &= ~es_passing_under
 
     # Candado adicional: aun con datos duplicados nunca publicar más de dos
     # candidatos terrestres por partido.

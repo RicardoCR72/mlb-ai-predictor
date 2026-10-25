@@ -1,28 +1,37 @@
 {
-  "modelo_version": "nfl_moneyline_calibrado_v1",
-  "fecha_entrenamiento": "2026-10-23T06:51:25.308792",
-  "features": [
+  "modelo": "nfl_moneyline_v2_ensemble",
+  "version": "v2_ensemble_epa",
+  "algoritmo": "Ensamble Hibrido Ponderado (Calibrated Logistic Regression 65% + Calibrated LightGBM 35%)",
+  "variables_clave": [
     "spread_line",
+    "diff_total_epa_8",
+    "diff_pass_epa_8",
+    "diff_rush_epa_8",
+    "diff_sacks_8",
     "diff_margin_avg_8",
     "diff_points_for_avg_8",
     "diff_points_against_avg_8",
     "diff_win_pct_8",
+    "diff_win_pct_season",
     "diff_rest",
     "diff_injury_severity",
+    "diff_injury_starting_qb_score",
+    "diff_injury_ol_score",
+    "diff_injury_defense_score",
     "home_qb_change",
     "away_qb_change",
-    "home_margin_avg_4",
-    "away_margin_avg_4",
-    "home_points_for_avg_season",
-    "away_points_for_avg_season",
-    "home_win_pct_season",
-    "away_win_pct_season"
+    "div_game"
   ],
   "metricas_out_of_sample": {
-    "auc": 0.7373,
-    "accuracy": 0.6742,
-    "brier": 0.2068,
-    "log_loss": 0.5998,
-    "n_partidos_historicos": 3696
-  }
+    "auc": 0.7328,
+    "accuracy": 0.6794,
+    "brier": 0.2082,
+    "log_loss": 0.6032,
+    "backtest_picks": 101,
+    "backtest_win_rate": 74.26,
+    "backtest_unidades": 7.66,
+    "backtest_roi": 7.59
+  },
+  "fecha_entrenamiento": "2026-10-24T22:57:48.684240",
+  "total_partidos_entrenamiento": 3696
 }

@@ -169,6 +169,17 @@ def render_cartelera(predicciones: list[dict]):
         else:
             badge_conf = "<span style='background: rgba(143, 168, 153, 0.15); color: #8fa899; border: 1px solid #1a382a; padding: 0.2rem 0.6rem; border-radius: 6px; font-weight: 800; font-size: 0.72rem;'>CONFIANZA NEUTRAL</span>"
 
+        # Badge de motor IA
+        badge_motor = "<span style='background: rgba(183, 255, 60, 0.12); color: #b7ff3c; border: 1px solid rgba(183, 255, 60, 0.35); padding: 0.18rem 0.55rem; border-radius: 6px; font-weight: 800; font-size: 0.70rem;'>MOTOR V2 · EPA + LGB</span>"
+
+        diff_epa = p.get("diff_total_epa", 0.0)
+        diff_ol = p.get("diff_injury_ol", 0.0)
+        epa_color = "#b7ff3c" if diff_epa > 0 else ("#ff6b6b" if diff_epa < 0 else "#8fa899")
+        pills_analitica = f"""<div style="display: flex; gap: 0.5rem; margin-bottom: 0.75rem; flex-wrap: wrap;">
+<span style="background: #0d1e16; color: {epa_color}; border: 1px solid #1a382a; padding: 0.2rem 0.55rem; border-radius: 6px; font-size: 0.73rem; font-weight: 700;">📊 Diff EPA: {diff_epa:+.2f}</span>
+<span style="background: #0d1e16; color: #8fa899; border: 1px solid #1a382a; padding: 0.2rem 0.55rem; border-radius: 6px; font-size: 0.73rem; font-weight: 700;">🛡️ Salud Línea Ofensiva: {diff_ol:+.1f}</span>
+</div>"""
+
         pick_sel = p.get("pick_seleccion", "")
         pick_cuota = p.get("pick_cuota", "")
         pick_edge = p.get("pick_edge", 0.0) * 100
@@ -177,7 +188,8 @@ def render_cartelera(predicciones: list[dict]):
         card_html = f"""<div class="oracle-pick nfl-card">
 <div class="card-top">
 {badge_estado}
-<div style="display: flex; gap: 0.5rem; align-items: center;">
+<div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+{badge_motor}
 <span style="color: #8fa899; font-size: 0.76rem; font-weight: 700;">{spread_str}</span>
 {badge_conf}
 {badge_res}
@@ -198,10 +210,11 @@ def render_cartelera(predicciones: list[dict]):
 <div style="font-size: 0.72rem; color: #8fa899;">Probabilidad Modelo</div>
 </div>
 </div>
-<div style="width: 100%; height: 8px; background: #07140e; border-radius: 4px; overflow: hidden; display: flex; margin-bottom: 1.1rem;">
+<div style="width: 100%; height: 8px; background: #07140e; border-radius: 4px; overflow: hidden; display: flex; margin-bottom: 0.75rem;">
 <div style="width: {prob_a}%; background: #4f6859; transition: width 0.3s ease;"></div>
 <div style="width: {prob_h}%; background: #b7ff3c; transition: width 0.3s ease;"></div>
 </div>
+{pills_analitica}
 <div class="pick-box" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
 <div>
 <span class="pick-lbl">🎯 PICK RECOMENDADO MONEYLINE</span>

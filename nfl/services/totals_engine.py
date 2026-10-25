@@ -327,31 +327,37 @@ def generar_predicciones(
     )
 
     cumple_edge = (
-
         resultado["edge_absoluto"] >= EDGE_MINIMO
-
+    )
+    cumple_ev = (
+        resultado["ev"] > 0
     )
 
-    cumple_ev = (
+    es_over = resultado["pick"] == "OVER"
+    es_under = resultado["pick"] == "UNDER"
 
-        resultado["ev"] > 0
+    # Regla Asimétrica Cuantitativa V2 para Totales:
+    # 1. OVER: Válido con edge >= 3.0 y EV > 0 (64.7% de efectividad histórica real).
+    # 2. UNDER: Requiere edge >= 3.0, EV > 0 Y que la línea esté inflada (total_line >= 46.0) o viento >= 13 mph.
+    #    Bloquea las trampas de UNDER en líneas deprimidas (< 46.0) sin viento adverso.
+    linea_val = pd.to_numeric(resultado["total_line"], errors="coerce").fillna(0.0)
+    wind_val = pd.to_numeric(resultado.get("wind", 0.0), errors="coerce").fillna(0.0)
+    under_seguro = (linea_val >= 46.0) | (wind_val >= 13.0)
 
+    valido_para_pick = (
+        cumple_edge
+        & cumple_ev
+        & (es_over | (es_under & under_seguro))
     )
 
     resultado.loc[
-
         con_linea,
-
         "estado"
-
     ] = "NO PICK"
 
     resultado.loc[
-
-        cumple_edge & cumple_ev,
-
+        valido_para_pick,
         "estado"
-
     ] = "PICK"
 
     return resultado
