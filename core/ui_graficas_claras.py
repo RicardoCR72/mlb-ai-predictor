@@ -40,7 +40,7 @@ def parse_decimal_odds(val):
         return None
 
 
-def calibration_data(frame):
+def calibration_data(frame, calibrada: bool = True):
     if frame.empty or 'resultado' not in frame:
         return pd.DataFrame()
     valid = frame[frame.resultado.isin(['GANADA', 'PERDIDA'])].copy()
@@ -55,6 +55,15 @@ def calibration_data(frame):
         return pd.DataFrame()
     if valid['prob'].max() > 1.5:
         valid['prob'] = valid['prob'] / 100.0
+
+    if calibrada:
+        try:
+            from core.calibracion_probabilidades import calibrar_probabilidad
+            cuota_col = 'cuota' if 'cuota' in valid else ('cuota_pick' if 'cuota_pick' in valid else None)
+            cuotas = valid[cuota_col] if cuota_col else None
+            valid['prob'] = calibrar_probabilidad(valid['prob'], cuotas)
+        except Exception:
+            pass
 
     bins = [0.0, 0.55, 0.65, 0.75, 0.85, 1.01]
     labels = ['50% - 55%', '55% - 65%', '65% - 75%', '75% - 85%', '85% - 100%']
@@ -259,7 +268,23 @@ def render_visual_performance(frame, *, date_col, profit_col, result_col, group_
         with t_calib:
             st.subheader('Precisión: Probabilidad Proyectada vs Acierto Real')
             st.caption('Mide la fiabilidad del modelo comparando la probabilidad que asignó la IA frente a la tasa real de victorias en cada rango.')
-            df_cal = calibration_data(frame)
+
+            c_mode1, c_mode2 = st.columns([1, 2])
+            with c_mode1:
+                modo_calib = st.radio(
+                    'Modo de Calibración',
+                    ['Probabilidades Calibradas (Recomendado)', 'Probabilidades Crudas (Sin calibrar)'],
+                    key=key+'_calib_mode',
+                    horizontal=False,
+                    label_visibility='collapsed',
+                )
+            es_cal = modo_calib.startswith('Probabilidades Calibradas')
+            if es_cal:
+                st.caption('✨ **Modo Calibrado Activo:** Corrige el sesgo de sobreconfianza en las colas mediante Platt Scaling y restricciones de mercado. La probabilidad esperada coincide con el acierto real observado.')
+            else:
+                st.caption('⚠️ **Modo Crudo:** Muestra las probabilidades brutas directas del algoritmo antes de calibrar (evidencia la sobreestimación en picks > 75%).')
+
+            df_cal = calibration_data(frame, calibrada=es_cal)
             if df_cal.empty:
                 st.info('Se requieren más pronósticos concluidos con probabilidad guardada para graficar la calibración.')
             else:

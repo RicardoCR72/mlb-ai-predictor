@@ -597,6 +597,11 @@ def agregar_lineas_y_probabilidades(proyecciones, lineas):
         resultado["cuota_under"],
     )
     decimal = resultado["cuota_pick"].apply(american_a_decimal)
+    try:
+        from core.calibracion_probabilidades import calibrar_probabilidad
+        resultado["probabilidad_pick"] = calibrar_probabilidad(resultado["probabilidad_pick"], decimal)
+    except Exception:
+        pass
     resultado["ev_estimado"] = (
         resultado["probabilidad_pick"] * decimal - 1
     )
