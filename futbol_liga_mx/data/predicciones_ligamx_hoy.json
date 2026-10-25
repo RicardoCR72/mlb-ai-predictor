@@ -6,7 +6,7 @@
     "equipo_visita": "FC Juarez",
     "fecha_cdmx": "2026-10-23",
     "hora_cdmx": "19:00",
-    "estado": "STATUS_FULL_TIME",
+    "estado": "STATUS_FINAL",
     "descripcion_estado": "Full Time",
     "marcador_local": 1,
     "marcador_visita": 1,
@@ -39,7 +39,9 @@
     "pick_edge": 0.0158,
     "pick_detalle": "xG Proyectado: 2.82 goles.",
     "confianza": "MEDIA",
-    "timestamp": "2026-10-23T23:43:53.418370-06:00"
+    "timestamp": "2026-10-23T23:43:53.418370-06:00",
+    "resultado": "PERDIDA",
+    "unidades_ganadas": -1.0
   },
   {
     "id_evento": "401876927",
@@ -48,7 +50,7 @@
     "equipo_visita": "Atletico San Luis",
     "fecha_cdmx": "2026-10-23",
     "hora_cdmx": "21:00",
-    "estado": "STATUS_FULL_TIME",
+    "estado": "STATUS_FINAL",
     "descripcion_estado": "Full Time",
     "marcador_local": 0,
     "marcador_visita": 1,
@@ -81,7 +83,9 @@
     "pick_edge": 0.01,
     "pick_detalle": "xG Proyectado: 2.76 goles.",
     "confianza": "MEDIA",
-    "timestamp": "2026-10-23T23:43:53.423373-06:00"
+    "timestamp": "2026-10-23T23:43:53.423373-06:00",
+    "resultado": "PERDIDA",
+    "unidades_ganadas": -1.0
   },
   {
     "id_evento": "401876926",
@@ -90,10 +94,10 @@
     "equipo_visita": "Deportivo Toluca",
     "fecha_cdmx": "2026-10-24",
     "hora_cdmx": "17:00",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_FINAL",
     "descripcion_estado": "Scheduled",
-    "marcador_local": 0,
-    "marcador_visita": 0,
+    "marcador_local": 1,
+    "marcador_visita": 1,
     "provider": "DraftKings",
     "ml_local": "+265",
     "ml_empate": 265,
@@ -123,7 +127,9 @@
     "pick_edge": 0.0518,
     "pick_detalle": "xG Total: 2.82 (Prob: 68.8% vs Book: 63.6%)",
     "confianza": "ALTA",
-    "timestamp": "2026-10-23T23:43:53.428992-06:00"
+    "timestamp": "2026-10-23T23:43:53.428992-06:00",
+    "resultado": "GANADA",
+    "unidades_ganadas": 0.571
   },
   {
     "id_evento": "401876925",
@@ -132,10 +138,10 @@
     "equipo_visita": "Deportivo Guadalajara",
     "fecha_cdmx": "2026-10-24",
     "hora_cdmx": "19:00",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_FINAL",
     "descripcion_estado": "Scheduled",
     "marcador_local": 0,
-    "marcador_visita": 0,
+    "marcador_visita": 1,
     "provider": "DraftKings",
     "ml_local": "+150",
     "ml_empate": 205,
@@ -165,7 +171,9 @@
     "pick_edge": 0.01,
     "pick_detalle": "xG Proyectado: 2.61 goles.",
     "confianza": "MEDIA",
-    "timestamp": "2026-10-23T23:43:53.432997-06:00"
+    "timestamp": "2026-10-23T23:43:53.432997-06:00",
+    "resultado": "GANADA",
+    "unidades_ganadas": 0.87
   },
   {
     "id_evento": "401876924",
@@ -174,10 +182,10 @@
     "equipo_visita": "UANL Tigres",
     "fecha_cdmx": "2026-10-24",
     "hora_cdmx": "21:10",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_FINAL",
     "descripcion_estado": "Scheduled",
-    "marcador_local": 0,
-    "marcador_visita": 0,
+    "marcador_local": 1,
+    "marcador_visita": 1,
     "provider": "DraftKings",
     "ml_local": "+160",
     "ml_empate": 245,
@@ -207,7 +215,9 @@
     "pick_edge": 0.01,
     "pick_detalle": "xG Proyectado: 2.74 goles.",
     "confianza": "MEDIA",
-    "timestamp": "2026-10-23T23:43:53.438007-06:00"
+    "timestamp": "2026-10-23T23:43:53.438007-06:00",
+    "resultado": "PERDIDA",
+    "unidades_ganadas": -1.0
   },
   {
     "id_evento": "401876923",

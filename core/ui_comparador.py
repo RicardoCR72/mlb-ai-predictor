@@ -35,6 +35,20 @@ def load_comparison():
                 frame = pd.concat([frame, fut_norm], ignore_index=True)
         except Exception:
             pass
+        try:
+            from nba.registro import cargar_historial_rendimiento
+            from core.comparador import normalize
+            df_nba = cargar_historial_rendimiento()
+            if not df_nba.empty:
+                df_nba = df_nba.rename(columns={
+                    'id_juego': 'id_partido_nba',
+                    'unidades_ganadas': 'unidades',
+                })
+                df_nba['modelo'] = 'Ridge + Poisson V2'
+                nba_norm = normalize(df_nba, sport='NBA', market=None, identity=['id_partido_nba'], american=True, verified=True)
+                frame = pd.concat([frame, nba_norm], ignore_index=True)
+        except Exception:
+            pass
         return frame,errors
     except Exception:return pd.DataFrame(columns=COLUMNS),['Datos guardados']
     finally:

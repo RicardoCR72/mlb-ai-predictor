@@ -12,7 +12,7 @@ import pandas as pd
 from core.db import get_db_connection, get_db_credentials
 from core import bankroll as bank
 
-SERVICES = ('mlb','nfl_totales','nfl_props','nfl_moneyline','liga_mx','bankroll')
+SERVICES = ('mlb','nfl_totales','nfl_props','nfl_moneyline','liga_mx','futbol','nba','bankroll')
 LOCKS = {service:threading.Lock() for service in SERVICES}
 SCRIPTS = {'nfl_totales':'nfl/evaluar_resultados.py','nfl_props':'nfl/evaluar_resultados_props.py'}
 
@@ -182,10 +182,15 @@ def run_update(service,root,on_step=None):
         elif which in ('nfl_totales', 'nfl_props', 'nfl_moneyline'):
             from nfl.liquidar_nfl import liquidar_todo_nfl
             step('Liquidación NFL (Totales, Moneyline y Props)', lambda: liquidar_todo_nfl().get('mensaje'))
-        elif which=='liga_mx':
+        elif which in ('liga_mx', 'futbol'):
             step('Resultados y calendario Liga MX',lambda:refresh_liga(root))
+            from futbol.predecir_jornada import liquidar_partidos_pendientes_futbol
+            step('Liquidación Fútbol Mundial (8 Ligas)', lambda: f"{liquidar_partidos_pendientes_futbol().get('resueltas', 0)} partidos liquidados.")
             from futbol_liga_mx.registro import liquidar_partidos_pendientes_ligamx
             step('Liquidación Liga MX',lambda:liquidar_partidos_pendientes_ligamx().get('mensaje'))
+        elif which == 'nba':
+            from nba.registro import liquidar_partidos_pendientes_nba
+            step('Liquidación NBA', lambda: liquidar_partidos_pendientes_nba().get('mensaje'))
     try:
         if service=='bankroll':
             try:
@@ -198,7 +203,8 @@ def run_update(service,root,on_step=None):
                 if 'nfl_total' in origins:wanted.append('nfl_totales')
                 if 'nfl_prop' in origins:wanted.append('nfl_props')
                 if 'nfl_moneyline' in origins:wanted.append('nfl_moneyline')
-                if 'liga_mx' in origins:wanted.append('liga_mx')
+                if origins & {'liga_mx', 'futbol'}:wanted.append('futbol')
+                if 'nba' in origins:wanted.append('nba')
                 for which in wanted:
                     if LOCKS[which].acquire(blocking=False):
                         try:sport(which)
