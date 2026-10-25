@@ -40,9 +40,10 @@ class MoneylineSelectionTests(TestCase):
         with patch('core.ui_historial_publicado.load_history',return_value=(mlb,[])):
             app=AppTest.from_string("from core.ui_historial_publicado import render_history\nrender_history('MLB','Moneyline',key='saved_team')").run()
         self.assertFalse(app.exception)
-        cards=[m.value for m in app.markdown if '<div class="oracle-selection">' in m.value]
+        cards=[m.value for m in app.markdown if '<div class="oracle-selection">' in m.value or '<div class="pick-sel">' in m.value]
         self.assertEqual(len(cards),1)
-        selection=cards[0].split('<div class="oracle-selection">',1)[1].split('</div>',1)[0]
+        tag = '<div class="pick-sel">' if '<div class="pick-sel">' in cards[0] else '<div class="oracle-selection">'
+        selection=cards[0].split(tag,1)[1].split('</div>',1)[0]
         self.assertIn('New York Yankees',selection)
         self.assertNotIn('Selección guardada',selection)
         self.assertIn('Perdida',cards[0])

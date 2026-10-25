@@ -78,11 +78,12 @@ def render_overview():
     if sport!='Todos':frame=frame[frame.deporte.eq(sport)]
     with cols[1]:model=safe_select('Modelo',['Todos']+sorted(frame.modelo_visible.unique()),key='center_model')
     if model!='Todos':frame=frame[frame.modelo_visible.eq(model)]
+    frame=frame[frame.resultado.isin(['GANADA','PERDIDA','PUSH'])].copy()
     comparison_history=frame.copy()
     frame=performance_filters(frame,'fecha','center',season_col='Temporada',probability_col='probabilidad',
         probability_scale=100,market_col='mercado',result_col='resultado',provenance_col='procedencia')
     if frame.empty:state_message('No hay registros para estos filtros.',kind='filters');return
-    settled=frame[frame.resultado.isin(['GANADA','PERDIDA','PUSH'])]
+    settled=frame
     decided=settled[settled.resultado.isin(['GANADA','PERDIDA'])]
     known=settled[np.isfinite(pd.to_numeric(settled.unidades,errors='coerce'))]
     profit=known.unidades.sum();n=len(known)

@@ -101,6 +101,12 @@ def render_history(sport,market=None,*,key):
     if market is not None:frame=frame[frame.mercado.eq(market)]
     elif sport=='NFL':frame=frame[~frame.mercado.eq('Totales')]
     if frame.empty:state_message('Todavía no hay publicaciones de este mercado.');return
+    # En la vista de Rendimiento solo se muestran picks evaluados y concluidos (GANADA, PERDIDA, PUSH).
+    # Los juegos programados o en vivo pertenecen a las secciones operativas de pronósticos.
+    frame = frame[frame.resultado.isin(['GANADA', 'PERDIDA', 'PUSH'])].copy()
+    if frame.empty:
+        state_message('Todavía no hay picks concluidos ni liquidados en el historial de rendimiento de este mercado.', kind='empty')
+        return
     st.subheader('Rendimiento de picks publicados')
     st.caption('Primera publicación original cuando existe; registros antiguos identificados por procedencia. Simulación de 1 unidad por pick.')
     from core.modelos_legibles import model_names

@@ -269,8 +269,12 @@ def render_historial():
         st.info("📊 Aún no hay picks de Moneyline registrados en el historial.")
         return
 
-    # Filtrar picks concluidos
+    # Filtrar picks concluidos (excluyendo programados o en vivo)
     resueltos = df_hist[df_hist["resultado_pick"].isin(["GANADA", "PERDIDA", "PUSH"])].copy()
+
+    if resueltos.empty:
+        st.info("📊 Aún no hay picks concluidos ni liquidados en el historial de Moneyline. Los partidos de hoy y en vivo se encuentran en 'Partidos de la Semana'.")
+        return
 
     total_picks = len(resueltos)
     ganadas = len(resueltos[resueltos["resultado_pick"] == "GANADA"])
@@ -295,13 +299,13 @@ def render_historial():
 
     st.markdown("<div style='margin-bottom: 1.5rem;'></div>", unsafe_allow_html=True)
 
-    # Tabla con detalle de picks
+    # Tabla con detalle de picks concluidos
     cols_mostrar = [
         "fecha_cdmx", "partido", "seleccion", "cuota_pick", "edge", "resultado_pick", "beneficio_unidades"
     ]
-    cols_existentes = [c for c in cols_mostrar if c in df_hist.columns]
+    cols_existentes = [c for c in cols_mostrar if c in resueltos.columns]
 
-    df_tabla = df_hist[cols_existentes].copy()
+    df_tabla = resueltos[cols_existentes].copy()
     if "edge" in df_tabla.columns:
         df_tabla["edge"] = df_tabla["edge"].apply(lambda x: f"+{float(x)*100:.1f}%" if pd.notna(x) else "N/D")
     if "beneficio_unidades" in df_tabla.columns:
