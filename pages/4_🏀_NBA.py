@@ -618,6 +618,19 @@ def render_historial_nba(mercado_filtro: str = ""):
         mv = g_df["marcador_visitante"].iloc[0] if "marcador_visitante" in g_df.columns else None
         ml = g_df["marcador_local"].iloc[0] if "marcador_local" in g_df.columns else None
         temp_val = g_df["temporada"].iloc[0] if "temporada" in g_df.columns else ""
+
+        # En juegos pasados solo se maneja Moneyline y Totales (el spread solo aplica para juegos de hoy en adelante)
+        hoy_str = datetime.now(ZONA_CDMX).strftime("%Y-%m-%d")
+        if str(f_val) < hoy_str:
+            g_df = g_df[g_df["mercado"] != "Spread"]
+
+        # Deduplicar picks del mismo tipo de mercado por partido (máx 1 Totales y 1 Moneyline)
+        g_df_picks = g_df.copy()
+        g_df_picks["_tipo_m"] = g_df_picks["mercado"].apply(lambda x: "Totales" if "Totales" in str(x) else str(x))
+        # Si hay duplicado en Totales, priorizar la línea real (diferente de 228.0)
+        g_df_picks = g_df_picks.sort_values(by=["_tipo_m", "linea"], ascending=[True, False]).drop_duplicates(subset=["_tipo_m"], keep="first")
+        g_df_picks = g_df_picks.drop(columns=["_tipo_m"])
+
         partidos_grupos.append({
             "fecha": f_val,
             "hora_cdmx": h_cdmx,
@@ -626,8 +639,8 @@ def render_historial_nba(mercado_filtro: str = ""):
             "equipo_local": el_val,
             "marcador_visitante": mv,
             "marcador_local": ml,
-            "picks": g_df.to_dict(orient="records"),
-            "unidades_totales": float(g_df["unidades_ganadas"].sum())
+            "picks": g_df_picks.to_dict(orient="records"),
+            "unidades_totales": float(g_df_picks["unidades_ganadas"].sum())
         })
 
     total_partidos = len(partidos_grupos)

@@ -172,36 +172,38 @@ def guardar_predicciones_nba(predicciones: List[Dict[str, Any]]) -> None:
             f_ml["unidades_ganadas"] = r_u
         nuevas_filas.append(f_ml)
 
-        # 2. Spread
+        # 2. Spread (solo para juegos de hoy en adelante con línea válida; en juegos pasados solo existían ML y Totales)
         sp_val = float(p.get("linea_spread") or 0.0)
-        p_cov_h = float(p.get("prob_cover_home") or 0.5)
-        p_cov_v = float(p.get("prob_cover_away") or 0.5)
-        sel_sp = f"{eq_loc} {sp_val:+0.1f}" if p_cov_h >= p_cov_v else f"{eq_vis} {-sp_val:+0.1f}"
-        pr_sp = p_cov_h if p_cov_h >= p_cov_v else p_cov_v
-        f_sp = {
-            "id_juego": f"{id_ev}_spread",
-            "fecha": fecha_cdmx,
-            "hora_cdmx": hora_cdmx,
-            "equipo_local": eq_loc,
-            "equipo_visitante": eq_vis,
-            "mercado": "Spread",
-            "seleccion": sel_sp,
-            "linea": sp_val,
-            "cuota": 1.909,
-            "probabilidad": round(pr_sp, 3),
-            "edge": round(pr_sp - 0.5238, 3),
-            "confianza": "ALTA" if pr_sp >= 0.56 else "MEDIA",
-            "marcador_local": m_loc,
-            "marcador_visitante": m_vis,
-            "resultado": "PENDIENTE",
-            "unidades_ganadas": None,
-            "actualizado_en": ahora_str,
-        }
-        if m_loc is not None and m_vis is not None:
-            r_res, r_u = liquidar_partido(pd.Series(f_sp))
-            f_sp["resultado"] = r_res
-            f_sp["unidades_ganadas"] = r_u
-        nuevas_filas.append(f_sp)
+        hoy_str = ahora_cdmx.strftime("%Y-%m-%d")
+        if fecha_cdmx >= hoy_str and sp_val != 0.0:
+            p_cov_h = float(p.get("prob_cover_home") or 0.5)
+            p_cov_v = float(p.get("prob_cover_away") or 0.5)
+            sel_sp = f"{eq_loc} {sp_val:+0.1f}" if p_cov_h >= p_cov_v else f"{eq_vis} {-sp_val:+0.1f}"
+            pr_sp = p_cov_h if p_cov_h >= p_cov_v else p_cov_v
+            f_sp = {
+                "id_juego": f"{id_ev}_spread",
+                "fecha": fecha_cdmx,
+                "hora_cdmx": hora_cdmx,
+                "equipo_local": eq_loc,
+                "equipo_visitante": eq_vis,
+                "mercado": "Spread",
+                "seleccion": sel_sp,
+                "linea": sp_val,
+                "cuota": 1.909,
+                "probabilidad": round(pr_sp, 3),
+                "edge": round(pr_sp - 0.5238, 3),
+                "confianza": "ALTA" if pr_sp >= 0.56 else "MEDIA",
+                "marcador_local": m_loc,
+                "marcador_visitante": m_vis,
+                "resultado": "PENDIENTE",
+                "unidades_ganadas": None,
+                "actualizado_en": ahora_str,
+            }
+            if m_loc is not None and m_vis is not None:
+                r_res, r_u = liquidar_partido(pd.Series(f_sp))
+                f_sp["resultado"] = r_res
+                f_sp["unidades_ganadas"] = r_u
+            nuevas_filas.append(f_sp)
 
         # 3. Totales
         tot_linea = float(p.get("linea_total") or 228.0)
@@ -295,8 +297,21 @@ def guardar_predicciones_nba(predicciones: List[Dict[str, Any]]) -> None:
         liquidados_prev = df_existente[df_existente["resultado"].isin(["GANADA", "PERDIDA", "PUSH"])]
         ids_liquidados = set(liquidados_prev["id_juego"].astype(str)) if not liquidados_prev.empty else set()
 
-        # Descartar cualquier predicción cuyo id_juego ya esté liquidado en el historial
-        df_nuevas_filtradas = df_nuevas[~df_nuevas["id_juego"].astype(str).isin(ids_liquidados)]
+        # Mapeo de (base_id, tipo_mercado) existentes en el historial para evitar duplicar picks
+        base_mercados_existentes = set()
+        for _, r_ex in df_existente.iterrows():
+            b_id = str(r_ex["id_juego"]).split("_")[0]
+            tm = "Totales" if "Totales" in str(r_ex["mercado"]) else str(r_ex["mercado"])
+            base_mercados_existentes.add((b_id, tm))
+
+        def es_duplicado(r):
+            if str(r["id_juego"]) in ids_liquidados:
+                return True
+            b_id = str(r["id_juego"]).split("_")[0]
+            tm = "Totales" if "Totales" in str(r["mercado"]) else str(r["mercado"])
+            return (b_id, tm) in base_mercados_existentes
+
+        df_nuevas_filtradas = df_nuevas[~df_nuevas.apply(es_duplicado, axis=1)]
 
         if not df_nuevas_filtradas.empty:
             df_total = pd.concat([df_existente, df_nuevas_filtradas], ignore_index=True)
