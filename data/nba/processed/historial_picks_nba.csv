@@ -1,11 +1,4 @@
 id,id_juego,fecha,hora_cdmx,equipo_local,equipo_visitante,mercado,seleccion,linea,cuota,probabilidad,edge,confianza,marcador_local,marcador_visitante,resultado,unidades_ganadas,actualizado_en
-2521,401909867,2026-10-25,19:00,Sacramento Kings,Memphis Grizzlies,Totales (UNDER),UNDER 236.5,236.5,1.909,0.6131,0.0893,ALTA,0,0,GANADA,0.909,2026-10-25 16:47:29
-2520,401909866,2026-10-25,17:30,Philadelphia 76ers,Detroit Pistons,Spread,Detroit Pistons +2.5,-2.5,1.704,0.6584,0.1346,ALTA,0,0,GANADA,0.704,2026-10-25 16:47:29
-2519,401909865,2026-10-25,17:00,Oklahoma City Thunder,Los Angeles Clippers,Spread,Los Angeles Clippers +14.5,-14.5,1.105,0.7417,0.2179,ALTA,0,0,GANADA,0.105,2026-10-25 16:47:29
-2518,401909864,2026-10-25,17:00,Minnesota Timberwolves,Toronto Raptors,Totales (UNDER),UNDER 231.5,231.5,1.909,0.5777,0.0539,ALTA,0,0,GANADA,0.909,2026-10-25 16:47:29
-2517,401909863,2026-10-25,17:00,New York Knicks,Orlando Magic,Spread,Orlando Magic +7.5,-7.5,1.323,0.6456,0.1218,ALTA,0,0,GANADA,0.323,2026-10-25 16:47:29
-2516,401909862,2026-10-25,16:00,Brooklyn Nets,Indiana Pacers,Totales (UNDER),UNDER 232.5,232.5,1.909,0.609,0.0852,ALTA,35,34,GANADA,0.909,2026-10-25 16:47:29
-2515,401909861,2026-10-25,15:00,Utah Jazz,Los Angeles Lakers,Moneyline,Los Angeles Lakers ML,6.5,2.95,0.7547,0.0505,ALTA,92,93,GANADA,1.95,2026-10-25 16:47:29
 2514,401909867_tot,2026-10-25,19:00,Sacramento Kings,Memphis Grizzlies,Totales (UNDER),UNDER 236.5,236.5,1.909,0.613,0.089,ALTA,0,0,GANADA,0.909,2026-10-25 17:28:52
 2513,401909867_spread,2026-10-25,19:00,Sacramento Kings,Memphis Grizzlies,Spread,Sacramento Kings +4.5,4.5,1.909,0.558,0.034,MEDIA,0,0,GANADA,0.909,2026-10-25 16:41:10
 2512,401909867_ml,2026-10-25,19:00,Sacramento Kings,Memphis Grizzlies,Moneyline,Memphis Grizzlies ML,0.0,1.571,0.602,-0.035,ALTA,0,0,PUSH,0.0,2026-10-25 16:41:10

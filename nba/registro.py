@@ -146,11 +146,17 @@ def guardar_predicciones_nba(predicciones: List[Dict[str, Any]]) -> None:
 
         # 2. Si el objeto p ya es un pick atómico individual preformateado (con valor real probado)
         if p.get("pick_mercado") and p.get("confianza") in ["ALTA", "MEDIA"]:
-            cuota_dec = float(p.get("ml_local_dec") or 1.91)
-            if "UNDER" in p.get("pick_seleccion", "") or "OVER" in p.get("pick_seleccion", ""):
-                cuota_dec = 1.909
-            elif p.get("abbr_visita") in p.get("pick_seleccion", ""):
-                cuota_dec = float(p.get("ml_visita_dec") or 1.91)
+            cuota_dec = float(p.get("pick_cuota_dec") or 0.0)
+            if cuota_dec <= 1.0:
+                from core.ui_boleta import parsear_cuota_decimal
+                cuota_dec = parsear_cuota_decimal(p.get("pick_cuota"))
+            if cuota_dec <= 1.0:
+                if "UNDER" in p.get("pick_seleccion", "") or "OVER" in p.get("pick_seleccion", ""):
+                    cuota_dec = 1.909
+                elif any(x in str(p.get("pick_seleccion", "")) for x in [str(p.get("abbr_visita", "")), str(p.get("equipo_visita", ""))]):
+                    cuota_dec = float(p.get("ml_visita_dec") or 1.91)
+                else:
+                    cuota_dec = float(p.get("ml_local_dec") or 1.91)
             linea_val = p.get("linea_total") if "Totales" in p.get("pick_mercado", "") else p.get("linea_spread")
             if linea_val is None:
                 import re

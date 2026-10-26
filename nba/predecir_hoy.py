@@ -170,13 +170,20 @@ def predecir_partidos_hoy(force_refresh: bool = False, fecha: Optional[str] = No
             if es_final and prev_actualizado.get("marcador_local") is not None:
                 try:
                     from nba.registro import liquidar_partido
+                    cuota_calc = float(prev_actualizado.get("pick_cuota_dec") or 0.0)
+                    if cuota_calc <= 1.0:
+                        from core.ui_boleta import parsear_cuota_decimal
+                        cuota_calc = parsear_cuota_decimal(prev_actualizado.get("pick_cuota"))
+                    if cuota_calc <= 1.0:
+                        cuota_calc = 1.909
+
                     res, u_gan = liquidar_partido(pd.Series({
                         "equipo_local": prev_actualizado.get("equipo_local"),
                         "equipo_visitante": prev_actualizado.get("equipo_visita"),
                         "mercado": prev_actualizado.get("pick_mercado"),
                         "seleccion": prev_actualizado.get("pick_seleccion"),
                         "linea": prev_actualizado.get("linea_total") if "Totales" in prev_actualizado.get("pick_mercado", "") else prev_actualizado.get("linea_spread"),
-                        "cuota": prev_actualizado.get("ml_local_dec") or 1.909,
+                        "cuota": cuota_calc,
                         "marcador_local": prev_actualizado.get("marcador_local"),
                         "marcador_visitante": prev_actualizado.get("marcador_visita"),
                     }))
