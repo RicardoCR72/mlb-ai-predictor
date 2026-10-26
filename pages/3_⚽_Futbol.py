@@ -267,7 +267,7 @@ def render_cartelera_futbol(predicciones: list[dict], mercado_activo: str):
     with f_est_col:
         filtro_estado = st.selectbox(
             "Estado del Partido:",
-            ["Todos los estados", "Solo Próximos", "Solo En Vivo", "Solo Finalizados"],
+            ["Solo Próximos y En Vivo", "Todos los estados", "Solo Próximos", "Solo En Vivo", "Solo Finalizados"],
             key="f_estado_futbol",
         )
 
@@ -304,14 +304,19 @@ def render_cartelera_futbol(predicciones: list[dict], mercado_activo: str):
     elif filtro_confianza == "Solo MEDIA confianza":
         filtrados = [p for p in filtrados if p.get("confianza") == "MEDIA"]
 
-    if filtro_estado == "Solo Próximos":
+    if filtro_estado == "Solo Próximos y En Vivo":
+        filtrados = [
+            p for p in filtrados
+            if not ("FINAL" in str(p.get("estado", "")).upper() or "FULL_TIME" in str(p.get("estado", "")).upper() or "POST" in str(p.get("estado", "")).upper())
+        ]
+    elif filtro_estado == "Solo Próximos":
         filtrados = [p for p in filtrados if "SCHEDULED" in str(p.get("estado", "")).upper()]
     elif filtro_estado == "Solo En Vivo":
         filtrados = [p for p in filtrados if "PROGRESS" in str(p.get("estado", "")).upper()]
     elif filtro_estado == "Solo Finalizados":
         filtrados = [
             p for p in filtrados
-            if ("FINAL" in str(p.get("estado", "")).upper() or "FULL_TIME" in str(p.get("estado", "")).upper())
+            if ("FINAL" in str(p.get("estado", "")).upper() or "FULL_TIME" in str(p.get("estado", "")).upper() or "POST" in str(p.get("estado", "")).upper())
         ]
 
     if not filtrados:
@@ -437,19 +442,55 @@ def render_cartelera_futbol(predicciones: list[dict], mercado_activo: str):
                 st.markdown(f"<span class='stat-pill'>xG: <b>{xg_h:.2f} - {xg_a:.2f}</b></span>", unsafe_allow_html=True)
 
             # Caja de Recomendación Oficial para el mercado activo
-            res_pick = pick_data.get("resultado")
-            u_gan = pick_data.get("unidades")
             momio_pick_str = f" · Momio: {pick_data.get('cuota', '')}" if pick_data.get("cuota") else ""
 
-            if res_pick in ["GANADA", "PERDIDA", "PUSH"]:
-                color_res = "#4ade80" if res_pick == "GANADA" else ("#f87171" if res_pick == "PERDIDA" else "#cbd5e1")
-                val_u = f"{u_gan:+.2f} u" if u_gan is not None else ""
-                res_box_html = (
-                    f'<div style="text-align: right;">'
-                    f'<div style="font-size: 0.72rem; color: #8ba797; font-weight: 700;">RESULTADO AUDITADO</div>'
-                    f'<div style="font-size: 1.15rem; font-weight: 900; color: {color_res};">{res_pick} ({val_u})</div>'
-                    f'</div>'
+            if confianza == "NEUTRAL":
+                if es_final:
+                    res_box_html = (
+                        f'<div style="text-align: right;">'
+                        f'<div style="font-size: 0.72rem; color: #8ba797; font-weight: 700;">FILTRO DISCIPLINA</div>'
+                        f'<div style="font-size: 1.05rem; font-weight: 800; color: #94a3b8;">DESCARTADO (0.00 u)</div>'
+                        f'</div>'
+                    )
+                else:
+                    prob_hit = float(pick_data.get("probabilidad", 0.5)) * 100
+                    res_box_html = (
+                        f'<div style="text-align: right;">'
+                        f'<div style="font-size: 0.72rem; color: #8ba797; font-weight: 700;">PROBABILIDAD ORÁCULO</div>'
+                        f'<div style="font-size: 1.25rem; font-weight: 900; color: #94a3b8;">{prob_hit:.1f}%</div>'
+                        f'</div>'
+                    )
+            elif es_final and tiene_marcador:
+                # Evaluar exactamente la selección mostrada para este mercado
+                from core.ui_boleta import parsear_cuota_decimal
+                c_dec_eval = parsear_cuota_decimal(pick_data.get("cuota"))
+                res_calc, u_calc = liquidar_seleccion_futbol(
+                    mercado=pick_data.get("mercado", ""),
+                    seleccion=pick_data.get("seleccion", ""),
+                    linea=float(p.get("linea_total", 2.5)),
+                    cuota_dec=c_dec_eval,
+                    marcador_local=m_loc,
+                    marcador_visita=m_vis,
+                    equipo_local=loc_name,
+                    equipo_visita=vis_name,
                 )
+                if res_calc in ["GANADA", "PERDIDA", "PUSH"]:
+                    color_res = "#4ade80" if res_calc == "GANADA" else ("#f87171" if res_calc == "PERDIDA" else "#cbd5e1")
+                    val_u = f"{u_calc:+.2f} u"
+                    res_box_html = (
+                        f'<div style="text-align: right;">'
+                        f'<div style="font-size: 0.72rem; color: #8ba797; font-weight: 700;">RESULTADO AUDITADO</div>'
+                        f'<div style="font-size: 1.15rem; font-weight: 900; color: {color_res};">{res_calc} ({val_u})</div>'
+                        f'</div>'
+                    )
+                else:
+                    prob_hit = float(pick_data.get("probabilidad", 0.5)) * 100
+                    res_box_html = (
+                        f'<div style="text-align: right;">'
+                        f'<div style="font-size: 0.72rem; color: #8ba797; font-weight: 700;">PROBABILIDAD ORÁCULO</div>'
+                        f'<div style="font-size: 1.25rem; font-weight: 900; color: #00e676;">{prob_hit:.1f}%</div>'
+                        f'</div>'
+                    )
             else:
                 prob_hit = float(pick_data.get("probabilidad", 0.5)) * 100
                 res_box_html = (
@@ -564,7 +605,9 @@ def render_historial_futbol(mercado_activo: str):
     else:
         df_mercado = df_filtrado
 
-    df_mostrar = df_mercado if not df_mercado.empty else df_filtrado
+    # Filtrar solo picks concluidos oficiales (excluyendo descartados por zona muerta)
+    df_validos = df_mercado[~df_mercado["resultado"].isin(["DESCARTADO", "PENDIENTE"])]
+    df_mostrar = df_validos if not df_validos.empty else df_mercado
 
     total_picks = len(df_mostrar)
     ganados = sum(df_mostrar["resultado"] == "GANADA")

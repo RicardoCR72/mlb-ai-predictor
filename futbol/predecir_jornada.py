@@ -275,12 +275,13 @@ def predecir_futbol_mundial(
             if j.get("marcador_visita") is not None:
                 prev_act["marcador_visita"] = j["marcador_visita"]
 
-            # Si ya terminó y aún está pendiente, liquidar
-            if es_partido_finalizado(prev_act.get("estado", "")) and prev_act.get("resultado_pick") not in ["GANADA", "PERDIDA", "PUSH"]:
-                if prev_act.get("confianza") == "NEUTRAL":
+            # Si ya terminó, evaluar resultado respetando filtro de disciplina
+            if es_partido_finalizado(prev_act.get("estado", "")):
+                if prev_act.get("confianza") == "NEUTRAL" or float(prev_act.get("pick_edge", 0.0)) < 0.045:
+                    prev_act["confianza"] = "NEUTRAL"
                     prev_act["resultado_pick"] = "DESCARTADO"
                     prev_act["beneficio_unidades"] = 0.0
-                else:
+                elif prev_act.get("resultado_pick") not in ["GANADA", "PERDIDA", "PUSH"]:
                     res, u_gan = liquidar_seleccion_futbol(
                         mercado=prev_act.get("pick_mercado", ""),
                         seleccion=prev_act.get("pick_seleccion", ""),
@@ -400,6 +401,10 @@ def predecir_futbol_mundial(
                     estado = VALUES(estado),
                     marcador_local = VALUES(marcador_local),
                     marcador_visita = VALUES(marcador_visita),
+                    confianza = VALUES(confianza),
+                    pick_mercado = VALUES(pick_mercado),
+                    pick_seleccion = VALUES(pick_seleccion),
+                    pick_edge = VALUES(pick_edge),
                     resultado_pick = VALUES(resultado_pick),
                     beneficio_unidades = VALUES(beneficio_unidades);
                 """, (
