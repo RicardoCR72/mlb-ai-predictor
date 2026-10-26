@@ -266,13 +266,24 @@ def liquidar_props_nfl(partidos_espn: List[Dict[str, Any]]) -> int:
                             break
 
                 if not stats_jugador:
+                    # El partido ya finalizó y el jugador no participó (DNP / Inactivo).
+                    # Regla oficial de casas de apuestas (DraftKings/FanDuel): VOID / PUSH (devolución 0.0 u).
+                    cursor.execute(
+                        """
+                        UPDATE nfl_proyecciones_props
+                        SET valor_real = NULL, resultado_pick = 'PUSH', beneficio_unidades = 0.0, evaluado_en = %s
+                        WHERE id_proyeccion = %s;
+                        """,
+                        (ahora_str, prop["id_proyeccion"]),
+                    )
+                    evaluados += 1
                     continue
 
                 tipo_prop = str(prop["tipo_prop"])
                 if tipo_prop not in stats_jugador:
-                    continue
-
-                val_real = float(stats_jugador[tipo_prop])
+                    val_real = 0.0
+                else:
+                    val_real = float(stats_jugador[tipo_prop])
                 linea = float(prop["linea"]) if prop["linea"] is not None else 0.5
                 sel = str(prop["seleccion"] or "").upper()
 

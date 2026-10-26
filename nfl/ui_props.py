@@ -20,7 +20,13 @@ def filtrar_partidos_pendientes(datos):
     if datos.empty:
         return datos.copy()
     states = datos.resultado_pick.fillna('PENDIENTE').astype(str).str.strip().str.upper()
-    return datos[~states.isin(['GANADA', 'PERDIDA', 'PUSH'])].copy()
+    pendientes = datos[~states.isin(['GANADA', 'PERDIDA', 'PUSH'])].copy()
+    # Excluir de "Candidatos" aquellos partidos que ya finalizaron
+    if "game_status" in pendientes.columns:
+        pendientes = pendientes[~pendientes["game_status"].astype(str).str.lower().isin(["finalizado", "final", "post"])].copy()
+    if "home_score" in pendientes.columns:
+        pendientes = pendientes[pendientes["home_score"].isna()].copy()
+    return pendientes
 
 
 def opciones_partidos(datos):
