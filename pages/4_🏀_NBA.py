@@ -731,17 +731,15 @@ def render_historial_nba(mercado_filtro: str = ""):
         ml = g_df["marcador_local"].iloc[0] if "marcador_local" in g_df.columns else None
         temp_val = g_df["temporada"].iloc[0] if "temporada" in g_df.columns else ""
 
-        # En juegos pasados solo se maneja Moneyline y Totales (el spread solo aplica para juegos de hoy en adelante)
-        hoy_str = datetime.now(ZONA_CDMX).strftime("%Y-%m-%d")
-        if str(f_val) < hoy_str:
-            g_df = g_df[g_df["mercado"] != "Spread"]
-
-        # Deduplicar picks del mismo tipo de mercado por partido (máx 1 Totales y 1 Moneyline)
+        # Deduplicar picks del mismo tipo de mercado por partido (máx 1 Totales, 1 Moneyline, 1 Spread)
         g_df_picks = g_df.copy()
         g_df_picks["_tipo_m"] = g_df_picks["mercado"].apply(lambda x: "Totales" if "Totales" in str(x) else str(x))
         # Si hay duplicado en Totales, priorizar la línea real (diferente de 228.0)
         g_df_picks = g_df_picks.sort_values(by=["_tipo_m", "linea"], ascending=[True, False]).drop_duplicates(subset=["_tipo_m"], keep="first")
         g_df_picks = g_df_picks.drop(columns=["_tipo_m"])
+
+        if g_df_picks.empty:
+            continue
 
         partidos_grupos.append({
             "fecha": f_val,
