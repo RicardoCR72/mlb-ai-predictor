@@ -406,6 +406,8 @@ def base_proyeccion(features):
         "player_name", "position", "team", "opponent_team",
         "player_injury_status", "contexto_lesiones",
         "player_carries_avg_5", "is_primary_rusher",
+        "player_targets_avg_5", "player_receiving_yards_avg_5",
+        "player_target_share_avg_5", "player_receptions_avg_5",
     ]
     base = features[[c for c in columnas if c in features.columns]].copy()
     if "player_injury_status" not in base:
@@ -701,6 +703,25 @@ def agregar_lineas_y_probabilidades(proyecciones, lineas):
         .index
     )
     candidato &= ~es_td | resultado.index.isin(indices_td)
+
+    # Candado 5: Receptores Élite: PROHIBIR UNDERs en WRs/TEs estelares con líneas altas.
+    # Los modelos de Gradient Boosting sufren de regresión hacia la media (shrinkage),
+    # subestimando sistemáticamente a receptores élite (WR1) con volumen masivo de targets.
+    # Nunca apostar UNDER si la línea es >= 80 yardas (o >= 7.0 recepciones) en jugadores
+    # con promedio >= 7.5 targets o >= 75 yardas recientes.
+    es_under_rec_yds = resultado["tipo_prop"].eq("receiving_yards") & resultado["seleccion"].eq("UNDER")
+    es_under_recs = resultado["tipo_prop"].eq("receptions") & resultado["seleccion"].eq("UNDER")
+    targets_promedio = pd.to_numeric(
+        resultado.get("player_targets_avg_5", pd.Series(0.0, index=resultado.index)), errors="coerce"
+    ).fillna(0.0)
+    yds_promedio = pd.to_numeric(
+        resultado.get("player_receiving_yards_avg_5", pd.Series(0.0, index=resultado.index)), errors="coerce"
+    ).fillna(0.0)
+
+    receptor_elite_yds = es_under_rec_yds & (linea_val >= 80.0) & ((targets_promedio >= 7.5) | (yds_promedio >= 75.0))
+    receptor_elite_recs = es_under_recs & (linea_val >= 7.0) & (targets_promedio >= 7.5)
+    candidato &= ~receptor_elite_yds
+    candidato &= ~receptor_elite_recs
 
     resultado.loc[candidato, "estado_pick"] = "CANDIDATO"
     revisar_lesion = candidato & resultado["player_injury_status"].eq(
