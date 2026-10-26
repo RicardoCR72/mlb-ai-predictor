@@ -307,7 +307,8 @@ def predecir_partidos_hoy(force_refresh: bool = False, fecha: Optional[str] = No
                 })
 
         # 2. Moneyline con valor real calibrado
-        if edge_ml_home >= 0.045 and ev_ml_home >= 0.025 and prob_ml_home_cal >= 0.45:
+        if edge_ml_home >= 0.045 and ev_ml_home >= 0.025:
+            conf_h = "ALTA" if (edge_ml_home >= 0.065 and ev_ml_home >= 0.04 and prob_ml_home_cal >= 0.55) else ("MEDIA" if prob_ml_home_cal >= 0.50 else "LONGSHOT")
             picks_candidatos.append({
                 "mercado": "Moneyline",
                 "seleccion": f"{j['equipo_local']} ML",
@@ -317,10 +318,11 @@ def predecir_partidos_hoy(force_refresh: bool = False, fecha: Optional[str] = No
                 "ev": round(ev_ml_home, 4),
                 "cuota": j.get("moneyline_local") or "-110",
                 "cuota_dec": cuota_dec_home,
-                "confianza": "ALTA" if edge_ml_home >= 0.065 and ev_ml_home >= 0.04 else "MEDIA",
-                "detalle": f"Prob Calibrada: {prob_ml_home_cal*100:.1f}% vs Book: {prob_ml_home_book*100:.1f}% (EV: +{ev_ml_home*100:.1f}%)"
+                "confianza": conf_h,
+                "detalle": f"Prob Calibrada: {prob_ml_home_cal*100:.1f}% vs Book: {prob_ml_home_book*100:.1f}% (EV: +{ev_ml_home*100:.1f}%)" if conf_h != "LONGSHOT" else f"🎯 Longshot (+EV {ev_ml_home*100:.1f}%). Probabilidad ({prob_ml_home_cal*100:.1f}%) menor al 50%. Se sugiere preferir el Spread."
             })
-        elif edge_ml_away >= 0.045 and ev_ml_away >= 0.025 and prob_ml_away_cal >= 0.45:
+        elif edge_ml_away >= 0.045 and ev_ml_away >= 0.025:
+            conf_a = "ALTA" if (edge_ml_away >= 0.065 and ev_ml_away >= 0.04 and prob_ml_away_cal >= 0.55) else ("MEDIA" if prob_ml_away_cal >= 0.50 else "LONGSHOT")
             picks_candidatos.append({
                 "mercado": "Moneyline",
                 "seleccion": f"{j['equipo_visita']} ML",
@@ -330,8 +332,8 @@ def predecir_partidos_hoy(force_refresh: bool = False, fecha: Optional[str] = No
                 "ev": round(ev_ml_away, 4),
                 "cuota": j.get("moneyline_visita") or "-110",
                 "cuota_dec": cuota_dec_away,
-                "confianza": "ALTA" if edge_ml_away >= 0.065 and ev_ml_away >= 0.04 else "MEDIA",
-                "detalle": f"Prob Calibrada: {prob_ml_away_cal*100:.1f}% vs Book: {prob_ml_away_book*100:.1f}% (EV: +{ev_ml_away*100:.1f}%)"
+                "confianza": conf_a,
+                "detalle": f"Prob Calibrada: {prob_ml_away_cal*100:.1f}% vs Book: {prob_ml_away_book*100:.1f}% (EV: +{ev_ml_away*100:.1f}%)" if conf_a != "LONGSHOT" else f"🎯 Longshot (+EV {ev_ml_away*100:.1f}%). Probabilidad ({prob_ml_away_cal*100:.1f}%) menor al 50%. Se sugiere preferir el Spread."
             })
 
         # 3. Spread / Hándicap (Calibrado)

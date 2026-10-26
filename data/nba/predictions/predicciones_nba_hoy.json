@@ -8,7 +8,7 @@
     "abbr_visita": "LAL",
     "fecha_cdmx": "2026-10-25",
     "hora_cdmx": "15:00",
-    "estado": "STATUS_IN_PROGRESS",
+    "estado": "STATUS_FINAL",
     "provider": "Draft Kings",
     "linea_spread": 6.5,
     "spread_detalles": "LAL -6.5",
@@ -36,9 +36,9 @@
     "pick_detalle": "Prob Modelo: 75.5% vs Book: 70.4% (EV: +7.2%)",
     "confianza": "ALTA",
     "timestamp": "2026-10-25T00:35:02.580829-06:00",
-    "descripcion_estado": "In Progress",
-    "marcador_local": 92,
-    "marcador_visita": 95,
+    "descripcion_estado": "Final",
+    "marcador_local": 123,
+    "marcador_visita": 132,
     "candidatos": [
       {
         "mercado": "Moneyline",
@@ -51,7 +51,9 @@
         "confianza": "ALTA",
         "detalle": "Prob Modelo: 75.5% vs Book: 70.4% (EV: +7.2%)"
       }
-    ]
+    ],
+    "resultado": "GANADA",
+    "unidades_ganadas": 1.95
   },
   {
     "id_evento": "401909862",
@@ -91,8 +93,8 @@
     "confianza": "ALTA",
     "timestamp": "2026-10-25T00:35:02.590834-06:00",
     "descripcion_estado": "In Progress",
-    "marcador_local": 35,
-    "marcador_visita": 35,
+    "marcador_local": 99,
+    "marcador_visita": 120,
     "candidatos": [
       {
         "mercado": "Totales (UNDER)",
@@ -116,7 +118,7 @@
     "abbr_visita": "ORL",
     "fecha_cdmx": "2026-10-25",
     "hora_cdmx": "17:00",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_HALFTIME",
     "provider": "DraftKings",
     "linea_spread": -7.5,
     "spread_detalles": "NY -7.5",
@@ -144,9 +146,9 @@
     "pick_detalle": "Margen Proyectado Visita: -3.1 pts (Spread: +7.5)",
     "confianza": "ALTA",
     "timestamp": "2026-10-25T00:35:02.600836-06:00",
-    "descripcion_estado": "Scheduled",
-    "marcador_local": 0,
-    "marcador_visita": 0,
+    "descripcion_estado": "Halftime",
+    "marcador_local": 52,
+    "marcador_visita": 48,
     "candidatos": [
       {
         "mercado": "Spread",
@@ -170,7 +172,7 @@
     "abbr_visita": "TOR",
     "fecha_cdmx": "2026-10-25",
     "hora_cdmx": "17:00",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_HALFTIME",
     "provider": "DraftKings",
     "linea_spread": -1.5,
     "spread_detalles": "MIN -1.5",
@@ -198,9 +200,9 @@
     "pick_detalle": "Proyección Shrunk: 228.9 pts vs línea 231.5 (Edge: -2.6 pts, EV: +10.3%)",
     "confianza": "ALTA",
     "timestamp": "2026-10-25T00:35:02.612835-06:00",
-    "descripcion_estado": "Scheduled",
-    "marcador_local": 0,
-    "marcador_visita": 0,
+    "descripcion_estado": "Halftime",
+    "marcador_local": 55,
+    "marcador_visita": 47,
     "candidatos": [
       {
         "mercado": "Totales (UNDER)",
@@ -224,7 +226,7 @@
     "abbr_visita": "LAC",
     "fecha_cdmx": "2026-10-25",
     "hora_cdmx": "17:00",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_IN_PROGRESS",
     "provider": "DraftKings",
     "linea_spread": -14.5,
     "spread_detalles": "OKC -14.5",
@@ -252,9 +254,9 @@
     "pick_detalle": "Margen Proyectado Visita: -6.8 pts (Spread: +14.5)",
     "confianza": "ALTA",
     "timestamp": "2026-10-25T00:35:02.623827-06:00",
-    "descripcion_estado": "Scheduled",
-    "marcador_local": 0,
-    "marcador_visita": 0,
+    "descripcion_estado": "In Progress",
+    "marcador_local": 47,
+    "marcador_visita": 48,
     "candidatos": [
       {
         "mercado": "Spread",
@@ -278,7 +280,7 @@
     "abbr_visita": "DET",
     "fecha_cdmx": "2026-10-25",
     "hora_cdmx": "17:30",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_IN_PROGRESS",
     "provider": "DraftKings",
     "linea_spread": -2.5,
     "spread_detalles": "PHI -2.5",
@@ -306,9 +308,9 @@
     "pick_detalle": "Margen Proyectado Visita: +2.3 pts (Spread: +2.5)",
     "confianza": "ALTA",
     "timestamp": "2026-10-25T00:35:02.633830-06:00",
-    "descripcion_estado": "Scheduled",
-    "marcador_local": 0,
-    "marcador_visita": 0,
+    "descripcion_estado": "In Progress",
+    "marcador_local": 25,
+    "marcador_visita": 42,
     "candidatos": [
       {
         "mercado": "Spread",

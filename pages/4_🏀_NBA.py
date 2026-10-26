@@ -95,7 +95,7 @@ def obtener_pick_para_mercado(p: dict, mercado_tipo: str) -> dict:
         ):
             c_prob = float(cand.get("probabilidad", 0.5))
             c_conf = cand.get("confianza", "MEDIA")
-            if "Moneyline" in mercado_tipo and c_prob < 0.45:
+            if "Moneyline" in mercado_tipo and c_prob < 0.50:
                 c_conf = "LONGSHOT"
             return {
                 "mercado": cand.get("mercado", mercado_tipo),
@@ -202,22 +202,22 @@ def obtener_pick_para_mercado(p: dict, mercado_tipo: str) -> dict:
             ev = ev_vis
 
         if edge >= 0.065 and ev >= 0.04:
-            if prob >= 0.50:
+            if prob >= 0.55:
                 conf = "ALTA"
                 det = f"Prob Calibrada: {prob*100:.1f}% vs Book: {(prob - edge)*100:.1f}% (Edge: {edge*100:+.1f}%, EV: {ev*100:+.1f}%)"
-            elif prob >= 0.45:
+            elif prob >= 0.50:
                 conf = "MEDIA"
                 det = f"Prob Calibrada: {prob*100:.1f}% vs Book: {(prob - edge)*100:.1f}% (Edge: {edge*100:+.1f}%, EV: {ev*100:+.1f}%)"
             else:
                 conf = "LONGSHOT"
-                det = f"🎯 Longshot (+EV {ev*100:+.1f}%). Probabilidad de victoria baja ({prob*100:.1f}%). Se sugiere preferir el Spread ({spread_det})."
+                det = f"🎯 Longshot (+EV {ev*100:+.1f}%). Probabilidad de victoria ({prob*100:.1f}%) debajo del 50%. Se sugiere preferir el Spread ({spread_det})."
         elif edge >= 0.045 and ev >= 0.025:
-            if prob >= 0.45:
+            if prob >= 0.50:
                 conf = "MEDIA"
                 det = f"Prob Calibrada: {prob*100:.1f}% vs Book: {(prob - edge)*100:.1f}% (Edge: {edge*100:+.1f}%, EV: {ev*100:+.1f}%)"
             else:
                 conf = "LONGSHOT"
-                det = f"🎯 Longshot (+EV {ev*100:+.1f}%). Probabilidad de victoria baja ({prob*100:.1f}%). Se sugiere preferir el Spread ({spread_det})."
+                det = f"🎯 Longshot (+EV {ev*100:+.1f}%). Probabilidad de victoria ({prob*100:.1f}%) debajo del 50%. Se sugiere preferir el Spread ({spread_det})."
         else:
             conf = "NEUTRAL"
             det = f"Sin ventaja sobre la cuota ({edge*100:+.1f}% edge calibrado). Partido en Zona Muerta descartado."
