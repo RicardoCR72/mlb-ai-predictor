@@ -599,7 +599,12 @@ def agregar_lineas_y_probabilidades(proyecciones, lineas):
     decimal = resultado["cuota_pick"].apply(american_a_decimal)
     try:
         from core.calibracion_probabilidades import calibrar_probabilidad
-        resultado["probabilidad_pick"] = calibrar_probabilidad(resultado["probabilidad_pick"], decimal)
+        # Platt scaling aplica exclusivamente a líneas estándar 50/50 (yardas, recepciones, etc.), NUNCA a anytime_td
+        mask_standard = ~resultado["tipo_prop"].eq("anytime_td")
+        if mask_standard.any():
+            resultado.loc[mask_standard, "probabilidad_pick"] = calibrar_probabilidad(
+                resultado.loc[mask_standard, "probabilidad_pick"], decimal[mask_standard]
+            )
     except Exception:
         pass
     resultado["ev_estimado"] = (
@@ -617,18 +622,27 @@ def agregar_lineas_y_probabilidades(proyecciones, lineas):
     }
     umbral = resultado["tipo_prop"].map(umbrales_edge).fillna(np.inf)
     es_rushing = resultado["tipo_prop"].eq("rushing_yards")
+    es_td = resultado["tipo_prop"].eq("anytime_td")
+
+    # Para anytime_td el edge DEBE ser positivo (ventaja real a favor de anotar)
+    edge_valido = np.where(
+        es_td,
+        resultado["edge"] >= umbral,
+        resultado["edge"].abs() >= umbral,
+    )
+
     umbral_probabilidad = np.select(
-        [resultado["tipo_prop"].eq("anytime_td"), es_rushing],
+        [es_td, es_rushing],
         [0.25, 0.62],
         default=0.57,
     )
     umbral_ev = np.where(es_rushing, 0.05, 0.0)
     cuota_maxima = np.where(
-        resultado["tipo_prop"].eq("anytime_td"), 1000, 2500
+        es_td, 1000, 2500
     )
     candidato = (
         resultado["linea"].notna()
-        & (resultado["edge"].abs() >= umbral)
+        & edge_valido
         & (resultado["probabilidad_pick"] >= umbral_probabilidad)
         & (resultado["ev_estimado"] > umbral_ev)
         & (resultado["cuota_pick"].abs() >= 100)
@@ -661,8 +675,7 @@ def agregar_lineas_y_probabilidades(proyecciones, lineas):
     es_passing_under = resultado["tipo_prop"].eq("passing_yards") & resultado["seleccion"].eq("UNDER")
     candidato &= ~es_passing_under
 
-    # Candado adicional: aun con datos duplicados nunca publicar más de dos
-    # candidatos terrestres por partido.
+    # Candado 3: Rushing: máximo 2 candidatos terrestres por partido
     indices_rushing = (
         resultado.loc[candidato & es_rushing]
         .sort_values(
@@ -674,6 +687,21 @@ def agregar_lineas_y_probabilidades(proyecciones, lineas):
         .index
     )
     candidato &= ~es_rushing | resultado.index.isin(indices_rushing)
+
+    # Candado 4: Anytime TD: máximo 1 anotador por equipo (máximo 2 por partido) con mayor EV
+    # Evita canibalización de touchdowns y recomendaciones masivas de anotadores en el mismo juego
+    indices_td = (
+        resultado.loc[candidato & es_td]
+        .sort_values(
+            ["game_id", "team", "ev_estimado", "edge"],
+            ascending=[True, True, False, False],
+        )
+        .groupby(["game_id", "team"], sort=False)
+        .head(1)
+        .index
+    )
+    candidato &= ~es_td | resultado.index.isin(indices_td)
+
     resultado.loc[candidato, "estado_pick"] = "CANDIDATO"
     revisar_lesion = candidato & resultado["player_injury_status"].eq(
         "questionable"
