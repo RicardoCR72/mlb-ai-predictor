@@ -3,10 +3,16 @@ from __future__ import annotations
 
 import os
 import tempfile
+import threading
 from contextlib import contextmanager
 from typing import Any, Generator, Optional
 import mysql.connector
+import mysql.connector.pooling
 import pandas as pd
+
+# Pool de conexiones reutilizable (lazy, thread-safe)
+_pool: Optional[mysql.connector.pooling.MySQLConnectionPool] = None
+_pool_lock = threading.Lock()
 
 
 def get_db_credentials() -> dict[str, Any]:
@@ -70,11 +76,42 @@ def get_db_credentials() -> dict[str, Any]:
     return creds
 
 
+def get_pool(pool_size: int = 5) -> mysql.connector.pooling.MySQLConnectionPool:
+    """Retorna el pool de conexiones compartido, creándolo de forma lazy y thread-safe.
+
+    El pool elimina el overhead de handshake TLS por conexión (~150ms en Aiven).
+    Se comparte entre todos los módulos del proceso via este módulo.
+    """
+    global _pool
+    if _pool is not None:
+        return _pool
+    with _pool_lock:
+        if _pool is None:  # double-checked locking
+            creds = get_db_credentials()
+            # MySQLConnectionPool no acepta 'connection_timeout' directamente
+            pool_creds = {k: v for k, v in creds.items() if k != 'connection_timeout'}
+            _pool = mysql.connector.pooling.MySQLConnectionPool(
+                pool_name="oraculo_pool",
+                pool_size=pool_size,
+                pool_reset_session=True,
+                **pool_creds,
+            )
+    return _pool
+
+
 def get_db_connection(dictionary: bool = False) -> mysql.connector.MySQLConnection:
-    """Crea y retorna una nueva conexión abierta a la base de datos."""
-    creds = get_db_credentials()
-    conn = mysql.connector.connect(**creds)
-    return conn
+    """Retorna una conexión del pool compartido (o una nueva conexión directa como fallback).
+
+    Compatible con el uso anterior: el llamador sigue siendo responsable de cerrarla
+    con conn.close() — devuelve la conexión al pool en lugar de destruirla.
+    """
+    try:
+        conn = get_pool().get_connection()
+        return conn
+    except Exception:
+        # Fallback: conexión directa si el pool no está disponible (tests, CI, etc.)
+        creds = get_db_credentials()
+        return mysql.connector.connect(**creds)
 
 
 @contextmanager
@@ -107,3 +144,4 @@ def execute_statement(sql: str, params: Optional[dict[str, Any] | tuple[Any, ...
     with db_session() as (conn, cursor):
         cursor.execute(sql, params or ())
         return cursor.rowcount
+

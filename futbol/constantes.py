@@ -145,3 +145,39 @@ def obtener_info_liga(codigo_o_nombre: str) -> Dict[str, Any]:
         "media_goles_visita": 1.20,
         "linea_default": 2.5,
     }
+
+
+_MEDIAS_GOLES_CACHE: Dict[str, tuple[float, float]] = {}
+
+
+def obtener_medias_goles_liga(liga_codigo: str, defaults: tuple[float, float] = (1.50, 1.15)) -> tuple[float, float]:
+    """Estima la media de goles local y visitante desde el histórico de partidos finalizados en la BD.
+
+    Aplica regularización bayesiana empírica para estabilizar ligas con muestras incipientes hacia el prior de liga.
+    """
+    if liga_codigo in _MEDIAS_GOLES_CACHE:
+        return _MEDIAS_GOLES_CACHE[liga_codigo]
+
+    try:
+        from core.infrastructure.database import query_df
+        sql = """
+            SELECT AVG(marcador_local) AS media_loc, AVG(marcador_visita) AS media_vis, COUNT(*) AS n
+            FROM futbol_predicciones
+            WHERE liga_codigo = %s AND marcador_local IS NOT NULL AND marcador_visita IS NOT NULL
+        """
+        df = query_df(sql, (liga_codigo,))
+        if not df.empty and df.iloc[0]['n'] is not None and df.iloc[0]['n'] >= 10:
+            obs_loc = float(df.iloc[0]['media_loc'])
+            obs_vis = float(df.iloc[0]['media_vis'])
+            n = int(df.iloc[0]['n'])
+            peso_obs = min(0.85, n / (n + 25.0))
+            m_loc = peso_obs * obs_loc + (1.0 - peso_obs) * defaults[0]
+            m_vis = peso_obs * obs_vis + (1.0 - peso_obs) * defaults[1]
+            res = (round(m_loc, 3), round(m_vis, 3))
+            _MEDIAS_GOLES_CACHE[liga_codigo] = res
+            return res
+    except Exception:
+        pass
+
+    _MEDIAS_GOLES_CACHE[liga_codigo] = defaults
+    return defaults

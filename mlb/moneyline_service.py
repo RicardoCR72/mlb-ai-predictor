@@ -91,7 +91,19 @@ def cargar_oraculo():
             ])
             modelo_nn.load_weights(str(ruta_pesos_v5))
 
-            ensamble = EnsambleMLBv5(modelo_nn, modelo_lgb, calibrador_v5, scaler_v5, columnas_v5)
+            # Leer pesos del ensamble desde metadata (fuente única de verdad)
+            _meta = {}
+            ruta_meta = RUTA_MODELOS_MLB / 'metadata_v5.json'
+            if ruta_meta.exists():
+                import json as _json
+                with open(ruta_meta, 'r', encoding='utf-8') as _f:
+                    _meta = _json.load(_f)
+            _pesos = _meta.get('pesos', {})
+            _peso_lgb = float(_pesos.get('lightgbm', 0.60))
+            _peso_nn  = float(_pesos.get('neural_network', 0.40))
+
+            ensamble = EnsambleMLBv5(modelo_nn, modelo_lgb, calibrador_v5, scaler_v5, columnas_v5,
+                                     peso_lgb=_peso_lgb, peso_nn=_peso_nn)
             return (ensamble, scaler_v5, columnas_v5)
 
         # Fallback historico V4 si no se encuentran los artefactos V5
@@ -135,40 +147,50 @@ def cargar_datos_hoy():
 
 def obtener_estado_actual(equipo, df_hist, fecha_objetivo=None):
     if fecha_objetivo is None:
-        fecha_objetivo = hoy_mx()
+        fecha_obj_date = hoy_mx()
     else:
-        fecha_objetivo = pd.to_datetime(fecha_objetivo).date()
-    df_hist_copy = df_hist.copy()
-    df_hist_copy['fecha_solo_dia'] = pd.to_datetime(df_hist_copy['fecha']).dt.date
-    df_equipo = df_hist_copy[((df_hist_copy['equipo_local'] == equipo) | (df_hist_copy['equipo_visitante'] == equipo)) & (df_hist_copy['fecha_solo_dia'] < fecha_objetivo)].sort_values('fecha_solo_dia')
+        fecha_obj_date = pd.to_datetime(fecha_objetivo).date()
+
+    if 'fecha_solo_dia' not in df_hist.columns:
+        df_hist = df_hist.assign(fecha_solo_dia=pd.to_datetime(df_hist['fecha']).dt.date)
+
+    mask = (
+        ((df_hist['equipo_local'] == equipo) | (df_hist['equipo_visitante'] == equipo))
+        & (df_hist['fecha_solo_dia'] < fecha_obj_date)
+    )
+    df_equipo = df_hist[mask].sort_values('fecha_solo_dia')
     if df_equipo.empty:
         return (0.5, 0, 3, 0.5, equipo, 0)
+
     juegos_jugados = len(df_equipo)
-    victorias = 0
-    carreras_anotadas = 0
-    carreras_recibidas = 0
-    ultimos_5 = []
-    juegos_ultimos_7d = 0
-    for _, row in df_equipo.iterrows():
-        es_local = row['equipo_local'] == equipo
-        runs_fav = row['marcador_local'] if es_local else row['marcador_visitante']
-        runs_con = row['marcador_visitante'] if es_local else row['marcador_local']
-        carreras_anotadas += runs_fav
-        carreras_recibidas += runs_con
-        gano = 1 if runs_fav > runs_con else 0
-        victorias += gano
-        ultimos_5.append(gano)
-        dias_dif = (fecha_objetivo - row['fecha_solo_dia']).days
-        if dias_dif <= 7:
-            juegos_ultimos_7d += 1
+    es_local = (df_equipo['equipo_local'].values == equipo)
+    ml = df_equipo['marcador_local'].to_numpy(dtype=float)
+    mv = df_equipo['marcador_visitante'].to_numpy(dtype=float)
+
+    runs_fav = np.where(es_local, ml, mv)
+    runs_con = np.where(es_local, mv, ml)
+    gano = (runs_fav > runs_con).astype(int)
+
+    victorias = int(gano.sum())
+    carreras_anotadas = float(runs_fav.sum())
+    carreras_recibidas = float(runs_con.sum())
 
     win_pct = victorias / juegos_jugados
     run_diff = carreras_anotadas - carreras_recibidas
-    racha_5 = np.mean(ultimos_5[-5:]) if len(ultimos_5) > 0 else 0.5
-    fecha_ultimo = df_equipo.iloc[-1]['fecha_solo_dia']
-    estadio_anterior = df_equipo.iloc[-1]['equipo_local']
-    descanso = (fecha_objetivo - fecha_ultimo).days
+    racha_5 = float(np.mean(gano[-5:])) if len(gano) > 0 else 0.5
+
+    last_row = df_equipo.iloc[-1]
+    fecha_ultimo = last_row['fecha_solo_dia']
+    estadio_anterior = last_row['equipo_local']
+    descanso = (fecha_obj_date - fecha_ultimo).days
+
+    # Vectorizar cálculo de juegos en últimos 7 días
+    fechas_dt = pd.to_datetime(df_equipo['fecha_solo_dia'])
+    dias_dif = (pd.to_datetime(fecha_obj_date) - fechas_dt).dt.days
+    juegos_ultimos_7d = int((dias_dif <= 7).sum())
+
     return (win_pct, run_diff, descanso, racha_5, estadio_anterior, juegos_ultimos_7d)
+
 
 
 def limpiar_cuotas_v4(cuota_l_raw, cuota_v_raw):

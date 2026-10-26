@@ -131,6 +131,22 @@ def predecir_partidos_hoy(force_refresh: bool = False, fecha: Optional[str] = No
 
     predicciones = []
 
+    # Perfil promedio de la liga como fallback neutral (elimina sesgo BOS como local y DET como visita)
+    perfil_liga_neutral = {
+        "NET_RTG_L5": 0.0, "NET_RTG_L10": 0.0, "NET_RTG_L20": 0.0,
+        "ORTG_L10": 114.5, "DRTG_L10": 114.5, "EFG_PCT_L10": 0.54,
+        "WIN_L10": 0.5, "REST_DAYS": 2.0, "PACE_L10": 100.2,
+        "PACE_SEASON": 100.2, "ORTG_SEASON": 114.5, "DRTG_SEASON": 114.5, "NET_RTG_SEASON": 0.0,
+    }
+    if perfiles:
+        try:
+            for k in list(perfil_liga_neutral.keys()):
+                vals = [p[k] for p in perfiles.values() if k in p and pd.notna(p.get(k))]
+                if vals:
+                    perfil_liga_neutral[k] = float(np.mean(vals))
+        except Exception:
+            pass
+
     for j in juegos:
         id_ev = str(j.get("id_evento", "")).strip()
         prev = predicciones_previas.get(id_ev)
@@ -199,8 +215,8 @@ def predecir_partidos_hoy(force_refresh: bool = False, fecha: Optional[str] = No
         home_abbr = normalizar_equipo(j["abbr_local"])
         away_abbr = normalizar_equipo(j["abbr_visita"])
 
-        home_prof = perfiles.get(home_abbr, perfiles.get("BOS", {}))
-        away_prof = perfiles.get(away_abbr, perfiles.get("DET", {}))
+        home_prof = perfiles.get(home_abbr, perfil_liga_neutral)
+        away_prof = perfiles.get(away_abbr, perfil_liga_neutral)
 
         # Diferenciales clave
         diff_net_l5 = home_prof.get("NET_RTG_L5", 0.0) - away_prof.get("NET_RTG_L5", 0.0)

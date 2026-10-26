@@ -106,8 +106,32 @@ class TestNbaV2(unittest.TestCase):
             "marcador_local": 112,
             "marcador_visitante": 104,  # Margen +8 > 5.5
         })
-        res_sp, u_sp = liquidar_partido(fila_sp)
-        self.assertEqual(res_sp, "GANADA")
+        # Partidos incompletos o en juego (0-0 o parcial <100 pts) NUNCA deben liquidarse
+        fila_incompleta = pd.Series({
+            "mercado": "Moneyline",
+            "seleccion": "Boston Celtics ML",
+            "equipo_local": "Boston Celtics",
+            "equipo_visitante": "New York Knicks",
+            "cuota": 1.70,
+            "marcador_local": 0,
+            "marcador_visitante": 0,
+        })
+        res_inc, u_inc = liquidar_partido(fila_incompleta)
+        self.assertEqual(res_inc, "PENDIENTE")
+        self.assertIsNone(u_inc)
+
+        fila_cuarto = pd.Series({
+            "mercado": "Moneyline",
+            "seleccion": "Brooklyn Nets ML",
+            "equipo_local": "Brooklyn Nets",
+            "equipo_visitante": "Indiana Pacers",
+            "cuota": 1.91,
+            "marcador_local": 26,
+            "marcador_visitante": 24,
+        })
+        res_q, u_q = liquidar_partido(fila_cuarto)
+        self.assertEqual(res_q, "PENDIENTE")
+        self.assertIsNone(u_q)
 
 
 if __name__ == "__main__":

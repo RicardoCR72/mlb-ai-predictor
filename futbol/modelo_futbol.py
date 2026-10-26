@@ -112,9 +112,15 @@ def calcular_ev(prob: float, cuota_dec: float) -> float:
 
 def proyectar_partido_futbol(partido: Dict[str, Any]) -> Dict[str, Any]:
     """Calcula la proyección integral de fútbol con modelo Dixon-Coles V2 y selección de valor."""
-    info_liga = obtener_info_liga(partido.get("liga_codigo", "mex.1"))
-    media_local = float(info_liga.get("media_goles_local", 1.50))
-    media_visita = float(info_liga.get("media_goles_visita", 1.15))
+    liga_cod = partido.get("liga_codigo", "mex.1")
+    info_liga = obtener_info_liga(liga_cod)
+    def_local = float(info_liga.get("media_goles_local", 1.50))
+    def_visita = float(info_liga.get("media_goles_visita", 1.15))
+    try:
+        from futbol.constantes import obtener_medias_goles_liga
+        media_local, media_visita = obtener_medias_goles_liga(liga_cod, defaults=(def_local, def_visita))
+    except Exception:
+        media_local, media_visita = def_local, def_visita
     media_liga_tot = media_local + media_visita
     rho_liga = float(info_liga.get("rho_dixon_coles", -0.115))
     linea_tot = float(partido.get("linea_total") or info_liga.get("linea_default", 2.5))
@@ -199,9 +205,10 @@ def proyectar_partido_futbol(partido: Dict[str, Any]) -> Dict[str, Any]:
     cuota_dec_over = float(partido.get("over_momio_dec") or 1.87)
     cuota_dec_under = float(partido.get("under_momio_dec") or 1.87)
 
-    # Calibración empírica Platt Scaling y Market Shrinkage
+    # Calibración empírica Platt Scaling y Market Shrinkage (los tres resultados 1X2)
     from core.calibracion_probabilidades import calibrar_probabilidad
     p_final_home_cal = float(calibrar_probabilidad(p_final_home, cuota_dec_home))
+    p_final_draw_cal = float(calibrar_probabilidad(p_final_draw, cuota_dec_draw))
     p_final_away_cal = float(calibrar_probabilidad(p_final_away, cuota_dec_away))
     p_final_over_cal = float(calibrar_probabilidad(p_final_over, cuota_dec_over))
     p_final_under_cal = float(calibrar_probabilidad(p_final_under, cuota_dec_under))
@@ -209,14 +216,14 @@ def proyectar_partido_futbol(partido: Dict[str, Any]) -> Dict[str, Any]:
     # Edges directos calibrados contra probabilidad implícita del bookmaker
     edge_home = p_final_home_cal - p_raw_h
     edge_away = p_final_away_cal - p_raw_a
-    edge_draw = p_final_draw - p_raw_d
+    edge_draw = p_final_draw_cal - p_raw_d
     edge_over = p_final_over_cal - p_raw_o
     edge_under = p_final_under_cal - p_raw_u
 
     # EV para cada mercado estándar con probabilidades calibradas
     ev_home = calcular_ev(p_final_home_cal, cuota_dec_home)
     ev_away = calcular_ev(p_final_away_cal, cuota_dec_away)
-    ev_draw = calcular_ev(p_final_draw, cuota_dec_draw)
+    ev_draw = calcular_ev(p_final_draw_cal, cuota_dec_draw)
     ev_over = calcular_ev(p_final_over_cal, cuota_dec_over)
     ev_under = calcular_ev(p_final_under_cal, cuota_dec_under)
 
@@ -280,18 +287,27 @@ def proyectar_partido_futbol(partido: Dict[str, Any]) -> Dict[str, Any]:
             "detalle": f"Superioridad visitante proyectada (Prob Calibrada: {p_final_away_cal*100:.1f}%, xG: {xg_visita:.2f} vs {xg_local:.2f}, EV: +{ev_away*100:.1f}%)",
         })
 
-    # Mercado Ambos Anotan (BTTS) si hay alta convicción ofensiva
-    if p_btts_si >= 0.58 and xg_local >= 1.25 and xg_visita >= 1.15:
-        candidatos.append({
-            "mercado": "Ambos Anotan (BTTS)",
-            "seleccion": "Ambos Anotan: SÍ",
-            "probabilidad": p_btts_si,
-            "edge": max(p_btts_si - 0.52, 0.03),
-            "ev": (p_btts_si * 1.80) - 1.0,
-            "cuota": "-125",
-            "cuota_dec": 1.80,
-            "detalle": f"Flujo ofensivo mutuo alto (xG {xg_local:.2f} y {xg_visita:.2f}, BTTS SÍ: {p_btts_si*100:.1f}%)",
-        })
+    # Mercado Ambos Anotan (BTTS) si el proveedor proporciona cuota y hay convicción ofensiva
+    cuota_dec_btts_raw = partido.get("btts_si_momio_dec") or partido.get("btts_momio_dec")
+    if cuota_dec_btts_raw and p_btts_si >= 0.58 and xg_local >= 1.25 and xg_visita >= 1.15:
+        cuota_dec_btts = float(cuota_dec_btts_raw)
+        if cuota_dec_btts > 1.0:
+            cuota_btts_str = partido.get("btts_si_momio") or partido.get("btts_momio") or f"{cuota_dec_btts:.2f}"
+            p_btts_impl = 1.0 / cuota_dec_btts
+            p_btts_cal = float(calibrar_probabilidad(p_btts_si, cuota_dec_btts))
+            ev_btts = calcular_ev(p_btts_cal, cuota_dec_btts)
+            edge_btts = p_btts_cal - p_btts_impl
+            if edge_btts >= 0.035 and ev_btts >= 0.02:
+                candidatos.append({
+                    "mercado": "Ambos Anotan (BTTS)",
+                    "seleccion": "Ambos Anotan: SÍ",
+                    "probabilidad": p_btts_cal,
+                    "edge": round(edge_btts, 4),
+                    "ev": round(ev_btts, 4),
+                    "cuota": cuota_btts_str,
+                    "cuota_dec": cuota_dec_btts,
+                    "detalle": f"Flujo ofensivo mutuo alto (xG {xg_local:.2f} y {xg_visita:.2f}, BTTS SÍ Calibrado: {p_btts_cal*100:.1f}%, EV: {ev_btts*100:+.1f}%)",
+                })
 
     # Si ningún candidato supera el umbral de valor puro, crear un LEAN objetivo sin inventar edge positivo
     if candidatos:

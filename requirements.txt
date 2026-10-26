@@ -1,6 +1,7 @@
 streamlit==1.66.0
 pandas>=2.2,<3
-numpy
+numpy>=1.26,<2
+lightgbm>=4.3,<5
 mysql-connector-python>=9,<10
 tensorflow==2.21.0
 scikit-learn==1.9.1

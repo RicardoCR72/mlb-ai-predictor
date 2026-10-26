@@ -81,12 +81,47 @@ def preparar_tablas_nba(conn) -> bool:
         return False
 
 
+def es_liquidacion_valida(row: Any) -> bool:
+    """Verifica si un pick está liquidado de forma válida con un marcador final de baloncesto real.
+    Descarta marcadores 0-0, parciales de cuartos (<100 pts) o Moneyline PUSH (imposibles en la NBA).
+    """
+    if isinstance(row, pd.Series):
+        res = row.get("resultado")
+        ml = row.get("marcador_local")
+        mv = row.get("marcador_visitante")
+        mercado = str(row.get("mercado", ""))
+    elif isinstance(row, dict):
+        res = row.get("resultado")
+        ml = row.get("marcador_local")
+        mv = row.get("marcador_visita") if row.get("marcador_visita") is not None else row.get("marcador_visitante")
+        mercado = str(row.get("mercado", ""))
+    else:
+        return False
+
+    if res not in ["GANADA", "PERDIDA", "PUSH"]:
+        return False
+    if pd.isna(ml) or pd.isna(mv) or ml is None or mv is None:
+        return False
+
+    try:
+        ml_i = int(ml)
+        mv_i = int(mv)
+        if ml_i <= 0 or mv_i <= 0 or (ml_i + mv_i) < 100:
+            return False
+        if "Moneyline" in mercado and res == "PUSH":
+            return False
+        return True
+    except (ValueError, TypeError):
+        return False
+
+
 def guardar_predicciones_nba(predicciones: List[Dict[str, Any]]) -> None:
     """Guarda las predicciones del día en MySQL y en el archivo local de historial para todos los mercados."""
     if not predicciones:
         return
 
     ahora = datetime.now(ZONA_CDMX)
+    ahora_dt = pd.Timestamp.now()
     ahora_str = ahora.strftime("%Y-%m-%d %H:%M:%S")
 
     # 1. Preparar filas con formato uniforme para todos los mercados disponibles
@@ -99,6 +134,21 @@ def guardar_predicciones_nba(predicciones: List[Dict[str, Any]]) -> None:
         eq_vis = str(p.get("equipo_visita") or p.get("equipo_visitante", ""))
         m_loc = p.get("marcador_local")
         m_vis = p.get("marcador_visita") if p.get("marcador_visita") is not None else p.get("marcador_visitante")
+
+        estado_p = str(p.get("estado", "")).upper()
+        desc_p = str(p.get("descripcion_estado", "")).upper()
+        es_final = ("FINAL" in estado_p) or ("FINAL" in desc_p)
+
+        # Solo liquidar prematuramente si el juego es FINAL y tiene marcador de baloncesto verídico
+        puede_liquidar = False
+        if es_final and m_loc is not None and m_vis is not None:
+            try:
+                ml_i = int(m_loc)
+                mv_i = int(m_vis)
+                if ml_i > 0 and mv_i > 0 and (ml_i + mv_i) >= 100:
+                    puede_liquidar = True
+            except (ValueError, TypeError):
+                puede_liquidar = False
 
         # 1. Si el partido incluye candidatos específicos con ventaja matemática (picks_candidatos):
         candidatos = p.get("candidatos", [])
@@ -135,9 +185,9 @@ def guardar_predicciones_nba(predicciones: List[Dict[str, Any]]) -> None:
                     "marcador_visitante": m_vis,
                     "resultado": "PENDIENTE",
                     "unidades_ganadas": None,
-                    "actualizado_en": ahora_str,
+                    "actualizado_en": ahora_dt,
                 }
-                if m_loc is not None and m_vis is not None:
+                if puede_liquidar:
                     r_res, r_u = liquidar_partido(pd.Series(fila_c))
                     fila_c["resultado"] = r_res
                     fila_c["unidades_ganadas"] = r_u
@@ -163,6 +213,8 @@ def guardar_predicciones_nba(predicciones: List[Dict[str, Any]]) -> None:
                 m_l = re.search(r'([+-]?\d+(?:\.\d+)?)', p.get("pick_seleccion", ""))
                 linea_val = float(m_l.group(1)) if m_l else 0.0
 
+            res_prev = p.get("resultado") or "PENDIENTE"
+            u_prev = p.get("unidades_ganadas")
             fila_unica = {
                 "id_juego": id_ev,
                 "fecha": fecha_cdmx,
@@ -178,25 +230,23 @@ def guardar_predicciones_nba(predicciones: List[Dict[str, Any]]) -> None:
                 "confianza": str(p.get("confianza") or "MEDIA"),
                 "marcador_local": m_loc,
                 "marcador_visitante": m_vis,
-                "resultado": p.get("resultado") or "PENDIENTE",
-                "unidades_ganadas": p.get("unidades_ganadas"),
-                "actualizado_en": ahora_str,
+                "resultado": res_prev,
+                "unidades_ganadas": u_prev,
+                "actualizado_en": ahora_dt,
             }
-            if m_loc is not None and m_vis is not None and fila_unica["resultado"] == "PENDIENTE":
+            if puede_liquidar and fila_unica["resultado"] == "PENDIENTE":
                 r_res, r_u = liquidar_partido(pd.Series(fila_unica))
                 fila_unica["resultado"] = r_res
                 fila_unica["unidades_ganadas"] = r_u
             nuevas_filas.append(fila_unica)
             continue
 
-        # Si el partido no tiene edge ni candidatos calificados (confianza NEUTRAL), no forzar apuestas en contra del casino
-
     df_nuevas = pd.DataFrame(nuevas_filas)
 
     # 2. Persistencia en Base de Datos MySQL si está disponible
     conn = None
     try:
-        conn = obtener_conexion_mysql(timeout=2)
+        conn = obtener_conexion_mysql(timeout=5)
         if conn:
             preparar_tablas_nba(conn)
             cursor = conn.cursor()
@@ -212,10 +262,24 @@ def guardar_predicciones_nba(predicciones: List[Dict[str, Any]]) -> None:
                 probabilidad = VALUES(probabilidad),
                 edge = VALUES(edge),
                 confianza = VALUES(confianza),
-                marcador_local = COALESCE(VALUES(marcador_local), marcador_local),
-                marcador_visitante = COALESCE(VALUES(marcador_visitante), marcador_visitante),
-                resultado = CASE WHEN resultado IN ('GANADA', 'PERDIDA', 'PUSH') THEN resultado ELSE VALUES(resultado) END,
-                unidades_ganadas = COALESCE(VALUES(unidades_ganadas), unidades_ganadas),
+                marcador_local = CASE
+                    WHEN VALUES(marcador_local) > 0 AND VALUES(marcador_visitante) > 0 THEN VALUES(marcador_local)
+                    ELSE COALESCE(marcador_local, VALUES(marcador_local))
+                END,
+                marcador_visitante = CASE
+                    WHEN VALUES(marcador_local) > 0 AND VALUES(marcador_visitante) > 0 THEN VALUES(marcador_visitante)
+                    ELSE COALESCE(marcador_visitante, VALUES(marcador_visitante))
+                END,
+                resultado = CASE
+                    WHEN VALUES(resultado) IN ('GANADA', 'PERDIDA', 'PUSH') AND COALESCE(VALUES(marcador_local), 0) + COALESCE(VALUES(marcador_visitante), 0) >= 100 THEN VALUES(resultado)
+                    WHEN resultado IN ('GANADA', 'PERDIDA', 'PUSH') AND COALESCE(marcador_local, 0) + COALESCE(marcador_visitante, 0) >= 100 THEN resultado
+                    ELSE VALUES(resultado)
+                END,
+                unidades_ganadas = CASE
+                    WHEN VALUES(resultado) IN ('GANADA', 'PERDIDA', 'PUSH') AND COALESCE(VALUES(marcador_local), 0) + COALESCE(VALUES(marcador_visitante), 0) >= 100 THEN VALUES(unidades_ganadas)
+                    WHEN resultado IN ('GANADA', 'PERDIDA', 'PUSH') AND COALESCE(marcador_local, 0) + COALESCE(marcador_visitante, 0) >= 100 THEN unidades_ganadas
+                    ELSE VALUES(unidades_ganadas)
+                END,
                 actualizado_en = VALUES(actualizado_en);
             """
             for f in nuevas_filas:
@@ -223,7 +287,7 @@ def guardar_predicciones_nba(predicciones: List[Dict[str, Any]]) -> None:
                     f["id_juego"], f["fecha"], f["hora_cdmx"], f["equipo_local"], f["equipo_visitante"],
                     f["mercado"], f["seleccion"], f["linea"], f["cuota"], f["probabilidad"], f["edge"],
                     f["confianza"], f["marcador_local"], f["marcador_visitante"], f["resultado"],
-                    f["unidades_ganadas"], f["actualizado_en"]
+                    f["unidades_ganadas"], ahora_str
                 ))
             conn.commit()
             cursor.close()
@@ -246,13 +310,14 @@ def guardar_predicciones_nba(predicciones: List[Dict[str, Any]]) -> None:
             pass
 
     if not df_existente.empty:
-        # Partidos ya liquidados (bloqueados permanentemente para no sobreescribir auditorías ganadas/perdidas)
-        liquidados_prev = df_existente[df_existente["resultado"].isin(["GANADA", "PERDIDA", "PUSH"])]
+        # Partidos válidamente liquidados (bloqueados permanentemente para no sobreescribir auditorías ganadas/perdidas reales)
+        mask_liquidados = df_existente.apply(es_liquidacion_valida, axis=1)
+        liquidados_prev = df_existente[mask_liquidados]
         ids_liquidados = set(liquidados_prev["id_juego"].astype(str)) if not liquidados_prev.empty else set()
 
-        # Mapeo de (base_id, tipo_mercado) existentes en el historial para evitar duplicar picks
+        # Mapeo de (base_id, tipo_mercado) válidos en el historial para evitar duplicar picks
         base_mercados_existentes = set()
-        for _, r_ex in df_existente.iterrows():
+        for _, r_ex in liquidados_prev.iterrows():
             b_id = str(r_ex["id_juego"]).split("_")[0]
             tm = "Totales" if "Totales" in str(r_ex["mercado"]) else str(r_ex["mercado"])
             base_mercados_existentes.add((b_id, tm))
@@ -274,21 +339,37 @@ def guardar_predicciones_nba(predicciones: List[Dict[str, Any]]) -> None:
     else:
         df_total = df_nuevas.drop_duplicates(subset=["id_juego"], keep="first")
 
+    if "fecha" in df_total.columns:
+        df_total["fecha"] = df_total["fecha"].astype(str)
+    if "actualizado_en" in df_total.columns:
+        df_total["actualizado_en"] = pd.to_datetime(df_total["actualizado_en"], errors="coerce")
+
     df_total.to_parquet(RUTA_HISTORIAL_PARQUET, index=False)
     df_total.to_csv(RUTA_HISTORIAL_CSV, index=False, encoding="utf-8")
     logger.info(f"💾 Historial actualizado en {RUTA_HISTORIAL_PARQUET} ({len(df_total)} registros).")
 
 
 def liquidar_partido(fila: pd.Series) -> Tuple[str, Optional[float]]:
-    """Determina si un pick es GANADA, PERDIDA o PUSH y calcula el beneficio en unidades."""
+    """Determina si un pick es GANADA, PERDIDA o PUSH y calcula el beneficio en unidades.
+    Exige marcador final verificado de baloncesto (>0 y total >=100 puntos).
+    """
     m_local = fila.get("marcador_local")
     m_visita = fila.get("marcador_visitante")
 
     if pd.isna(m_local) or pd.isna(m_visita) or m_local is None or m_visita is None:
         return "PENDIENTE", None
 
-    m_local = int(m_local)
-    m_visita = int(m_visita)
+    try:
+        m_local = int(m_local)
+        m_visita = int(m_visita)
+    except (ValueError, TypeError):
+        return "PENDIENTE", None
+
+    # En la NBA moderna ambos equipos anotan y el total supera los 100 puntos.
+    # Un marcador 0-0 o parcial (ej. 24-26 en Q1) no es un partido finalizado.
+    if m_local <= 0 or m_visita <= 0 or (m_local + m_visita) < 100:
+        return "PENDIENTE", None
+
     cuota = float(fila.get("cuota") or 1.91)
     mercado = str(fila.get("mercado", ""))
     sel = str(fila.get("seleccion", "")).strip()
@@ -315,8 +396,10 @@ def liquidar_partido(fila: pd.Series) -> Tuple[str, Optional[float]]:
             else:
                 return "PUSH", 0.0
 
-    # 2. Moneyline
+    # 2. Moneyline (En la NBA no existen empates; si m_local == m_visita el juego sigue en OT)
     if "Moneyline" in mercado or "ML" in sel:
+        if m_local == m_visita:
+            return "PENDIENTE", None
         eq_local = str(fila.get("equipo_local", "")).lower()
         eq_vis = str(fila.get("equipo_visitante", "")).lower()
         sel_l = sel.lower()
@@ -326,14 +409,14 @@ def liquidar_partido(fila: pd.Series) -> Tuple[str, Optional[float]]:
             elif m_local < m_visita:
                 return "PERDIDA", -1.0
             else:
-                return "PUSH", 0.0
+                return "PENDIENTE", None
         elif any(part in sel_l for part in eq_vis.split()):
             if m_visita > m_local:
                 return "GANADA", round(cuota - 1.0, 3)
             elif m_visita < m_local:
                 return "PERDIDA", -1.0
             else:
-                return "PUSH", 0.0
+                return "PENDIENTE", None
 
     # 3. Spread / Hándicap
     if "Spread" in mercado or "+" in sel or "-" in sel:
@@ -375,6 +458,7 @@ def liquidar_partidos_pendientes_nba() -> dict[str, Any]:
     """Consulta ESPN Scoreboard y liquida todos los picks pendientes de la NBA.
     Actualiza el archivo Parquet/CSV, la base de datos MySQL y el archivo JSON de predicciones
     para que queden auditados y pasen a Rendimiento e Historial.
+    Corrige también resultados guardados previamente con marcadores incompletos o en juego (0-0, cuartos parciales).
     """
     from nba.proveedor_cuotas import obtener_calendario_y_cuotas_nba
 
@@ -386,7 +470,7 @@ def liquidar_partidos_pendientes_nba() -> dict[str, Any]:
                 preds_hoy = json.load(f)
             pendientes_hoy = [
                 p for p in preds_hoy
-                if p.get("resultado") not in ["GANADA", "PERDIDA", "PUSH"]
+                if not es_liquidacion_valida(p)
             ]
             if pendientes_hoy:
                 guardar_predicciones_nba(pendientes_hoy)
@@ -401,21 +485,21 @@ def liquidar_partidos_pendientes_nba() -> dict[str, Any]:
     except Exception as err:
         return {"ok": False, "evaluados": 0, "mensaje": f"Error al abrir historial: {err}"}
 
-    # Sincronizar desde MySQL si hay picks pendientes que falten en el archivo local
+    # Sincronizar desde MySQL si hay picks pendientes o por rectificar que falten en el archivo local
     try:
-        conn = obtener_conexion_mysql(timeout=3)
+        conn = obtener_conexion_mysql(timeout=5)
         if conn:
             cursor = conn.cursor(dictionary=True)
-            cursor.execute("SELECT * FROM nba_registro_picks WHERE resultado = 'PENDIENTE';")
-            pendientes_db = cursor.fetchall()
+            cursor.execute("SELECT * FROM nba_registro_picks;")
+            todos_db = cursor.fetchall()
             cursor.close()
             conn.close()
-            if pendientes_db:
-                df_db = pd.DataFrame(pendientes_db)
+            if todos_db:
+                df_db = pd.DataFrame(todos_db)
                 if "fecha" in df_db.columns:
                     df_db["fecha"] = df_db["fecha"].astype(str)
-                if "fecha" in df.columns:
-                    df["fecha"] = df["fecha"].astype(str)
+                if "actualizado_en" in df_db.columns:
+                    df_db["actualizado_en"] = pd.to_datetime(df_db["actualizado_en"], errors="coerce")
                 df = pd.concat([df, df_db], ignore_index=True).drop_duplicates(subset=["id_juego"], keep="last")
     except Exception:
         pass
@@ -423,9 +507,14 @@ def liquidar_partidos_pendientes_nba() -> dict[str, Any]:
     # 2. Consultar marcadores de ESPN para hoy y las últimas fechas (al menos los últimos 5 días)
     hoy_dt = datetime.now(ZONA_CDMX)
     fechas = {(hoy_dt - timedelta(days=d)).strftime("%Y-%m-%d") for d in range(5)}
-    pendientes = df[df["resultado"] == "PENDIENTE"]
-    if not pendientes.empty:
-        fechas.update(pendientes["fecha"].dropna().astype(str).tolist())
+    
+    # Revisar tanto pendientes como partidos con liquidaciones inválidas (0-0, parciales, etc.)
+    candidatos_revisar = df[
+        (df["resultado"] == "PENDIENTE") |
+        (~df.apply(es_liquidacion_valida, axis=1))
+    ]
+    if not candidatos_revisar.empty:
+        fechas.update(candidatos_revisar["fecha"].dropna().astype(str).tolist())
 
     partidos_espn = []
     for f_str in sorted(fechas):
@@ -447,17 +536,18 @@ def liquidar_partidos_pendientes_nba() -> dict[str, Any]:
                 try:
                     ml = int(sc_home)
                     mv = int(sc_away)
-                    if ev_id:
-                        marcadores_por_id[ev_id] = (ml, mv)
-                        partidos_finales_map[ev_id] = ev
-                    eq_loc = str(ev.get("equipo_local", "")).strip().upper()
-                    eq_vis = str(ev.get("equipo_visita", "")).strip().upper()
-                    ab_loc = str(ev.get("abbr_local", "")).strip().upper()
-                    ab_vis = str(ev.get("abbr_visita", "")).strip().upper()
-                    if eq_loc and eq_vis:
-                        marcadores_por_equipos[(eq_loc, eq_vis)] = (ml, mv)
-                    if ab_loc and ab_vis:
-                        marcadores_por_equipos[(ab_loc, ab_vis)] = (ml, mv)
+                    if ml > 0 and mv > 0 and (ml + mv) >= 100:
+                        if ev_id:
+                            marcadores_por_id[ev_id] = (ml, mv)
+                            partidos_finales_map[ev_id] = ev
+                        eq_loc = str(ev.get("equipo_local", "")).strip().upper()
+                        eq_vis = str(ev.get("equipo_visita", "")).strip().upper()
+                        ab_loc = str(ev.get("abbr_local", "")).strip().upper()
+                        ab_vis = str(ev.get("abbr_visita", "")).strip().upper()
+                        if eq_loc and eq_vis:
+                            marcadores_por_equipos[(eq_loc, eq_vis)] = (ml, mv)
+                        if ab_loc and ab_vis:
+                            marcadores_por_equipos[(ab_loc, ab_vis)] = (ml, mv)
                 except (ValueError, TypeError):
                     pass
 
@@ -479,9 +569,10 @@ def liquidar_partidos_pendientes_nba() -> dict[str, Any]:
 
     liquidados_count = 0
     liquidados_indices = []
+    ahora_dt = pd.Timestamp.now()
     ahora_str = datetime.now(ZONA_CDMX).strftime("%Y-%m-%d %H:%M:%S")
 
-    for idx, row in df[df["resultado"] == "PENDIENTE"].iterrows():
+    for idx, row in df.iterrows():
         ev_id = str(row["id_juego"]).split("_")[0].strip()
         eq_loc = str(row.get("equipo_local", "")).strip().upper()
         eq_vis = str(row.get("equipo_visitante", "")).strip().upper()
@@ -492,26 +583,43 @@ def liquidar_partidos_pendientes_nba() -> dict[str, Any]:
 
         if sc:
             m_loc, m_vis = sc
-            df.at[idx, "marcador_local"] = m_loc
-            df.at[idx, "marcador_visitante"] = m_vis
-            res, u_gan = liquidar_partido(df.loc[idx])
-            df.at[idx, "resultado"] = res
-            df.at[idx, "unidades_ganadas"] = u_gan
-            df.at[idx, "actualizado_en"] = ahora_str
-            liquidados_count += 1
-            liquidados_indices.append(idx)
+            curr_ml = row.get("marcador_local")
+            curr_mv = row.get("marcador_visitante")
+            curr_res = row.get("resultado")
+
+            # Actualizar si no es válido, si está pendiente, o si el marcador guardado difiere del marcador final oficial de ESPN
+            necesita_actualizar = (
+                not es_liquidacion_valida(row)
+                or curr_res == "PENDIENTE"
+                or pd.isna(curr_ml)
+                or pd.isna(curr_mv)
+                or int(curr_ml) != m_loc
+                or int(curr_mv) != m_vis
+            )
+            if necesita_actualizar:
+                df.at[idx, "marcador_local"] = m_loc
+                df.at[idx, "marcador_visitante"] = m_vis
+                res, u_gan = liquidar_partido(df.loc[idx])
+                if res != "PENDIENTE":
+                    df.at[idx, "resultado"] = res
+                    df.at[idx, "unidades_ganadas"] = u_gan
+                    df.at[idx, "actualizado_en"] = ahora_dt
+                    liquidados_count += 1
+                    liquidados_indices.append(idx)
 
     if liquidados_count > 0:
         df = df.drop_duplicates(subset=["id_juego"], keep="last")
         if "fecha" in df.columns:
             df["fecha"] = df["fecha"].astype(str)
+        if "actualizado_en" in df.columns:
+            df["actualizado_en"] = pd.to_datetime(df["actualizado_en"], errors="coerce")
         df.to_parquet(RUTA_HISTORIAL_PARQUET, index=False)
         df.to_csv(RUTA_HISTORIAL_CSV, index=False, encoding="utf-8")
 
         # Sincronizar en MySQL solo los registros recién liquidados
         conn = None
         try:
-            conn = obtener_conexion_mysql(timeout=2)
+            conn = obtener_conexion_mysql(timeout=5)
             if conn and liquidados_indices:
                 cursor = conn.cursor()
                 sql_update = """
@@ -522,14 +630,16 @@ def liquidar_partidos_pendientes_nba() -> dict[str, Any]:
                 """
                 params_list = [
                     (
-                        df.at[i, "marcador_local"], df.at[i, "marcador_visitante"], df.at[i, "resultado"],
-                        df.at[i, "unidades_ganadas"], ahora_str, df.at[i, "id_juego"], df.at[i, "mercado"], df.at[i, "seleccion"]
+                        int(df.at[i, "marcador_local"]), int(df.at[i, "marcador_visitante"]), str(df.at[i, "resultado"]),
+                        float(df.at[i, "unidades_ganadas"]) if pd.notna(df.at[i, "unidades_ganadas"]) else None,
+                        ahora_str, str(df.at[i, "id_juego"]), str(df.at[i, "mercado"]), str(df.at[i, "seleccion"])
                     )
                     for i in liquidados_indices
                 ]
                 cursor.executemany(sql_update, params_list)
                 conn.commit()
                 cursor.close()
+                logger.info(f"✅ {len(liquidados_indices)} picks actualizados en MySQL.")
         except Exception as e:
             logger.warning(f"Error sincronizando liquidación en MySQL: {e}")
         finally:
@@ -576,7 +686,7 @@ def liquidar_partidos_pendientes_nba() -> dict[str, Any]:
         return {
             "ok": True,
             "evaluados": liquidados_count,
-            "mensaje": f"Se liquidaron exitosamente {liquidados_count} pick(s) y pasaron a Rendimiento e Historial."
+            "mensaje": f"Se liquidaron / sincronizaron exitosamente {liquidados_count} pick(s) con marcadores finales oficiales."
         }
     else:
         return {

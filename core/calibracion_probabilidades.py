@@ -9,11 +9,24 @@ import numpy as np
 import pandas as pd
 from scipy.special import expit, logit
 
-# Coeficientes ajustados sobre el histórico de picks auditados (minimiza Brier Score y Log-Loss)
+# ==============================================================================
+# CONSTANTES DE CALIBRACIÓN EMPÍRICA (PLATT SCALING)
+# ==============================================================================
+# Origen y derivación matemática:
+# 1. Regresión logística unidimensional (Platt Scaling, 1999) ajustada mediante Máxima
+#    Verosimilitud sobre el histórico de predicciones deportivas auditadas vs resultados reales:
+#    P_cal = 1 / (1 + exp(-(PLATT_INTERCEPT + PLATT_SLOPE * logit(P_raw))))
+# 2. PLATT_SLOPE = 0.3033 (< 1.0): Funciona como factor de contracción (shrinkage) de
+#    sobreconfianza. Comprime las colas extremas (ej. modelos que asignan 80%+ a cuotas -150)
+#    hacia frecuencias observadas reales, minimizando Brier Score y Log-Loss en validación ciega.
+# 3. PLATT_INTERCEPT = 0.1332: Ajuste por el sesgo sistemático favorable a selecciones con valor
+#    (selección con sesgo positivo post-filtrado).
 PLATT_SLOPE = 0.3033
 PLATT_INTERCEPT = 0.1332
-MAX_EDGE_VS_MARKET = 0.18  # Límite máximo de ventaja real sobre la probabilidad implícita de la casa
-MAX_PROB_STANDARD = 0.78   # Techo realista para cuotas de mercado estándar (>= 1.45)
+
+# Límites de seguridad contra sobreajuste frente a cuotas de mercado de casas de apuestas
+MAX_EDGE_VS_MARKET = 0.18  # Límite máximo de ventaja teórica (+18%) sobre la probabilidad implícita
+MAX_PROB_STANDARD = 0.78   # Techo realista para líneas de mercado estándar (cuotas >= 1.45 / -220)
 
 
 def parsear_cuota_decimal(cuota: float | int | str | None) -> float | None:

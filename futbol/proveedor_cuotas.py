@@ -194,6 +194,14 @@ def obtener_partidos_liga_espn(
             over_odds = (over_obj.get("close") or over_obj.get("open") or {}).get("odds") if isinstance(over_obj.get("close") or over_obj.get("open"), dict) else None
             under_odds = (under_obj.get("close") or under_obj.get("open") or {}).get("odds") if isinstance(under_obj.get("close") or under_obj.get("open"), dict) else None
 
+            # 3. Ambos Anotan (BTTS) si está disponible en la respuesta del proveedor
+            btts_obj = odd.get("bothTeamsToScore") or odd.get("btts") or odd.get("bothTeamsScore") or {}
+            btts_yes = None
+            btts_no = None
+            if isinstance(btts_obj, dict):
+                btts_yes = (btts_obj.get("yes") or btts_obj.get("close") or {}).get("odds") if isinstance(btts_obj.get("yes") or btts_obj.get("close"), dict) else btts_obj.get("yes")
+                btts_no = (btts_obj.get("no") or {}).get("odds") if isinstance(btts_obj.get("no"), dict) else btts_obj.get("no")
+
             partidos.append({
                 "id_evento": ev_id,
                 "liga_codigo": codigo,
@@ -232,6 +240,11 @@ def obtener_partidos_liga_espn(
                 "under_momio_dec": american_to_decimal(under_odds),
                 "over_prob_implicita": american_to_prob(over_odds),
                 "under_prob_implicita": american_to_prob(under_odds),
+                # Ambos Anotan (BTTS) del proveedor
+                "btts_si_momio": normalizar_momio_str(btts_yes),
+                "btts_no_momio": normalizar_momio_str(btts_no),
+                "btts_si_momio_dec": american_to_decimal(btts_yes),
+                "btts_no_momio_dec": american_to_decimal(btts_no),
             })
         except Exception as exc:
             logger.error(f"Error procesando partido {evento.get('id')} de {liga_code}: {exc}")
