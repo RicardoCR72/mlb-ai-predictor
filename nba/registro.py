@@ -698,9 +698,17 @@ def liquidar_partidos_pendientes_nba() -> dict[str, Any]:
 
 def cargar_historial_rendimiento() -> pd.DataFrame:
     """Carga el historial verídico de picks evaluados de la NBA (solo temporada actual)."""
-    # 1. Intentar cargar desde MySQL (fuente en vivo y verídica de la temporada actual)
+    # 1. Cargar local primero (donde residen los datos verificados)
+    df_local = pd.DataFrame()
+    if RUTA_HISTORIAL_PARQUET.exists():
+        try:
+            df_local = pd.read_parquet(RUTA_HISTORIAL_PARQUET)
+        except Exception:
+            pass
+
+    # 2. Intentar cargar desde MySQL (fuente en vivo)
     try:
-        conn = obtener_conexion_mysql(timeout=3)
+        conn = obtener_conexion_mysql(timeout=4)
         if conn:
             cursor = conn.cursor(dictionary=True)
             cursor.execute("SELECT * FROM nba_registro_picks ORDER BY fecha DESC, id DESC;")
@@ -708,24 +716,69 @@ def cargar_historial_rendimiento() -> pd.DataFrame:
             cursor.close()
             conn.close()
             if rows:
-                df = pd.DataFrame(rows)
-                if "fecha" in df.columns:
-                    df["fecha"] = df["fecha"].astype(str)
+                df_mysql = pd.DataFrame(rows)
+                if "fecha" in df_mysql.columns:
+                    df_mysql["fecha"] = df_mysql["fecha"].astype(str)
+                if "actualizado_en" in df_mysql.columns:
+                    df_mysql["actualizado_en"] = pd.to_datetime(df_mysql["actualizado_en"], errors="coerce")
+
+                # Sanear MySQL con datos válidos locales si existen
+                if not df_local.empty:
+                    validos_local = df_local[df_local.apply(es_liquidacion_valida, axis=1)]
+                    if not validos_local.empty:
+                        map_local_valido = {str(r["id_juego"]): r for _, r in validos_local.iterrows()}
+                        indices_corregidos = []
+                        for i_m, r_m in df_mysql.iterrows():
+                            id_j = str(r_m.get("id_juego", ""))
+                            if id_j in map_local_valido and not es_liquidacion_valida(r_m):
+                                r_loc = map_local_valido[id_j]
+                                df_mysql.at[i_m, "marcador_local"] = r_loc["marcador_local"]
+                                df_mysql.at[i_m, "marcador_visitante"] = r_loc["marcador_visitante"]
+                                df_mysql.at[i_m, "resultado"] = r_loc["resultado"]
+                                df_mysql.at[i_m, "unidades_ganadas"] = r_loc["unidades_ganadas"]
+                                indices_corregidos.append(i_m)
+
+                        # Actualizar en MySQL si se corrigieron filas corruptas
+                        if indices_corregidos:
+                            try:
+                                conn_up = obtener_conexion_mysql(timeout=4)
+                                if conn_up:
+                                    cur_up = conn_up.cursor()
+                                    sql_fix = """
+                                    UPDATE nba_registro_picks
+                                    SET marcador_local = %s, marcador_visitante = %s, resultado = %s,
+                                        unidades_ganadas = %s, actualizado_en = NOW()
+                                    WHERE id_juego = %s AND mercado = %s AND seleccion = %s;
+                                    """
+                                    cur_up.executemany(sql_fix, [
+                                        (
+                                            int(df_mysql.at[i, "marcador_local"]),
+                                            int(df_mysql.at[i, "marcador_visitante"]),
+                                            str(df_mysql.at[i, "resultado"]),
+                                            float(df_mysql.at[i, "unidades_ganadas"]) if pd.notna(df_mysql.at[i, "unidades_ganadas"]) else None,
+                                            str(df_mysql.at[i, "id_juego"]),
+                                            str(df_mysql.at[i, "mercado"]),
+                                            str(df_mysql.at[i, "seleccion"]),
+                                        )
+                                        for i in indices_corregidos
+                                    ])
+                                    conn_up.commit()
+                                    cur_up.close()
+                                    conn_up.close()
+                                    logger.info(f"✅ {len(indices_corregidos)} registros saneados directamente en MySQL.")
+                            except Exception as e_sql:
+                                logger.warning(f"No se pudo sincronizar corrección en MySQL: {e_sql}")
+
                 RUTA_PROCESSED.mkdir(parents=True, exist_ok=True)
-                df.to_parquet(RUTA_HISTORIAL_PARQUET, index=False)
-                df.to_csv(RUTA_HISTORIAL_CSV, index=False, encoding="utf-8")
-                return df
+                df_mysql.to_parquet(RUTA_HISTORIAL_PARQUET, index=False)
+                df_mysql.to_csv(RUTA_HISTORIAL_CSV, index=False, encoding="utf-8")
+                return df_mysql
     except Exception as err:
         logger.warning(f"No se pudo consultar MySQL para historial NBA: {err}")
 
-    # 2. Si MySQL no está disponible, intentar desde Parquet local
-    if RUTA_HISTORIAL_PARQUET.exists():
-        try:
-            df = pd.read_parquet(RUTA_HISTORIAL_PARQUET)
-            if not df.empty:
-                return df
-        except Exception as err:
-            logger.warning(f"Error cargando parquet de historial NBA: {err}")
+    # Fallback local verificado
+    if not df_local.empty:
+        return df_local
 
     return pd.DataFrame()
 

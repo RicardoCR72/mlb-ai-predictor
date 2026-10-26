@@ -35,7 +35,12 @@ RUTA_DATA_NBA = RAIZ / "data" / "nba"
 RUTA_PREDICCIONES = RUTA_DATA_NBA / "predictions" / "predicciones_nba_hoy.json"
 
 from nba.predecir_hoy import predecir_partidos_hoy
-from nba.registro import cargar_historial_rendimiento, liquidar_partidos_pendientes_nba, guardar_predicciones_nba
+from nba.registro import (
+    cargar_historial_rendimiento,
+    liquidar_partidos_pendientes_nba,
+    guardar_predicciones_nba,
+    es_liquidacion_valida,
+)
 from nba.proveedor_cuotas import american_to_prob
 from core.constants import ZONA_CDMX
 
@@ -563,7 +568,7 @@ def render_historial_nba(mercado_filtro: str = ""):
         st.info("No hay historial disponible aún en la base de datos de la NBA.")
         return
 
-    liquidados = df_hist[df_hist["resultado"].isin(["GANADA", "PERDIDA", "PUSH"])].copy()
+    liquidados = df_hist[df_hist.apply(es_liquidacion_valida, axis=1)].copy()
     if liquidados.empty:
         st.info("Aún no hay apuestas liquidadas en el historial de la NBA.")
         return
