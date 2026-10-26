@@ -408,6 +408,8 @@ def base_proyeccion(features):
         "player_carries_avg_5", "is_primary_rusher",
         "player_targets_avg_5", "player_receiving_yards_avg_5",
         "player_target_share_avg_5", "player_receptions_avg_5",
+        "player_passing_attempts_avg_5", "player_passing_yards_avg_5",
+        "player_passing_tds_avg_5", "player_rushing_yards_avg_5",
     ]
     base = features[[c for c in columnas if c in features.columns]].copy()
     if "player_injury_status" not in base:
@@ -427,6 +429,52 @@ def base_proyeccion(features):
     return base
 
 
+def aplicar_inercia_volumen_elite(proyeccion, df, tipo_prop):
+    """Ajusta las proyecciones para evitar el sesgo de subestimación (shrinkage) en superestrellas (WRs, QBs, RBs).
+    
+    Los modelos de árboles (Gradient Boosting) tienden a comprimir las proyecciones hacia la media
+    de la liga (techo de ~75-80 yds en pase/recepción). Para jugadores con volumen dominante reciente
+    (altos targets, acarreos o intentos de pase), pondera su inercia de volumen real para que el modelo
+    pueda proyectar adecuadamente y recomendar OVER cuando esté justificado.
+    """
+    proj = np.asarray(proyeccion, dtype=float).copy()
+    if tipo_prop == "receiving_yards":
+        targets = pd.to_numeric(df.get("player_targets_avg_5", pd.Series(0.0, index=df.index)), errors="coerce").fillna(0.0).to_numpy()
+        yds_avg = pd.to_numeric(df.get("player_receiving_yards_avg_5", pd.Series(0.0, index=df.index)), errors="coerce").fillna(0.0).to_numpy()
+        mask = (targets >= 7.5) | (yds_avg >= 70.0)
+        peso = np.clip((targets - 6.0) / 10.0, 0.0, 0.40)
+        ajuste = np.where(mask & (yds_avg > proj), (1.0 - peso) * proj + peso * yds_avg, proj)
+        return ajuste
+    elif tipo_prop == "receptions":
+        targets = pd.to_numeric(df.get("player_targets_avg_5", pd.Series(0.0, index=df.index)), errors="coerce").fillna(0.0).to_numpy()
+        rec_avg = pd.to_numeric(df.get("player_receptions_avg_5", pd.Series(0.0, index=df.index)), errors="coerce").fillna(0.0).to_numpy()
+        mask = (targets >= 7.5) | (rec_avg >= 6.0)
+        peso = np.clip((targets - 6.0) / 10.0, 0.0, 0.40)
+        ajuste = np.where(mask & (rec_avg > proj), (1.0 - peso) * proj + peso * rec_avg, proj)
+        return ajuste
+    elif tipo_prop == "rushing_yards":
+        carries = pd.to_numeric(df.get("player_carries_avg_5", pd.Series(0.0, index=df.index)), errors="coerce").fillna(0.0).to_numpy()
+        rush_avg = pd.to_numeric(df.get("player_rushing_yards_avg_5", pd.Series(0.0, index=df.index)), errors="coerce").fillna(0.0).to_numpy()
+        mask = (carries >= 15.0) | (rush_avg >= 70.0)
+        peso = np.clip((carries - 13.0) / 12.0, 0.0, 0.35)
+        ajuste = np.where(mask & (rush_avg > proj), (1.0 - peso) * proj + peso * rush_avg, proj)
+        return ajuste
+    elif tipo_prop == "passing_yards":
+        att = pd.to_numeric(df.get("player_passing_attempts_avg_5", pd.Series(0.0, index=df.index)), errors="coerce").fillna(0.0).to_numpy()
+        pass_avg = pd.to_numeric(df.get("player_passing_yards_avg_5", pd.Series(0.0, index=df.index)), errors="coerce").fillna(0.0).to_numpy()
+        mask = (att >= 34.0) | (pass_avg >= 250.0)
+        peso = np.clip((att - 30.0) / 15.0, 0.0, 0.30)
+        ajuste = np.where(mask & (pass_avg > proj), (1.0 - peso) * proj + peso * pass_avg, proj)
+        return ajuste
+    elif tipo_prop == "passing_tds":
+        td_avg = pd.to_numeric(df.get("player_passing_tds_avg_5", pd.Series(0.0, index=df.index)), errors="coerce").fillna(0.0).to_numpy()
+        mask = td_avg >= 1.8
+        peso = 0.25
+        ajuste = np.where(mask & (td_avg > proj), (1.0 - peso) * proj + peso * td_avg, proj)
+        return ajuste
+    return proj
+
+
 def construir_proyecciones(features, pase, carrera, touchdown):
     for ruta in [RUTA_MODELO_RECEPCIONES, RUTA_MODELO_YARDAS, RUTA_VALIDACION]:
         if not ruta.exists():
@@ -444,10 +492,13 @@ def construir_proyecciones(features, pase, carrera, touchdown):
     base = base_proyeccion(features)
     recepciones = base.copy()
     recepciones["tipo_prop"] = "receptions"
-    recepciones["proyeccion"] = predecir_modelo(modelo_recepciones, features)
+    pred_rec = predecir_modelo(modelo_recepciones, features)
+    recepciones["proyeccion"] = aplicar_inercia_volumen_elite(pred_rec, features, "receptions")
+
     yardas = base.copy()
     yardas["tipo_prop"] = "receiving_yards"
-    yardas["proyeccion"] = predecir_modelo(modelo_yardas, features)
+    pred_yds = predecir_modelo(modelo_yardas, features)
+    yardas["proyeccion"] = aplicar_inercia_volumen_elite(pred_yds, features, "receiving_yards")
 
     config = json.loads(RUTA_CALIBRACION_PC.read_text(encoding="utf-8"))
     adicionales = []
@@ -468,7 +519,7 @@ def construir_proyecciones(features, pase, carrera, touchdown):
                 + ajuste.get("pendiente", 1.0) * prediccion,
                 0.0,
             )
-        bloque["proyeccion"] = prediccion
+        bloque["proyeccion"] = aplicar_inercia_volumen_elite(prediccion, conjunto, objetivo)
         adicionales.append(bloque)
 
     modelo_td = joblib.load(RUTA_MODELO_ANYTIME_TD)
@@ -722,6 +773,13 @@ def agregar_lineas_y_probabilidades(proyecciones, lineas):
     receptor_elite_recs = es_under_recs & (linea_val >= 7.0) & (targets_promedio >= 7.5)
     candidato &= ~receptor_elite_yds
     candidato &= ~receptor_elite_recs
+
+    # Candado 6: Mariscales de Campo Élite: PROHIBIR UNDER en pases de touchdown si promedia >= 2.0 TDs recientes
+    es_under_pass_tds = resultado["tipo_prop"].eq("passing_tds") & resultado["seleccion"].eq("UNDER")
+    pass_tds_promedio = pd.to_numeric(
+        resultado.get("player_passing_tds_avg_5", pd.Series(0.0, index=resultado.index)), errors="coerce"
+    ).fillna(0.0)
+    candidato &= ~(es_under_pass_tds & (pass_tds_promedio >= 2.0))
 
     resultado.loc[candidato, "estado_pick"] = "CANDIDATO"
     revisar_lesion = candidato & resultado["player_injury_status"].eq(
