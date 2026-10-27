@@ -296,48 +296,6 @@ def render():
             st.metric("Picks Calificados (+EV)", len(picks))
         st.markdown("<div style='margin-bottom: 1.25rem;'></div>", unsafe_allow_html=True)
 
-
-
-    # ==========================================================
-    # NAVEGACIÓN INTERNA: sin pestaña independiente de metodología.
-    # ==========================================================
-
-    if seccion_totales == "🔥 Picks filtrados":
-        with st.container():
-            st.subheader(f"Oportunidades · Semana {semana}")
-            st.caption(
-                "Solo partidos pendientes de hoy en adelante que superan los "
-                "filtros de edge y valor esperado. Confirma la línea antes de "
-                "utilizarlos."
-            )
-            partidos_candidatos = opciones_partidos(picks)
-            partido_candidato = safe_select(
-                "Partido",
-                list(partidos_candidatos),
-                key="totales_partido_candidatos",
-            )
-            picks_mostrar = picks
-            if partidos_candidatos[partido_candidato] is not None:
-                picks_mostrar = picks_mostrar[
-                    picks_mostrar["id_juego"] == partidos_candidatos[partido_candidato]
-                ]
-            if picks_mostrar.empty:
-                state_message('No quedan picks pendientes para ese partido en la semana actual.',kind='filters')
-            else:
-                filas_picks = list(
-                    render_order(picks_mostrar, 'nfl_total_picks',date_col='gameday',confidence_col='prob_pick',ev_col='ev',upcoming=True).iterrows()
-                )
-                for inicio in range(0, len(filas_picks), 2):
-                    columnas = st.columns(2, gap="medium")
-                    for columna, (_, fila) in zip(
-                        columnas, filas_picks[inicio:inicio + 2]
-                    ):
-                        with columna:
-                            mostrar_partido(fila)
-
-    if seccion_totales == "📋 Todos los partidos":
-        st.subheader("Calendario analizado")
-
         f_col1, f_col2 = st.columns([2, 1], gap="medium")
         with f_col1:
             busqueda_tot = st.text_input(
@@ -347,33 +305,40 @@ def render():
             ).strip().lower()
         with f_col2:
             st.markdown("<div style='margin-top: 1.8rem;'></div>", unsafe_allow_html=True)
-            solo_ev_tot = st.checkbox("🔥 Solo picks Calificados (+EV)", key="nfl_tot_ev_filter")
+            solo_ev_tot = st.checkbox(
+                "🔥 Solo picks Calificados (+EV)",
+                key="nfl_tot_ev_filter",
+                value=(seccion_totales == "🔥 Picks filtrados"),
+            )
 
-        filtrado_mostrar = filtrado.copy()
+        if solo_ev_tot or seccion_totales == "🔥 Picks filtrados":
+            base_mostrar = picks.copy()
+        else:
+            base_mostrar = filtrado.copy()
+
         if busqueda_tot:
-            filtrado_mostrar = filtrado_mostrar[
-                filtrado_mostrar["home_team"].astype(str).str.lower().str.contains(busqueda_tot, na=False) |
-                filtrado_mostrar["away_team"].astype(str).str.lower().str.contains(busqueda_tot, na=False)
+            base_mostrar = base_mostrar[
+                base_mostrar["home_team"].astype(str).str.lower().str.contains(busqueda_tot, na=False) |
+                base_mostrar["away_team"].astype(str).str.lower().str.contains(busqueda_tot, na=False)
             ]
-        if solo_ev_tot:
-            filtrado_mostrar = filtrado_mostrar[filtrado_mostrar["id_juego"].isin(picks["id_juego"])]
 
-        st.caption(f"Mostrando {len(filtrado_mostrar)} partidos.")
-        if filtrado_mostrar.empty:
+        if base_mostrar.empty:
             st.warning("No hay partidos o picks que coincidan con los filtros de búsqueda seleccionados.")
         else:
-            filas_partidos = list(filtrado_mostrar.iterrows())
-            for inicio in range(0, len(filas_partidos), 2):
+            filas_picks = list(
+                render_order(base_mostrar, 'nfl_total_picks', date_col='gameday', confidence_col='prob_pick', ev_col='ev', upcoming=True).iterrows()
+            )
+            for inicio in range(0, len(filas_picks), 2):
                 columnas = st.columns(2, gap="medium")
                 for columna, (_, fila) in zip(
-                    columnas, filas_partidos[inicio:inicio + 2]
+                    columnas, filas_picks[inicio:inicio + 2]
                 ):
                     with columna:
                         mostrar_partido(fila)
 
     if seccion_totales == "📈 Rendimiento":
         from core.ui_historial_publicado import render_history
-        render_history("NFL",'Totales',key='nfl_totales_perf')
+        render_history("NFL", 'Totales', key='nfl_totales_perf')
 
     if seccion_totales != "📈 Rendimiento":
         from core.ui_boleta import render_widget_boleta
