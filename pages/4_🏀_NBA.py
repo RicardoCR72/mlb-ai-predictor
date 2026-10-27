@@ -10,12 +10,15 @@ Rediseñada con arquitectura homologada a MLB y NFL:
 from __future__ import annotations
 
 import json
+import logging
 from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 import numpy as np
 import pandas as pd
 import streamlit as st
+
+logger = logging.getLogger(__name__)
 
 st.set_page_config(
     page_title="NBA Oráculo AI · Pronósticos y Rendimiento",
@@ -50,8 +53,18 @@ def cargar_predicciones(forzar: bool = False):
     hoy_cdmx = datetime.now(ZONA_CDMX).strftime("%Y-%m-%d")
     if forzar or not RUTA_PREDICCIONES.exists():
         with st.spinner("Consultando DraftKings y ejecutando modelos de la NBA..."):
-            preds = predecir_partidos_hoy(force_refresh=forzar)
-            return preds
+            try:
+                preds = predecir_partidos_hoy(force_refresh=forzar)
+                return preds
+            except Exception as e_gen:
+                logger.warning(f"Error generando predicciones NBA: {e_gen}")
+                if RUTA_PREDICCIONES.exists():
+                    try:
+                        with open(RUTA_PREDICCIONES, "r", encoding="utf-8") as f:
+                            return json.load(f)
+                    except Exception:
+                        pass
+                return []
     try:
         with open(RUTA_PREDICCIONES, "r", encoding="utf-8") as f:
             preds = json.load(f)
@@ -80,7 +93,8 @@ def cargar_predicciones(forzar: bool = False):
         logger.warning(f"Error en predicciones NBA: {e}")
         try:
             return predecir_partidos_hoy(force_refresh=True)
-        except Exception:
+        except Exception as e_fb:
+            logger.warning(f"Fallback a inferencia falló: {e_fb}")
             return []
 
 

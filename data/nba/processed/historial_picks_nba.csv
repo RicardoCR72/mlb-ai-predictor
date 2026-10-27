@@ -106,3 +106,7 @@ id,id_juego,fecha,hora_cdmx,equipo_local,equipo_visitante,mercado,seleccion,line
 ,401909876_ml,2026-10-26,20:00,Denver Nuggets,Golden State Warriors,Moneyline,Golden State Warriors ML,0.0,3.35,0.478,0.18,LONGSHOT,,,PENDIENTE,,2026-10-26 08:22:55.957795
 ,401909876_tot,2026-10-26,20:00,Denver Nuggets,Golden State Warriors,Totales (UNDER),UNDER 236.5,236.5,1.909,0.599,0.075,ALTA,,,PENDIENTE,,2026-10-26 08:22:55.957795
 ,401909876_spread,2026-10-26,20:00,Denver Nuggets,Golden State Warriors,Spread,Golden State Warriors +7.5,-7.5,1.909,0.565,0.041,MEDIA,,,PENDIENTE,,2026-10-26 08:22:55.957795
+,401909877_ml,2026-10-27,17:30,Boston Celtics,Brooklyn Nets,Moneyline,Brooklyn Nets ML,0.0,5.25,0.37,0.18,LONGSHOT,,,PENDIENTE,,2026-10-27 08:22:07.039358
+,401909878_ml,2026-10-27,18:00,New York Knicks,Detroit Pistons,Moneyline,Detroit Pistons ML,0.0,2.3,0.507,0.072,MEDIA,,,PENDIENTE,,2026-10-27 08:22:07.039358
+,401909879_ml,2026-10-27,18:00,San Antonio Spurs,Sacramento Kings,Moneyline,Sacramento Kings ML,0.0,10.5,0.275,0.18,LONGSHOT,,,PENDIENTE,,2026-10-27 08:22:07.039358
+,401909879_spread,2026-10-27,18:00,San Antonio Spurs,Sacramento Kings,Spread,Sacramento Kings +18.5,-18.5,1.909,0.623,0.1,ALTA,,,PENDIENTE,,2026-10-27 08:22:07.039358
