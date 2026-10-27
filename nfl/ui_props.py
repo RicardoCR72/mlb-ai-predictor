@@ -494,7 +494,7 @@ def render():
         with c3:
             st.metric("Finalizados", num_finalizados)
         with c4:
-            st.metric("Picks de Alto Valor", len(candidatos))
+            st.metric("Picks Calificados (+EV)", len(candidatos))
         st.markdown("<div style='margin-bottom: 1.25rem;'></div>", unsafe_allow_html=True)
 
 
@@ -519,7 +519,7 @@ def render():
                 "participación, lesión y movimiento de la línea antes de "
                 "utilizarlos."
             )
-            selector_partido, selector_mercado, selector_busqueda = st.columns([1, 1, 1], gap="medium")
+            selector_partido, selector_mercado, selector_busqueda, selector_ev = st.columns([1.1, 1.1, 1.3, 0.9], gap="medium")
             with selector_partido:
                 partidos_candidatos = opciones_partidos(candidatos_mostrar)
                 partido_candidato = safe_select(
@@ -540,6 +540,14 @@ def render():
                     key="nfl_props_search_input",
                     placeholder="🔍 Ej: Mahomes, Kelce, KC...",
                 ).strip().lower()
+            with selector_ev:
+                st.markdown("<div style='margin-top: 1.8rem;'></div>", unsafe_allow_html=True)
+                solo_ev_props = st.checkbox("🔥 Solo picks Calificados (+EV)", key="nfl_props_ev_filter", value=False)
+
+            if solo_ev_props:
+                candidatos_mostrar = candidatos_mostrar[
+                    (candidatos_mostrar["ev_estimado"] > 0) & (candidatos_mostrar["estado_pick"] == "CANDIDATO")
+                ]
 
             if partidos_candidatos[partido_candidato] is not None:
                 candidatos_mostrar = candidatos_mostrar[

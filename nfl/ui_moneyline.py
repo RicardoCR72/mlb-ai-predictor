@@ -113,6 +113,8 @@ def render_cartelera(predicciones: list[dict]):
     pendientes = [p for p in predicciones if p.get("resultado_pick") not in ["GANADA", "PERDIDA", "PUSH"]]
     liquidados = [p for p in predicciones if p.get("resultado_pick") in ["GANADA", "PERDIDA", "PUSH"]]
 
+    picks_calificados = sum(1 for p in predicciones if p.get("confianza") in ["ALTA", "MEDIA"])
+
     # Métricas clave superiores
     c1, c2, c3, c4 = st.columns(4)
     with c1:
@@ -122,13 +124,41 @@ def render_cartelera(predicciones: list[dict]):
     with c3:
         st.metric("Finalizados", len(liquidados))
     with c4:
-        picks_valor = sum(1 for p in predicciones if p.get("pick_edge", 0) >= 0.05)
-        st.metric("Picks de Alto Valor", picks_valor)
+        st.metric("Picks Calificados (+EV)", picks_calificados)
 
     st.markdown("<div style='margin-bottom: 1.25rem;'></div>", unsafe_allow_html=True)
 
+    f_col1, f_col2 = st.columns([2, 1], gap="medium")
+    with f_col1:
+        busqueda_nfl = st.text_input(
+            "Buscar equipo NFL",
+            key="nfl_ml_search_input",
+            placeholder="🔍 Ej: Chiefs, 49ers, Eagles, Cowboys, Ravens...",
+        ).strip().lower()
+    with f_col2:
+        st.markdown("<div style='margin-top: 1.8rem;'></div>", unsafe_allow_html=True)
+        solo_ev = st.checkbox("🔥 Solo picks Calificados (+EV)", key="nfl_ml_ev_filter")
+
+    lista_mostrar = predicciones
+    if busqueda_nfl:
+        lista_mostrar = [
+            p for p in lista_mostrar
+            if (busqueda_nfl in str(p.get("equipo_local", "")).lower() or
+                busqueda_nfl in str(p.get("equipo_visita", "")).lower() or
+                busqueda_nfl in str(p.get("partido", "")).lower())
+        ]
+    if solo_ev:
+        lista_mostrar = [
+            p for p in lista_mostrar
+            if p.get("confianza") in ["ALTA", "MEDIA"]
+        ]
+
+    if not lista_mostrar:
+        st.warning("No hay partidos o picks que coincidan con los filtros de búsqueda seleccionados.")
+        return
+
     # Renderizar tarjetas individuales
-    for idx, p in enumerate(predicciones):
+    for idx, p in enumerate(lista_mostrar):
         home = p["equipo_local"]
         away = p["equipo_visita"]
         prob_h = p.get("prob_local", 0.5) * 100

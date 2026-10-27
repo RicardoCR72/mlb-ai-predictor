@@ -202,9 +202,9 @@ def render_cartelera_futbol(predicciones: list[dict], mercado_activo: str):
         or "FINAL" in str(p.get("estado", "")).upper()
         or "FULL_TIME" in str(p.get("estado", "")).upper()
     )
-    n_alto_valor = sum(
+    picks_calificados = sum(
         1 for p in predicciones
-        if p.get("confianza") == "ALTA" or float(p.get("pick_edge", 0.0)) >= 0.05
+        if obtener_pick_para_mercado_futbol(p, mercado_activo).get("confianza") in ["ALTA", "MEDIA"]
     )
 
     # Nivel 4: 4 Tarjetas Métricas
@@ -212,9 +212,20 @@ def render_cartelera_futbol(predicciones: list[dict], mercado_activo: str):
     mcol1.metric("Total Partidos", f"{tot_partidos} juegos")
     mcol2.metric("Pendientes", n_pendientes)
     mcol3.metric("Finalizados", n_finalizados)
-    mcol4.metric("Picks de Alto Valor", n_alto_valor)
+    mcol4.metric("Picks Calificados (+EV)", picks_calificados)
 
     st.markdown("<div style='margin-bottom: 0.8rem;'></div>", unsafe_allow_html=True)
+
+    f_col1, f_col2 = st.columns([2, 1], gap="medium")
+    with f_col1:
+        busqueda_futbol = st.text_input(
+            "Buscar equipo de Fútbol",
+            key="futbol_search_input",
+            placeholder="🔍 Ej: Real Madrid, Barcelona, Arsenal, América, Chivas...",
+        ).strip().lower()
+    with f_col2:
+        st.markdown("<div style='margin-top: 1.8rem;'></div>", unsafe_allow_html=True)
+        solo_ev = st.checkbox("🔥 Solo picks Calificados (+EV)", key="futbol_ev_filter")
 
     # Selector de Ligas y Filtros
     nombres_ligas = {
@@ -273,6 +284,18 @@ def render_cartelera_futbol(predicciones: list[dict], mercado_activo: str):
 
     # Filtrar predicciones
     filtrados = list(predicciones)
+    if busqueda_futbol:
+        filtrados = [
+            p for p in filtrados
+            if (busqueda_futbol in str(p.get("equipo_local", "")).lower() or
+                busqueda_futbol in str(p.get("equipo_visita", "")).lower() or
+                busqueda_futbol in str(p.get("partido", "")).lower())
+        ]
+    if solo_ev:
+        filtrados = [
+            p for p in filtrados
+            if obtener_pick_para_mercado_futbol(p, mercado_activo).get("confianza") in ["ALTA", "MEDIA"]
+        ]
     if liga_seleccionada != "todas":
         filtrados = [p for p in filtrados if p.get("liga_codigo") == liga_seleccionada]
 

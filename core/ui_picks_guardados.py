@@ -28,7 +28,7 @@ def render_mlb_today(market):
     if 'publicada_utc' in frame:frame=frame.sort_values('publicada_utc',ascending=False,na_position='last')
     frame=frame.drop_duplicates('identidad')
 
-    picks_valor=int((frame['probabilidad']>=0.55).sum()) if not frame.empty and 'probabilidad' in frame else len(frame)
+    picks_calificados = int((frame['probabilidad']>=0.54).sum()) if not frame.empty and 'probabilidad' in frame else len(frame)
 
     c1, c2, c3, c4 = st.columns(4)
     with c1:
@@ -38,11 +38,35 @@ def render_mlb_today(market):
     with c3:
         st.metric("Finalizados", finalizados)
     with c4:
-        st.metric("Picks de Alto Valor", picks_valor)
+        st.metric("Picks Calificados (+EV)", picks_calificados)
     st.markdown("<div style='margin-bottom: 1.25rem;'></div>", unsafe_allow_html=True)
+
+    f_col1, f_col2 = st.columns([2, 1], gap="medium")
+    with f_col1:
+        busqueda_mlb = st.text_input(
+            "Buscar equipo MLB",
+            key=f"mlb_{market.lower()}_search_input",
+            placeholder="🔍 Ej: Yankees, Dodgers, Red Sox, Astros, Cubs...",
+        ).strip().lower()
+    with f_col2:
+        st.markdown("<div style='margin-top: 1.8rem;'></div>", unsafe_allow_html=True)
+        solo_ev_mlb = st.checkbox("🔥 Solo picks Calificados (+EV)", key=f"mlb_{market.lower()}_ev_filter")
 
     if frame.empty:state_message('No hay picks publicados para partidos de hoy sin iniciar.');return
     shown=frame.sort_values('probabilidad',ascending=False)
+    if busqueda_mlb:
+        shown = shown[
+            shown.get('equipo_local', pd.Series('', index=shown.index)).astype(str).str.lower().str.contains(busqueda_mlb) |
+            shown.get('equipo_visitante', pd.Series('', index=shown.index)).astype(str).str.lower().str.contains(busqueda_mlb) |
+            shown.get('partido', pd.Series('', index=shown.index)).astype(str).str.lower().str.contains(busqueda_mlb)
+        ]
+    if solo_ev_mlb:
+        if 'probabilidad' in shown:
+            shown = shown[shown['probabilidad'] >= 0.54]
+
+    if shown.empty:
+        st.warning("No hay partidos o picks que coincidan con los filtros de búsqueda seleccionados.")
+        return
     for start in range(0,len(shown),2):
         columns=st.columns(2,gap='medium')
         for col,(_,row) in zip(columns,shown.iloc[start:start+2].iterrows()):
