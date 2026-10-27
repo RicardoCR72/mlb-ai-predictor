@@ -116,6 +116,19 @@ class TestFutbolV2(unittest.TestCase):
         self.assertFalse(es_partido_finalizado("STATUS_IN_PROGRESS"))
         self.assertFalse(es_partido_finalizado("STATUS_SCHEDULED"))
 
+    def test_historial_auditoria_futbol(self):
+        from futbol.registro import cargar_historial_futbol, liquidar_seleccion_futbol
+        df = cargar_historial_futbol()
+        self.assertFalse(df.empty, "El historial de fútbol no debe estar vacío")
+        columnas_requeridas = ["fecha", "partido", "resultado", "beneficio_unidades", "liga_nombre"]
+        for col in columnas_requeridas:
+            self.assertIn(col, df.columns, f"Falta columna requerida: {col}")
+
+        # Debe contener selecciones liquidadas
+        resueltos = df[df["resultado"].isin(["GANADA", "PERDIDA", "PUSH"])]
+        self.assertGreater(len(resueltos), 0, "Debe haber picks concluidos con resultado oficial")
+
 
 if __name__ == "__main__":
     unittest.main()
+

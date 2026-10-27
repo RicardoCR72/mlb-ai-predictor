@@ -89,6 +89,14 @@ def asegurar_tabla_futbol_mysql():
 def cargar_historial_futbol() -> pd.DataFrame:
     """Carga el historial auditado de picks de fútbol desde MySQL o archivos locales."""
     try:
+        from futbol.registro import cargar_historial_futbol as _cargar_hist
+        df = _cargar_hist()
+        if not df.empty:
+            return df
+    except Exception:
+        pass
+
+    try:
         conn = get_db_connection()
         df = pd.read_sql("SELECT * FROM futbol_predicciones ORDER BY fecha_cdmx DESC, id DESC", conn)
         conn.close()
@@ -424,7 +432,22 @@ def predecir_futbol_mundial(
 
 
 def liquidar_partidos_pendientes_futbol() -> Dict[str, Any]:
-    """Revisa partidos en base de datos o JSON y actualiza marcadores finales y liquidaciones."""
+    """Revisa partidos concluidos y actualiza marcadores finales y liquidaciones auditadas."""
+    try:
+        from futbol.registro import liquidar_partidos_pendientes_futbol as _liq_reg
+        res = _liq_reg()
+        if res.get("total_evaluados", 0) > 0 or res.get("resueltas", 0) > 0 or res.get("total_pendientes", 0) > 0:
+            return {
+                "total_partidos": res.get("total_pendientes", 0) + res.get("resueltas", 0),
+                "resueltas": res.get("resueltas", 0),
+                "ganadas": res.get("ganadas", 0),
+                "perdidas": res.get("perdidas", 0),
+                "pushes": res.get("pushes", 0),
+                "unidades_netas": res.get("unidades_netas", 0.0),
+            }
+    except Exception as exc:
+        logger.warning(f"Error en liquidar_partidos_pendientes_futbol (registro): {exc}")
+
     preds = predecir_futbol_mundial(force_refresh=True)
     resueltas = sum(1 for p in preds if p.get("resultado_pick") in ["GANADA", "PERDIDA", "PUSH"])
     ganadas = sum(1 for p in preds if p.get("resultado_pick") == "GANADA")

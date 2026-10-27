@@ -35,10 +35,13 @@ install_navigation()
 from core.constants import ZONA_CDMX
 from core.ui_rendimiento_diseno import performance_filters, safe_select
 from futbol.constantes import LIGAS_DISPONIBLES, CODIGOS_LIGAS, obtener_info_liga
-from futbol.predecir_jornada import (
-    predecir_futbol_mundial,
+from futbol.registro import (
+    render_historial_futbol,
     liquidar_partidos_pendientes_futbol,
     cargar_historial_futbol,
+)
+from futbol.predecir_jornada import (
+    predecir_futbol_mundial,
     RUTA_PREDICCIONES_JSON,
 )
 
@@ -597,71 +600,8 @@ def render_cartelera_futbol(predicciones: list[dict], mercado_activo: str):
 
 
 
-def render_historial_futbol(mercado_activo: str):
-    """Renderiza la auditoría y rendimiento histórico de selecciones de fútbol."""
-    st.subheader("Auditoría Histórica de Selecciones Oficiales")
-    df_hist = cargar_historial_futbol()
-    if df_hist.empty:
-        st.info("Aún no hay historial de partidos liquidados en el registro de fútbol mundial.")
-        return
-
-    df_filtrado = performance_filters(
-        df_hist,
-        "fecha",
-        "hist_futbol_tab",
-        probability_col="probabilidad",
-        result_col="resultado",
-    )
-    if df_filtrado.empty:
-        st.warning("No hay registros en el rango seleccionado.")
-        return
-
-    # Filtrar por mercado activo si hay coincidencias
-    if "Totales" in mercado_activo:
-        df_mercado = df_filtrado[df_filtrado["pick_mercado"].astype(str).str.contains("Total|Over|Under", case=False, na=False)]
-    elif "Moneyline" in mercado_activo:
-        df_mercado = df_filtrado[df_filtrado["pick_mercado"].astype(str).str.contains("Moneyline|1X2", case=False, na=False)]
-    elif "Ambos Anotan" in mercado_activo or "BTTS" in mercado_activo:
-        df_mercado = df_filtrado[df_filtrado["pick_mercado"].astype(str).str.contains("Ambos|BTTS", case=False, na=False)]
-    elif "Doble Oportunidad" in mercado_activo:
-        df_mercado = df_filtrado[df_filtrado["pick_mercado"].astype(str).str.contains("Doble|1X|X2", case=False, na=False)]
-    else:
-        df_mercado = df_filtrado
-
-    # Filtrar solo picks concluidos oficiales (excluyendo descartados por zona muerta)
-    df_validos = df_mercado[~df_mercado["resultado"].isin(["DESCARTADO", "PENDIENTE"])]
-    df_mostrar = df_validos if not df_validos.empty else df_mercado
-
-    total_picks = len(df_mostrar)
-    ganados = sum(df_mostrar["resultado"] == "GANADA")
-    perdidos = sum(df_mostrar["resultado"] == "PERDIDA")
-    resueltos = ganados + perdidos
-    win_rate = (ganados / resueltos * 100) if resueltos > 0 else 0.0
-    pnl_tot = sum(df_mostrar.get("beneficio_unidades", 0.0).fillna(0))
-
-    hc1, hc2, hc3, hc4 = st.columns(4)
-    hc1.metric("Picks Auditados", total_picks)
-    hc2.metric("Tasa de Acierto", f"{win_rate:.1f}%", f"{ganados}W - {perdidos}L")
-    hc3.metric("Beneficio Acumulado", f"{pnl_tot:+.2f} u")
-    hc4.metric("ROI Estimado", f"{(pnl_tot/max(resueltos, 1))*100:+.1f}%")
-
-    st.markdown("<div style='margin-bottom: 0.8rem;'></div>", unsafe_allow_html=True)
-
-    columnas_mostrar = [
-        "fecha_cdmx", "liga_nombre", "partido", "pick_mercado",
-        "pick_seleccion", "pick_cuota", "pick_probabilidad", "resultado", "beneficio_unidades"
-    ]
-    renombres = {
-        "fecha_cdmx": "Fecha", "liga_nombre": "Liga", "partido": "Partido",
-        "pick_mercado": "Mercado", "pick_seleccion": "Pick", "pick_cuota": "Cuota",
-        "pick_probabilidad": "Prob", "resultado": "Estado", "beneficio_unidades": "Unidades"
-    }
-    cols_existentes = [c for c in columnas_mostrar if c in df_mostrar.columns]
-    st.dataframe(
-        df_mostrar[cols_existentes].rename(columns=renombres),
-        use_container_width=True,
-        hide_index=True,
-    )
+# render_historial_futbol se importa directamente de futbol.registro
+# proporcionando auditoría ejecutiva con métricas, curva de PnL y tarjetas de partidos.
 
 
 # ==========================================================
