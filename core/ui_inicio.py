@@ -21,7 +21,9 @@ def render_home():
         )
     with r_col2:
         if st.button('🔄 Actualizar resumen', key='home_refresh', use_container_width=True, help='Vuelve a leer los datos guardados. No genera predicciones.'):
-            summary.load_snapshot.clear(); st.rerun()
+            summary.load_snapshot.clear()
+            st.cache_data.clear()
+            st.rerun()
     services=data['services']
     sports=[services[k] for k in ('mlb','mlb_total','nfl_totales','nfl_props','liga_mx','nba') if k in services]
     cols=st.columns(3)

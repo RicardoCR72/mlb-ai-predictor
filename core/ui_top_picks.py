@@ -16,6 +16,7 @@ RAIZ = Path(__file__).resolve().parents[1]
 @st.cache_data(ttl=60)
 def obtener_top_picks_del_dia(max_picks: int = 3) -> list[dict]:
     """Recolecta y clasifica las mejores recomendaciones del día de todos los deportes."""
+    hoy_cdmx = datetime.now(ZONA_CDMX).strftime("%Y-%m-%d")
     picks = []
 
     # 1. Fútbol
@@ -25,6 +26,9 @@ def obtener_top_picks_del_dia(max_picks: int = 3) -> list[dict]:
             with open(p_futbol, "r", encoding="utf-8") as f:
                 data = json.load(f)
             for j in data:
+                f_j = str(j.get("fecha_cdmx") or j.get("fecha", ""))[:10]
+                if f_j and f_j != hoy_cdmx:
+                    continue
                 estado = str(j.get("estado", "")).upper()
                 res = str(j.get("resultado_pick", "PENDIENTE")).upper()
                 if "FINAL" not in estado and "FULL_TIME" not in estado and res not in ["GANADA", "PERDIDA", "PUSH"]:
@@ -59,6 +63,9 @@ def obtener_top_picks_del_dia(max_picks: int = 3) -> list[dict]:
             with open(p_nba, "r", encoding="utf-8") as f:
                 data = json.load(f)
             for j in data:
+                f_j = str(j.get("fecha_cdmx") or j.get("fecha", ""))[:10]
+                if f_j and f_j != hoy_cdmx:
+                    continue
                 estado = str(j.get("estado", "")).upper()
                 res = str(j.get("resultado", "PENDIENTE")).upper()
                 if "FINAL" not in estado and res not in ["GANADA", "PERDIDA", "PUSH"]:
@@ -180,6 +187,9 @@ def obtener_top_picks_del_dia(max_picks: int = 3) -> list[dict]:
             with open(p_nfl, "r", encoding="utf-8") as f:
                 data = json.load(f)
             for j in data:
+                f_j = str(j.get("fecha_cdmx") or j.get("gameday", ""))[:10]
+                if f_j and f_j != hoy_cdmx:
+                    continue
                 estado = str(j.get("estado", "")).upper()
                 res = str(j.get("resultado_pick", "PENDIENTE")).upper()
                 if "FINAL" not in estado and res not in ["GANADA", "PERDIDA", "PUSH"]:
@@ -213,6 +223,9 @@ def obtener_top_picks_del_dia(max_picks: int = 3) -> list[dict]:
             with open(p_mlb, "r", encoding="utf-8") as f:
                 data = json.load(f)
             for j in data:
+                f_j = str(j.get("fecha", ""))[:10]
+                if f_j and f_j != hoy_cdmx:
+                    continue
                 res = str(j.get("resultado", "PENDIENTE")).upper()
                 if res not in ["GANADA", "PERDIDA", "PUSH"]:
                     prob = float(j.get("probabilidad", 0.5))

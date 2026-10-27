@@ -95,7 +95,7 @@ def liquidar_totales_nfl(partidos_espn: List[Dict[str, Any]]) -> int:
                 """
                 UPDATE nfl_juegos
                 SET marcador_visitante = %s, marcador_local = %s, estado = 'finalizado'
-                WHERE equipo_visitante = %s AND equipo_local = %s AND temporada = 2026 AND semana = 7;
+                WHERE equipo_visitante = %s AND equipo_local = %s AND temporada = 2026;
                 """,
                 (datos["marcador_visita"], datos["marcador_local"], v, l),
             )
@@ -232,18 +232,17 @@ def liquidar_props_nfl(partidos_espn: List[Dict[str, Any]]) -> int:
             if not v or not l:
                 continue
 
-            id_juego_candidato = f"2026_07_{v}_{l}"
-
-            # Consultar props pendientes de este juego
+            # Consultar props pendientes de este juego uniendo dinámicamente nfl_juegos
             cursor.execute(
                 """
                 SELECT p.id_proyeccion, p.tipo_prop, p.linea, p.seleccion, p.cuota_pick,
                        ju.nombre as nombre_jugador
                 FROM nfl_proyecciones_props p
+                JOIN nfl_juegos j ON j.id_juego = p.id_juego
                 JOIN nfl_jugadores ju ON ju.id_jugador = p.id_jugador
-                WHERE p.id_juego = %s AND p.resultado_pick = 'PENDIENTE';
+                WHERE j.equipo_visitante = %s AND j.equipo_local = %s AND p.resultado_pick = 'PENDIENTE';
                 """,
-                (id_juego_candidato,),
+                (v, l),
             )
             props_pendientes = cursor.fetchall()
             if not props_pendientes:
