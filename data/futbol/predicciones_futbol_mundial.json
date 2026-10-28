@@ -1844,7 +1844,8 @@
     "confianza": "NEUTRAL",
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
-    "timestamp": "2026-10-24T23:35:56.382071-06:00"
+    "timestamp": "2026-10-24T23:35:56.382071-06:00",
+    "evaluado_en": null
   },
   {
     "id_evento": "401876921",
@@ -1863,8 +1864,8 @@
     "hora_cdmx": "19:00",
     "estado": "STATUS_SCHEDULED",
     "descripcion_estado": "Scheduled",
-    "marcador_local": 0,
-    "marcador_visita": 0,
+    "marcador_local": null,
+    "marcador_visita": null,
     "provider": "DraftKings",
     "linea_total": 2.5,
     "over_momio": "-155",
@@ -1909,7 +1910,8 @@
     "confianza": "MEDIA",
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
-    "timestamp": "2026-10-25T17:48:19.399540-06:00"
+    "timestamp": "2026-10-25T17:48:19.399540-06:00",
+    "evaluado_en": null
   },
   {
     "id_evento": "761904",
@@ -1928,8 +1930,8 @@
     "hora_cdmx": "19:00",
     "estado": "STATUS_SCHEDULED",
     "descripcion_estado": "Scheduled",
-    "marcador_local": 0,
-    "marcador_visita": 0,
+    "marcador_local": null,
+    "marcador_visita": null,
     "provider": "DraftKings",
     "linea_total": 3.5,
     "over_momio": "+105",
@@ -1974,7 +1976,8 @@
     "confianza": "NEUTRAL",
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
-    "timestamp": "2026-10-25T17:48:19.406536-06:00"
+    "timestamp": "2026-10-25T17:48:19.406536-06:00",
+    "evaluado_en": null
   },
   {
     "id_evento": "401876922",
@@ -1993,8 +1996,8 @@
     "hora_cdmx": "19:05",
     "estado": "STATUS_SCHEDULED",
     "descripcion_estado": "Scheduled",
-    "marcador_local": 0,
-    "marcador_visita": 0,
+    "marcador_local": null,
+    "marcador_visita": null,
     "provider": "DraftKings",
     "linea_total": 2.5,
     "over_momio": "-175",
@@ -2039,7 +2042,8 @@
     "confianza": "NEUTRAL",
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
-    "timestamp": "2026-10-25T17:48:19.413527-06:00"
+    "timestamp": "2026-10-25T17:48:19.413527-06:00",
+    "evaluado_en": null
   },
   {
     "id_evento": "401876920",
@@ -2058,8 +2062,8 @@
     "hora_cdmx": "21:10",
     "estado": "STATUS_SCHEDULED",
     "descripcion_estado": "Scheduled",
-    "marcador_local": 0,
-    "marcador_visita": 0,
+    "marcador_local": null,
+    "marcador_visita": null,
     "provider": "DraftKings",
     "linea_total": 2.5,
     "over_momio": "-165",
@@ -2104,7 +2108,8 @@
     "confianza": "MEDIA",
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
-    "timestamp": "2026-10-25T17:48:19.420530-06:00"
+    "timestamp": "2026-10-25T17:48:19.420530-06:00",
+    "evaluado_en": null
   },
   {
     "id_evento": "401876422",
@@ -2123,8 +2128,8 @@
     "hora_cdmx": "13:30",
     "estado": "STATUS_SCHEDULED",
     "descripcion_estado": "Scheduled",
-    "marcador_local": 0,
-    "marcador_visita": 0,
+    "marcador_local": null,
+    "marcador_visita": null,
     "provider": "DraftKings",
     "linea_total": 3.5,
     "over_momio": "-105",
@@ -2169,7 +2174,8 @@
     "confianza": "NEUTRAL",
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
-    "timestamp": "2026-10-25T17:48:19.427534-06:00"
+    "timestamp": "2026-10-25T17:48:19.427534-06:00",
+    "evaluado_en": null
   },
   {
     "id_evento": "401882828",
@@ -2188,8 +2194,8 @@
     "hora_cdmx": "14:00",
     "estado": "STATUS_SCHEDULED",
     "descripcion_estado": "Scheduled",
-    "marcador_local": 0,
-    "marcador_visita": 0,
+    "marcador_local": null,
+    "marcador_visita": null,
     "provider": "DraftKings",
     "linea_total": 2.5,
     "over_momio": "+120",
@@ -2234,7 +2240,8 @@
     "confianza": "NEUTRAL",
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
-    "timestamp": "2026-10-25T17:48:19.434531-06:00"
+    "timestamp": "2026-10-25T17:48:19.434531-06:00",
+    "evaluado_en": null
   },
   {
     "id_evento": "401874980",
@@ -2253,8 +2260,8 @@
     "hora_cdmx": "11:30",
     "estado": "STATUS_SCHEDULED",
     "descripcion_estado": "Scheduled",
-    "marcador_local": 0,
-    "marcador_visita": 0,
+    "marcador_local": null,
+    "marcador_visita": null,
     "provider": "DraftKings",
     "linea_total": 2.5,
     "over_momio": "-150",
@@ -2299,7 +2306,8 @@
     "confianza": "MEDIA",
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
-    "timestamp": "2026-10-25T17:48:19.442530-06:00"
+    "timestamp": "2026-10-25T17:48:19.442530-06:00",
+    "evaluado_en": null
   },
   {
     "id_evento": "401874780",
@@ -2318,8 +2326,8 @@
     "hora_cdmx": "13:45",
     "estado": "STATUS_SCHEDULED",
     "descripcion_estado": "Scheduled",
-    "marcador_local": 0,
-    "marcador_visita": 0,
+    "marcador_local": null,
+    "marcador_visita": null,
     "provider": "DraftKings",
     "linea_total": 2.5,
     "over_momio": "-155",
@@ -2364,7 +2372,8 @@
     "confianza": "NEUTRAL",
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
-    "timestamp": "2026-10-25T17:48:19.449528-06:00"
+    "timestamp": "2026-10-25T17:48:19.449528-06:00",
+    "evaluado_en": null
   },
   {
     "id_evento": "401874786",
@@ -2383,8 +2392,8 @@
     "hora_cdmx": "13:45",
     "estado": "STATUS_SCHEDULED",
     "descripcion_estado": "Scheduled",
-    "marcador_local": 0,
-    "marcador_visita": 0,
+    "marcador_local": null,
+    "marcador_visita": null,
     "provider": "DraftKings",
     "linea_total": 2.5,
     "over_momio": "-150",
@@ -2429,7 +2438,8 @@
     "confianza": "NEUTRAL",
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
-    "timestamp": "2026-10-25T17:48:19.456531-06:00"
+    "timestamp": "2026-10-25T17:48:19.456531-06:00",
+    "evaluado_en": null
   },
   {
     "id_evento": "401874993",
@@ -2448,8 +2458,8 @@
     "hora_cdmx": "11:30",
     "estado": "STATUS_SCHEDULED",
     "descripcion_estado": "Scheduled",
-    "marcador_local": 0,
-    "marcador_visita": 0,
+    "marcador_local": null,
+    "marcador_visita": null,
     "provider": "DraftKings",
     "linea_total": 2.5,
     "over_momio": "-120",
@@ -2494,7 +2504,8 @@
     "confianza": "NEUTRAL",
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
-    "timestamp": "2026-10-25T17:48:19.464532-06:00"
+    "timestamp": "2026-10-25T17:48:19.464532-06:00",
+    "evaluado_en": null
   },
   {
     "id_evento": "401874965",
@@ -2513,8 +2524,8 @@
     "hora_cdmx": "11:30",
     "estado": "STATUS_SCHEDULED",
     "descripcion_estado": "Scheduled",
-    "marcador_local": 0,
-    "marcador_visita": 0,
+    "marcador_local": null,
+    "marcador_visita": null,
     "provider": "DraftKings",
     "linea_total": 2.5,
     "over_momio": "+120",
@@ -2559,7 +2570,8 @@
     "confianza": "MEDIA",
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
-    "timestamp": "2026-10-25T17:48:19.471531-06:00"
+    "timestamp": "2026-10-25T17:48:19.471531-06:00",
+    "evaluado_en": null
   },
   {
     "id_evento": "401874773",
@@ -2578,8 +2590,8 @@
     "hora_cdmx": "11:30",
     "estado": "STATUS_SCHEDULED",
     "descripcion_estado": "Scheduled",
-    "marcador_local": 0,
-    "marcador_visita": 0,
+    "marcador_local": null,
+    "marcador_visita": null,
     "provider": "DraftKings",
     "linea_total": 2.5,
     "over_momio": null,
@@ -2624,7 +2636,8 @@
     "confianza": "NEUTRAL",
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
-    "timestamp": "2026-10-25T17:48:19.478531-06:00"
+    "timestamp": "2026-10-25T17:48:19.478531-06:00",
+    "evaluado_en": null
   },
   {
     "id_evento": "401874988",
@@ -2643,8 +2656,8 @@
     "hora_cdmx": "13:45",
     "estado": "STATUS_SCHEDULED",
     "descripcion_estado": "Scheduled",
-    "marcador_local": 0,
-    "marcador_visita": 0,
+    "marcador_local": null,
+    "marcador_visita": null,
     "provider": "DraftKings",
     "linea_total": 2.5,
     "over_momio": "+105",
@@ -2689,7 +2702,8 @@
     "confianza": "NEUTRAL",
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
-    "timestamp": "2026-10-25T17:48:19.486530-06:00"
+    "timestamp": "2026-10-25T17:48:19.486530-06:00",
+    "evaluado_en": null
   },
   {
     "id_evento": "401874799",
@@ -2708,8 +2722,8 @@
     "hora_cdmx": "13:45",
     "estado": "STATUS_SCHEDULED",
     "descripcion_estado": "Scheduled",
-    "marcador_local": 0,
-    "marcador_visita": 0,
+    "marcador_local": null,
+    "marcador_visita": null,
     "provider": "DraftKings",
     "linea_total": 2.5,
     "over_momio": "-140",
@@ -2754,7 +2768,8 @@
     "confianza": "NEUTRAL",
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
-    "timestamp": "2026-10-25T17:48:19.493528-06:00"
+    "timestamp": "2026-10-25T17:48:19.493528-06:00",
+    "evaluado_en": null
   },
   {
     "id_evento": "761907",
@@ -2773,8 +2788,8 @@
     "hora_cdmx": "17:30",
     "estado": "STATUS_SCHEDULED",
     "descripcion_estado": "Scheduled",
-    "marcador_local": 0,
-    "marcador_visita": 0,
+    "marcador_local": null,
+    "marcador_visita": null,
     "provider": "DraftKings",
     "linea_total": 3.5,
     "over_momio": "+110",
@@ -2819,7 +2834,8 @@
     "confianza": "NEUTRAL",
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
-    "timestamp": "2026-10-25T17:48:19.500528-06:00"
+    "timestamp": "2026-10-25T17:48:19.500528-06:00",
+    "evaluado_en": null
   },
   {
     "id_evento": "761908",
@@ -2838,8 +2854,8 @@
     "hora_cdmx": "17:30",
     "estado": "STATUS_SCHEDULED",
     "descripcion_estado": "Scheduled",
-    "marcador_local": 0,
-    "marcador_visita": 0,
+    "marcador_local": null,
+    "marcador_visita": null,
     "provider": "DraftKings",
     "linea_total": 3.5,
     "over_momio": "-160",
@@ -2884,7 +2900,8 @@
     "confianza": "NEUTRAL",
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
-    "timestamp": "2026-10-25T17:48:19.507530-06:00"
+    "timestamp": "2026-10-25T17:48:19.507530-06:00",
+    "evaluado_en": null
   },
   {
     "id_evento": "761909",
@@ -2903,8 +2920,8 @@
     "hora_cdmx": "17:30",
     "estado": "STATUS_SCHEDULED",
     "descripcion_estado": "Scheduled",
-    "marcador_local": 0,
-    "marcador_visita": 0,
+    "marcador_local": null,
+    "marcador_visita": null,
     "provider": "DraftKings",
     "linea_total": 3.5,
     "over_momio": "+105",
@@ -2949,7 +2966,8 @@
     "confianza": "MEDIA",
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
-    "timestamp": "2026-10-25T17:48:19.514527-06:00"
+    "timestamp": "2026-10-25T17:48:19.514527-06:00",
+    "evaluado_en": null
   },
   {
     "id_evento": "761905",
@@ -2968,8 +2986,8 @@
     "hora_cdmx": "17:30",
     "estado": "STATUS_SCHEDULED",
     "descripcion_estado": "Scheduled",
-    "marcador_local": 0,
-    "marcador_visita": 0,
+    "marcador_local": null,
+    "marcador_visita": null,
     "provider": "DraftKings",
     "linea_total": 2.5,
     "over_momio": "-165",
@@ -3014,7 +3032,8 @@
     "confianza": "NEUTRAL",
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
-    "timestamp": "2026-10-25T17:48:19.522506-06:00"
+    "timestamp": "2026-10-25T17:48:19.522506-06:00",
+    "evaluado_en": null
   },
   {
     "id_evento": "761906",
@@ -3033,8 +3052,8 @@
     "hora_cdmx": "17:30",
     "estado": "STATUS_SCHEDULED",
     "descripcion_estado": "Scheduled",
-    "marcador_local": 0,
-    "marcador_visita": 0,
+    "marcador_local": null,
+    "marcador_visita": null,
     "provider": "DraftKings",
     "linea_total": 3.5,
     "over_momio": "+135",
@@ -3079,7 +3098,8 @@
     "confianza": "MEDIA",
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
-    "timestamp": "2026-10-25T17:48:19.529506-06:00"
+    "timestamp": "2026-10-25T17:48:19.529506-06:00",
+    "evaluado_en": null
   },
   {
     "id_evento": "761910",
@@ -3098,8 +3118,8 @@
     "hora_cdmx": "18:30",
     "estado": "STATUS_SCHEDULED",
     "descripcion_estado": "Scheduled",
-    "marcador_local": 0,
-    "marcador_visita": 0,
+    "marcador_local": null,
+    "marcador_visita": null,
     "provider": "DraftKings",
     "linea_total": 2.5,
     "over_momio": "-175",
@@ -3144,7 +3164,8 @@
     "confianza": "MEDIA",
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
-    "timestamp": "2026-10-25T17:48:19.536512-06:00"
+    "timestamp": "2026-10-25T17:48:19.536512-06:00",
+    "evaluado_en": null
   },
   {
     "id_evento": "761911",
@@ -3163,8 +3184,8 @@
     "hora_cdmx": "18:30",
     "estado": "STATUS_SCHEDULED",
     "descripcion_estado": "Scheduled",
-    "marcador_local": 0,
-    "marcador_visita": 0,
+    "marcador_local": null,
+    "marcador_visita": null,
     "provider": "DraftKings",
     "linea_total": 3.5,
     "over_momio": "-130",
@@ -3209,7 +3230,8 @@
     "confianza": "NEUTRAL",
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
-    "timestamp": "2026-10-25T17:48:19.543512-06:00"
+    "timestamp": "2026-10-25T17:48:19.543512-06:00",
+    "evaluado_en": null
   },
   {
     "id_evento": "761912",
@@ -3228,8 +3250,8 @@
     "hora_cdmx": "18:30",
     "estado": "STATUS_SCHEDULED",
     "descripcion_estado": "Scheduled",
-    "marcador_local": 0,
-    "marcador_visita": 0,
+    "marcador_local": null,
+    "marcador_visita": null,
     "provider": "DraftKings",
     "linea_total": 3.5,
     "over_momio": "+120",
@@ -3274,7 +3296,8 @@
     "confianza": "MEDIA",
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
-    "timestamp": "2026-10-25T17:48:19.551510-06:00"
+    "timestamp": "2026-10-25T17:48:19.551510-06:00",
+    "evaluado_en": null
   },
   {
     "id_evento": "761913",
@@ -3293,8 +3316,8 @@
     "hora_cdmx": "18:30",
     "estado": "STATUS_SCHEDULED",
     "descripcion_estado": "Scheduled",
-    "marcador_local": 0,
-    "marcador_visita": 0,
+    "marcador_local": null,
+    "marcador_visita": null,
     "provider": "DraftKings",
     "linea_total": 3.5,
     "over_momio": "-115",
@@ -3339,7 +3362,8 @@
     "confianza": "NEUTRAL",
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
-    "timestamp": "2026-10-25T17:48:19.558508-06:00"
+    "timestamp": "2026-10-25T17:48:19.558508-06:00",
+    "evaluado_en": null
   },
   {
     "id_evento": "761914",
@@ -3358,8 +3382,8 @@
     "hora_cdmx": "18:30",
     "estado": "STATUS_SCHEDULED",
     "descripcion_estado": "Scheduled",
-    "marcador_local": 0,
-    "marcador_visita": 0,
+    "marcador_local": null,
+    "marcador_visita": null,
     "provider": "DraftKings",
     "linea_total": 3.5,
     "over_momio": "+130",
@@ -3404,7 +3428,8 @@
     "confianza": "ALTA",
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
-    "timestamp": "2026-10-25T17:48:19.565523-06:00"
+    "timestamp": "2026-10-25T17:48:19.565523-06:00",
+    "evaluado_en": null
   },
   {
     "id_evento": "761915",
@@ -3423,8 +3448,8 @@
     "hora_cdmx": "18:30",
     "estado": "STATUS_SCHEDULED",
     "descripcion_estado": "Scheduled",
-    "marcador_local": 0,
-    "marcador_visita": 0,
+    "marcador_local": null,
+    "marcador_visita": null,
     "provider": "DraftKings",
     "linea_total": 3.5,
     "over_momio": "+100",
@@ -3469,7 +3494,8 @@
     "confianza": "ALTA",
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
-    "timestamp": "2026-10-25T17:48:19.572513-06:00"
+    "timestamp": "2026-10-25T17:48:19.572513-06:00",
+    "evaluado_en": null
   },
   {
     "id_evento": "761917",
@@ -3488,8 +3514,8 @@
     "hora_cdmx": "20:30",
     "estado": "STATUS_SCHEDULED",
     "descripcion_estado": "Scheduled",
-    "marcador_local": 0,
-    "marcador_visita": 0,
+    "marcador_local": null,
+    "marcador_visita": null,
     "provider": "DraftKings",
     "linea_total": 2.5,
     "over_momio": "-185",
@@ -3534,7 +3560,8 @@
     "confianza": "MEDIA",
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
-    "timestamp": "2026-10-25T17:48:19.581028-06:00"
+    "timestamp": "2026-10-25T17:48:19.581028-06:00",
+    "evaluado_en": null
   },
   {
     "id_evento": "761916",
@@ -3553,8 +3580,8 @@
     "hora_cdmx": "20:30",
     "estado": "STATUS_SCHEDULED",
     "descripcion_estado": "Scheduled",
-    "marcador_local": 0,
-    "marcador_visita": 0,
+    "marcador_local": null,
+    "marcador_visita": null,
     "provider": "DraftKings",
     "linea_total": 2.5,
     "over_momio": "-165",
@@ -3599,7 +3626,8 @@
     "confianza": "NEUTRAL",
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
-    "timestamp": "2026-10-25T17:48:19.589026-06:00"
+    "timestamp": "2026-10-25T17:48:19.589026-06:00",
+    "evaluado_en": null
   },
   {
     "id_evento": "761918",
@@ -3618,8 +3646,8 @@
     "hora_cdmx": "20:30",
     "estado": "STATUS_SCHEDULED",
     "descripcion_estado": "Scheduled",
-    "marcador_local": 0,
-    "marcador_visita": 0,
+    "marcador_local": null,
+    "marcador_visita": null,
     "provider": "DraftKings",
     "linea_total": 3.5,
     "over_momio": "-125",
@@ -3664,7 +3692,8 @@
     "confianza": "NEUTRAL",
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
-    "timestamp": "2026-10-25T17:48:19.597034-06:00"
+    "timestamp": "2026-10-25T17:48:19.597034-06:00",
+    "evaluado_en": null
   },
   {
     "id_evento": "401876986",
@@ -3683,8 +3712,8 @@
     "hora_cdmx": "21:00",
     "estado": "STATUS_SCHEDULED",
     "descripcion_estado": "Scheduled",
-    "marcador_local": 0,
-    "marcador_visita": 0,
+    "marcador_local": null,
+    "marcador_visita": null,
     "provider": "DraftKings",
     "linea_total": 2.5,
     "over_momio": "-135",
@@ -3729,6 +3758,7 @@
     "confianza": "NEUTRAL",
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
-    "timestamp": "2026-10-25T17:48:19.606026-06:00"
+    "timestamp": "2026-10-25T17:48:19.606026-06:00",
+    "evaluado_en": null
   }
 ]

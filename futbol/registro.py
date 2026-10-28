@@ -399,6 +399,12 @@ def liquidar_partidos_pendientes_futbol() -> Dict[str, Any]:
     for p in predicciones:
         ev_id = str(p.get("id_evento", "")).strip()
         juego_final = partidos_recientes_espn.get(ev_id)
+        estado_ev = str((juego_final.get("estado") if juego_final else p.get("estado")) or "").upper()
+        es_final = any(k in estado_ev for k in ["STATUS_FULL_TIME", "STATUS_FINAL", "FT", "FINAL"])
+
+        if not es_final:
+            continue
+
         ml = juego_final["marcador_local"] if juego_final else p.get("marcador_local")
         mv = juego_final["marcador_visita"] if juego_final else p.get("marcador_visita")
         if (ml is not None and mv is not None) and p.get("resultado_pick") not in ["GANADA", "PERDIDA", "PUSH"]:
