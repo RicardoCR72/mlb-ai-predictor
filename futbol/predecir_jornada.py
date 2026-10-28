@@ -245,12 +245,14 @@ def predecir_futbol_mundial(
 
     # Cargar historial previo para preservar picks congelados en partidos iniciados
     predicciones_previas: Dict[str, Dict[str, Any]] = {}
+    hoy_str = datetime.now(ZONA_CDMX).strftime("%Y-%m-%d")
     if RUTA_PREDICCIONES_JSON.exists():
         try:
             with open(RUTA_PREDICCIONES_JSON, "r", encoding="utf-8") as f:
                 prev_data = json.load(f)
             for p in prev_data:
-                if p.get("id_evento"):
+                # Solo conservar predicciones activas de hoy en adelante
+                if p.get("id_evento") and str(p.get("fecha_cdmx", "")) >= hoy_str:
                     predicciones_previas[str(p["id_evento"])] = p
         except Exception:
             pass

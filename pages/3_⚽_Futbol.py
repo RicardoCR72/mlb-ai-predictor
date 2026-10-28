@@ -197,6 +197,28 @@ def obtener_pick_para_mercado_futbol(p: dict, mercado_tipo: str) -> dict:
 
 def render_cartelera_futbol(predicciones: list[dict], mercado_activo: str):
     """Renderiza las métricas y tarjetas de partidos de la jornada para el mercado seleccionado."""
+    hoy_cdmx = datetime.now(ZONA_CDMX).date()
+    manana_cdmx = hoy_cdmx + timedelta(days=1)
+
+    # Filtrar exclusivamente partidos activos de hoy en adelante para la cartelera de Picks de Hoy
+    def _parsear_fecha_segura(item: dict):
+        f = item.get("fecha_cdmx")
+        if not f:
+            return None
+        try:
+            if isinstance(f, str):
+                return datetime.strptime(f[:10], "%Y-%m-%d").date()
+            if hasattr(f, "date"):
+                return f.date()
+            return f
+        except Exception:
+            return None
+
+    predicciones = [
+        p for p in predicciones
+        if _parsear_fecha_segura(p) and _parsear_fecha_segura(p) >= hoy_cdmx
+    ]
+
     tot_partidos = len(predicciones)
     n_pendientes = sum(1 for p in predicciones if p.get("resultado_pick") not in ["GANADA", "PERDIDA", "PUSH"])
     n_finalizados = sum(
@@ -267,7 +289,7 @@ def render_cartelera_futbol(predicciones: list[dict], mercado_activo: str):
     with f_fec_col:
         filtro_fecha = st.selectbox(
             "Fecha:",
-            ["Todas las fechas", "Hoy", "Mañana", "Próximos días"],
+            ["Hoy y Próximos", "Solo Hoy", "Solo Mañana", "Próximos días"],
             key="f_fecha_futbol",
         )
 
@@ -302,28 +324,14 @@ def render_cartelera_futbol(predicciones: list[dict], mercado_activo: str):
     if liga_seleccionada != "todas":
         filtrados = [p for p in filtrados if p.get("liga_codigo") == liga_seleccionada]
 
-    hoy_cdmx = datetime.now(ZONA_CDMX).date()
-    manana_cdmx = hoy_cdmx + timedelta(days=1)
-
-    def _extraer_fecha(item: dict):
-        f = item.get("fecha_cdmx")
-        if not f:
-            return None
-        try:
-            if isinstance(f, str):
-                return datetime.strptime(f[:10], "%Y-%m-%d").date()
-            if hasattr(f, "date"):
-                return f.date()
-            return f
-        except Exception:
-            return None
-
-    if filtro_fecha == "Hoy":
-        filtrados = [p for p in filtrados if _extraer_fecha(p) == hoy_cdmx]
-    elif filtro_fecha == "Mañana":
-        filtrados = [p for p in filtrados if _extraer_fecha(p) == manana_cdmx]
+    if filtro_fecha == "Solo Hoy":
+        filtrados = [p for p in filtrados if _parsear_fecha_segura(p) == hoy_cdmx]
+    elif filtro_fecha == "Solo Mañana":
+        filtrados = [p for p in filtrados if _parsear_fecha_segura(p) == manana_cdmx]
     elif filtro_fecha == "Próximos días":
-        filtrados = [p for p in filtrados if _extraer_fecha(p) and _extraer_fecha(p) > manana_cdmx]
+        filtrados = [p for p in filtrados if _parsear_fecha_segura(p) and _parsear_fecha_segura(p) > manana_cdmx]
+    else: # "Hoy y Próximos"
+        filtrados = [p for p in filtrados if _parsear_fecha_segura(p) and _parsear_fecha_segura(p) >= hoy_cdmx]
 
     if filtro_confianza == "Solo ALTA confianza":
         filtrados = [p for p in filtrados if p.get("confianza") == "ALTA"]
