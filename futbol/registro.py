@@ -87,6 +87,21 @@ def preparar_tablas_futbol(conn) -> bool:
         return False
 
 
+def normalizar_mercado_futbol(m: Any) -> str:
+    """Homologa cualquier variante de mercado de fútbol a uno de los 4 canónicos."""
+    m_str = str(m or "").strip()
+    m_lower = m_str.lower()
+    if "total" in m_lower or "over" in m_lower or "under" in m_lower:
+        return "Totales (Over/Under)"
+    elif "moneyline" in m_lower or "1x2" in m_lower or "ganador" in m_lower:
+        return "Moneyline (1X2)"
+    elif "ambos" in m_lower or "btts" in m_lower:
+        return "Ambos Anotan (BTTS)"
+    elif "doble" in m_lower or "1x" in m_lower or "x2" in m_lower:
+        return "Doble Oportunidad (1X/X2)"
+    return m_str
+
+
 def _normalizar_df_historial(df: pd.DataFrame) -> pd.DataFrame:
     """Asegura consistencia de columnas en DataFrames de auditoría de fútbol."""
     if df.empty:
@@ -116,6 +131,10 @@ def _normalizar_df_historial(df: pd.DataFrame) -> pd.DataFrame:
         df["pick_mercado"] = df["mercado"]
     if "mercado" not in df.columns and "pick_mercado" in df.columns:
         df["mercado"] = df["pick_mercado"]
+    if "mercado" in df.columns:
+        df["mercado"] = df["mercado"].apply(normalizar_mercado_futbol)
+    if "pick_mercado" in df.columns:
+        df["pick_mercado"] = df["pick_mercado"].apply(normalizar_mercado_futbol)
     if "pick_seleccion" not in df.columns and "seleccion" in df.columns:
         df["pick_seleccion"] = df["seleccion"]
     if "seleccion" not in df.columns and "pick_seleccion" in df.columns:
@@ -380,25 +399,26 @@ def liquidar_partidos_pendientes_futbol() -> Dict[str, Any]:
     for p in predicciones:
         ev_id = str(p.get("id_evento", "")).strip()
         juego_final = partidos_recientes_espn.get(ev_id)
-        if juego_final and p.get("resultado_pick") not in ["GANADA", "PERDIDA", "PUSH"]:
-            ml = juego_final["marcador_local"]
-            mv = juego_final["marcador_visita"]
-            p["marcador_local"] = ml
-            p["marcador_visita"] = mv
-            p["estado"] = juego_final.get("estado", "STATUS_FULL_TIME")
+        ml = juego_final["marcador_local"] if juego_final else p.get("marcador_local")
+        mv = juego_final["marcador_visita"] if juego_final else p.get("marcador_visita")
+        if (ml is not None and mv is not None) and p.get("resultado_pick") not in ["GANADA", "PERDIDA", "PUSH"]:
+            p["marcador_local"] = int(ml)
+            p["marcador_visita"] = int(mv)
+            if juego_final:
+                p["estado"] = juego_final.get("estado", "STATUS_FULL_TIME")
 
-            pick_m = p.get("pick_mercado", "Totales (Over/Under)")
+            pick_m = normalizar_mercado_futbol(p.get("pick_mercado", "Totales (Over/Under)"))
             pick_s = p.get("pick_seleccion", "")
-            linea_t = float(p.get("linea_total", 2.5))
-            cuota_d = float(p.get("pick_cuota_dec", 1.85))
+            linea_t = float(p.get("linea_total") or 2.5)
+            cuota_d = float(p.get("pick_cuota_dec") or 1.85)
 
             res, u_gan = liquidar_seleccion_futbol(
                 mercado=pick_m,
                 seleccion=pick_s,
                 linea=linea_t,
                 cuota_dec=cuota_d,
-                marcador_local=ml,
-                marcador_visita=mv,
+                marcador_local=int(ml),
+                marcador_visita=int(mv),
                 equipo_local=p.get("equipo_local", ""),
                 equipo_visita=p.get("equipo_visita", ""),
             )
@@ -490,6 +510,11 @@ def render_historial_futbol(mercado_activo: str):
         st.info("No hay picks concluidos en el registro. Pulsa '🏁 Liquidar Partidos' para auditar los encuentros finalizados.")
         return
 
+    mercado_canonico = normalizar_mercado_futbol(mercado_activo)
+    if st.session_state.get("_ultimo_mercado_top_hist") != mercado_canonico:
+        st.session_state["_ultimo_mercado_top_hist"] = mercado_canonico
+        st.session_state.pop("hist_sel_mercado", None)
+
     # ==========================================
     # FILTROS DESPLEGABLES DE AUDITORÍA
     # ==========================================
@@ -521,12 +546,22 @@ def render_historial_futbol(mercado_activo: str):
 
         # 2. Filtro de Mercado
         with col_f2:
-            mercados_unicos = ["Todos los mercados"] + sorted(f_liq["mercado"].dropna().unique().tolist())
+            mercados_ordenados = [
+                "Todos los mercados",
+                "Totales (Over/Under)",
+                "Moneyline (1X2)",
+                "Ambos Anotan (BTTS)",
+                "Doble Oportunidad (1X/X2)",
+            ]
+            mercados_presentes = set(f_liq["mercado"].dropna().unique())
+            mercados_unicos = ["Todos los mercados"] + [m for m in mercados_ordenados[1:] if m in mercados_presentes]
+            if len(mercados_unicos) == 1:
+                mercados_unicos = mercados_ordenados
+
             idx_def_mercado = 0
-            for idx_m, m_op in enumerate(mercados_unicos):
-                if mercado_activo and mercado_activo[:7].lower() in m_op.lower():
-                    idx_def_mercado = idx_m
-                    break
+            if mercado_canonico in mercados_unicos:
+                idx_def_mercado = mercados_unicos.index(mercado_canonico)
+
             sel_mercado = st.selectbox("Mercado analizado:", mercados_unicos, index=idx_def_mercado, key="hist_sel_mercado")
 
         # 3. Filtro de Confianza
