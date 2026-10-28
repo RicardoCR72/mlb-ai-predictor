@@ -452,6 +452,8 @@ def liquidar_partidos_pendientes_futbol() -> Dict[str, Any]:
 
     return {
         "evaluados": total_evaluados,
+        "resueltas": total_evaluados,
+        "total_evaluados": total_evaluados,
         "ganadas": total_ganadas,
         "perdidas": total_perdidas,
         "pushes": total_pushes,

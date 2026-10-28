@@ -436,14 +436,18 @@ def liquidar_partidos_pendientes_futbol() -> Dict[str, Any]:
     try:
         from futbol.registro import liquidar_partidos_pendientes_futbol as _liq_reg
         res = _liq_reg()
-        if res.get("total_evaluados", 0) > 0 or res.get("resueltas", 0) > 0 or res.get("total_pendientes", 0) > 0:
+        evaluados = res.get("resueltas", res.get("evaluados", res.get("total_evaluados", 0)))
+        if evaluados > 0 or res.get("total_pendientes", 0) > 0:
             return {
-                "total_partidos": res.get("total_pendientes", 0) + res.get("resueltas", 0),
-                "resueltas": res.get("resueltas", 0),
+                "total_partidos": res.get("total_pendientes", 0) + evaluados,
+                "resueltas": evaluados,
+                "evaluados": evaluados,
+                "total_evaluados": evaluados,
                 "ganadas": res.get("ganadas", 0),
                 "perdidas": res.get("perdidas", 0),
                 "pushes": res.get("pushes", 0),
                 "unidades_netas": res.get("unidades_netas", 0.0),
+                "mensaje": res.get("mensaje", f"Se liquidaron {evaluados} partidos."),
             }
     except Exception as exc:
         logger.warning(f"Error en liquidar_partidos_pendientes_futbol (registro): {exc}")
@@ -458,10 +462,13 @@ def liquidar_partidos_pendientes_futbol() -> Dict[str, Any]:
     return {
         "total_partidos": len(preds),
         "resueltas": resueltas,
+        "evaluados": resueltas,
+        "total_evaluados": resueltas,
         "ganadas": ganadas,
         "perdidas": perdidas,
         "pushes": pushes,
         "unidades_netas": round(unidades, 2),
+        "mensaje": f"Se liquidaron {resueltas} partidos: {ganadas} Ganadas, {perdidas} Perdidas, {pushes} Push ({unidades:+.2f} u)."
     }
 
 

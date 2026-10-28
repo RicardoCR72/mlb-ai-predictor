@@ -670,14 +670,21 @@ with col1:
     if st.button("🏁 Liquidar Partidos", key="btn_liq_futbol", type="primary", use_container_width=True, help="Consulta marcadores finales en ESPN, evalúa apuestas concluidas y registra el PnL auditado."):
         with st.spinner("Evaluando partidos concluidos y liquidando picks de fútbol..."):
             res = liquidar_partidos_pendientes_futbol()
-            st.success(f"✅ Evaluados: {res['resueltas']} picks | Ganadas: {res['ganadas']} | PnL: {res['unidades_netas']:+.2f} u")
+            n_eval = res.get("resueltas", res.get("evaluados", res.get("total_evaluados", 0)))
+            n_gan = res.get("ganadas", 0)
+            pnl = res.get("unidades_netas", 0.0)
+            msg = res.get("mensaje", f"Se evaluaron {n_eval} partidos.")
+            if n_eval > 0:
+                st.toast(f"Evaluados: {n_eval} picks | Ganadas: {n_gan} | PnL: {pnl:+.2f} u", icon="✅")
+            else:
+                st.toast(msg, icon="ℹ️")
             st.rerun()
 
 with col2:
     if st.button("🔄 Actualizar Cuotas DraftKings", key="btn_act_cuotas_futbol", type="primary", use_container_width=True, help="Descarga los partidos más recientes de ESPN y las líneas oficiales de DraftKings para todas las ligas."):
         with st.spinner("Descargando partidos y momios oficiales de DraftKings para todas las ligas..."):
             predecir_futbol_mundial(force_refresh=True)
-            st.success("✅ Cuotas y cartelera actualizadas desde DraftKings.")
+            st.toast("Cuotas y cartelera actualizadas desde DraftKings.", icon="✅")
             st.rerun()
 
 st.markdown("<div style='margin-bottom: 1.1rem;'></div>", unsafe_allow_html=True)
