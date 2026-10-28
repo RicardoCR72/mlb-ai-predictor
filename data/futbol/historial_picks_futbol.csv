@@ -951,3 +951,6 @@ id_juego,fecha,hora_cdmx,equipo_local,equipo_visitante,mercado,seleccion,linea,c
 401882832_ml,2026-10-25,14:00,Barcelona,Real Madrid,Moneyline (1X2),Barcelona ML,0.0,1.67,0.6039,0.004,MEDIA,1,2,PERDIDA,-1.0,2026-10-25 17:35:13,esp.1,LaLiga,🇪🇸
 401882832_btts,2026-10-25,14:00,Barcelona,Real Madrid,Ambos Anotan (BTTS),Ambos Anotan: SÍ,2.5,1.83,0.6247,0.038,MEDIA,1,2,GANADA,0.83,2026-10-25 17:35:13,esp.1,LaLiga,🇪🇸
 401882832_do,2026-10-25,14:00,Barcelona,Real Madrid,Doble Oportunidad (1X/X2),1X (Barcelona o Empate),0.0,1.42,0.7877,0.045,ALTA,1,2,PERDIDA,-1.0,2026-10-25 17:35:13,esp.1,LaLiga,🇪🇸
+401874980_Mon,2026-10-27,11:30,Sassuolo,Lazio,Moneyline (1X2),Sassuolo ML,2.5,3.15,0.464,0.146,MEDIA,2,6,PERDIDA,-1.0,2026-10-27 23:15:19,ita.1,Serie A,🇮🇹
+401874780_Tot,2026-10-27,13:45,AS Roma,Cagliari,Totales (Over/Under),OVER 2.5 Goles,2.5,1.65,0.541,-0.067,NEUTRAL,4,2,GANADA,0.65,2026-10-27 23:15:19,ita.1,Serie A,🇮🇹
+401874786_Tot,2026-10-27,13:45,Torino,Como,Totales (Over/Under),OVER 2.5 Goles,2.5,1.67,0.539,-0.061,NEUTRAL,1,3,GANADA,0.67,2026-10-27 23:15:19,ita.1,Serie A,🇮🇹

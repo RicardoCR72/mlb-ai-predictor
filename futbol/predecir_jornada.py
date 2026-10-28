@@ -251,8 +251,13 @@ def predecir_futbol_mundial(
             with open(RUTA_PREDICCIONES_JSON, "r", encoding="utf-8") as f:
                 prev_data = json.load(f)
             for p in prev_data:
-                # Solo conservar predicciones activas de hoy en adelante
-                if p.get("id_evento") and str(p.get("fecha_cdmx", "")) >= hoy_str:
+                # Solo conservar predicciones activas de hoy en adelante que no hayan finalizado
+                if (
+                    p.get("id_evento")
+                    and str(p.get("fecha_cdmx", "")) >= hoy_str
+                    and p.get("resultado_pick") not in ["GANADA", "PERDIDA", "PUSH"]
+                    and not any(k in str(p.get("estado", "")).upper() for k in ["FINAL", "FULL_TIME", "POST", "FT"])
+                ):
                     predicciones_previas[str(p["id_evento"])] = p
         except Exception:
             pass
@@ -383,13 +388,18 @@ def predecir_futbol_mundial(
         }
         predicciones.append(pred)
 
-    # Guardar en JSON y Parquet
+    # Guardar en JSON y Parquet (solo partidos activos no finalizados)
+    predicciones_activas = [
+        p for p in predicciones
+        if p.get("resultado_pick") not in ["GANADA", "PERDIDA", "PUSH"]
+        and not any(k in str(p.get("estado", "")).upper() for k in ["FINAL", "FULL_TIME", "POST", "FT"])
+    ]
     with open(RUTA_PREDICCIONES_JSON, "w", encoding="utf-8") as f:
-        json.dump(predicciones, f, indent=2, ensure_ascii=False)
-    logger.info(f"💾 Guardadas {len(predicciones)} predicciones en {RUTA_PREDICCIONES_JSON}")
+        json.dump(predicciones_activas, f, indent=2, ensure_ascii=False)
+    logger.info(f"💾 Guardadas {len(predicciones_activas)} predicciones activas en {RUTA_PREDICCIONES_JSON}")
 
     try:
-        pd.DataFrame(predicciones).to_parquet(RUTA_PREDICCIONES_PARQUET, index=False)
+        pd.DataFrame(predicciones_activas).to_parquet(RUTA_PREDICCIONES_PARQUET, index=False)
     except Exception:
         pass
 

@@ -468,8 +468,13 @@ def liquidar_partidos_pendientes_futbol() -> Dict[str, Any]:
 
     if modificados:
         try:
+            predicciones_activas = [
+                p for p in predicciones
+                if p.get("resultado_pick") not in ["GANADA", "PERDIDA", "PUSH"]
+                and not any(k in str(p.get("estado", "")).upper() for k in ["FINAL", "FULL_TIME", "POST", "FT"])
+            ]
             with open(RUTA_PREDICCIONES_JSON, "w", encoding="utf-8") as f:
-                json.dump(predicciones, f, indent=2, ensure_ascii=False)
+                json.dump(predicciones_activas, f, indent=2, ensure_ascii=False)
         except Exception:
             pass
 

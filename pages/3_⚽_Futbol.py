@@ -197,10 +197,11 @@ def obtener_pick_para_mercado_futbol(p: dict, mercado_tipo: str) -> dict:
 
 def render_cartelera_futbol(predicciones: list[dict], mercado_activo: str):
     """Renderiza las métricas y tarjetas de partidos de la jornada para el mercado seleccionado."""
-    hoy_cdmx = datetime.now(ZONA_CDMX).date()
+    ahora_cdmx = datetime.now(ZONA_CDMX)
+    hoy_cdmx = ahora_cdmx.date()
     manana_cdmx = hoy_cdmx + timedelta(days=1)
 
-    # Filtrar exclusivamente partidos activos de hoy en adelante para la cartelera de Picks de Hoy
+    # Filtrar exclusivamente partidos de hoy en adelante
     def _parsear_fecha_segura(item: dict):
         f = item.get("fecha_cdmx")
         if not f:
@@ -214,22 +215,65 @@ def render_cartelera_futbol(predicciones: list[dict], mercado_activo: str):
         except Exception:
             return None
 
+    def _es_partido_pasado(item: dict) -> bool:
+        """Determina con precisión si un partido ya concluyó o su horario ya pasó."""
+        if item.get("resultado_pick") in ["GANADA", "PERDIDA", "PUSH"]:
+            return True
+        estado = str(item.get("estado", "")).upper()
+        if any(k in estado for k in ["FINAL", "FULL_TIME", "POST", "FT", "FINISHED"]):
+            return True
+        f_str = str(item.get("fecha_cdmx", ""))[:10]
+        if not f_str:
+            return False
+        try:
+            f_date = datetime.strptime(f_str, "%Y-%m-%d").date()
+            if f_date < hoy_cdmx:
+                return True
+            if f_date > hoy_cdmx:
+                return False
+            # Si es hoy, comparar fecha + hora del partido vs hora actual
+            h_str = str(item.get("hora_cdmx", "")).strip()
+            if h_str and ":" in h_str:
+                partes = h_str.split(":")
+                h_int, m_int = int(partes[0]), int(partes[1])
+                dt_partido = datetime(f_date.year, f_date.month, f_date.day, h_int, m_int, tzinfo=ZONA_CDMX)
+                if ahora_cdmx >= dt_partido + timedelta(minutes=115):
+                    return True
+        except Exception:
+            pass
+        return False
+
+    def _es_partido_en_vivo(item: dict) -> bool:
+        """Determina si un partido está actualmente disputándose en vivo."""
+        estado = str(item.get("estado", "")).upper()
+        if "PROGRESS" in estado or "LIVE" in estado:
+            return True
+        f_str = str(item.get("fecha_cdmx", ""))[:10]
+        h_str = str(item.get("hora_cdmx", "")).strip()
+        if f_str and h_str and ":" in h_str:
+            try:
+                f_date = datetime.strptime(f_str, "%Y-%m-%d").date()
+                if f_date == hoy_cdmx:
+                    partes = h_str.split(":")
+                    h_int, m_int = int(partes[0]), int(partes[1])
+                    dt_partido = datetime(f_date.year, f_date.month, f_date.day, h_int, m_int, tzinfo=ZONA_CDMX)
+                    if dt_partido <= ahora_cdmx < dt_partido + timedelta(minutes=115):
+                        return True
+            except Exception:
+                pass
+        return False
+
     predicciones = [
         p for p in predicciones
         if _parsear_fecha_segura(p) and _parsear_fecha_segura(p) >= hoy_cdmx
     ]
 
     tot_partidos = len(predicciones)
-    n_pendientes = sum(1 for p in predicciones if p.get("resultado_pick") not in ["GANADA", "PERDIDA", "PUSH"])
-    n_finalizados = sum(
-        1 for p in predicciones
-        if p.get("resultado_pick") in ["GANADA", "PERDIDA", "PUSH"]
-        or "FINAL" in str(p.get("estado", "")).upper()
-        or "FULL_TIME" in str(p.get("estado", "")).upper()
-    )
+    n_pendientes = sum(1 for p in predicciones if not _es_partido_pasado(p) and not _es_partido_en_vivo(p))
+    n_finalizados = sum(1 for p in predicciones if _es_partido_pasado(p))
     picks_calificados = sum(
         1 for p in predicciones
-        if obtener_pick_para_mercado_futbol(p, mercado_activo).get("confianza") in ["ALTA", "MEDIA"]
+        if not _es_partido_pasado(p) and obtener_pick_para_mercado_futbol(p, mercado_activo).get("confianza") in ["ALTA", "MEDIA"]
     )
 
     # Nivel 4: 4 Tarjetas Métricas
@@ -303,7 +347,7 @@ def render_cartelera_futbol(predicciones: list[dict], mercado_activo: str):
     with f_est_col:
         filtro_estado = st.selectbox(
             "Estado del Partido:",
-            ["Solo Próximos y En Vivo", "Todos los estados", "Solo Próximos", "Solo En Vivo", "Solo Finalizados"],
+            ["Solo Próximos (Por Jugar)", "Solo Próximos y En Vivo", "Solo En Vivo", "Solo Finalizados", "Todos los estados"],
             key="f_estado_futbol",
         )
 
@@ -338,23 +382,20 @@ def render_cartelera_futbol(predicciones: list[dict], mercado_activo: str):
     elif filtro_confianza == "Solo MEDIA confianza":
         filtrados = [p for p in filtrados if p.get("confianza") == "MEDIA"]
 
-    if filtro_estado == "Solo Próximos y En Vivo":
-        filtrados = [
-            p for p in filtrados
-            if not ("FINAL" in str(p.get("estado", "")).upper() or "FULL_TIME" in str(p.get("estado", "")).upper() or "POST" in str(p.get("estado", "")).upper())
-        ]
-    elif filtro_estado == "Solo Próximos":
-        filtrados = [p for p in filtrados if "SCHEDULED" in str(p.get("estado", "")).upper()]
+    if filtro_estado == "Solo Próximos (Por Jugar)":
+        filtrados = [p for p in filtrados if not _es_partido_pasado(p) and not _es_partido_en_vivo(p)]
+    elif filtro_estado == "Solo Próximos y En Vivo":
+        filtrados = [p for p in filtrados if not _es_partido_pasado(p)]
     elif filtro_estado == "Solo En Vivo":
-        filtrados = [p for p in filtrados if "PROGRESS" in str(p.get("estado", "")).upper()]
+        filtrados = [p for p in filtrados if _es_partido_en_vivo(p)]
     elif filtro_estado == "Solo Finalizados":
-        filtrados = [
-            p for p in filtrados
-            if ("FINAL" in str(p.get("estado", "")).upper() or "FULL_TIME" in str(p.get("estado", "")).upper() or "POST" in str(p.get("estado", "")).upper())
-        ]
+        filtrados = [p for p in filtrados if _es_partido_pasado(p)]
 
     if not filtrados:
-        st.warning("No hay partidos que coincidan con los filtros seleccionados.")
+        if filtro_fecha == "Solo Hoy" and n_finalizados > 0:
+            st.info("⚽ Los partidos programados para hoy ya finalizaron y han sido liquidados en **Rendimiento e Historial**. Selecciona **'Hoy y Próximos'** o **'Solo Mañana'** para consultar los siguientes partidos por disputarse.")
+        else:
+            st.warning("No hay partidos que coincidan con los filtros seleccionados.")
         return
 
     # Despliegue de tarjetas de partidos
