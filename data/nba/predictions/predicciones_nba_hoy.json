@@ -8,7 +8,7 @@
     "abbr_visita": "BKN",
     "fecha_cdmx": "2026-10-27",
     "hora_cdmx": "17:30",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_FINAL",
     "provider": "DraftKings",
     "linea_spread": -11.5,
     "spread_detalles": "BOS -11.5",
@@ -51,7 +51,11 @@
         "detalle": "🎯 Longshot (+EV 94.5%). Probabilidad (37.0%) menor al 50%. Se sugiere preferir el Spread."
       }
     ],
-    "timestamp": "2026-10-27T08:22:06.957669-06:00"
+    "timestamp": "2026-10-27T08:22:06.957669-06:00",
+    "marcador_local": 125,
+    "marcador_visita": 124,
+    "resultado": "PERDIDA",
+    "unidades_ganadas": -1.0
   },
   {
     "id_evento": "401909878",
@@ -62,7 +66,7 @@
     "abbr_visita": "DET",
     "fecha_cdmx": "2026-10-27",
     "hora_cdmx": "18:00",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_FINAL",
     "provider": "DraftKings",
     "linea_spread": -3.5,
     "spread_detalles": "NY -3.5",
@@ -105,7 +109,11 @@
         "detalle": "Prob Calibrada: 50.7% vs Book: 43.5% (EV: +16.5%)"
       }
     ],
-    "timestamp": "2026-10-27T08:22:06.968675-06:00"
+    "timestamp": "2026-10-27T08:22:06.968675-06:00",
+    "marcador_local": 111,
+    "marcador_visita": 97,
+    "resultado": "PERDIDA",
+    "unidades_ganadas": -1.0
   },
   {
     "id_evento": "401909879",
@@ -116,7 +124,7 @@
     "abbr_visita": "SAC",
     "fecha_cdmx": "2026-10-27",
     "hora_cdmx": "18:00",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_FINAL",
     "provider": "DraftKings",
     "linea_spread": -18.5,
     "spread_detalles": "SA -18.5",
@@ -171,7 +179,11 @@
         "detalle": "Margen Proyectado Visita: -7.7 pts (Spread: +18.5)"
       }
     ],
-    "timestamp": "2026-10-27T08:22:06.979675-06:00"
+    "timestamp": "2026-10-27T08:22:06.979675-06:00",
+    "marcador_local": 130,
+    "marcador_visita": 103,
+    "resultado": "PERDIDA",
+    "unidades_ganadas": -1.0
   },
   {
     "id_evento": "401909880",

@@ -556,14 +556,11 @@ def liquidar_partidos_pendientes_nba() -> dict[str, Any]:
     partidos_faltantes = [ev for ev_id, ev in partidos_finales_map.items() if ev_id not in ids_existentes]
     if partidos_faltantes:
         try:
-            from nba.predecir_hoy import generar_predicciones_nba_hoy, cargar_perfiles_recientes_equipos
-            import joblib
-            b_sp = joblib.load(RAIZ / "modelos_nba" / "modelo_spread_ml.joblib")
-            b_tot = joblib.load(RAIZ / "modelos_nba" / "modelo_totales.joblib")
-            perfs = cargar_perfiles_recientes_equipos()
-            nuevas_preds = generar_predicciones_nba_hoy(partidos_faltantes, perfs, b_sp, b_tot)
-            guardar_predicciones_nba(nuevas_preds)
-            df = pd.read_parquet(RUTA_HISTORIAL_PARQUET)
+            from nba.predecir_hoy import predecir_partidos_hoy
+            nuevas_preds = predecir_partidos_hoy(force_refresh=True)
+            if nuevas_preds:
+                guardar_predicciones_nba(nuevas_preds)
+                df = pd.read_parquet(RUTA_HISTORIAL_PARQUET)
         except Exception as e_gen:
             logger.warning(f"Error generando predicciones para partidos faltantes: {e_gen}")
 

@@ -679,6 +679,7 @@ st.markdown(
 )
 
 # Carga de datos de partidos
+predicciones = []
 if not RUTA_PREDICCIONES_JSON.exists():
     with st.spinner("Generando predicciones iniciales para las 8 ligas..."):
         predicciones = predecir_futbol_mundial(force_refresh=True)
@@ -688,10 +689,6 @@ else:
             predicciones = json.load(f)
     except Exception:
         predicciones = predecir_futbol_mundial(force_refresh=False)
-
-if not predicciones:
-    st.info("⚽ No hay partidos registrados en la cartelera. Pulsa 'Actualizar Cuotas' para consultar ESPN y DraftKings.")
-    st.stop()
 
 # Nivel 1: Selector principal de mercado
 mercado = st.radio(
@@ -742,4 +739,8 @@ st.markdown("<div style='margin-bottom: 1.1rem;'></div>", unsafe_allow_html=True
 if seccion == "Rendimiento e Historial":
     render_historial_futbol(mercado)
 else:
-    render_cartelera_futbol(predicciones, mercado)
+    if not predicciones:
+        st.info("⚽ No hay partidos registrados en la cartelera. Pulsa 'Actualizar Cuotas' para consultar ESPN y DraftKings.")
+    else:
+        render_cartelera_futbol(predicciones, mercado)
+

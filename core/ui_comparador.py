@@ -20,18 +20,13 @@ def load_comparison():
         reader=runpy.run_path(str(Path(__file__).with_name('comparador.py')),run_name='comparison_reader')
         frame,errors = reader['read_models'](conn)
         try:
-            from futbol.predecir_jornada import cargar_historial_futbol
+            from futbol.registro import cargar_historial_futbol
             from core.comparador import normalize
             df_fut = cargar_historial_futbol()
             if not df_fut.empty:
-                df_fut = df_fut.rename(columns={
-                    'id_evento': 'id_partido_futbol',
-                    'pick_mercado': 'mercado',
-                    'pick_seleccion': 'seleccion',
-                    'pick_cuota': 'cuota',
-                })
-                df_fut['modelo'] = 'Poisson Bivariado'
-                fut_norm = normalize(df_fut, sport='Fútbol', market=None, identity=['id_partido_futbol'], american=True, verified=True)
+                df_fut = df_fut[df_fut["resultado"].isin(["GANADA", "PERDIDA", "PUSH"])].copy()
+                df_fut["modelo"] = "Dixon-Coles Bivariado"
+                fut_norm = normalize(df_fut, sport="Fútbol", market=None, identity=["id_juego"], american=False, verified=True)
                 frame = pd.concat([frame, fut_norm], ignore_index=True)
         except Exception:
             pass

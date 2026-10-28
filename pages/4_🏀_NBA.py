@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 import numpy as np
@@ -307,23 +307,63 @@ def render_cartelera_nba(predicciones: list[dict], mercado: str):
         st.info("🏀 No hay partidos programados para hoy en la cartelera de la NBA. Puedes volver a consultar más tarde o forzar la actualización.")
         return
 
-    partidos_pendientes = [
-        p for p in predicciones
-        if p.get("resultado") not in ["GANADA", "PERDIDA", "PUSH"]
-    ]
-    partidos_liquidados = [
-        p for p in predicciones
-        if p.get("resultado") in ["GANADA", "PERDIDA", "PUSH"]
-    ]
+    ahora_cdmx = datetime.now(ZONA_CDMX)
+    hoy_cdmx = ahora_cdmx.date()
+
+    def _es_partido_pasado_nba(p: dict) -> bool:
+        if p.get("resultado") in ["GANADA", "PERDIDA", "PUSH"]:
+            return True
+        estado = str(p.get("estado", "")).upper()
+        if any(k in estado for k in ["FINAL", "STATUS_FINAL"]):
+            return True
+        f_str = str(p.get("fecha_cdmx", ""))[:10]
+        if not f_str:
+            return False
+        try:
+            f_date = datetime.strptime(f_str, "%Y-%m-%d").date()
+            if f_date < hoy_cdmx:
+                return True
+            if f_date > hoy_cdmx:
+                return False
+            h_str = str(p.get("hora_cdmx", "")).strip()
+            if h_str and ":" in h_str:
+                partes = h_str.split(":")
+                h_int, m_int = int(partes[0]), int(partes[1])
+                dt_partido = datetime(f_date.year, f_date.month, f_date.day, h_int, m_int, tzinfo=ZONA_CDMX)
+                if ahora_cdmx >= dt_partido + timedelta(minutes=140):
+                    return True
+        except Exception:
+            pass
+        return False
+
+    def _es_en_vivo_nba(p: dict) -> bool:
+        estado = str(p.get("estado", "")).upper()
+        if "PROGRESS" in estado or "LIVE" in estado:
+            return True
+        f_str = str(p.get("fecha_cdmx", ""))[:10]
+        h_str = str(p.get("hora_cdmx", "")).strip()
+        if f_str and h_str and ":" in h_str:
+            try:
+                f_date = datetime.strptime(f_str, "%Y-%m-%d").date()
+                if f_date == hoy_cdmx:
+                    partes = h_str.split(":")
+                    h_int, m_int = int(partes[0]), int(partes[1])
+                    dt_partido = datetime(f_date.year, f_date.month, f_date.day, h_int, m_int, tzinfo=ZONA_CDMX)
+                    if dt_partido <= ahora_cdmx < dt_partido + timedelta(minutes=140):
+                        return True
+            except Exception:
+                pass
+        return False
 
     total_partidos = len(predicciones)
-    n_pendientes = len(partidos_pendientes)
-    n_liquidados = len(partidos_liquidados)
+    n_pendientes = sum(1 for p in predicciones if not _es_partido_pasado_nba(p) and not _es_en_vivo_nba(p))
+    n_liquidados = sum(1 for p in predicciones if _es_partido_pasado_nba(p))
+    n_en_vivo = sum(1 for p in predicciones if _es_en_vivo_nba(p))
 
     # Picks calificados (+EV fuera de Dead Zone) en el mercado activo
     picks_calificados = sum(
-        1 for p in partidos_pendientes
-        if obtener_pick_para_mercado(p, mercado).get("confianza") in ["ALTA", "MEDIA"]
+        1 for p in predicciones
+        if not _es_partido_pasado_nba(p) and obtener_pick_para_mercado(p, mercado).get("confianza") in ["ALTA", "MEDIA"]
     )
 
     # 4 tarjetas métricas ejecutivas homologadas
@@ -338,22 +378,9 @@ def render_cartelera_nba(predicciones: list[dict], mercado: str):
         st.metric("Picks Calificados (+EV)", picks_calificados)
     st.markdown("<div style='margin-bottom: 1.25rem;'></div>", unsafe_allow_html=True)
 
-    if n_pendientes == 0 and total_partidos > 0:
-        st.markdown(
-            f"""<div style="background: linear-gradient(145deg, #18110b, #0f0a06); border: 1px solid #ff6b00; border-radius: 16px; padding: 2rem; text-align: center; margin-top: 1.2rem; margin-bottom: 2rem;">
-<div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🏀🏁</div>
-<div style="font-size: 1.35rem; font-weight: 900; color: #ff8c33; margin-bottom: 0.5rem;">Partidos Concluidos y Auditados</div>
-<div style="color: #cbd5e1; font-size: 0.95rem; max-width: 620px; margin: 0 auto; line-height: 1.55;">
-Los partidos de la cartelera anterior ({n_liquidados} juegos) ya finalizaron y han sido liquidados en <b>Rendimiento e Historial</b>. Para consultar la nueva cartelera, pulsa <b>Actualizar Cuotas DraftKings</b>.
-</div>
-</div>""",
-            unsafe_allow_html=True,
-        )
-        return
-
     from core.ui_boleta import render_boton_boleta, render_widget_boleta
 
-    f_col1, f_col2 = st.columns([2, 1], gap="medium")
+    f_col1, f_col2, f_col3 = st.columns([1.6, 1.2, 1.2], gap="medium")
     with f_col1:
         busqueda_nba = st.text_input(
             "Buscar equipo NBA",
@@ -363,6 +390,12 @@ Los partidos de la cartelera anterior ({n_liquidados} juegos) ya finalizaron y h
     with f_col2:
         st.markdown("<div style='margin-top: 1.8rem;'></div>", unsafe_allow_html=True)
         solo_ev = st.checkbox("🔥 Solo picks Calificados (+EV)", key="nba_ev_filter")
+    with f_col3:
+        filtro_estado = st.selectbox(
+            "Estado:",
+            ["Solo Próximos (Por Jugar)", "Solo Próximos y En Vivo", "Solo En Vivo", "Solo Finalizados", "Todos los estados"],
+            key="nba_filtro_estado",
+        )
 
     lista_mostrar = predicciones
     if busqueda_nba:
@@ -380,8 +413,29 @@ Los partidos de la cartelera anterior ({n_liquidados} juegos) ya finalizaron y h
             if obtener_pick_para_mercado(p, mercado).get("confianza") in ["ALTA", "MEDIA"]
         ]
 
+    if filtro_estado == "Solo Próximos (Por Jugar)":
+        lista_mostrar = [p for p in lista_mostrar if not _es_partido_pasado_nba(p) and not _es_en_vivo_nba(p)]
+    elif filtro_estado == "Solo Próximos y En Vivo":
+        lista_mostrar = [p for p in lista_mostrar if not _es_partido_pasado_nba(p)]
+    elif filtro_estado == "Solo En Vivo":
+        lista_mostrar = [p for p in lista_mostrar if _es_en_vivo_nba(p)]
+    elif filtro_estado == "Solo Finalizados":
+        lista_mostrar = [p for p in lista_mostrar if _es_partido_pasado_nba(p)]
+
     if not lista_mostrar:
-        st.warning("No hay partidos o picks que coincidan con los filtros de búsqueda seleccionados.")
+        if n_liquidados > 0 and filtro_estado in ["Solo Próximos (Por Jugar)", "Solo Próximos y En Vivo"]:
+            st.markdown(
+                f"""<div style="background: linear-gradient(145deg, #18110b, #0f0a06); border: 1px solid #ff6b00; border-radius: 16px; padding: 2rem; text-align: center; margin-top: 1.2rem; margin-bottom: 2rem;">
+<div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🏀🏁</div>
+<div style="font-size: 1.35rem; font-weight: 900; color: #ff8c33; margin-bottom: 0.5rem;">Partidos de Hoy Concluidos y Auditados</div>
+<div style="color: #cbd5e1; font-size: 0.95rem; max-width: 620px; margin: 0 auto; line-height: 1.55;">
+Los partidos de hoy ({n_liquidados} juegos) ya finalizaron y están auditados en <b>Rendimiento e Historial</b>. Para consultar la siguiente jornada, pulsa <b>Actualizar Cuotas DraftKings</b>.
+</div>
+</div>""",
+                unsafe_allow_html=True,
+            )
+        else:
+            st.warning("No hay partidos o picks que coincidan con los filtros de búsqueda seleccionados.")
         return
 
     # Renderizado de Tarjetas de partidos individuales para el mercado seleccionado

@@ -558,22 +558,18 @@ def render_historial_futbol(mercado_activo: str):
         # 2. Filtro de Mercado
         with col_f2:
             mercados_ordenados = [
-                "Todos los mercados",
                 "Totales (Over/Under)",
                 "Moneyline (1X2)",
                 "Ambos Anotan (BTTS)",
                 "Doble Oportunidad (1X/X2)",
             ]
-            mercados_presentes = set(f_liq["mercado"].dropna().unique())
-            mercados_unicos = ["Todos los mercados"] + [m for m in mercados_ordenados[1:] if m in mercados_presentes]
-            if len(mercados_unicos) == 1:
-                mercados_unicos = mercados_ordenados
-
-            idx_def_mercado = 0
-            if mercado_canonico in mercados_unicos:
-                idx_def_mercado = mercados_unicos.index(mercado_canonico)
-
-            sel_mercado = st.selectbox("Mercado analizado:", mercados_unicos, index=idx_def_mercado, key="hist_sel_mercado")
+            opciones_mercados = [mercado_canonico, "Todos los mercados (Combinado)"] + [m for m in mercados_ordenados if m != mercado_canonico]
+            sel_mercado = st.selectbox(
+                "Mercado analizado:",
+                opciones_mercados,
+                index=0,
+                key=f"hist_sel_mercado_{mercado_canonico}",
+            )
 
         # 3. Filtro de Confianza
         with col_f3:
@@ -602,7 +598,7 @@ def render_historial_futbol(mercado_activo: str):
     if sel_liga != "todas":
         f_liq = f_liq[f_liq["liga_codigo"] == sel_liga]
 
-    if sel_mercado != "Todos los mercados":
+    if sel_mercado not in ["Todos los mercados", "Todos los mercados (Combinado)"]:
         f_liq = f_liq[f_liq["mercado"] == sel_mercado]
 
     if sel_conf == "Solo ALTA confianza":
