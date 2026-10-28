@@ -843,14 +843,6 @@ id_juego,fecha,hora_cdmx,equipo_local,equipo_visitante,mercado,seleccion,linea,c
 20261024_CF _Dep_do,2026-10-24,19:00,CF Monterrey,Deportivo Guadalajara,Doble Oportunidad (1X/X2),1X (CF Monterrey o Empate),0.0,1.4,0.72,0.05,ALTA,0,1,PERDIDA,-1.0,2026-10-25 17:36:04,mex.1,Liga MX,🇲🇽
 20261024_Pum_UAN_btts,2026-10-24,21:10,Pumas UNAM,UANL Tigres,Ambos Anotan (BTTS),Ambos Anotan: SÍ,2.5,1.82,0.55,0.04,MEDIA,1,1,GANADA,0.82,2026-10-25 17:36:04,mex.1,Liga MX,🇲🇽
 20261024_Pum_UAN_do,2026-10-24,21:10,Pumas UNAM,UANL Tigres,Doble Oportunidad (1X/X2),1X (Pumas UNAM o Empate),0.0,1.4,0.72,0.05,ALTA,1,1,GANADA,0.4,2026-10-25 17:36:04,mex.1,Liga MX,🇲🇽
-20261025_Atl_Pue_btts,2026-10-25,17:00,Atlas Guadalajara,Puebla FC,Ambos Anotan (BTTS),Ambos Anotan: SÍ,2.5,1.82,0.55,0.04,MEDIA,0,0,PERDIDA,-1.0,2026-10-25 17:35:58,mex.1,Liga MX,🇲🇽
-20261025_Atl_Pue_do,2026-10-25,17:00,Atlas Guadalajara,Puebla FC,Doble Oportunidad (1X/X2),1X (Atlas Guadalajara o Empate),0.0,1.4,0.72,0.05,ALTA,0,0,GANADA,0.4,2026-10-25 17:35:58,mex.1,Liga MX,🇲🇽
-20261025_Gal_Cru_btts,2026-10-25,19:00,Gallos Blancos,Cruz Azul,Ambos Anotan (BTTS),Ambos Anotan: SÍ,2.5,1.82,0.55,0.04,MEDIA,0,0,PERDIDA,-1.0,2026-10-25 17:35:58,mex.1,Liga MX,🇲🇽
-20261025_Gal_Cru_do,2026-10-25,19:00,Gallos Blancos,Cruz Azul,Doble Oportunidad (1X/X2),1X (Gallos Blancos o Empate),0.0,1.4,0.72,0.05,ALTA,0,0,GANADA,0.4,2026-10-25 17:35:58,mex.1,Liga MX,🇲🇽
-20261025_CF _CF _btts,2026-10-25,19:05,CF America,CF Pachuca,Ambos Anotan (BTTS),Ambos Anotan: SÍ,2.5,1.82,0.55,0.04,MEDIA,0,0,PERDIDA,-1.0,2026-10-25 17:35:58,mex.1,Liga MX,🇲🇽
-20261025_CF _CF _do,2026-10-25,19:05,CF America,CF Pachuca,Doble Oportunidad (1X/X2),1X (CF America o Empate),0.0,1.4,0.72,0.05,ALTA,0,0,GANADA,0.4,2026-10-25 17:35:58,mex.1,Liga MX,🇲🇽
-20261025_Clu_San_btts,2026-10-25,21:10,Club Tijuana,Santos Laguna,Ambos Anotan (BTTS),Ambos Anotan: SÍ,2.5,1.82,0.55,0.04,MEDIA,0,0,PERDIDA,-1.0,2026-10-25 17:35:58,mex.1,Liga MX,🇲🇽
-20261025_Clu_San_do,2026-10-25,21:10,Club Tijuana,Santos Laguna,Doble Oportunidad (1X/X2),1X (Club Tijuana o Empate),0.0,1.4,0.72,0.05,ALTA,0,0,GANADA,0.4,2026-10-25 17:35:58,mex.1,Liga MX,🇲🇽
 401875570_tot,2026-10-25,05:15,Fortuna Sittard,Excelsior,Totales (Over/Under),OVER 2.5,2.5,1.69,0.5339,-0.0578,MEDIA,1,0,PERDIDA,-1.0,2026-10-25 17:35:13,ned.1,Eredivisie,🇳🇱
 401875570_ml,2026-10-25,05:15,Fortuna Sittard,Excelsior,Moneyline (1X2),Fortuna Sittard ML,0.0,2.35,0.4151,-0.0104,MEDIA,1,0,GANADA,1.35,2026-10-25 17:35:13,ned.1,Eredivisie,🇳🇱
 401875570_btts,2026-10-25,05:15,Fortuna Sittard,Excelsior,Ambos Anotan (BTTS),Ambos Anotan: SÍ,2.5,1.83,0.5693,0.038,MEDIA,1,0,PERDIDA,-1.0,2026-10-25 17:35:13,ned.1,Eredivisie,🇳🇱
