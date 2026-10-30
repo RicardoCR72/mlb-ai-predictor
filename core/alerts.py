@@ -74,8 +74,17 @@ def enviar_telegram(mensaje: str, parse_mode: str = "HTML") -> bool:
             with urlopen(req, timeout=15) as resp:
                 if resp.status != 200:
                     exito = False
-        except (HTTPError, URLError) as err:
-            logger.error(f"Error al enviar mensaje a Telegram: {err}")
+        except HTTPError as err:
+            try:
+                body = err.read().decode("utf-8")
+                err_data = json.loads(body)
+                desc = err_data.get("description", str(err))
+            except Exception:
+                desc = str(err)
+            logger.error(f"Error Telegram: {desc}")
+            exito = False
+        except (URLError, Exception) as err:
+            logger.error(f"Error de conexión con Telegram: {err}")
             exito = False
 
     return exito

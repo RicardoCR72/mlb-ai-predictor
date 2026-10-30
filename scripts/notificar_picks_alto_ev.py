@@ -233,7 +233,7 @@ def formatear_mensaje_reporte(
 
     # --- SECCIÓN FÚTBOL ---
     if picks_futbol:
-        lineas.append(f"\n⚽ <b>FÚTBOL MUNDIAL & LIGA MX ({len(picks_futbol)})</b>")
+        lineas.append(f"\n⚽ <b>FÚTBOL MUNDIAL &amp; LIGA MX ({len(picks_futbol)})</b>")
         for p in picks_futbol:
             badge = "🔥" if p["confianza"] == "ALTA" else "⚡"
             cuota_str = f"<b>{p['cuota']}</b>" if p['cuota'] else f"<b>{p['cuota_dec']:.2f}</b>"
@@ -331,3 +331,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     ejecutar_notificador(min_edge=args.min_edge, max_picks=args.max_picks, dry_run=args.dry_run)
+
