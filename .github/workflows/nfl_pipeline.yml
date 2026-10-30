@@ -1,0 +1,63 @@
+name: Actualizador y Liquidación Automática NFL V2
+
+on:
+  schedule:
+    # 1. Jueves Cierre (23:30 CDMX = 05:30 UTC Viernes): Liquida TNF (Moneyline, Totales y Props)
+    - cron: '30 5 * 9-12,1-2 5'
+    # 2. Domingo Tarde (19:30 CDMX = 01:30 UTC Lunes): Liquida partidos de medio día y tarde
+    - cron: '30 1 * 9-12,1-2 1'
+    # 3. Domingo Cierre (23:30 CDMX = 05:30 UTC Lunes): Liquida Sunday Night Football (SNF)
+    - cron: '30 5 * 9-12,1-2 1'
+    # 4. Lunes Cierre (23:30 CDMX = 05:30 UTC Martes): Liquida Monday Night Football (MNF)
+    - cron: '30 5 * 9-12,1-2 2'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: nfl-v2-pipeline
+  cancel-in-progress: false
+
+jobs:
+  actualizar-liquidar-nfl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Instalar dependencias
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas numpy requests pyarrow mysql-connector-python
+
+      - name: Ejecutar Liquidación y Sincronización NFL
+        env:
+          DB_HOST: ${{ secrets.NFL_DB_HOST || secrets.DB_HOST }}
+          DB_PORT: ${{ secrets.NFL_DB_PORT || secrets.DB_PORT }}
+          DB_USER: ${{ secrets.NFL_DB_USER || secrets.DB_USER }}
+          DB_PASSWORD: ${{ secrets.NFL_DB_PASSWORD || secrets.DB_PASSWORD || secrets.DB_PASS }}
+          DB_PASS: ${{ secrets.NFL_DB_PASSWORD || secrets.DB_PASSWORD || secrets.DB_PASS }}
+          DB_NAME: ${{ secrets.NFL_DB_NAME || secrets.DB_NAME }}
+        run: python nfl/actualizar_nfl.py
+
+      - name: Sincronizar y respaldar predicciones e historial en el repositorio
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/nfl/
+          if git diff --staged --quiet; then
+            echo "Sin cambios pendientes en archivos locales de NFL."
+          else
+            git commit -m "chore(nfl): liquidación automática de marcadores y props $(date -u +%Y-%m-%d)"
+            git push
+          fi
