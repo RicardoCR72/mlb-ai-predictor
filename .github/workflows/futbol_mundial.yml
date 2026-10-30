@@ -1,20 +1,24 @@
-name: Actualizar Fútbol Mundial (8 Ligas)
+name: Actualizador Diario y Liquidación Fútbol Mundial (8 Ligas)
 
 on:
   schedule:
-    # Diario a las 11:30 UTC (05:30 CDMX)
-    - cron: '30 11 * * *'
+    # 1. Mañana (06:00 CDMX = 12:00 UTC): Apertura de cuotas y predicciones tempranas para ligas europeas y del día
+    - cron: '0 12 * * *'
+    # 2. Tarde (14:30 CDMX = 20:30 UTC): Liquidación de partidos matutinos europeos y ajuste previo a Liga MX / América
+    - cron: '30 20 * * *'
+    # 3. Noche (23:15 CDMX = 05:15 UTC siguiente día): Liquidación final de jornada de Liga MX y auditoría de balance
+    - cron: '15 5 * * *'
   workflow_dispatch:
 
 permissions:
   contents: write
 
 concurrency:
-  group: actualizar-futbol-mundial
+  group: futbol-mundial-pipeline
   cancel-in-progress: false
 
 jobs:
-  futbol-mundial:
+  actualizar-futbol:
     runs-on: ubuntu-latest
     timeout-minutes: 25
 
@@ -32,19 +36,25 @@ jobs:
       - name: Instalar dependencias
         run: |
           python -m pip install --upgrade pip
-          pip install pandas numpy scipy requests pyarrow
+          pip install pandas numpy scipy requests pyarrow mysql-connector-python
 
-      - name: Ingestión, predicciones y liquidación Fútbol Mundial
-        run: python futbol/predecir_jornada.py
+      - name: Ejecutar Pipeline Fútbol (Liquidación de marcadores y nuevas predicciones 8 ligas)
+        env:
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASS: ${{ secrets.DB_PASS }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+        run: python futbol/actualizar_futbol.py
 
-      - name: Guardar y subir predicciones actualizadas
+      - name: Sincronizar y respaldar predicciones e historial en el repositorio
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add data/futbol/
           if git diff --staged --quiet; then
-            echo "Sin cambios en predicciones de fútbol."
+            echo "Sin cambios pendientes en archivos locales de Fútbol."
           else
-            git commit -m "chore(futbol): actualizar predicciones y resultados 8 ligas $(date -u +%Y-%m-%d)"
+            git commit -m "chore(futbol): actualización automática predicciones y auditoría 8 ligas $(date -u +%Y-%m-%d)"
             git push
           fi

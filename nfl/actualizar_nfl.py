@@ -49,3 +49,4 @@ if __name__ == "__main__":
         pass
     resultado = ejecutar_pipeline_nfl()
     logger.info(f"🏁 Pipeline NFL completado: {resultado}")
+
