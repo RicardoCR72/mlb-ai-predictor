@@ -57,3 +57,4 @@ jobs:
           MIN_EDGE="${{ github.event.inputs.min_edge || '0.045' }}"
           MAX_PICKS="${{ github.event.inputs.max_picks || '5' }}"
           python scripts/notificar_picks_alto_ev.py --min-edge "$MIN_EDGE" --max-picks "$MAX_PICKS"
+
