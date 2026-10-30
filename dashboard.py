@@ -29,8 +29,31 @@ st.markdown(hero_html, unsafe_allow_html=True)
 
 from core.ui_inicio import render_home
 render_home()
+
 with st.sidebar:
     from core.ui_boleta import render_widget_boleta
     render_widget_boleta(sidebar=True)
-    st.caption('MLB, NFL, Fútbol (8 Ligas), NBA y Rendimiento')
 
+    with st.expander("📢 Alertas (+EV) Telegram/Discord"):
+        from core.alerts import get_telegram_config, get_discord_config
+        t_tok, t_chat = get_telegram_config()
+        d_url = get_discord_config()
+        if not t_tok and not d_url:
+            st.info("Configura `TELEGRAM_BOT_TOKEN` o `DISCORD_WEBHOOK_URL` en `.streamlit/secrets.toml` o GitHub Secrets.")
+        else:
+            canales = []
+            if t_tok:
+                canales.append("Telegram ✅")
+            if d_url:
+                canales.append("Discord ✅")
+            st.caption(f"Conectado: {', '.join(canales)}")
+
+        if st.button("🚀 Enviar Alerta Ahora", use_container_width=True, help="Envía las mejores oportunidades +EV del día"):
+            from scripts.notificar_picks_alto_ev import ejecutar_notificador
+            res = ejecutar_notificador()
+            if res.get("ok"):
+                st.success(f"Alerta enviada exitosamente ({res.get('total_picks')} picks)!")
+            else:
+                st.warning(f"No se pudo enviar: {res.get('error', 'Revisa credenciales')}")
+
+    st.caption('MLB, NFL, Fútbol (8 Ligas), NBA y Rendimiento')

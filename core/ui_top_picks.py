@@ -20,14 +20,16 @@ def obtener_top_picks_del_dia(max_picks: int = 3) -> list[dict]:
     picks = []
 
     # 1. Fútbol
-    p_futbol = RAIZ / "data" / "futbol" / "predicciones_futbol.json"
+    p_futbol = RAIZ / "data" / "futbol" / "predicciones_futbol_mundial.json"
+    if not p_futbol.exists():
+        p_futbol = RAIZ / "data" / "futbol" / "predicciones_futbol.json"
     if p_futbol.exists():
         try:
             with open(p_futbol, "r", encoding="utf-8") as f:
                 data = json.load(f)
             for j in data:
                 f_j = str(j.get("fecha_cdmx") or j.get("fecha", ""))[:10]
-                if f_j and f_j != hoy_cdmx:
+                if f_j and f_j < hoy_cdmx:
                     continue
                 estado = str(j.get("estado", "")).upper()
                 res = str(j.get("resultado_pick", "PENDIENTE")).upper()
@@ -64,7 +66,7 @@ def obtener_top_picks_del_dia(max_picks: int = 3) -> list[dict]:
                 data = json.load(f)
             for j in data:
                 f_j = str(j.get("fecha_cdmx") or j.get("fecha", ""))[:10]
-                if f_j and f_j != hoy_cdmx:
+                if f_j and f_j < hoy_cdmx:
                     continue
                 estado = str(j.get("estado", "")).upper()
                 res = str(j.get("resultado", "PENDIENTE")).upper()

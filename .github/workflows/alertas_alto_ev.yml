@@ -1,0 +1,59 @@
+name: Alertas de Picks Alto Valor (+EV)
+
+on:
+  schedule:
+    # Diario a las 07:30 CDMX (13:30 UTC), tras las actualizaciones matutinas de NBA, Fútbol y NFL
+    - cron: '30 13 * * *'
+  workflow_dispatch:
+    inputs:
+      min_edge:
+        description: 'Ventaja matemática mínima (+Edge, ej: 0.045 para 4.5%)'
+        required: false
+        default: '0.045'
+      max_picks:
+        description: 'Máximo número de picks por deporte a notificar'
+        required: false
+        default: '5'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: alertas-alto-ev
+  cancel-in-progress: false
+
+jobs:
+  notificar-picks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Instalar dependencias
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas mysql-connector-python requests
+
+      - name: Consolidar y enviar alertas de alto valor (+EV) a Telegram / Discord
+        env:
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+          DB_USER: ${{ secrets.DB_USER }}
+          DB_PASS: ${{ secrets.DB_PASS }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          MIN_EDGE="${{ github.event.inputs.min_edge || '0.045' }}"
+          MAX_PICKS="${{ github.event.inputs.max_picks || '5' }}"
+          python scripts/notificar_picks_alto_ev.py --min-edge "$MIN_EDGE" --max-picks "$MAX_PICKS"

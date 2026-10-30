@@ -1,15 +1,17 @@
-"""Módulo central de alertas y notificaciones a Telegram."""
+"""Módulo central de alertas y notificaciones a Telegram y Discord."""
 from __future__ import annotations
 
-import os
 import json
-from typing import Any, Optional
+import os
+import logging
+from typing import Any, Dict, List, Optional, Tuple
 from urllib.error import HTTPError, URLError
-from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
+logger = logging.getLogger("core.alerts")
 
-def get_telegram_config() -> tuple[Optional[str], Optional[str]]:
+
+def get_telegram_config() -> Tuple[Optional[str], Optional[str]]:
     """Obtiene el bot token y chat ID de Telegram desde Streamlit secrets o variables de entorno."""
     token = None
     chat_id = None
@@ -29,28 +31,88 @@ def get_telegram_config() -> tuple[Optional[str], Optional[str]]:
     return token, chat_id
 
 
+def get_discord_config() -> Optional[str]:
+    """Obtiene el webhook URL de Discord desde Streamlit secrets o variables de entorno."""
+    url = None
+    try:
+        import streamlit as st
+        if hasattr(st, "secrets"):
+            url = st.secrets.get("DISCORD_WEBHOOK_URL")
+    except Exception:
+        pass
+
+    if not url:
+        url = os.environ.get("DISCORD_WEBHOOK_URL")
+
+    return url
+
+
 def enviar_telegram(mensaje: str, parse_mode: str = "HTML") -> bool:
-    """Envía un mensaje a Telegram. Retorna True si se envió correctamente."""
+    """Envía un mensaje a Telegram (divide en fragmentos si excede 4000 caracteres)."""
     token, chat_id = get_telegram_config()
     if not token or not chat_id:
-        print("⚠️ Telegram no configurado (TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID).")
+        logger.warning("Telegram no configurado (TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID ausentes).")
         return False
 
     url = f"https://api.telegram.org/bot{token}/sendMessage"
-    payload = json.dumps({
-        "chat_id": chat_id,
-        "text": mensaje,
-        "parse_mode": parse_mode,
-        "disable_web_page_preview": True,
-    }).encode("utf-8")
 
-    req = Request(url, data=payload, headers={"Content-Type": "application/json"})
-    try:
-        with urlopen(req, timeout=15) as resp:
-            return resp.status == 200
-    except (HTTPError, URLError) as err:
-        print(f"❌ Error al enviar mensaje a Telegram: {err}")
+    # Telegram límite de 4096 caracteres por mensaje
+    max_len = 3900
+    trozos = [mensaje[i:i + max_len] for i in range(0, len(mensaje), max_len)]
+    exito = True
+
+    for trozo in trozos:
+        payload = json.dumps({
+            "chat_id": chat_id,
+            "text": trozo,
+            "parse_mode": parse_mode,
+            "disable_web_page_preview": True,
+        }).encode("utf-8")
+
+        req = Request(url, data=payload, headers={"Content-Type": "application/json"})
+        try:
+            with urlopen(req, timeout=15) as resp:
+                if resp.status != 200:
+                    exito = False
+        except (HTTPError, URLError) as err:
+            logger.error(f"Error al enviar mensaje a Telegram: {err}")
+            exito = False
+
+    return exito
+
+
+def enviar_discord(mensaje: str) -> bool:
+    """Envía una notificación a Discord vía Incoming Webhook."""
+    webhook_url = get_discord_config()
+    if not webhook_url:
         return False
+
+    max_len = 1950
+    trozos = [mensaje[i:i + max_len] for i in range(0, len(mensaje), max_len)]
+    exito = True
+
+    for trozo in trozos:
+        payload = json.dumps({"content": trozo}).encode("utf-8")
+        req = Request(webhook_url, data=payload, headers={
+            "Content-Type": "application/json",
+            "User-Agent": "Antigravity-Sports-Bot/2.0"
+        })
+        try:
+            with urlopen(req, timeout=15) as resp:
+                if resp.status not in (200, 204):
+                    exito = False
+        except Exception as err:
+            logger.error(f"Error al enviar mensaje a Discord: {err}")
+            exito = False
+
+    return exito
+
+
+def enviar_alerta_multicanal(mensaje: str, parse_mode: str = "HTML") -> Dict[str, bool]:
+    """Difunde el mensaje a todos los canales configurados (Telegram y Discord)."""
+    res_tg = enviar_telegram(mensaje, parse_mode=parse_mode)
+    res_dc = enviar_discord(mensaje)
+    return {"telegram": res_tg, "discord": res_dc}
 
 
 def notificar_fallo(nombre_tarea: str, detalle: str = "") -> bool:
@@ -63,7 +125,8 @@ def notificar_fallo(nombre_tarea: str, detalle: str = "") -> bool:
     if detalle:
         mensaje += f"<b>Detalle:</b>\n<pre>{detalle[:1000]}</pre>\n"
     mensaje += "\n<i>Revisa los logs en GitHub Actions para más información.</i>"
-    return enviar_telegram(mensaje)
+    enviar_alerta_multicanal(mensaje)
+    return True
 
 
 def notificar_oportunidad_valor(
@@ -75,7 +138,7 @@ def notificar_oportunidad_valor(
     edge: float,
     stake_kelly: float,
 ) -> bool:
-    """Envía una señal de oportunidad con Valor Esperado Positivo (+EV)."""
+    """Envía una señal individual de oportunidad con Valor Esperado Positivo (+EV)."""
     mensaje = (
         f"🎯 <b>OPORTUNIDAD DE VALOR (+EV) DETECTADA</b>\n"
         f"━━━━━━━━━━━━━━━━━━━━\n"
@@ -88,4 +151,5 @@ def notificar_oportunidad_valor(
         f"💡 <b>Kelly sugerido:</b> {stake_kelly:.2f} unidades\n"
         f"━━━━━━━━━━━━━━━━━━━━"
     )
-    return enviar_telegram(mensaje)
+    enviar_alerta_multicanal(mensaje)
+    return True
