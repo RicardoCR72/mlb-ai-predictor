@@ -165,7 +165,9 @@ def guardar_predicciones_nba(predicciones: List[Dict[str, Any]]) -> None:
                 if "Totales" in c_mercado:
                     linea_cand = float(p.get("linea_total") or 228.0)
                 elif "Spread" in c_mercado:
-                    linea_cand = float(p.get("linea_spread") or 0.0)
+                    import re
+                    m_sp = re.search(r'([+-]\d+(?:\.\d+)?)', c_sel)
+                    linea_cand = float(m_sp.group(1)) if m_sp else float(p.get("linea_spread") or 0.0)
 
                 suffix = "_ml" if "Moneyline" in c_mercado else ("_tot" if "Totales" in c_mercado else "_spread")
                 fila_c = {
@@ -333,11 +335,11 @@ def guardar_predicciones_nba(predicciones: List[Dict[str, Any]]) -> None:
 
         if not df_nuevas_filtradas.empty:
             df_total = pd.concat([df_existente, df_nuevas_filtradas], ignore_index=True)
-            df_total = df_total.drop_duplicates(subset=["id_juego"], keep="last")
+            df_total = df_total.drop_duplicates(subset=["id_juego", "mercado", "seleccion"], keep="last")
         else:
             df_total = df_existente
     else:
-        df_total = df_nuevas.drop_duplicates(subset=["id_juego"], keep="first")
+        df_total = df_nuevas.drop_duplicates(subset=["id_juego", "mercado", "seleccion"], keep="first")
 
     if "fecha" in df_total.columns:
         df_total["fecha"] = df_total["fecha"].astype(str)
@@ -347,6 +349,48 @@ def guardar_predicciones_nba(predicciones: List[Dict[str, Any]]) -> None:
     df_total.to_parquet(RUTA_HISTORIAL_PARQUET, index=False)
     df_total.to_csv(RUTA_HISTORIAL_CSV, index=False, encoding="utf-8")
     logger.info(f"💾 Historial actualizado en {RUTA_HISTORIAL_PARQUET} ({len(df_total)} registros).")
+
+
+def _es_seleccion_local(sel: str, eq_local: str, eq_vis: str, ab_local: str = "", ab_vis: str = "") -> bool:
+    """Determina de forma precisa si la selección de una apuesta pertenece al equipo local o visitante.
+    Previene colisiones por nombres comunes de ciudad o estado (ej. Los Angeles Lakers vs Los Angeles Clippers).
+    """
+    sel_l = str(sel or "").lower().strip()
+    eq_loc_l = str(eq_local or "").lower().strip()
+    eq_vis_l = str(eq_vis or "").lower().strip()
+
+    # 1. Coincidencia por nombre completo exacto
+    if eq_loc_l and eq_loc_l in sel_l:
+        return True
+    if eq_vis_l and eq_vis_l in sel_l:
+        return False
+
+    # 2. Coincidencia por Nickname característico (última palabra: 'lakers', 'clippers', 'pacers', 'cavaliers', etc.)
+    loc_nick = eq_loc_l.split()[-1] if eq_loc_l else ""
+    vis_nick = eq_vis_l.split()[-1] if eq_vis_l else ""
+    if loc_nick and loc_nick in sel_l:
+        return True
+    if vis_nick and vis_nick in sel_l:
+        return False
+
+    # 3. Abreviatura oficial (tokens aislados)
+    tokens = set(sel_l.split())
+    if ab_local and ab_local.lower() in tokens:
+        return True
+    if ab_vis and ab_vis.lower() in tokens:
+        return False
+
+    # 4. Palabras únicas de cada equipo (excluyendo palabras compartidas)
+    palabras_comunes = {"los", "angeles", "city", "golden", "state", "de", "the", "new", "york"}
+    loc_words = {w for w in eq_loc_l.split() if w not in palabras_comunes and len(w) >= 3}
+    vis_words = {w for w in eq_vis_l.split() if w not in palabras_comunes and len(w) >= 3}
+
+    if any(w in sel_l for w in loc_words):
+        return True
+    if any(w in sel_l for w in vis_words):
+        return False
+
+    return True
 
 
 def liquidar_partido(fila: pd.Series) -> Tuple[str, Optional[float]]:
@@ -400,17 +444,19 @@ def liquidar_partido(fila: pd.Series) -> Tuple[str, Optional[float]]:
     if "Moneyline" in mercado or "ML" in sel:
         if m_local == m_visita:
             return "PENDIENTE", None
-        eq_local = str(fila.get("equipo_local", "")).lower()
-        eq_vis = str(fila.get("equipo_visitante", "")).lower()
-        sel_l = sel.lower()
-        if any(part in sel_l for part in eq_local.split()):
+        eq_local = str(fila.get("equipo_local", ""))
+        eq_vis = str(fila.get("equipo_visitante", ""))
+        ab_local = str(fila.get("abbr_local", ""))
+        ab_vis = str(fila.get("abbr_visita", ""))
+        es_local = _es_seleccion_local(sel, eq_local, eq_vis, ab_local, ab_vis)
+        if es_local:
             if m_local > m_visita:
                 return "GANADA", round(cuota - 1.0, 3)
             elif m_local < m_visita:
                 return "PERDIDA", -1.0
             else:
                 return "PENDIENTE", None
-        elif any(part in sel_l for part in eq_vis.split()):
+        else:
             if m_visita > m_local:
                 return "GANADA", round(cuota - 1.0, 3)
             elif m_visita < m_local:
@@ -421,20 +467,22 @@ def liquidar_partido(fila: pd.Series) -> Tuple[str, Optional[float]]:
     # 3. Spread / Hándicap
     if "Spread" in mercado or "+" in sel or "-" in sel:
         import re
-        eq_local = str(fila.get("equipo_local", "")).lower()
-        eq_vis = str(fila.get("equipo_visitante", "")).lower()
-        sel_l = sel.lower()
+        eq_local = str(fila.get("equipo_local", ""))
+        eq_vis = str(fila.get("equipo_visitante", ""))
+        ab_local = str(fila.get("abbr_local", ""))
+        ab_vis = str(fila.get("abbr_visita", ""))
+        es_local = _es_seleccion_local(sel, eq_local, eq_vis, ab_local, ab_vis)
         
         match_spread = re.search(r'([+-]\d+(?:\.\d+)?)', sel)
         if match_spread:
             handicap = float(match_spread.group(1))
-            if any(part in sel_l for part in eq_local.split()):
+            if es_local:
                 diff = (m_local + handicap) - m_visita
             else:
                 diff = (m_visita + handicap) - m_local
         else:
             margen = m_local - m_visita
-            if any(part in sel_l for part in eq_local.split()):
+            if es_local:
                 diff = margen + linea
             else:
                 diff = -margen + linea
@@ -500,7 +548,7 @@ def liquidar_partidos_pendientes_nba() -> dict[str, Any]:
                     df_db["fecha"] = df_db["fecha"].astype(str)
                 if "actualizado_en" in df_db.columns:
                     df_db["actualizado_en"] = pd.to_datetime(df_db["actualizado_en"], errors="coerce")
-                df = pd.concat([df, df_db], ignore_index=True).drop_duplicates(subset=["id_juego"], keep="last")
+                df = pd.concat([df, df_db], ignore_index=True).drop_duplicates(subset=["id_juego", "mercado", "seleccion"], keep="last")
     except Exception:
         pass
 
@@ -585,6 +633,9 @@ def liquidar_partidos_pendientes_nba() -> dict[str, Any]:
             curr_res = row.get("resultado")
 
             # Actualizar si no es válido, si está pendiente, o si el marcador guardado difiere del marcador final oficial de ESPN
+            df.at[idx, "marcador_local"] = m_loc
+            df.at[idx, "marcador_visitante"] = m_vis
+            res, u_gan = liquidar_partido(df.loc[idx])
             necesita_actualizar = (
                 not es_liquidacion_valida(row)
                 or curr_res == "PENDIENTE"
@@ -592,20 +643,17 @@ def liquidar_partidos_pendientes_nba() -> dict[str, Any]:
                 or pd.isna(curr_mv)
                 or int(curr_ml) != m_loc
                 or int(curr_mv) != m_vis
+                or (res != "PENDIENTE" and curr_res != res)
             )
-            if necesita_actualizar:
-                df.at[idx, "marcador_local"] = m_loc
-                df.at[idx, "marcador_visitante"] = m_vis
-                res, u_gan = liquidar_partido(df.loc[idx])
-                if res != "PENDIENTE":
-                    df.at[idx, "resultado"] = res
-                    df.at[idx, "unidades_ganadas"] = u_gan
-                    df.at[idx, "actualizado_en"] = ahora_dt
-                    liquidados_count += 1
-                    liquidados_indices.append(idx)
+            if necesita_actualizar and res != "PENDIENTE":
+                df.at[idx, "resultado"] = res
+                df.at[idx, "unidades_ganadas"] = u_gan
+                df.at[idx, "actualizado_en"] = ahora_dt
+                liquidados_count += 1
+                liquidados_indices.append(idx)
 
     if liquidados_count > 0:
-        df = df.drop_duplicates(subset=["id_juego"], keep="last")
+        df = df.drop_duplicates(subset=["id_juego", "mercado", "seleccion"], keep="last")
         if "fecha" in df.columns:
             df["fecha"] = df["fecha"].astype(str)
         if "actualizado_en" in df.columns:
@@ -719,52 +767,54 @@ def cargar_historial_rendimiento() -> pd.DataFrame:
                 if "actualizado_en" in df_mysql.columns:
                     df_mysql["actualizado_en"] = pd.to_datetime(df_mysql["actualizado_en"], errors="coerce")
 
-                # Sanear MySQL con datos válidos locales si existen
-                if not df_local.empty:
-                    validos_local = df_local[df_local.apply(es_liquidacion_valida, axis=1)]
-                    if not validos_local.empty:
-                        map_local_valido = {str(r["id_juego"]): r for _, r in validos_local.iterrows()}
-                        indices_corregidos = []
-                        for i_m, r_m in df_mysql.iterrows():
-                            id_j = str(r_m.get("id_juego", ""))
-                            if id_j in map_local_valido and not es_liquidacion_valida(r_m):
-                                r_loc = map_local_valido[id_j]
-                                df_mysql.at[i_m, "marcador_local"] = r_loc["marcador_local"]
-                                df_mysql.at[i_m, "marcador_visitante"] = r_loc["marcador_visitante"]
-                                df_mysql.at[i_m, "resultado"] = r_loc["resultado"]
-                                df_mysql.at[i_m, "unidades_ganadas"] = r_loc["unidades_ganadas"]
-                                indices_corregidos.append(i_m)
+                # Auditoría rigurosa y auto-saneamiento de registros en MySQL
+                indices_corregidos = []
+                for i_m, r_m in df_mysql.iterrows():
+                    ml_m = r_m.get("marcador_local")
+                    mv_m = r_m.get("marcador_visitante")
+                    if pd.notna(ml_m) and pd.notna(mv_m):
+                        try:
+                            ml_i = int(ml_m)
+                            mv_i = int(mv_m)
+                            if ml_i > 0 and mv_i > 0 and (ml_i + mv_i) >= 100:
+                                r_calc, u_calc = liquidar_partido(r_m)
+                                if r_calc != "PENDIENTE" and (r_calc != r_m.get("resultado") or u_calc != r_m.get("unidades_ganadas")):
+                                    df_mysql.at[i_m, "resultado"] = r_calc
+                                    df_mysql.at[i_m, "unidades_ganadas"] = u_calc
+                                    indices_corregidos.append(i_m)
+                        except Exception:
+                            pass
 
-                        # Actualizar en MySQL si se corrigieron filas corruptas
-                        if indices_corregidos:
-                            try:
-                                conn_up = obtener_conexion_mysql(timeout=4)
-                                if conn_up:
-                                    cur_up = conn_up.cursor()
-                                    sql_fix = """
-                                    UPDATE nba_registro_picks
-                                    SET marcador_local = %s, marcador_visitante = %s, resultado = %s,
-                                        unidades_ganadas = %s, actualizado_en = NOW()
-                                    WHERE id_juego = %s AND mercado = %s AND seleccion = %s;
-                                    """
-                                    cur_up.executemany(sql_fix, [
-                                        (
-                                            int(df_mysql.at[i, "marcador_local"]),
-                                            int(df_mysql.at[i, "marcador_visitante"]),
-                                            str(df_mysql.at[i, "resultado"]),
-                                            float(df_mysql.at[i, "unidades_ganadas"]) if pd.notna(df_mysql.at[i, "unidades_ganadas"]) else None,
-                                            str(df_mysql.at[i, "id_juego"]),
-                                            str(df_mysql.at[i, "mercado"]),
-                                            str(df_mysql.at[i, "seleccion"]),
-                                        )
-                                        for i in indices_corregidos
-                                    ])
-                                    conn_up.commit()
-                                    cur_up.close()
-                                    conn_up.close()
-                                    logger.info(f"✅ {len(indices_corregidos)} registros saneados directamente en MySQL.")
-                            except Exception as e_sql:
-                                logger.warning(f"No se pudo sincronizar corrección en MySQL: {e_sql}")
+                # Actualizar en MySQL una sola vez si se corrigieron filas corruptas
+                if indices_corregidos:
+                    try:
+                        conn_up = obtener_conexion_mysql(timeout=4)
+                        if conn_up:
+                            cur_up = conn_up.cursor()
+                            sql_fix = """
+                            UPDATE nba_registro_picks
+                            SET marcador_local = %s, marcador_visitante = %s, resultado = %s,
+                                unidades_ganadas = %s, actualizado_en = NOW()
+                            WHERE id_juego = %s AND mercado = %s AND seleccion = %s;
+                            """
+                            cur_up.executemany(sql_fix, [
+                                (
+                                    int(df_mysql.at[i, "marcador_local"]),
+                                    int(df_mysql.at[i, "marcador_visitante"]),
+                                    str(df_mysql.at[i, "resultado"]),
+                                    float(df_mysql.at[i, "unidades_ganadas"]) if pd.notna(df_mysql.at[i, "unidades_ganadas"]) else None,
+                                    str(df_mysql.at[i, "id_juego"]),
+                                    str(df_mysql.at[i, "mercado"]),
+                                    str(df_mysql.at[i, "seleccion"]),
+                                )
+                                for i in indices_corregidos
+                            ])
+                            conn_up.commit()
+                            cur_up.close()
+                            conn_up.close()
+                            logger.info(f"✅ {len(indices_corregidos)} registros saneados directamente en MySQL.")
+                    except Exception as e_sql:
+                        logger.warning(f"No se pudo sincronizar corrección en MySQL: {e_sql}")
 
                 RUTA_PROCESSED.mkdir(parents=True, exist_ok=True)
                 df_mysql.to_parquet(RUTA_HISTORIAL_PARQUET, index=False)

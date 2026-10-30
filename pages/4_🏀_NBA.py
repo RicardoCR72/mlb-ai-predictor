@@ -187,10 +187,11 @@ def obtener_pick_para_mercado(p: dict, mercado_tipo: str) -> dict:
         }
 
     elif "Moneyline" in mercado_tipo:
+        from core.ui_boleta import formatear_decimal_a_americano
         p_loc_raw = float(p.get("prob_local_win") or 0.5)
         p_vis_raw = float(p.get("prob_visita_win") or 0.5)
-        ml_loc = p.get("ml_local", "N/D")
-        ml_vis = p.get("ml_visita", "N/D")
+        ml_loc = p.get("ml_local")
+        ml_vis = p.get("ml_visita")
 
         cuota_dec_loc = float(p.get("ml_local_dec") or parsear_cuota_decimal(ml_loc) or 1.91)
         cuota_dec_vis = float(p.get("ml_visita_dec") or parsear_cuota_decimal(ml_vis) or 1.91)
@@ -198,8 +199,14 @@ def obtener_pick_para_mercado(p: dict, mercado_tipo: str) -> dict:
         p_loc_cal = float(calibrar_probabilidad(p_loc_raw, cuota_dec_loc))
         p_vis_cal = float(calibrar_probabilidad(p_vis_raw, cuota_dec_vis))
 
-        prob_loc_book = american_to_prob(ml_loc) if ml_loc != "N/D" else 0.5
-        prob_vis_book = american_to_prob(ml_vis) if ml_vis != "N/D" else 0.5
+        prob_loc_book = american_to_prob(ml_loc) if (ml_loc not in (None, "N/D", "", "None")) else None
+        if prob_loc_book is None:
+            prob_loc_book = round(1.0 / cuota_dec_loc, 4) if cuota_dec_loc > 1.0 else 0.5
+
+        prob_vis_book = american_to_prob(ml_vis) if (ml_vis not in (None, "N/D", "", "None")) else None
+        if prob_vis_book is None:
+            prob_vis_book = round(1.0 / cuota_dec_vis, 4) if cuota_dec_vis > 1.0 else 0.5
+
         edge_loc = p_loc_cal - prob_loc_book
         edge_vis = p_vis_cal - prob_vis_book
         ev_loc = (p_loc_cal * cuota_dec_loc) - 1.0
@@ -210,13 +217,13 @@ def obtener_pick_para_mercado(p: dict, mercado_tipo: str) -> dict:
         if ev_loc >= ev_vis:
             sel = f"{p.get('equipo_local')} ML"
             prob = p_loc_cal
-            momio = ml_loc
+            momio = ml_loc if ml_loc not in (None, "N/D", "") else formatear_decimal_a_americano(cuota_dec_loc)
             edge = edge_loc
             ev = ev_loc
         else:
             sel = f"{p.get('equipo_visita')} ML"
             prob = p_vis_cal
-            momio = ml_vis
+            momio = ml_vis if ml_vis not in (None, "N/D", "") else formatear_decimal_a_americano(cuota_dec_vis)
             edge = edge_vis
             ev = ev_vis
 
@@ -247,7 +254,7 @@ def obtener_pick_para_mercado(p: dict, mercado_tipo: str) -> dict:
             "probabilidad": prob,
             "edge": edge,
             "ev": ev,
-            "momio": str(momio),
+            "momio": str(momio or "N/D"),
             "detalle": det,
             "confianza": conf,
         }
@@ -310,11 +317,35 @@ def render_cartelera_nba(predicciones: list[dict], mercado: str):
     ahora_cdmx = datetime.now(ZONA_CDMX)
     hoy_cdmx = ahora_cdmx.date()
 
-    def _es_partido_pasado_nba(p: dict) -> bool:
-        if p.get("resultado") in ["GANADA", "PERDIDA", "PUSH"]:
+    def _es_en_vivo_nba(p: dict) -> bool:
+        estado = str(p.get("estado", "")).upper()
+        desc = str(p.get("descripcion_estado", "")).upper()
+        if any(k in estado for k in ["FINAL", "STATUS_FINAL"]):
+            return False
+        if "PROGRESS" in estado or "LIVE" in estado or "HALFTIME" in estado or "PROGRESS" in desc:
             return True
+        f_str = str(p.get("fecha_cdmx", ""))[:10]
+        h_str = str(p.get("hora_cdmx", "")).strip()
+        if f_str and h_str and ":" in h_str:
+            try:
+                f_date = datetime.strptime(f_str, "%Y-%m-%d").date()
+                if f_date == hoy_cdmx:
+                    partes = h_str.split(":")
+                    h_int, m_int = int(partes[0]), int(partes[1])
+                    dt_partido = datetime(f_date.year, f_date.month, f_date.day, h_int, m_int, tzinfo=ZONA_CDMX)
+                    if dt_partido <= ahora_cdmx < dt_partido + timedelta(minutes=180):
+                        return True
+            except Exception:
+                pass
+        return False
+
+    def _es_partido_pasado_nba(p: dict) -> bool:
+        if _es_en_vivo_nba(p):
+            return False
         estado = str(p.get("estado", "")).upper()
         if any(k in estado for k in ["FINAL", "STATUS_FINAL"]):
+            return True
+        if p.get("resultado") in ["GANADA", "PERDIDA", "PUSH"]:
             return True
         f_str = str(p.get("fecha_cdmx", ""))[:10]
         if not f_str:
@@ -330,29 +361,10 @@ def render_cartelera_nba(predicciones: list[dict], mercado: str):
                 partes = h_str.split(":")
                 h_int, m_int = int(partes[0]), int(partes[1])
                 dt_partido = datetime(f_date.year, f_date.month, f_date.day, h_int, m_int, tzinfo=ZONA_CDMX)
-                if ahora_cdmx >= dt_partido + timedelta(minutes=140):
+                if ahora_cdmx >= dt_partido + timedelta(minutes=180):
                     return True
         except Exception:
             pass
-        return False
-
-    def _es_en_vivo_nba(p: dict) -> bool:
-        estado = str(p.get("estado", "")).upper()
-        if "PROGRESS" in estado or "LIVE" in estado:
-            return True
-        f_str = str(p.get("fecha_cdmx", ""))[:10]
-        h_str = str(p.get("hora_cdmx", "")).strip()
-        if f_str and h_str and ":" in h_str:
-            try:
-                f_date = datetime.strptime(f_str, "%Y-%m-%d").date()
-                if f_date == hoy_cdmx:
-                    partes = h_str.split(":")
-                    h_int, m_int = int(partes[0]), int(partes[1])
-                    dt_partido = datetime(f_date.year, f_date.month, f_date.day, h_int, m_int, tzinfo=ZONA_CDMX)
-                    if dt_partido <= ahora_cdmx < dt_partido + timedelta(minutes=140):
-                        return True
-            except Exception:
-                pass
         return False
 
     total_partidos = len(predicciones)
@@ -393,7 +405,8 @@ def render_cartelera_nba(predicciones: list[dict], mercado: str):
     with f_col3:
         filtro_estado = st.selectbox(
             "Estado:",
-            ["Solo Próximos (Por Jugar)", "Solo Próximos y En Vivo", "Solo En Vivo", "Solo Finalizados", "Todos los estados"],
+            ["Solo Próximos y En Vivo", "Solo Próximos (Por Jugar)", "Solo En Vivo", "Solo Finalizados", "Todos los estados"],
+            index=0,
             key="nba_filtro_estado",
         )
 
@@ -423,7 +436,7 @@ def render_cartelera_nba(predicciones: list[dict], mercado: str):
         lista_mostrar = [p for p in lista_mostrar if _es_partido_pasado_nba(p)]
 
     if not lista_mostrar:
-        if n_liquidados > 0 and filtro_estado in ["Solo Próximos (Por Jugar)", "Solo Próximos y En Vivo"]:
+        if n_liquidados > 0 and filtro_estado in ["Solo Próximos (Por Jugar)", "Solo Próximos y En Vivo"] and n_pendientes == 0 and n_en_vivo == 0:
             st.markdown(
                 f"""<div style="background: linear-gradient(145deg, #18110b, #0f0a06); border: 1px solid #ff6b00; border-radius: 16px; padding: 2rem; text-align: center; margin-top: 1.2rem; margin-bottom: 2rem;">
 <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🏀🏁</div>

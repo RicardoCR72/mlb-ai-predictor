@@ -310,7 +310,7 @@ def predecir_partidos_hoy(force_refresh: bool = False, fecha: Optional[str] = No
         picks_candidatos = []
 
         # 1. Totales Over / Under (Calibrado)
-        if res_tot["recomendacion"] in ["OVER", "UNDER"]:
+        if j.get("total_linea") is not None and res_tot["recomendacion"] in ["OVER", "UNDER"]:
             prob_tot_raw = res_tot["prob_over"] if res_tot["recomendacion"] == "OVER" else res_tot["prob_under"]
             prob_tot_cal = float(calibrar_probabilidad(prob_tot_raw, cuota_dec_std))
             edge_tot = prob_tot_cal - 0.5238
@@ -370,7 +370,7 @@ def predecir_partidos_hoy(force_refresh: bool = False, fecha: Optional[str] = No
         ev_cov_home = (prob_cov_home_cal * cuota_dec_std) - 1.0
         ev_cov_away = (prob_cov_away_cal * cuota_dec_std) - 1.0
 
-        if edge_cov_home >= 0.035 and ev_cov_home >= 0.02:
+        if j.get("spread_linea") is not None and abs(spread_val) > 0.0 and edge_cov_home >= 0.035 and ev_cov_home >= 0.02:
             picks_candidatos.append({
                 "mercado": "Spread",
                 "seleccion": f"{j['equipo_local']} {spread_val:+0.1f}",
@@ -383,7 +383,7 @@ def predecir_partidos_hoy(force_refresh: bool = False, fecha: Optional[str] = No
                 "confianza": "ALTA" if edge_cov_home >= 0.06 and ev_cov_home >= 0.04 else "MEDIA",
                 "detalle": f"Margen Proyectado: {res_spread['margen_local_esperado']:+0.1f} pts (Spread: {spread_val:+0.1f})"
             })
-        elif edge_cov_away >= 0.035 and ev_cov_away >= 0.02:
+        elif j.get("spread_linea") is not None and abs(spread_val) > 0.0 and edge_cov_away >= 0.035 and ev_cov_away >= 0.02:
             picks_candidatos.append({
                 "mercado": "Spread",
                 "seleccion": f"{j['equipo_visita']} {-spread_val:+0.1f}",
