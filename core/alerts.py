@@ -12,37 +12,65 @@ logger = logging.getLogger("core.alerts")
 
 
 def get_telegram_config() -> Tuple[Optional[str], Optional[str]]:
-    """Obtiene el bot token y chat ID de Telegram desde Streamlit secrets o variables de entorno."""
+    """Obtiene el bot token y chat ID de Telegram desde Streamlit secrets, archivo toml o variables de entorno."""
     token = None
     chat_id = None
     try:
         import streamlit as st
         if hasattr(st, "secrets"):
-            token = st.secrets.get("TELEGRAM_BOT_TOKEN")
-            chat_id = st.secrets.get("TELEGRAM_CHAT_ID")
+            token = st.secrets.get("TELEGRAM_BOT_TOKEN") or st.secrets.get("telegram_bot_token")
+            chat_id = st.secrets.get("TELEGRAM_CHAT_ID") or st.secrets.get("telegram_chat_id")
     except Exception:
         pass
 
+    # Si Streamlit no ha recargado secretos en caliente, leer directo de secrets.toml
+    if not token or not chat_id:
+        try:
+            from pathlib import Path
+            import toml
+            sec_path = Path(__file__).resolve().parents[1] / ".streamlit" / "secrets.toml"
+            if sec_path.exists():
+                with open(sec_path, "r", encoding="utf-8") as f:
+                    sec_data = toml.load(f)
+                if not token:
+                    token = sec_data.get("TELEGRAM_BOT_TOKEN") or sec_data.get("telegram_bot_token")
+                if not chat_id:
+                    chat_id = sec_data.get("TELEGRAM_CHAT_ID") or sec_data.get("telegram_chat_id")
+        except Exception:
+            pass
+
     if not token:
-        token = os.environ.get("TELEGRAM_BOT_TOKEN")
+        token = os.environ.get("TELEGRAM_BOT_TOKEN") or os.environ.get("telegram_bot_token")
     if not chat_id:
-        chat_id = os.environ.get("TELEGRAM_CHAT_ID")
+        chat_id = os.environ.get("TELEGRAM_CHAT_ID") or os.environ.get("telegram_chat_id")
 
     return token, chat_id
 
 
 def get_discord_config() -> Optional[str]:
-    """Obtiene el webhook URL de Discord desde Streamlit secrets o variables de entorno."""
+    """Obtiene el webhook URL de Discord desde Streamlit secrets, archivo toml o variables de entorno."""
     url = None
     try:
         import streamlit as st
         if hasattr(st, "secrets"):
-            url = st.secrets.get("DISCORD_WEBHOOK_URL")
+            url = st.secrets.get("DISCORD_WEBHOOK_URL") or st.secrets.get("discord_webhook_url")
     except Exception:
         pass
 
     if not url:
-        url = os.environ.get("DISCORD_WEBHOOK_URL")
+        try:
+            from pathlib import Path
+            import toml
+            sec_path = Path(__file__).resolve().parents[1] / ".streamlit" / "secrets.toml"
+            if sec_path.exists():
+                with open(sec_path, "r", encoding="utf-8") as f:
+                    sec_data = toml.load(f)
+                url = sec_data.get("DISCORD_WEBHOOK_URL") or sec_data.get("discord_webhook_url")
+        except Exception:
+            pass
+
+    if not url:
+        url = os.environ.get("DISCORD_WEBHOOK_URL") or os.environ.get("discord_webhook_url")
 
     return url
 

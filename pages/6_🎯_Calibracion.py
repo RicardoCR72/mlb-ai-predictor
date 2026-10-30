@@ -8,3 +8,4 @@ from core.ui_diseno import apply_design
 apply_design()
 from core.ui_calibracion_centro import render_center
 render_center()
+

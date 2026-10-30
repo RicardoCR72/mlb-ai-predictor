@@ -47,8 +47,6 @@ def render_sidebar_panel():
                 </div>""",
                 unsafe_allow_html=True,
             )
-        else:
-            st.info("Configura tu bot de Telegram o webhook en `.streamlit/secrets.toml`.")
 
         st.caption("Filtra y despacha las mayores ventajas estadísticas (+4.5% Edge) de la jornada.")
 
@@ -74,3 +72,4 @@ def render_sidebar_panel():
         </div>""",
         unsafe_allow_html=True,
     )
+
