@@ -52,6 +52,29 @@ from futbol.predecir_jornada import (
 
 def obtener_pick_para_mercado_futbol(p: dict, mercado_tipo: str) -> dict:
     """Extrae o proyecta la recomendación del partido adaptada al mercado seleccionado."""
+    # 1. Si existe candidato calificado en la estructura de candidatos, priorizarlo
+    candidatos = p.get("candidatos", [])
+    if isinstance(candidatos, list):
+        for c in candidatos:
+            c_mercado = str(c.get("mercado", ""))
+            if (
+                ("Totales" in mercado_tipo and "Totales" in c_mercado)
+                or ("Moneyline" in mercado_tipo and "Moneyline" in c_mercado)
+                or ("Ambos Anotan" in mercado_tipo and "Ambos Anotan" in c_mercado)
+                or ("BTTS" in mercado_tipo and "BTTS" in c_mercado)
+            ):
+                return {
+                    "mercado": c.get("mercado", mercado_tipo),
+                    "seleccion": c.get("seleccion", "N/D"),
+                    "cuota": str(c.get("cuota") or "-110"),
+                    "probabilidad": float(c.get("probabilidad") or 0.5),
+                    "edge": float(c.get("edge") or 0.0),
+                    "detalle": c.get("detalle", ""),
+                    "confianza": c.get("confianza", "MEDIA"),
+                    "resultado": p.get("resultado_pick", "PENDIENTE"),
+                    "unidades": p.get("beneficio_unidades"),
+                }
+
     info = {
         "mercado": mercado_tipo,
         "seleccion": p.get("pick_seleccion", "N/D"),
@@ -73,28 +96,27 @@ def obtener_pick_para_mercado_futbol(p: dict, mercado_tipo: str) -> dict:
         tot_proj = float(p.get("total_proyectado", 2.5))
         delta_xg = tot_proj - lin_tot
 
-        if ed_ov >= ed_un:
+        if abs(delta_xg) < 0.25 or (ed_ov < 0.025 and ed_un < 0.025):
+            info["seleccion"] = f"Línea Eficiente ({lin_tot:g} Goles)"
+            info["cuota"] = "N/D"
+            info["probabilidad"] = max(p_ov, p_un)
+            info["edge"] = max(ed_ov, ed_un)
+            info["confianza"] = "NEUTRAL"
+            info["detalle"] = f"Línea de mercado eficiente (xG: {tot_proj:.2f} vs {lin_tot:g}). Descartado para proteger bankroll."
+        elif ed_ov >= ed_un:
             info["seleccion"] = f"OVER {lin_tot:g} Goles"
             info["cuota"] = p.get("over_momio") or "-110"
             info["probabilidad"] = p_ov
             info["edge"] = ed_ov
-            if delta_xg >= 0.28 and ed_ov >= 0.045 and p_ov >= 0.54:
-                info["confianza"] = "ALTA" if ed_ov >= 0.07 else "MEDIA"
-                info["detalle"] = f"xG Proyectado: {tot_proj:.2f} goles vs línea {lin_tot:g} (Edge: {ed_ov*100:+.1f}%)"
-            else:
-                info["confianza"] = "NEUTRAL"
-                info["detalle"] = f"Línea de mercado eficiente (xG: {tot_proj:.2f} vs {lin_tot:g}). Sin ventaja estadística clara."
+            info["confianza"] = "ALTA" if (delta_xg >= 0.35 and ed_ov >= 0.05) else ("MEDIA" if delta_xg >= 0.25 else "NEUTRAL")
+            info["detalle"] = f"xG Proyectado: {tot_proj:.2f} goles vs línea {lin_tot:g} (Edge: {ed_ov*100:+.1f}%)"
         else:
             info["seleccion"] = f"UNDER {lin_tot:g} Goles"
             info["cuota"] = p.get("under_momio") or "-110"
             info["probabilidad"] = p_un
             info["edge"] = ed_un
-            if delta_xg <= -0.28 and ed_un >= 0.045 and p_un >= 0.54:
-                info["confianza"] = "ALTA" if ed_un >= 0.07 else "MEDIA"
-                info["detalle"] = f"xG Proyectado: {tot_proj:.2f} goles vs línea {lin_tot:g} (Edge: {ed_un*100:+.1f}%)"
-            else:
-                info["confianza"] = "NEUTRAL"
-                info["detalle"] = f"Línea de mercado eficiente (xG: {tot_proj:.2f} vs {lin_tot:g}). Sin ventaja estadística clara."
+            info["confianza"] = "ALTA" if (delta_xg <= -0.35 and ed_un >= 0.05) else ("MEDIA" if delta_xg <= -0.25 else "NEUTRAL")
+            info["detalle"] = f"xG Proyectado: {tot_proj:.2f} goles vs línea {lin_tot:g} (Edge: {ed_un*100:+.1f}%)"
 
         return info
 
@@ -107,79 +129,108 @@ def obtener_pick_para_mercado_futbol(p: dict, mercado_tipo: str) -> dict:
         ed_vis = float(p.get("edge_visita", 0.0))
 
         max_ed = max(ed_loc, ed_emp, ed_vis)
-        if max_ed > 0:
-            if max_ed == ed_loc:
-                sel = f"{p.get('equipo_local')} (Victoria Local)"
-                c = p.get("moneyline_local") or "+100"
-                pr = p_loc
-                ed = ed_loc
-            elif max_ed == ed_vis:
-                sel = f"{p.get('equipo_visita')} (Victoria Visitante)"
-                c = p.get("moneyline_visita") or "+100"
-                pr = p_vis
-                ed = ed_vis
-            else:
-                sel = "Empate (X)"
-                c = p.get("moneyline_empate") or "+250"
-                pr = p_emp
-                ed = ed_emp
+
+        if max_ed < 0.025:
+            return {
+                "mercado": "Moneyline (1X2)",
+                "seleccion": f"Línea Eficiente ({p.get('equipo_local')} vs {p.get('equipo_visita')})",
+                "cuota": "N/D",
+                "probabilidad": max(p_loc, p_emp, p_vis),
+                "edge": max_ed,
+                "detalle": f"Línea de mercado eficiente ({p_loc*100:.0f}% / {p_emp*100:.0f}% / {p_vis*100:.0f}%). Descartado para proteger bankroll.",
+                "confianza": "NEUTRAL",
+                "resultado": p.get("resultado_pick", "PENDIENTE"),
+                "unidades": p.get("beneficio_unidades"),
+            }
+
+        if max_ed == ed_loc:
+            sel = f"{p.get('equipo_local')} ML"
+            c = p.get("moneyline_local") or "+100"
+            pr = p_loc
+            ed = ed_loc
+        elif max_ed == ed_vis:
+            sel = f"{p.get('equipo_visita')} ML"
+            c = p.get("moneyline_visita") or "+100"
+            pr = p_vis
+            ed = ed_vis
         else:
-            if p_loc >= p_vis:
-                sel = f"{p.get('equipo_local')} (Favorito Local)"
-                c = p.get("moneyline_local") or "-110"
-                pr = p_loc
-                ed = ed_loc
-            else:
-                sel = f"{p.get('equipo_visita')} (Favorito Visitante)"
-                c = p.get("moneyline_visita") or "-110"
-                pr = p_vis
-                ed = ed_vis
+            sel = "Empate (X)"
+            c = p.get("moneyline_empate") or "+250"
+            pr = p_emp
+            ed = ed_emp
 
-        info["seleccion"] = sel
-        info["cuota"] = c
-        info["probabilidad"] = pr
-        info["edge"] = ed
-
-        if ed >= 0.045:
-            if pr < 0.45:
-                info["confianza"] = "LONGSHOT"
-                info["detalle"] = f"🎯 Longshot (+EV {ed*100:+.1f}%). Probabilidad de victoria ({pr*100:.1f}%) moderada/baja."
-            elif ed >= 0.065 and pr >= 0.50:
-                info["confianza"] = "ALTA"
-                info["detalle"] = f"Probabilidad calibrada: {pr*100:.1f}% vs Book (Edge: {ed*100:+.1f}%)"
-            else:
-                info["confianza"] = "MEDIA"
-                info["detalle"] = f"Probabilidad calibrada: {pr*100:.1f}% vs Book (Edge: {ed*100:+.1f}%)"
+        if ed >= 0.055 and pr >= 0.50:
+            conf = "ALTA"
+            det = f"Probabilidad calibrada: {pr*100:.1f}% vs Book (Edge: {ed*100:+.1f}%)"
+        elif ed >= 0.025 and pr >= 0.44:
+            conf = "MEDIA"
+            det = f"Probabilidad calibrada: {pr*100:.1f}% vs Book (Edge: {ed*100:+.1f}%)"
+        elif ed >= 0.040 and pr < 0.44:
+            conf = "LONGSHOT"
+            det = f"🎯 Longshot de valor (Edge: {ed*100:+.1f}%). Probabilidad de victoria ({pr*100:.1f}%) moderada/baja."
         else:
-            info["confianza"] = "NEUTRAL"
-            info["detalle"] = f"Sin ventaja sobre la cuota ({ed*100:+.1f}% edge). Partido en Zona Muerta descartado."
+            conf = "NEUTRAL"
+            det = f"Sin ventaja estadística clara (Edge: {ed*100:+.1f}%). Descartado para proteger bankroll."
 
-        return info
+        return {
+            "mercado": "Moneyline (1X2)",
+            "seleccion": sel,
+            "cuota": c,
+            "probabilidad": pr,
+            "edge": ed,
+            "detalle": det,
+            "confianza": conf,
+            "resultado": p.get("resultado_pick", "PENDIENTE"),
+            "unidades": p.get("beneficio_unidades"),
+        }
 
     elif "Ambos Anotan" in mercado_tipo or "BTTS" in mercado_tipo:
-        if "Ambos Anotan" in str(p.get("pick_mercado", "")) or "BTTS" in str(p.get("pick_mercado", "")):
-            return info
-
         p_si = float(p.get("prob_btts_si", 0.52))
         p_no = float(p.get("prob_btts_no", 0.48))
         xg_h = float(p.get("xg_local", 1.4))
         xg_a = float(p.get("xg_visita", 1.2))
 
-        if p_si >= p_no:
-            info["seleccion"] = "Ambos Anotan: SÍ"
-            info["cuota"] = "-125"
-            info["probabilidad"] = p_si
-            info["edge"] = p_si - 0.52
-            info["detalle"] = f"BTTS SÍ: {p_si*100:.1f}% · xG {xg_h:.2f} y {xg_a:.2f}"
-            info["confianza"] = "ALTA" if p_si >= 0.60 else "MEDIA"
+        diff_btts = p_si - p_no
+
+        if abs(diff_btts) < 0.06:
+            return {
+                "mercado": "Ambos Anotan (BTTS)",
+                "seleccion": "Línea Equilibrada (BTTS)",
+                "cuota": "-115",
+                "probabilidad": max(p_si, p_no),
+                "edge": 0.0,
+                "detalle": f"Probabilidades equilibradas (SÍ: {p_si*100:.1f}% vs NO: {p_no*100:.1f}%). Descartado para proteger bankroll.",
+                "confianza": "NEUTRAL",
+                "resultado": p.get("resultado_pick", "PENDIENTE"),
+                "unidades": p.get("beneficio_unidades"),
+            }
+
+        if p_si > p_no:
+            sel = "Ambos Anotan: SÍ"
+            c = p.get("btts_si_momio") or "-115"
+            pr = p_si
+            ed = p_si - 0.52
+            conf = "ALTA" if (p_si >= 0.62 and ed >= 0.05) else ("MEDIA" if p_si >= 0.56 else "NEUTRAL")
+            det = f"BTTS SÍ: {p_si*100:.1f}% · xG {xg_h:.2f} y {xg_a:.2f}"
         else:
-            info["seleccion"] = "Ambos Anotan: NO"
-            info["cuota"] = "-110"
-            info["probabilidad"] = p_no
-            info["edge"] = p_no - 0.48
-            info["detalle"] = f"BTTS NO: {p_no*100:.1f}% · Superioridad defensiva proyectada"
-            info["confianza"] = "ALTA" if p_no >= 0.58 else "MEDIA"
-        return info
+            sel = "Ambos Anotan: NO"
+            c = p.get("btts_no_momio") or "-115"
+            pr = p_no
+            ed = p_no - 0.50
+            conf = "ALTA" if (p_no >= 0.60 and ed >= 0.05) else ("MEDIA" if p_no >= 0.54 else "NEUTRAL")
+            det = f"BTTS NO: {p_no*100:.1f}% · Solidez defensiva mutua (xG {xg_h:.2f} y {xg_a:.2f})"
+
+        return {
+            "mercado": "Ambos Anotan (BTTS)",
+            "seleccion": sel,
+            "cuota": c,
+            "probabilidad": pr,
+            "edge": ed,
+            "detalle": det,
+            "confianza": conf,
+            "resultado": p.get("resultado_pick", "PENDIENTE"),
+            "unidades": p.get("beneficio_unidades"),
+        }
 
     elif "Doble Oportunidad" in mercado_tipo:
         p_1x = float(p.get("prob_1x", 0.70))

@@ -136,3 +136,23 @@ def calcular_ev_calibrado(
     if is_series:
         return pd.Series(ev, index=p_calibrada.index, name="ev_calibrado")
     return ev
+
+def calibrar_probabilidades_1x2(
+    p_home: float,
+    p_draw: float,
+    p_away: float,
+    temp: float = 1.06,
+) -> tuple[float, float, float]:
+    """Calibra el vector de probabilidades 1X2 preservando la suma exacta en el símplex (100%).
+
+    Aplica Temperature Scaling (Guo et al., 2017) de manera conjunta sobre las 3 clases,
+    suavizando la sobreconfianza sin romper la normalización ni destruir artificialmente
+    el valor del favorito.
+    """
+    probs = np.array([max(p_home, 1e-4), max(p_draw, 1e-4), max(p_away, 1e-4)], dtype=float)
+    probs /= np.sum(probs)
+    log_p = np.log(probs)
+    exp_scaled = np.exp(log_p / max(temp, 1.0))
+    calibradas = exp_scaled / np.sum(exp_scaled)
+    return round(float(calibradas[0]), 4), round(float(calibradas[1]), 4), round(float(calibradas[2]), 4)
+

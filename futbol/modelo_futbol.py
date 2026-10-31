@@ -211,11 +211,11 @@ def proyectar_partido_futbol(partido: Dict[str, Any]) -> Dict[str, Any]:
     cuota_dec_over = float(partido.get("over_momio_dec") or 1.87)
     cuota_dec_under = float(partido.get("under_momio_dec") or 1.87)
 
-    # Calibración empírica Platt Scaling y Market Shrinkage (los tres resultados 1X2)
-    from core.calibracion_probabilidades import calibrar_probabilidad
-    p_final_home_cal = float(calibrar_probabilidad(p_final_home, cuota_dec_home))
-    p_final_draw_cal = float(calibrar_probabilidad(p_final_draw, cuota_dec_draw))
-    p_final_away_cal = float(calibrar_probabilidad(p_final_away, cuota_dec_away))
+    # Calibración conjunta en el símplex 1X2 (preserva normalización al 100% y valor real del favorito)
+    from core.calibracion_probabilidades import calibrar_probabilidades_1x2, calibrar_probabilidad
+    p_final_home_cal, p_final_draw_cal, p_final_away_cal = calibrar_probabilidades_1x2(
+        p_final_home, p_final_draw, p_final_away, temp=1.05
+    )
     p_final_over_cal = float(calibrar_probabilidad(p_final_over, cuota_dec_over))
     p_final_under_cal = float(calibrar_probabilidad(p_final_under, cuota_dec_under))
 
@@ -283,6 +283,7 @@ def proyectar_partido_futbol(partido: Dict[str, Any]) -> Dict[str, Any]:
             "ev": ev_home,
             "cuota": partido.get("moneyline_local") or "-110",
             "cuota_dec": cuota_dec_home,
+            "confianza": "ALTA" if edge_home >= 0.055 and ev_home >= 0.040 and p_final_home_cal >= 0.52 else "MEDIA",
             "detalle": f"Ventaja local proyectada (Prob Calibrada: {p_final_home_cal*100:.1f}%, xG: {xg_local:.2f} vs {xg_visita:.2f}, EV: +{ev_home*100:.1f}%)",
         })
 
@@ -296,30 +297,67 @@ def proyectar_partido_futbol(partido: Dict[str, Any]) -> Dict[str, Any]:
             "ev": ev_away,
             "cuota": partido.get("moneyline_visita") or "-110",
             "cuota_dec": cuota_dec_away,
+            "confianza": "ALTA" if edge_away >= 0.055 and ev_away >= 0.040 and p_final_away_cal >= 0.50 else "MEDIA",
             "detalle": f"Superioridad visitante proyectada (Prob Calibrada: {p_final_away_cal*100:.1f}%, xG: {xg_visita:.2f} vs {xg_local:.2f}, EV: +{ev_away*100:.1f}%)",
         })
 
-    # Mercado Ambos Anotan (BTTS) si el proveedor proporciona cuota y hay convicción ofensiva
-    cuota_dec_btts_raw = partido.get("btts_si_momio_dec") or partido.get("btts_momio_dec")
-    if cuota_dec_btts_raw and p_btts_si >= 0.58 and xg_local >= 1.25 and xg_visita >= 1.15:
-        cuota_dec_btts = float(cuota_dec_btts_raw)
-        if cuota_dec_btts > 1.0:
-            cuota_btts_str = partido.get("btts_si_momio") or partido.get("btts_momio") or f"{cuota_dec_btts:.2f}"
-            p_btts_impl = 1.0 / cuota_dec_btts
-            p_btts_cal = float(calibrar_probabilidad(p_btts_si, cuota_dec_btts))
-            ev_btts = calcular_ev(p_btts_cal, cuota_dec_btts)
-            edge_btts = p_btts_cal - p_btts_impl
-            if edge_btts >= 0.035 and ev_btts >= 0.02:
-                candidatos.append({
-                    "mercado": "Ambos Anotan (BTTS)",
-                    "seleccion": "Ambos Anotan: SÍ",
-                    "probabilidad": p_btts_cal,
-                    "edge": round(edge_btts, 4),
-                    "ev": round(ev_btts, 4),
-                    "cuota": cuota_btts_str,
-                    "cuota_dec": cuota_dec_btts,
-                    "detalle": f"Flujo ofensivo mutuo alto (xG {xg_local:.2f} y {xg_visita:.2f}, BTTS SÍ Calibrado: {p_btts_cal*100:.1f}%, EV: {ev_btts*100:+.1f}%)",
-                })
+    # Mercado Moneyline: Empate de alto valor
+    if p_final_draw_cal >= 0.28 and edge_draw >= 0.045 and ev_draw >= 0.040:
+        candidatos.append({
+            "mercado": "Moneyline",
+            "seleccion": "Empate (X)",
+            "probabilidad": p_final_draw_cal,
+            "edge": edge_draw,
+            "ev": ev_draw,
+            "cuota": partido.get("moneyline_empate") or "+250",
+            "cuota_dec": cuota_dec_draw,
+            "confianza": "MEDIA" if p_final_draw_cal >= 0.32 else "LONGSHOT",
+            "detalle": f"Empate de alto valor proyectado (Prob Calibrada: {p_final_draw_cal*100:.1f}%, xG: {xg_local:.2f} vs {xg_visita:.2f}, EV: +{ev_draw*100:.1f}%)",
+        })
+
+    # Mercado Ambos Anotan (BTTS): SÍ
+    cuota_dec_btts_si_raw = partido.get("btts_si_momio_dec") or partido.get("btts_momio_dec") or 1.85
+    cuota_dec_btts_si = float(cuota_dec_btts_si_raw)
+    if cuota_dec_btts_si > 1.0:
+        cuota_btts_si_str = partido.get("btts_si_momio") or partido.get("btts_momio") or f"{cuota_dec_btts_si:.2f}"
+        p_btts_si_impl = 1.0 / cuota_dec_btts_si
+        p_btts_si_cal = float(calibrar_probabilidad(p_btts_si, cuota_dec_btts_si))
+        ev_btts_si = calcular_ev(p_btts_si_cal, cuota_dec_btts_si)
+        edge_btts_si = p_btts_si_cal - p_btts_si_impl
+        if p_btts_si_cal >= 0.56 and edge_btts_si >= 0.025 and ev_btts_si >= 0.020 and xg_local >= 1.20 and xg_visita >= 1.10:
+            candidatos.append({
+                "mercado": "Ambos Anotan (BTTS)",
+                "seleccion": "Ambos Anotan: SÍ",
+                "probabilidad": p_btts_si_cal,
+                "edge": round(edge_btts_si, 4),
+                "ev": round(ev_btts_si, 4),
+                "cuota": cuota_btts_si_str,
+                "cuota_dec": cuota_dec_btts_si,
+                "confianza": "ALTA" if p_btts_si_cal >= 0.62 and edge_btts_si >= 0.05 else "MEDIA",
+                "detalle": f"Flujo ofensivo mutuo alto (xG {xg_local:.2f} y {xg_visita:.2f}, BTTS SÍ Calibrado: {p_btts_si_cal*100:.1f}%, EV: {ev_btts_si*100:+.1f}%)",
+            })
+
+    # Mercado Ambos Anotan (BTTS): NO (Convicción defensiva / bajo flujo ofensivo)
+    cuota_dec_btts_no_raw = partido.get("btts_no_momio_dec") or 1.95
+    cuota_dec_btts_no = float(cuota_dec_btts_no_raw)
+    if cuota_dec_btts_no > 1.0:
+        cuota_btts_no_str = partido.get("btts_no_momio") or f"{cuota_dec_btts_no:.2f}"
+        p_btts_no_impl = 1.0 / cuota_dec_btts_no
+        p_btts_no_cal = float(calibrar_probabilidad(p_btts_no, cuota_dec_btts_no))
+        ev_btts_no = calcular_ev(p_btts_no_cal, cuota_dec_btts_no)
+        edge_btts_no = p_btts_no_cal - p_btts_no_impl
+        if p_btts_no_cal >= 0.54 and edge_btts_no >= 0.025 and ev_btts_no >= 0.020 and (xg_local < 1.15 or xg_visita < 1.05 or xg_total <= 2.25):
+            candidatos.append({
+                "mercado": "Ambos Anotan (BTTS)",
+                "seleccion": "Ambos Anotan: NO",
+                "probabilidad": p_btts_no_cal,
+                "edge": round(edge_btts_no, 4),
+                "ev": round(ev_btts_no, 4),
+                "cuota": cuota_btts_no_str,
+                "cuota_dec": cuota_dec_btts_no,
+                "confianza": "ALTA" if p_btts_no_cal >= 0.60 and edge_btts_no >= 0.05 else "MEDIA",
+                "detalle": f"Solidez defensiva proyectada (xG {xg_local:.2f} y {xg_visita:.2f}, BTTS NO Calibrado: {p_btts_no_cal*100:.1f}%, EV: {ev_btts_no*100:+.1f}%)",
+            })
 
     # Si ningún candidato supera el umbral de valor puro, crear un LEAN objetivo sin inventar edge positivo
     if candidatos:
@@ -380,10 +418,13 @@ def proyectar_partido_futbol(partido: Dict[str, Any]) -> Dict[str, Any]:
         "total_proyectado": round(xg_local + xg_visita, 2),
         "marcador_mas_probable": marcador_esperado,
         "prob_marcador_mas_probable": prob_marcador,
-        # Probabilidades 1X2
-        "prob_local": p_final_home,
-        "prob_empate": p_final_draw,
-        "prob_visita": p_final_away,
+        # Probabilidades 1X2 Calibradas en el Símplex
+        "prob_local": p_final_home_cal,
+        "prob_empate": p_final_draw_cal,
+        "prob_visita": p_final_away_cal,
+        "prob_local_cruda": p_final_home,
+        "prob_empate_cruda": p_final_draw,
+        "prob_visita_cruda": p_final_away,
         # Probabilidades Totales
         "prob_over": p_final_over,
         "prob_under": p_final_under,
@@ -410,4 +451,5 @@ def proyectar_partido_futbol(partido: Dict[str, Any]) -> Dict[str, Any]:
         "pick_cuota_dec": mejor.get("cuota_dec"),
         "pick_detalle": mejor.get("detalle", ""),
         "confianza": confianza,
+        "candidatos": candidatos,
     }

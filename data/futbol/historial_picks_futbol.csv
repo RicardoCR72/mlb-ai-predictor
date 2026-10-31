@@ -1009,3 +1009,16 @@ id_juego,fecha,hora_cdmx,equipo_local,equipo_visitante,mercado,seleccion,linea,c
 401879247_Mon,2026-10-31,09:00,Coventry City,Sunderland,Moneyline (1X2),Coventry City ML,2.5,3.1,0.471,0.148,MEDIA,3,1,GANADA,2.1,2026-10-31 11:46:26,eng.1,Premier League,🏴󠁧󠁢󠁥󠁮󠁧󠁿
 401878763_Mon,2026-10-31,09:00,Hull City,Ipswich Town,Moneyline (1X2),Hull City ML,2.5,2.8,0.482,0.125,MEDIA,2,2,PERDIDA,-1.0,2026-10-31 11:46:26,eng.1,Premier League,🏴󠁧󠁢󠁥󠁮󠁧󠁿
 401879245_Tot,2026-10-31,09:00,Manchester City,Brighton & Hove Albion,Totales (Over/Under),UNDER 3.5 Goles,3.5,1.65,0.567,-0.041,NEUTRAL,0,1,GANADA,0.65,2026-10-31 11:46:26,eng.1,Premier League,🏴󠁧󠁢󠁥󠁮󠁧󠁿
+761922_Tot,2026-10-31,11:00,Charlotte FC,Orlando City SC,Totales (Over/Under),UNDER 4.5 Goles,4.5,1.65,0.576,-0.032,NEUTRAL,4,0,GANADA,0.65,2026-10-31 15:49:07,usa.1,MLS,🇺🇸
+401878761_Tot,2026-10-31,11:30,Tottenham Hotspur,Crystal Palace,Totales (Over/Under),OVER 2.5 Goles,2.5,1.71,0.509,-0.075,NEUTRAL,2,0,PERDIDA,-1.0,2026-10-31 15:49:07,eng.1,Premier League,🏴󠁧󠁢󠁥󠁮󠁧󠁿
+401882825_Tot,2026-10-31,11:30,Real Betis,Málaga,Totales (Over/Under),UNDER 3.5 Goles,3.5,1.67,0.566,-0.034,NEUTRAL,2,1,GANADA,0.67,2026-10-31 15:49:07,esp.1,LaLiga,🇪🇸
+401884754_Tot,2026-10-31,11:30,Bayern Munich,Borussia Dortmund,Totales (Over/Under),UNDER 3.5 Goles,3.5,2.2,0.533,0.079,NEUTRAL,2,2,PERDIDA,-1.0,2026-10-31 15:49:07,ger.1,Bundesliga,🇩🇪
+401875563_Tot,2026-10-31,11:45,Heerenveen,NEC Nijmegen,Totales (Over/Under),UNDER 3 Goles,3.0,1.87,0.544,0.009,NEUTRAL,1,0,GANADA,0.87,2026-10-31 15:49:07,ned.1,Eredivisie,🇳🇱
+401875564_Tot,2026-10-31,11:45,PSV Eindhoven,Willem II,Totales (Over/Under),UNDER 3 Goles,3.0,1.87,0.544,0.009,NEUTRAL,7,0,PERDIDA,-1.0,2026-10-31 15:49:07,ned.1,Eredivisie,🇳🇱
+761924_Tot,2026-10-31,12:00,Columbus Crew,D.C. United,Totales (Over/Under),UNDER 3.5 Goles,3.5,1.57,0.575,-0.062,NEUTRAL,3,0,GANADA,0.57,2026-10-31 15:49:07,usa.1,MLS,🇺🇸
+761919_Tot,2026-10-31,12:00,FC Cincinnati,Philadelphia Union,Totales (Over/Under),UNDER 3.5 Goles,3.5,1.69,0.567,-0.025,NEUTRAL,1,0,GANADA,0.69,2026-10-31 15:49:07,usa.1,MLS,🇺🇸
+761930_Tot,2026-10-31,12:00,New York City FC,CF Montréal,Totales (Over/Under),OVER 2.5 Goles,2.5,1.56,0.513,-0.13,NEUTRAL,1,1,PERDIDA,-1.0,2026-10-31 15:49:07,usa.1,MLS,🇺🇸
+761928_Tot,2026-10-31,13:00,Sporting Kansas City,FC Dallas,Totales (Over/Under),UNDER 3.5 Goles,3.5,1.67,0.569,-0.031,NEUTRAL,1,1,GANADA,0.67,2026-10-31 15:49:07,usa.1,MLS,🇺🇸
+761926_Tot,2026-10-31,13:00,St. Louis CITY SC,San Diego FC,Totales (Over/Under),UNDER 3.5 Goles,3.5,1.83,0.559,0.013,NEUTRAL,0,1,GANADA,0.83,2026-10-31 15:49:07,usa.1,MLS,🇺🇸
+401874795_Tot,2026-10-31,13:45,AC Milan,Internazionale,Totales (Over/Under),OVER 2.5 Goles,2.5,1.69,0.509,-0.082,NEUTRAL,3,1,GANADA,0.69,2026-10-31 15:49:07,ita.1,Serie A,🇮🇹
+401876413_Tot,2026-10-31,13:45,Troyes,Le Mans,Totales (Over/Under),UNDER 2.5 Goles,2.5,1.83,0.536,-0.009,NEUTRAL,2,0,GANADA,0.83,2026-10-31 15:49:07,fra.1,Ligue 1,🇫🇷

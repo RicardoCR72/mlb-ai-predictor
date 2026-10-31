@@ -1,7 +1,7 @@
 import unittest
 import numpy as np
 import pandas as pd
-from core.calibracion_probabilidades import calibrar_probabilidad, calcular_ev_calibrado, parsear_cuota_decimal
+from core.calibracion_probabilidades import calibrar_probabilidad, calcular_ev_calibrado, parsear_cuota_decimal, calibrar_probabilidades_1x2
 
 
 class TestCalibracionProbabilidades(unittest.TestCase):
@@ -43,6 +43,17 @@ class TestCalibracionProbabilidades(unittest.TestCase):
         ev = calcular_ev_calibrado(p_cal, 4.10)
         self.assertLess(ev, 0.0)
 
+
+    def test_calibrar_probabilidades_1x2_simplex(self):
+        # En mercado 1X2, las probabilidades deben sumar exactamente 1.0 (símplex)
+        ph, pd, pa = calibrar_probabilidades_1x2(0.75, 0.16, 0.09)
+        self.assertAlmostEqual(ph + pd + pa, 1.0, places=3)
+        # El favorito de 75% debe ser suavizado levemente sin destruirse a 60%
+        self.assertGreater(ph, 0.70)
+        self.assertLess(ph, 0.75)
+        # El orden jerárquico debe respetarse
+        self.assertGreater(ph, pd)
+        self.assertGreater(pd, pa)
 
 if __name__ == "__main__":
     unittest.main()

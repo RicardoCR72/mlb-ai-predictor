@@ -384,6 +384,7 @@ def predecir_futbol_mundial(
             "confianza": proj["confianza"],
             "resultado_pick": "PENDIENTE",
             "beneficio_unidades": None,
+            "candidatos": proj.get("candidatos", []),
             "timestamp": datetime.now(ZONA_CDMX).isoformat(),
         }
         predicciones.append(pred)
