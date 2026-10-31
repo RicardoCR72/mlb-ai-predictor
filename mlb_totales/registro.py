@@ -96,7 +96,7 @@ def snapshot_values(row,model_id,now=None):
         float(row['total_proyectado']),*p,confidence,odds,ev,float(row['edge_carreras']),
         int(row['home_pitcher_id']),int(row['away_pitcher_id']),
         utc(row['captured_utc']).tz_localize(None).to_pydatetime(),now.tz_localize(None).to_pydatetime(),
-        str(row['estado']),int(ev>0))
+        str(row['estado']), int(row.get('estado_valor') == 'CANDIDATO' if pd.notna(row.get('estado_valor')) else (ev > 0 and abs(float(row.get('edge_carreras', 0.0))) >= 0.40)))
 
 
 SNAPSHOT_SQL="""

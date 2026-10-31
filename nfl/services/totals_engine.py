@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 from nfl.feature_spec import FEATURES_BASE, FEATURES_CATEGORICAS, FEATURES_MERCADO
 EDGE_MINIMO = 3.0
+NFL_TOTALS_INTERCEPT_BIAS = 1.10  # Ajuste de calibración empírica (modelo 2012-2024 vs entorno anotador 2024-2026)
 
 def american_a_decimal(odds):
 
@@ -130,7 +131,7 @@ def generar_predicciones(
 
         "pred_total"
 
-    ] = predicciones
+    ] = predicciones - NFL_TOTALS_INTERCEPT_BIAS
 
     resultado.loc[
 
@@ -336,18 +337,26 @@ def generar_predicciones(
     es_over = resultado["pick"] == "OVER"
     es_under = resultado["pick"] == "UNDER"
 
-    # Regla Asimétrica Cuantitativa V2 para Totales:
-    # 1. OVER: Válido con edge >= 3.0 y EV > 0 (64.7% de efectividad histórica real).
-    # 2. UNDER: Requiere edge >= 3.0, EV > 0 Y que la línea esté inflada (total_line >= 46.0) o viento >= 13 mph.
-    #    Bloquea las trampas de UNDER en líneas deprimidas (< 46.0) sin viento adverso.
+    # Regla Simétrica Cuantitativa para Totales:
+    # 1. Ambos lados requieren edge_absoluto >= EDGE_MINIMO y EV > 0.
+    # 2. Protección simétrica para extremos de mercado:
+    #    - OVER: En líneas infladas (total_line >= 51.5), requiere edge >= 3.5.
+    #    - UNDER: En líneas deprimidas (total_line <= 39.5), requiere edge >= 3.5 o viento adverso (>= 12 mph).
     linea_val = pd.to_numeric(resultado["total_line"], errors="coerce").fillna(0.0)
-    wind_val = pd.to_numeric(resultado.get("wind", 0.0), errors="coerce").fillna(0.0)
-    under_seguro = (linea_val >= 46.0) | (wind_val >= 13.0)
+    wind_raw = resultado["wind"] if "wind" in resultado else 0.0
+    wind_val = pd.to_numeric(wind_raw, errors="coerce")
+    if isinstance(wind_val, pd.Series):
+        wind_val = wind_val.fillna(0.0)
+    else:
+        wind_val = float(wind_val or 0.0)
+
+    over_valido = es_over & ((linea_val < 51.5) | (resultado["edge_absoluto"] >= 3.5))
+    under_valido = es_under & ((linea_val > 39.5) | (resultado["edge_absoluto"] >= 3.5) | (wind_val >= 12.0))
 
     valido_para_pick = (
         cumple_edge
         & cumple_ev
-        & (es_over | (es_under & under_seguro))
+        & (over_valido | under_valido)
     )
 
     resultado.loc[

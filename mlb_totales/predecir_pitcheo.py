@@ -8,6 +8,16 @@ from mlb_totales.core import probabilities, decimal_odds
 from mlb_totales.predecir import resolve_team
 from mlb_totales.pitcheo_features import pitching_features
 
+# Ajustes empíricos de compresión ofensiva en postemporada (Playoffs)
+# En playoffs, abridores estelares y relevistas de élite reducen las carreras esperadas.
+AJUSTES_POSTEMPORADA_CARRERAS = {
+    'F': 0.60,  # Wild Card
+    'D': 0.70,  # Division Series
+    'L': 0.95,  # LCS
+    'W': 1.15,  # World Series
+    'R': 0.00,  # Temporada regular
+}
+
 
 def predict(fixtures,directory='mlb_totales/modelos_pitcheo',portable=False):
     root=Path(directory)
@@ -79,21 +89,24 @@ def predict(fixtures,directory='mlb_totales/modelos_pitcheo',portable=False):
         built=pitching_features(hist,pitches,rows.loc[ready])
         built=built[built.is_fixture].sort_values('fixture_index')
         idx=built.fixture_index.astype(int).to_numpy()
-        mu=np.clip(bundle['model'].predict(built[bundle['columns']]),.05,40)
-        po,pu,pp=probabilities(mu,bundle['alpha'],rows.loc[idx,'linea'].to_numpy())
-        result.loc[idx,'total_proyectado']=mu
-        result.loc[idx,'edge_carreras']=mu-rows.loc[idx,'linea'].to_numpy()
-        result.loc[idx,'p_over']=po;result.loc[idx,'p_under']=pu;result.loc[idx,'p_push']=pp
-        result.loc[idx,'ev_over']=po*(rows.loc[idx,'cuota_over'].to_numpy()-1)-pu
-        result.loc[idx,'ev_under']=pu*(rows.loc[idx,'cuota_under'].to_numpy()-1)-po
+        ajuste_playoffs = rows.loc[idx, 'game_type'].map(AJUSTES_POSTEMPORADA_CARRERAS).fillna(0.0).to_numpy()
+        mu = np.clip(bundle['model'].predict(built[bundle['columns']]) - ajuste_playoffs, .05, 40)
+        po, pu, pp = probabilities(mu, bundle['alpha'], rows.loc[idx, 'linea'].to_numpy())
+        result.loc[idx, 'total_proyectado'] = mu
+        result.loc[idx, 'edge_carreras'] = mu - rows.loc[idx, 'linea'].to_numpy()
+        result.loc[idx, 'p_over'] = po; result.loc[idx, 'p_under'] = pu; result.loc[idx, 'p_push'] = pp
+        result.loc[idx, 'ev_over'] = po * (rows.loc[idx, 'cuota_over'].to_numpy() - 1) - pu
+        result.loc[idx, 'ev_under'] = pu * (rows.loc[idx, 'cuota_under'].to_numpy() - 1) - po
         for i in idx:
-            r=result.loc[i]
-            ev={s:r['ev_'+s.lower()] for s in ('OVER','UNDER') if pd.notna(r['ev_'+s.lower()])}
-            pick=max(ev,key=ev.get) if ev else ('OVER' if r.p_over>=r.p_under else 'UNDER')
-            result.loc[i,'seleccion']=pick
-            result.loc[i,'prob_seleccion']=r['p_'+pick.lower()]
-            result.loc[i,'estado_valor']=('CANDIDATO' if ev[pick]>0 else 'SIN_VALOR') if ev else 'SIN_CUOTAS'
-            result.loc[i,'estado']='PLAYOFFS_EXPERIMENTAL' if r.game_type!='R' else 'EXPERIMENTAL'
+            r = result.loc[i]
+            ev = {s: r['ev_' + s.lower()] for s in ('OVER', 'UNDER') if pd.notna(r['ev_' + s.lower()])}
+            edge_abs = abs(float(r['edge_carreras'])) if pd.notna(r['edge_carreras']) else 0.0
+            pick = max(ev, key=ev.get) if ev else ('OVER' if r.p_over >= r.p_under else 'UNDER')
+            es_candidato = bool(ev and ev[pick] > 0 and edge_abs >= 0.40)
+            result.loc[i, 'seleccion'] = pick
+            result.loc[i, 'prob_seleccion'] = r['p_' + pick.lower()]
+            result.loc[i, 'estado_valor'] = ('CANDIDATO' if es_candidato else 'SIN_VALOR') if ev else 'SIN_CUOTAS'
+            result.loc[i, 'estado'] = 'PLAYOFFS_EXPERIMENTAL' if r.game_type != 'R' else 'EXPERIMENTAL'
         # Mostrar disponibilidad de historial para ambos abridores, sin inventar sus estadísticas.
         result.loc[idx,'home_sp_ip_365']=built.home_sp_ip_365.to_numpy()
         result.loc[idx,'away_sp_ip_365']=built.away_sp_ip_365.to_numpy()
