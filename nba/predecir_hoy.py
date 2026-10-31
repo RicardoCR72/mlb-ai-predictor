@@ -154,10 +154,12 @@ def predecir_partidos_hoy(force_refresh: bool = False, fecha: Optional[str] = No
         estado_juego = str(j.get("estado", "")).upper()
         es_final = ("FINAL" in estado_juego) or ("FULL_TIME" in estado_juego) or ("STATUS_FINAL" in estado_juego)
         en_vivo = ("PROGRESS" in estado_juego) or ("HALFTIME" in estado_juego)
-        ya_comenzo = es_final or en_vivo or (j.get("marcador_local") is not None)
+        # Solo se considera comenzado si está en vivo/final o si tiene marcador > 0 y no está en estado programado
+        marcador_activo = (j.get("marcador_local") is not None and j.get("marcador_local") > 0)
+        ya_comenzo = es_final or en_vivo or (marcador_activo and "SCHEDULED" not in estado_juego)
         cuotas_vacias = (j.get("moneyline_local") is None and j.get("total_linea") is None)
 
-        if prev and (ya_comenzo or cuotas_vacias) and prev.get("pick_seleccion"):
+        if prev and (ya_comenzo or (cuotas_vacias and not force_refresh)) and prev.get("pick_seleccion"):
             prev_actualizado = dict(prev)
             prev_actualizado["estado"] = j.get("estado", prev.get("estado"))
             prev_actualizado["descripcion_estado"] = j.get("descripcion_estado", prev.get("descripcion_estado"))
@@ -285,8 +287,9 @@ def predecir_partidos_hoy(force_refresh: bool = False, fecha: Optional[str] = No
         spread_val = float(j.get("spread_linea") or 0.0)
         res_spread = proyectar_partido_spread(bundle_spread, feats_spread, spread_line=spread_val)
 
-        linea_tot = float(j.get("total_linea") or 228.0)
-        res_tot = proyectar_partido_totales(bundle_totales, feats_totales, linea_total=linea_tot)
+        linea_tot_raw = j.get("total_linea")
+        linea_tot = float(linea_tot_raw) if linea_tot_raw is not None and float(linea_tot_raw) > 0 else None
+        res_tot = proyectar_partido_totales(bundle_totales, feats_totales, linea_total=linea_tot if linea_tot else 0.0)
 
         # Probabilidades implícitas desparasitadas de mercado
         prob_ml_home_book = j.get("moneyline_local_prob") or 0.50
@@ -309,13 +312,13 @@ def predecir_partidos_hoy(force_refresh: bool = False, fecha: Optional[str] = No
         # Selección rigurosa de candidatos con filtro EV > 0 y Dead Zone
         picks_candidatos = []
 
-        # 1. Totales Over / Under (Calibrado)
-        if j.get("total_linea") is not None and res_tot["recomendacion"] in ["OVER", "UNDER"]:
+        # 1. Totales Over / Under (Calibrado con umbral equilibrado)
+        if linea_tot is not None and linea_tot > 0 and res_tot["recomendacion"] in ["OVER", "UNDER"]:
             prob_tot_raw = res_tot["prob_over"] if res_tot["recomendacion"] == "OVER" else res_tot["prob_under"]
             prob_tot_cal = float(calibrar_probabilidad(prob_tot_raw, cuota_dec_std))
             edge_tot = prob_tot_cal - 0.5238
             ev_tot = (prob_tot_cal * cuota_dec_std) - 1.0
-            if edge_tot >= 0.045 and ev_tot >= 0.025:
+            if edge_tot >= 0.025 and ev_tot >= 0.020:
                 picks_candidatos.append({
                     "mercado": f"Totales ({res_tot['recomendacion']})",
                     "seleccion": f"{res_tot['recomendacion']} {linea_tot}",
@@ -325,7 +328,7 @@ def predecir_partidos_hoy(force_refresh: bool = False, fecha: Optional[str] = No
                     "ev": round(ev_tot, 4),
                     "cuota": "-110",
                     "cuota_dec": cuota_dec_std,
-                    "confianza": "ALTA" if edge_tot >= 0.065 and ev_tot >= 0.04 else "MEDIA",
+                    "confianza": "ALTA" if edge_tot >= 0.055 and ev_tot >= 0.04 else "MEDIA",
                     "detalle": f"Proyección Calibrada: {res_tot['total_proyectado']} pts vs línea {linea_tot} (Edge: {edge_tot*100:+.1f}%, EV: {ev_tot*100:+.1f}%)"
                 })
 

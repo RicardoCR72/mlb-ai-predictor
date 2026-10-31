@@ -154,26 +154,28 @@ def obtener_pick_para_mercado(p: dict, mercado_tipo: str) -> dict:
         ev_over = (p_over_cal * 1.909) - 1.0
         ev_under = (p_under_cal * 1.909) - 1.0
 
-        if edge_over >= edge_under:
+        # Zona Muerta / Eficiente si la diferencia de puntos es menor a 1.5 pts o sin ventaja matemática
+        if abs(edge_pts) < 1.5 or (edge_over < 0.025 and edge_under < 0.025):
+            sel = f"Línea Eficiente ({linea})"
+            prob = max(p_over_cal, p_under_cal)
+            edge = max(edge_over, edge_under)
+            ev = max(ev_over, ev_under)
+            conf = "NEUTRAL"
+            det = f"Línea de mercado eficiente ({proy:.1f} pts vs {linea}). Descartado para proteger bankroll."
+        elif edge_pts >= 1.5 and edge_over >= edge_under:
             sel = f"OVER {linea}"
             prob = p_over_cal
             edge = edge_over
             ev = ev_over
+            conf = "ALTA" if edge >= 0.055 and ev >= 0.04 else ("MEDIA" if edge >= 0.025 and ev >= 0.02 else "NEUTRAL")
+            det = f"Proyección: {proy:.1f} pts vs Línea {linea} (Edge Cal: {edge*100:+.1f}%, EV: {ev*100:+.1f}%)"
         else:
             sel = f"UNDER {linea}"
             prob = p_under_cal
             edge = edge_under
             ev = ev_under
-
-        if edge >= 0.065 and ev >= 0.04:
-            conf = "ALTA"
+            conf = "ALTA" if edge >= 0.055 and ev >= 0.04 else ("MEDIA" if edge >= 0.025 and ev >= 0.02 else "NEUTRAL")
             det = f"Proyección: {proy:.1f} pts vs Línea {linea} (Edge Cal: {edge*100:+.1f}%, EV: {ev*100:+.1f}%)"
-        elif edge >= 0.045 and ev >= 0.025:
-            conf = "MEDIA"
-            det = f"Proyección: {proy:.1f} pts vs Línea {linea} (Edge Cal: {edge*100:+.1f}%, EV: {ev*100:+.1f}%)"
-        else:
-            conf = "NEUTRAL"
-            det = f"Línea de mercado eficiente. Edge calibrado ({edge*100:+.1f}%) debajo del umbral (+4.5%). Descartado para proteger bankroll."
 
         return {
             "mercado": "Totales",

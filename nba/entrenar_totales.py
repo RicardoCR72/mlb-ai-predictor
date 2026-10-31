@@ -188,32 +188,48 @@ def proyectar_partido_totales(
     else:
         raw_pred = 225.0
 
-    # Shrinkage Bayesiano: 45% Modelo cuantitativo + 55% Línea consensuada del mercado
-    if linea_total > 0:
-        total_pred = 0.45 * raw_pred + 0.55 * linea_total
+    # Puntos esperados basados en matchup ofensivo/defensivo reciente
+    h_pts = float(features_dict.get("HOME_PTS_L10") or 114.5)
+    a_opp = float(features_dict.get("AWAY_OPP_PTS_L10") or 114.5)
+    a_pts = float(features_dict.get("AWAY_PTS_L10") or 114.5)
+    h_opp = float(features_dict.get("HOME_OPP_PTS_L10") or 114.5)
+    pts_matchup = ((h_pts + a_opp) / 2.0) + ((a_pts + h_opp) / 2.0)
+
+    # Blending de modelo estadístico (60%) y matchup dinámico reciente (40%)
+    # Evita que la regresión colapse hacia la media global (225 pts) en equipos de ritmo alto
+    modelo_combinado = 0.60 * raw_pred + 0.40 * pts_matchup
+
+    # Shrinkage Bayesiano hacia la línea consensuada del mercado
+    if linea_total and linea_total > 0:
+        total_pred = 0.40 * modelo_combinado + 0.60 * linea_total
+        edge_puntos = total_pred - linea_total
+
+        # Sigma calibrado para dispersión de totales (~11.5 pts)
+        sigma_tot = bundle.get("sigma_condicional", 11.5)
+        if sigma_tot > 12.0:
+            sigma_tot = 11.5
+        z_score = edge_puntos / sigma_tot
+        prob_over = float(norm.cdf(z_score))
+        prob_under = 1.0 - prob_over
+
+        # Dead Zone simétrica: requiere al menos 2.0 pts de edge y 54% de prob
+        if edge_puntos >= 2.0 and prob_over >= 0.54:
+            recom = "OVER"
+        elif edge_puntos <= -2.0 and prob_under >= 0.54:
+            recom = "UNDER"
+        else:
+            recom = "PASAR"
     else:
-        total_pred = raw_pred
-
-    edge_puntos = total_pred - linea_total
-
-    # P(Under) = Phi((linea - total_pred) / sigma)
-    # P(Over) = 1.0 - P(Under)
-    z_score = (linea_total - total_pred) / sigma
-    prob_under = float(norm.cdf(z_score))
-    prob_over = 1.0 - prob_under
-
-    # Dead Zone: Si la diferencia con la línea es menor a 2.5 pts o prob < 53.5%, PASAR
-    if edge_puntos >= 2.5 and prob_over >= 0.535:
-        recom = "OVER"
-    elif edge_puntos <= -2.5 and prob_under >= 0.535:
-        recom = "UNDER"
-    else:
+        total_pred = modelo_combinado
+        edge_puntos = 0.0
+        prob_over = 0.5
+        prob_under = 0.5
         recom = "PASAR"
 
     return {
         "total_proyectado": round(total_pred, 1),
         "total_raw_modelo": round(raw_pred, 1),
-        "linea_mercado": linea_total,
+        "linea_mercado": linea_total if linea_total and linea_total > 0 else 0.0,
         "edge_puntos": round(edge_puntos, 1),
         "prob_over": round(prob_over, 4),
         "prob_under": round(prob_under, 4),
