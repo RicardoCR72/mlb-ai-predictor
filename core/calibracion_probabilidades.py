@@ -25,7 +25,7 @@ PLATT_SLOPE = 0.3033
 PLATT_INTERCEPT = 0.1332
 
 # Límites de seguridad contra sobreajuste frente a cuotas de mercado de casas de apuestas
-MAX_EDGE_VS_MARKET = 0.18  # Límite máximo de ventaja teórica (+18%) sobre la probabilidad implícita
+MAX_EDGE_VS_MARKET = 0.12  # Límite máximo de ventaja teórica (+12%) sobre la probabilidad implícita
 MAX_PROB_STANDARD = 0.78   # Techo realista para líneas de mercado estándar (cuotas >= 1.45 / -220)
 
 
@@ -69,10 +69,13 @@ def calibrar_probabilidad(
     if scale_100:
         arr = arr / 100.0
 
-    # 1. Platt Scaling logístico
+    # 1. Platt Scaling logístico (shrinkage de sobreconfianza en colas altas)
     clipped = np.clip(arr, 1e-4, 1.0 - 1e-4)
     z = logit(clipped)
-    calibrada = expit(PLATT_INTERCEPT + PLATT_SLOPE * z)
+    platt = expit(PLATT_INTERCEPT + PLATT_SLOPE * z)
+
+    # Las probabilidades bajas (< 50%) nunca deben inflarse artificialmente hacia el 50%
+    calibrada = np.where(arr < 0.50, np.minimum(platt, arr), platt)
 
     # 2. Ajuste con cuota de mercado (Market Shrinkage)
     if cuota is not None:
@@ -85,8 +88,13 @@ def calibrar_probabilidad(
         valid_odds = np.isfinite(cuotas_dec) & (cuotas_dec > 1.0)
         p_impl = np.where(valid_odds, 1.0 / cuotas_dec, np.nan)
 
-        # La ventaja real no debe superar MAX_EDGE_VS_MARKET sobre la casa
-        max_permitida = np.where(valid_odds, np.minimum(p_impl + MAX_EDGE_VS_MARKET, 0.88), 0.85)
+        # Regla fundamental: si el modelo no proyecta probabilidad mayor a la implícita de la casa,
+        # la calibración NUNCA debe inventar un edge positivo ni inflar cuotas altas/underdogs.
+        max_permitida = np.where(
+            valid_odds,
+            np.where(arr <= p_impl, np.minimum(arr, p_impl), np.minimum(p_impl + MAX_EDGE_VS_MARKET, 0.88)),
+            0.85
+        )
         # Techo para líneas estándar (cuota >= 1.45)
         std_odds = valid_odds & (cuotas_dec >= 1.45)
         max_permitida = np.where(std_odds, np.minimum(max_permitida, MAX_PROB_STANDARD), max_permitida)

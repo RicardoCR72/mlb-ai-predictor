@@ -125,12 +125,18 @@ def proyectar_partido_futbol(partido: Dict[str, Any]) -> Dict[str, Any]:
     rho_liga = float(info_liga.get("rho_dixon_coles", -0.115))
     linea_tot = float(partido.get("linea_total") or info_liga.get("linea_default", 2.5))
 
-    p_raw_h = float(partido.get("ml_local_prob") or 0.40)
-    p_raw_d = float(partido.get("ml_empate_prob") or 0.28)
-    p_raw_a = float(partido.get("ml_visita_prob") or 0.32)
+    cuota_dec_home = float(partido.get("ml_local_dec") or 1.91)
+    cuota_dec_away = float(partido.get("ml_visita_dec") or 1.91)
+    cuota_dec_draw = float(partido.get("ml_empate_dec") or 3.20)
+    cuota_dec_over = float(partido.get("over_momio_dec") or 1.87)
+    cuota_dec_under = float(partido.get("under_momio_dec") or 1.87)
 
-    p_raw_o = float(partido.get("over_prob_implicita") or 0.52)
-    p_raw_u = float(partido.get("under_prob_implicita") or 0.48)
+    p_raw_h = float(partido.get("ml_local_prob") or (1.0 / cuota_dec_home if cuota_dec_home > 1.0 else 0.40))
+    p_raw_d = float(partido.get("ml_empate_prob") or (1.0 / cuota_dec_draw if cuota_dec_draw > 1.0 else 0.28))
+    p_raw_a = float(partido.get("ml_visita_prob") or (1.0 / cuota_dec_away if cuota_dec_away > 1.0 else 0.32))
+
+    p_raw_o = float(partido.get("over_prob_implicita") or (1.0 / cuota_dec_over if cuota_dec_over > 1.0 else 0.52))
+    p_raw_u = float(partido.get("under_prob_implicita") or (1.0 / cuota_dec_under if cuota_dec_under > 1.0 else 0.48))
 
     # 1. Probabilidades de mercado desparasitadas (Vig-free)
     p_mkt_h, p_mkt_d, p_mkt_a = desparasitar_cuotas_1x2(p_raw_h, p_raw_d, p_raw_a)
@@ -214,11 +220,17 @@ def proyectar_partido_futbol(partido: Dict[str, Any]) -> Dict[str, Any]:
     p_final_under_cal = float(calibrar_probabilidad(p_final_under, cuota_dec_under))
 
     # Edges directos calibrados contra probabilidad implícita del bookmaker
-    edge_home = p_final_home_cal - p_raw_h
-    edge_away = p_final_away_cal - p_raw_a
-    edge_draw = p_final_draw_cal - p_raw_d
-    edge_over = p_final_over_cal - p_raw_o
-    edge_under = p_final_under_cal - p_raw_u
+    p_impl_home = 1.0 / cuota_dec_home if cuota_dec_home > 1.0 else p_raw_h
+    p_impl_away = 1.0 / cuota_dec_away if cuota_dec_away > 1.0 else p_raw_a
+    p_impl_draw = 1.0 / cuota_dec_draw if cuota_dec_draw > 1.0 else p_raw_d
+    p_impl_over = 1.0 / cuota_dec_over if cuota_dec_over > 1.0 else p_raw_o
+    p_impl_under = 1.0 / cuota_dec_under if cuota_dec_under > 1.0 else p_raw_u
+
+    edge_home = round(p_final_home_cal - p_impl_home, 4)
+    edge_away = round(p_final_away_cal - p_impl_away, 4)
+    edge_draw = round(p_final_draw_cal - p_impl_draw, 4)
+    edge_over = round(p_final_over_cal - p_impl_over, 4)
+    edge_under = round(p_final_under_cal - p_impl_under, 4)
 
     # EV para cada mercado estándar con probabilidades calibradas
     ev_home = calcular_ev(p_final_home_cal, cuota_dec_home)
@@ -261,8 +273,8 @@ def proyectar_partido_futbol(partido: Dict[str, Any]) -> Dict[str, Any]:
             "detalle": f"xG Proyectado: {xg_total:.2f} goles vs línea {linea_tot:g} (Under Calibrado: {p_final_under_cal*100:.1f}%, EV: +{ev_under*100:.1f}%)",
         })
 
-    # Mercado Moneyline: Local (Favorito sólido con valor calibrado)
-    if p_final_home_cal >= 0.45 and edge_home >= 0.035 and ev_home >= 0.025:
+    # Mercado Moneyline: Local (Favorito sólido con valor calibrado, prob >= 44%, edge >= +2.5%)
+    if p_final_home_cal >= 0.44 and edge_home >= 0.025 and ev_home >= 0.020:
         candidatos.append({
             "mercado": "Moneyline",
             "seleccion": f"{home_team} ML",
@@ -274,8 +286,8 @@ def proyectar_partido_futbol(partido: Dict[str, Any]) -> Dict[str, Any]:
             "detalle": f"Ventaja local proyectada (Prob Calibrada: {p_final_home_cal*100:.1f}%, xG: {xg_local:.2f} vs {xg_visita:.2f}, EV: +{ev_home*100:.1f}%)",
         })
 
-    # Mercado Moneyline: Visita (Favorito visitante con valor calibrado)
-    if p_final_away_cal >= 0.45 and edge_away >= 0.035 and ev_away >= 0.025:
+    # Mercado Moneyline: Visita (Favorito visitante con valor calibrado, prob >= 44%, edge >= +2.5%)
+    if p_final_away_cal >= 0.44 and edge_away >= 0.025 and ev_away >= 0.020:
         candidatos.append({
             "mercado": "Moneyline",
             "seleccion": f"{away_team} ML",
@@ -316,7 +328,7 @@ def proyectar_partido_futbol(partido: Dict[str, Any]) -> Dict[str, Any]:
             p = float(c.get("probabilidad", 0.5))
             ed = float(c.get("edge", 0.0))
             ev = float(c.get("ev", 0.0))
-            return p * (1.0 + 1.5 * max(ed, 0.0)) * (1.0 + max(ev, 0.0))
+            return (p ** 1.35) * (1.0 + 2.0 * max(ed, 0.0)) * (1.0 + max(ev, 0.0))
 
         candidatos.sort(key=ranking_score, reverse=True)
         mejor = candidatos[0]

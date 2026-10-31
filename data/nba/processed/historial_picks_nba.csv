@@ -168,12 +168,12 @@ id,id_juego,fecha,hora_cdmx,equipo_local,equipo_visitante,mercado,seleccion,line
 ,401909285_tot,2026-10-30,20:00,Golden State Warriors,Los Angeles Lakers,Totales (UNDER),UNDER 234.5,234.5,1.909,0.594,0.07,ALTA,112.0,95.0,GANADA,0.909,2026-10-31 11:00:56.546551
 ,401909285_ml,2026-10-30,20:00,Golden State Warriors,Los Angeles Lakers,Moneyline,Golden State Warriors ML,0.0,2.24,0.51,0.064,MEDIA,112.0,95.0,GANADA,1.24,2026-10-31 11:00:56.546551
 ,401909286_ml,2026-10-30,20:00,Phoenix Suns,Denver Nuggets,Moneyline,Phoenix Suns ML,0.0,2.5,0.499,0.1,LONGSHOT,120.0,127.0,PERDIDA,-1.0,2026-10-31 11:00:56.546551
-,401909896_ml,2026-10-31,13:00,Utah Jazz,Portland Trail Blazers,Moneyline,Utah Jazz ML,0.0,3.1,0.445,0.123,LONGSHOT,0.0,0.0,PENDIENTE,,2026-10-31 17:31:56.812278
-,401909898_tot,2026-10-31,17:00,New Orleans Pelicans,Atlanta Hawks,Totales (UNDER),UNDER 240.5,240.5,1.909,0.577,0.053,MEDIA,0.0,0.0,PENDIENTE,,2026-10-31 17:31:56.812278
-,401909898_ml,2026-10-31,17:00,New Orleans Pelicans,Atlanta Hawks,Moneyline,New Orleans Pelicans ML,0.0,2.5,0.457,0.057,LONGSHOT,0.0,0.0,PENDIENTE,,2026-10-31 17:31:56.812278
-,401909899_ml,2026-10-31,18:00,Memphis Grizzlies,Sacramento Kings,Moneyline,Sacramento Kings ML,0.0,4.6,0.397,0.18,LONGSHOT,0.0,0.0,PENDIENTE,,2026-10-31 17:31:56.812278
-,401909899_spread,2026-10-31,18:00,Memphis Grizzlies,Sacramento Kings,Spread,Sacramento Kings +10.5,10.5,1.909,0.584,0.06,MEDIA,0.0,0.0,PENDIENTE,,2026-10-31 17:31:56.812278
-,401909900_ml,2026-10-31,18:00,Milwaukee Bucks,Cleveland Cavaliers,Moneyline,Milwaukee Bucks ML,0.0,3.7,0.45,0.18,LONGSHOT,0.0,0.0,PENDIENTE,,2026-10-31 17:31:56.812278
-,401909901_ml,2026-10-31,18:00,San Antonio Spurs,Minnesota Timberwolves,Moneyline,Minnesota Timberwolves ML,0.0,5.4,0.365,0.18,LONGSHOT,0.0,0.0,PENDIENTE,,2026-10-31 17:31:56.812278
-,401909901_spread,2026-10-31,18:00,San Antonio Spurs,Minnesota Timberwolves,Spread,Minnesota Timberwolves +12.5,12.5,1.909,0.613,0.089,ALTA,0.0,0.0,PENDIENTE,,2026-10-31 17:31:56.812278
-,401909902_ml,2026-10-31,18:30,Houston Rockets,Oklahoma City Thunder,Moneyline,Oklahoma City Thunder ML,0.0,2.36,0.517,0.094,MEDIA,0.0,0.0,PENDIENTE,,2026-10-31 17:31:56.812278
+,401909896_ml,2026-10-31,13:00,Utah Jazz,Portland Trail Blazers,Moneyline,Utah Jazz ML,0.0,3.1,0.445,0.123,LONGSHOT,0.0,0.0,PENDIENTE,,2026-10-31 11:51:36.250348
+,401909898_tot,2026-10-31,17:00,New Orleans Pelicans,Atlanta Hawks,Totales (UNDER),UNDER 240.5,240.5,1.909,0.577,0.053,MEDIA,0.0,0.0,PENDIENTE,,2026-10-31 11:51:36.250348
+,401909898_ml,2026-10-31,17:00,New Orleans Pelicans,Atlanta Hawks,Moneyline,New Orleans Pelicans ML,0.0,2.5,0.457,0.057,LONGSHOT,0.0,0.0,PENDIENTE,,2026-10-31 11:51:36.250348
+,401909899_ml,2026-10-31,18:00,Memphis Grizzlies,Sacramento Kings,Moneyline,Sacramento Kings ML,0.0,4.6,0.397,0.18,LONGSHOT,0.0,0.0,PENDIENTE,,2026-10-31 11:51:36.250348
+,401909899_spread,2026-10-31,18:00,Memphis Grizzlies,Sacramento Kings,Spread,Sacramento Kings +10.5,10.5,1.909,0.584,0.06,MEDIA,0.0,0.0,PENDIENTE,,2026-10-31 11:51:36.250348
+,401909900_ml,2026-10-31,18:00,Milwaukee Bucks,Cleveland Cavaliers,Moneyline,Milwaukee Bucks ML,0.0,3.7,0.45,0.18,LONGSHOT,0.0,0.0,PENDIENTE,,2026-10-31 11:51:36.250348
+,401909901_ml,2026-10-31,18:00,San Antonio Spurs,Minnesota Timberwolves,Moneyline,Minnesota Timberwolves ML,0.0,5.4,0.365,0.18,LONGSHOT,0.0,0.0,PENDIENTE,,2026-10-31 11:51:36.250348
+,401909901_spread,2026-10-31,18:00,San Antonio Spurs,Minnesota Timberwolves,Spread,Minnesota Timberwolves +12.5,12.5,1.909,0.613,0.089,ALTA,0.0,0.0,PENDIENTE,,2026-10-31 11:51:36.250348
+,401909902_ml,2026-10-31,18:30,Houston Rockets,Oklahoma City Thunder,Moneyline,Oklahoma City Thunder ML,0.0,2.36,0.517,0.094,MEDIA,0.0,0.0,PENDIENTE,,2026-10-31 11:51:36.250348

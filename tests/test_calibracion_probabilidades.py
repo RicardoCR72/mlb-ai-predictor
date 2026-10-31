@@ -34,6 +34,15 @@ class TestCalibracionProbabilidades(unittest.TestCase):
         ev = calcular_ev_calibrado(0.60, 2.0)
         self.assertAlmostEqual(ev, 0.20, places=2)
 
+    def test_underdog_no_phantom_inflation(self):
+        # Un underdog de 16% con cuota 4.10 (+310, impl ~24.4%) no debe inflarse a 40%+ ni generar edge positivo
+        p_cal = calibrar_probabilidad(0.163, cuota=4.10)
+        self.assertLessEqual(p_cal, 0.244)
+        self.assertAlmostEqual(p_cal, 0.163, places=3)
+        # El EV debe ser estrictamente negativo
+        ev = calcular_ev_calibrado(p_cal, 4.10)
+        self.assertLess(ev, 0.0)
+
 
 if __name__ == "__main__":
     unittest.main()

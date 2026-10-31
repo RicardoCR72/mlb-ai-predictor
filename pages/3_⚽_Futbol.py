@@ -107,26 +107,33 @@ def obtener_pick_para_mercado_futbol(p: dict, mercado_tipo: str) -> dict:
         ed_vis = float(p.get("edge_visita", 0.0))
 
         max_ed = max(ed_loc, ed_emp, ed_vis)
-        if max_ed == ed_loc and ed_loc > 0:
-            sel = f"{p.get('equipo_local')} (Victoria Local)"
-            c = p.get("moneyline_local") or "+100"
-            pr = p_loc
-            ed = ed_loc
-        elif max_ed == ed_vis and ed_vis > 0:
-            sel = f"{p.get('equipo_visita')} (Victoria Visitante)"
-            c = p.get("moneyline_visita") or "+100"
-            pr = p_vis
-            ed = ed_vis
-        elif max_ed == ed_emp and ed_emp > 0:
-            sel = "Empate (X)"
-            c = p.get("moneyline_empate") or "+250"
-            pr = p_emp
-            ed = ed_emp
+        if max_ed > 0:
+            if max_ed == ed_loc:
+                sel = f"{p.get('equipo_local')} (Victoria Local)"
+                c = p.get("moneyline_local") or "+100"
+                pr = p_loc
+                ed = ed_loc
+            elif max_ed == ed_vis:
+                sel = f"{p.get('equipo_visita')} (Victoria Visitante)"
+                c = p.get("moneyline_visita") or "+100"
+                pr = p_vis
+                ed = ed_vis
+            else:
+                sel = "Empate (X)"
+                c = p.get("moneyline_empate") or "+250"
+                pr = p_emp
+                ed = ed_emp
         else:
-            sel = f"{p.get('equipo_local')} ML"
-            c = p.get("moneyline_local") or "+100"
-            pr = p_loc
-            ed = ed_loc
+            if p_loc >= p_vis:
+                sel = f"{p.get('equipo_local')} (Favorito Local)"
+                c = p.get("moneyline_local") or "-110"
+                pr = p_loc
+                ed = ed_loc
+            else:
+                sel = f"{p.get('equipo_visita')} (Favorito Visitante)"
+                c = p.get("moneyline_visita") or "-110"
+                pr = p_vis
+                ed = ed_vis
 
         info["seleccion"] = sel
         info["cuota"] = c
