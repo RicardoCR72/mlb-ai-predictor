@@ -158,13 +158,13 @@ id,id_juego,fecha,hora_cdmx,equipo_local,equipo_visitante,mercado,seleccion,line
 2424.0,401909089_ml,2026-10-20,17:00,New York Knicks,Philadelphia 76ers,Moneyline,New York Knicks ML,0.0,1.65,0.765,0.159,ALTA,100.0,106.0,PERDIDA,-1.0,2026-10-25 00:10:48.000000
 2423.0,401909088_tot,2026-10-20,13:00,Detroit Pistons,Boston Celtics,Totales (UNDER),UNDER 228.0,228.0,1.909,0.586,0.29,MEDIA,121.0,113.0,PERDIDA,-1.0,2026-10-25 00:10:48.000000
 2422.0,401909088_ml,2026-10-20,13:00,Detroit Pistons,Boston Celtics,Moneyline,Boston Celtics ML,0.0,1.65,0.651,0.045,ALTA,121.0,113.0,PERDIDA,-1.0,2026-10-25 00:10:48.000000
-,401909279_ml,2026-10-30,17:30,Brooklyn Nets,Detroit Pistons,Moneyline,Brooklyn Nets ML,0.0,3.6,0.452,0.174,LONGSHOT,0.0,0.0,PENDIENTE,,2026-10-30 18:27:40.385181
-,401909282_ml,2026-10-30,18:00,Miami Heat,Indiana Pacers,Moneyline,Indiana Pacers ML,0.0,3.6,0.458,0.18,LONGSHOT,0.0,0.0,PENDIENTE,,2026-10-30 18:27:40.385181
-,401909282_tot,2026-10-30,18:00,Miami Heat,Indiana Pacers,Totales (UNDER),UNDER 237.5,237.5,1.909,0.572,0.048,MEDIA,0.0,0.0,PENDIENTE,,2026-10-30 18:27:40.385181
-,401909282_spread,2026-10-30,18:00,Miami Heat,Indiana Pacers,Spread,Indiana Pacers +8.5,8.5,1.909,0.562,0.038,MEDIA,0.0,0.0,PENDIENTE,,2026-10-30 18:27:40.385181
-,401909283_ml,2026-10-30,18:00,Dallas Mavericks,Houston Rockets,Moneyline,Dallas Mavericks ML,0.0,2.95,0.484,0.145,LONGSHOT,0.0,0.0,PENDIENTE,,2026-10-30 18:27:40.385181
-,401909284_ml,2026-10-30,18:00,Minnesota Timberwolves,Los Angeles Clippers,Moneyline,Los Angeles Clippers ML,0.0,3.25,0.488,0.18,LONGSHOT,0.0,0.0,PENDIENTE,,2026-10-30 18:27:40.385181
-,401909284_spread,2026-10-30,18:00,Minnesota Timberwolves,Los Angeles Clippers,Spread,Los Angeles Clippers +7.5,7.5,1.909,0.569,0.045,MEDIA,0.0,0.0,PENDIENTE,,2026-10-30 18:27:40.385181
-,401909285_tot,2026-10-30,20:00,Golden State Warriors,Los Angeles Lakers,Totales (UNDER),UNDER 234.5,234.5,1.909,0.594,0.07,ALTA,0.0,0.0,PENDIENTE,,2026-10-30 18:27:40.385181
-,401909285_ml,2026-10-30,20:00,Golden State Warriors,Los Angeles Lakers,Moneyline,Golden State Warriors ML,0.0,2.24,0.51,0.064,MEDIA,0.0,0.0,PENDIENTE,,2026-10-30 18:27:40.385181
-,401909286_ml,2026-10-30,20:00,Phoenix Suns,Denver Nuggets,Moneyline,Phoenix Suns ML,0.0,2.5,0.499,0.1,LONGSHOT,0.0,0.0,PENDIENTE,,2026-10-30 18:27:40.385181
+,401909279_ml,2026-10-30,17:30,Brooklyn Nets,Detroit Pistons,Moneyline,Brooklyn Nets ML,0.0,3.6,0.452,0.174,LONGSHOT,66.0,89.0,PENDIENTE,,2026-10-31 01:27:53.151254
+,401909282_ml,2026-10-30,18:00,Miami Heat,Indiana Pacers,Moneyline,Indiana Pacers ML,0.0,3.6,0.458,0.18,LONGSHOT,68.0,61.0,PENDIENTE,,2026-10-31 01:27:53.151254
+,401909282_tot,2026-10-30,18:00,Miami Heat,Indiana Pacers,Totales (UNDER),UNDER 237.5,237.5,1.909,0.572,0.048,MEDIA,68.0,61.0,PENDIENTE,,2026-10-31 01:27:53.151254
+,401909282_spread,2026-10-30,18:00,Miami Heat,Indiana Pacers,Spread,Indiana Pacers +8.5,8.5,1.909,0.562,0.038,MEDIA,68.0,61.0,PENDIENTE,,2026-10-31 01:27:53.151254
+,401909283_ml,2026-10-30,18:00,Dallas Mavericks,Houston Rockets,Moneyline,Dallas Mavericks ML,0.0,2.95,0.484,0.145,LONGSHOT,49.0,53.0,PENDIENTE,,2026-10-31 01:27:53.151254
+,401909284_ml,2026-10-30,18:00,Minnesota Timberwolves,Los Angeles Clippers,Moneyline,Los Angeles Clippers ML,0.0,3.25,0.488,0.18,LONGSHOT,77.0,63.0,PENDIENTE,,2026-10-31 01:27:53.151254
+,401909284_spread,2026-10-30,18:00,Minnesota Timberwolves,Los Angeles Clippers,Spread,Los Angeles Clippers +7.5,7.5,1.909,0.569,0.045,MEDIA,77.0,63.0,PENDIENTE,,2026-10-31 01:27:53.151254
+,401909285_tot,2026-10-30,20:00,Golden State Warriors,Los Angeles Lakers,Totales (UNDER),UNDER 234.5,234.5,1.909,0.594,0.07,ALTA,0.0,0.0,PENDIENTE,,2026-10-31 01:27:53.151254
+,401909285_ml,2026-10-30,20:00,Golden State Warriors,Los Angeles Lakers,Moneyline,Golden State Warriors ML,0.0,2.24,0.51,0.064,MEDIA,0.0,0.0,PENDIENTE,,2026-10-31 01:27:53.151254
+,401909286_ml,2026-10-30,20:00,Phoenix Suns,Denver Nuggets,Moneyline,Phoenix Suns ML,0.0,2.5,0.499,0.1,LONGSHOT,0.0,0.0,PENDIENTE,,2026-10-31 01:27:53.151254

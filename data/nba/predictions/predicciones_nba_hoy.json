@@ -8,7 +8,7 @@
     "abbr_visita": "CHA",
     "fecha_cdmx": "2026-10-30",
     "hora_cdmx": "17:00",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_IN_PROGRESS",
     "provider": "Draft Kings",
     "linea_spread": 1.5,
     "spread_detalles": "CHA -1.5",
@@ -39,9 +39,9 @@
     "confianza": "NEUTRAL",
     "candidatos": [],
     "timestamp": "2026-10-30T12:27:38.907480-06:00",
-    "descripcion_estado": "Scheduled",
-    "marcador_local": 0,
-    "marcador_visita": 0
+    "descripcion_estado": "In Progress",
+    "marcador_local": 92,
+    "marcador_visita": 74
   },
   {
     "id_evento": "401909278",
@@ -52,7 +52,7 @@
     "abbr_visita": "CHI",
     "fecha_cdmx": "2026-10-30",
     "hora_cdmx": "17:30",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_IN_PROGRESS",
     "provider": "DraftKings",
     "linea_spread": -14.5,
     "spread_detalles": "BOS -14.5",
@@ -120,9 +120,9 @@
       }
     ],
     "timestamp": "2026-10-30T12:27:38.912944-06:00",
-    "descripcion_estado": "Scheduled",
-    "marcador_local": 0,
-    "marcador_visita": 0
+    "descripcion_estado": "In Progress",
+    "marcador_local": 99,
+    "marcador_visita": 74
   },
   {
     "id_evento": "401909279",
@@ -133,7 +133,7 @@
     "abbr_visita": "DET",
     "fecha_cdmx": "2026-10-30",
     "hora_cdmx": "17:30",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_IN_PROGRESS",
     "provider": "DraftKings",
     "linea_spread": 8.5,
     "spread_detalles": "DET -8.5",
@@ -177,9 +177,9 @@
       }
     ],
     "timestamp": "2026-10-30T12:27:38.918157-06:00",
-    "descripcion_estado": "Scheduled",
-    "marcador_local": 0,
-    "marcador_visita": 0
+    "descripcion_estado": "In Progress",
+    "marcador_local": 66,
+    "marcador_visita": 89
   },
   {
     "id_evento": "401909280",
@@ -190,7 +190,7 @@
     "abbr_visita": "NYK",
     "fecha_cdmx": "2026-10-30",
     "hora_cdmx": "17:30",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_IN_PROGRESS",
     "provider": "DraftKings",
     "linea_spread": 1.5,
     "spread_detalles": "NY -1.5",
@@ -221,9 +221,9 @@
     "confianza": "NEUTRAL",
     "candidatos": [],
     "timestamp": "2026-10-30T12:27:38.923350-06:00",
-    "descripcion_estado": "Scheduled",
-    "marcador_local": 0,
-    "marcador_visita": 0
+    "descripcion_estado": "In Progress",
+    "marcador_local": 77,
+    "marcador_visita": 68
   },
   {
     "id_evento": "401909281",
@@ -234,7 +234,7 @@
     "abbr_visita": "ORL",
     "fecha_cdmx": "2026-10-30",
     "hora_cdmx": "17:30",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_IN_PROGRESS",
     "provider": "DraftKings",
     "linea_spread": -5.5,
     "spread_detalles": "TOR -5.5",
@@ -278,9 +278,9 @@
       }
     ],
     "timestamp": "2026-10-30T12:27:38.928543-06:00",
-    "descripcion_estado": "Scheduled",
-    "marcador_local": 0,
-    "marcador_visita": 0
+    "descripcion_estado": "In Progress",
+    "marcador_local": 80,
+    "marcador_visita": 90
   },
   {
     "id_evento": "401909282",
@@ -291,7 +291,7 @@
     "abbr_visita": "IND",
     "fecha_cdmx": "2026-10-30",
     "hora_cdmx": "18:00",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_HALFTIME",
     "provider": "DraftKings",
     "linea_spread": -8.5,
     "spread_detalles": "MIA -8.5",
@@ -359,9 +359,9 @@
       }
     ],
     "timestamp": "2026-10-30T12:27:38.933686-06:00",
-    "descripcion_estado": "Scheduled",
-    "marcador_local": 0,
-    "marcador_visita": 0
+    "descripcion_estado": "Halftime",
+    "marcador_local": 68,
+    "marcador_visita": 61
   },
   {
     "id_evento": "401909283",
@@ -372,7 +372,7 @@
     "abbr_visita": "HOU",
     "fecha_cdmx": "2026-10-30",
     "hora_cdmx": "18:00",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_IN_PROGRESS",
     "provider": "DraftKings",
     "linea_spread": 6.5,
     "spread_detalles": "HOU -6.5",
@@ -416,9 +416,9 @@
       }
     ],
     "timestamp": "2026-10-30T12:27:38.938784-06:00",
-    "descripcion_estado": "Scheduled",
-    "marcador_local": 0,
-    "marcador_visita": 0
+    "descripcion_estado": "In Progress",
+    "marcador_local": 49,
+    "marcador_visita": 53
   },
   {
     "id_evento": "401909284",
@@ -429,7 +429,7 @@
     "abbr_visita": "LAC",
     "fecha_cdmx": "2026-10-30",
     "hora_cdmx": "18:00",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_IN_PROGRESS",
     "provider": "DraftKings",
     "linea_spread": -7.5,
     "spread_detalles": "MIN -7.5",
@@ -485,9 +485,9 @@
       }
     ],
     "timestamp": "2026-10-30T12:27:38.944187-06:00",
-    "descripcion_estado": "Scheduled",
-    "marcador_local": 0,
-    "marcador_visita": 0
+    "descripcion_estado": "In Progress",
+    "marcador_local": 77,
+    "marcador_visita": 63
   },
   {
     "id_evento": "401909285",
