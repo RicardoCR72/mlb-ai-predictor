@@ -34,6 +34,10 @@ install_navigation()
 
 from core.constants import ZONA_CDMX
 from core.ui_rendimiento_diseno import performance_filters, safe_select
+
+def _filtrar_auditoria_futbol(df):
+    return performance_filters(df, probability_col='probabilidad')
+
 from futbol.constantes import LIGAS_DISPONIBLES, CODIGOS_LIGAS, obtener_info_liga
 from futbol.registro import (
     render_historial_futbol,

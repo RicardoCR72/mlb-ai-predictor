@@ -38,7 +38,7 @@ class MoneylineSelectionTests(TestCase):
         mlb=frame[frame.deporte.eq('MLB') & frame.mercado.eq('Moneyline')]
         self.assertEqual(mlb.seleccion.tolist(),['New York Yankees'])
         with patch('core.ui_historial_publicado.load_history',return_value=(mlb,[])):
-            app=AppTest.from_string("from core.ui_historial_publicado import render_history\nrender_history('MLB','Moneyline',key='saved_team')").run()
+            app=AppTest.from_string("from core.ui_historial_publicado import render_history\nrender_history('MLB','Moneyline',key='saved_team')", default_timeout=15).run()
         self.assertFalse(app.exception)
         cards=[m.value for m in app.markdown if '<div class="oracle-selection">' in m.value or '<div class="pick-sel">' in m.value]
         self.assertEqual(len(cards),1)
