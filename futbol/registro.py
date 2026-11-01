@@ -767,7 +767,7 @@ def render_historial_futbol(mercado_activo: str):
 
         with st.container(border=True):
             card_hist_top = (
-                f'<div class="card-top" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.65rem;">'
+                f'<div class="card-top" style="margin-bottom: 0.65rem;">'
                 f'<div>'
                 f'<span class="badge-time" style="background: #092416; color: #00e676; border: 1px solid #00e676; font-weight: 800; padding: 0.2rem 0.55rem; border-radius: 6px; font-size: 0.75rem;">🏁 FINAL</span>'
                 f'<span style="margin-left: 0.6rem; color: #8ba797; font-size: 0.82rem;">{p_partido["liga_bandera"]} {p_partido["liga_nombre"]} · 📅 {p_partido["fecha"]} · ⏰ {p_partido["hora_cdmx"]} CDMX</span>'
@@ -780,14 +780,14 @@ def render_historial_futbol(mercado_activo: str):
             )
 
             teams_hist = (
-                f'<div class="teams-row" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; background: #0c1c14; padding: 0.65rem 1rem; border-radius: 10px; border: 1px solid #143524;">'
+                f'<div class="teams-row" style="margin-bottom: 0.75rem; background: #0c1c14; padding: 0.65rem 1rem; border-radius: 10px; border: 1px solid #143524;">'
                 f'<div>'
-                f'<div class="team-name" style="font-size: 1.1rem; font-weight: 800; color: #ffffff;">{p_partido["equipo_visitante"]} <span style="color: #00e676; margin-left: 0.4rem; font-size: 1.35rem; font-weight: 900;">{mv_str}</span></div>'
+                f'<div class="team-name" style="font-weight: 800; color: #ffffff;">{p_partido["equipo_visitante"]} <span style="color: #00e676; margin-left: 0.4rem; font-size: 1.35rem; font-weight: 900;">{mv_str}</span></div>'
                 f'<div class="team-sub" style="font-size: 0.75rem; color: #8ba797;">Visitante</div>'
                 f'</div>'
-                f'<div style="font-size: 0.9rem; color: #00e676; font-weight: 900; letter-spacing: 0.08em; background: #06180e; border: 1px solid #00e676; padding: 0.2rem 0.6rem; border-radius: 6px;">FULL TIME</div>'
+                f'<div style="font-size: 0.9rem; color: #00e676; font-weight: 900; letter-spacing: 0.08em; background: #06180e; border: 1px solid #00e676; padding: 0.2rem 0.6rem; border-radius: 6px; flex-shrink: 0;">FULL TIME</div>'
                 f'<div style="text-align: right;">'
-                f'<div class="team-name" style="font-size: 1.1rem; font-weight: 800; color: #ffffff;"><span style="color: #00e676; margin-right: 0.4rem; font-size: 1.35rem; font-weight: 900;">{ml_str}</span> {p_partido["equipo_local"]}</div>'
+                f'<div class="team-name" style="font-weight: 800; color: #ffffff;"><span style="color: #00e676; margin-right: 0.4rem; font-size: 1.35rem; font-weight: 900;">{ml_str}</span> {p_partido["equipo_local"]}</div>'
                 f'<div class="team-sub" style="font-size: 0.75rem; color: #8ba797;">Local</div>'
                 f'</div>'
                 f'</div>'
@@ -804,7 +804,7 @@ def render_historial_futbol(mercado_activo: str):
                 linea_info = f" · Línea: <b>{p.get('linea')}</b>" if (pd.notna(p.get("linea")) and float(p.get("linea", 0.0)) > 0) else ""
 
                 pick_hist_box = (
-                    f'<div class="pick-box" style="margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center; background: #091a12; border: 1px solid #143524; padding: 0.65rem 0.9rem; border-radius: 8px;">'
+                    f'<div class="pick-box" style="margin-bottom: 0.5rem; background: #091a12; border: 1px solid #143524; padding: 0.65rem 0.9rem; border-radius: 8px;">'
                     f'<div>'
                     f'<div class="pick-title" style="font-size: 0.76rem; color: #8ba797; font-weight: 700;">Recomendación ({p.get("mercado")}) · Confianza {p.get("confianza", "MEDIA")}</div>'
                     f'<div class="pick-sel" style="font-size: 1.05rem; font-weight: 900; color: #ffffff;">{p.get("seleccion")}</div>'
@@ -812,7 +812,7 @@ def render_historial_futbol(mercado_activo: str):
                     f'Cuota: <b>{p.get("cuota", 1.85):.2f}</b> · Prob. Modelo: <b>{float(p.get("probabilidad", 0.5))*100:.1f}%</b>{linea_info}'
                     f'</div>'
                     f'</div>'
-                    f'<div style="text-align: right;">'
+                    f'<div class="pick-result-col" style="text-align: right;">'
                     f'<div style="font-size: 0.72rem; color: #8ba797; font-weight: 700;">RESULTADO AUDITADO</div>'
                     f'<div style="font-size: 1.15rem; font-weight: 900; color: {color_res};">{resultado_pick} ({val_u_box} u)</div>'
                     f'</div>'

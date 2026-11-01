@@ -890,7 +890,7 @@ def render_historial_nba(mercado_filtro: str = ""):
                     f'Cuota: <b>{p.get("cuota", 1.91):.2f}</b> · Prob. Modelo: <b>{float(p.get("probabilidad", 0.5))*100:.1f}%</b>{linea_info}'
                     f'</div>'
                     f'</div>'
-                    f'<div style="text-align: right;">'
+                    f'<div class="pick-result-col" style="text-align: right;">'
                     f'<div style="font-size: 0.72rem; color: #a4978e; font-weight: 700;">RESULTADO AUDITADO</div>'
                     f'<div style="font-size: 1.15rem; font-weight: 900; color: {color_res};">{resultado_pick} ({val_u_box} u)</div>'
                     f'</div>'
