@@ -8,7 +8,7 @@
     "abbr_visita": "POR",
     "fecha_cdmx": "2026-10-31",
     "hora_cdmx": "13:00",
-    "estado": "STATUS_END_PERIOD",
+    "estado": "STATUS_FINAL",
     "provider": "Draft Kings",
     "linea_spread": 6.5,
     "spread_detalles": "POR -6.5",
@@ -52,9 +52,11 @@
       }
     ],
     "timestamp": "2026-10-31T05:00:54.953849-06:00",
-    "descripcion_estado": "End of Period",
-    "marcador_local": 64,
-    "marcador_visita": 88
+    "descripcion_estado": "Final",
+    "marcador_local": 90,
+    "marcador_visita": 112,
+    "resultado": "PERDIDA",
+    "unidades_ganadas": -1.0
   },
   {
     "id_evento": "401909897",
@@ -65,7 +67,7 @@
     "abbr_visita": "PHI",
     "fecha_cdmx": "2026-10-31",
     "hora_cdmx": "16:00",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_FINAL",
     "provider": "DraftKings",
     "linea_spread": 1.5,
     "spread_detalles": "PHI -1.5",
@@ -108,7 +110,12 @@
         "detalle": "Proyección Calibrada: 216.4 pts vs línea 211.5 (Edge: +6.1%, EV: +11.7%)"
       }
     ],
-    "timestamp": "2026-10-31T14:57:18.541979-06:00"
+    "timestamp": "2026-10-31T14:57:18.541979-06:00",
+    "descripcion_estado": "Final",
+    "marcador_local": 104,
+    "marcador_visita": 109,
+    "resultado": "GANADA",
+    "unidades_ganadas": 0.909
   },
   {
     "id_evento": "401909898",
@@ -119,7 +126,7 @@
     "abbr_visita": "ATL",
     "fecha_cdmx": "2026-10-31",
     "hora_cdmx": "17:00",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_IN_PROGRESS",
     "provider": "DraftKings",
     "linea_spread": 4.5,
     "spread_detalles": "ATL -4.5",
@@ -162,7 +169,10 @@
         "detalle": "Proyección Calibrada: 237.0 pts vs línea 241.5 (Edge: +5.7%, EV: +10.8%)"
       }
     ],
-    "timestamp": "2026-10-31T14:57:18.592698-06:00"
+    "timestamp": "2026-10-31T14:57:18.592698-06:00",
+    "descripcion_estado": "In Progress",
+    "marcador_local": 87,
+    "marcador_visita": 73
   },
   {
     "id_evento": "401909899",
@@ -173,7 +183,7 @@
     "abbr_visita": "SAC",
     "fecha_cdmx": "2026-10-31",
     "hora_cdmx": "18:00",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_IN_PROGRESS",
     "provider": "DraftKings",
     "linea_spread": -8.5,
     "spread_detalles": "MEM -8.5",
@@ -228,7 +238,10 @@
         "detalle": "🎯 Longshot (+EV 44.6%). Probabilidad (37.6%) menor al 50%. Se sugiere preferir el Spread."
       }
     ],
-    "timestamp": "2026-10-31T14:57:18.615933-06:00"
+    "timestamp": "2026-10-31T14:57:18.615933-06:00",
+    "descripcion_estado": "In Progress",
+    "marcador_local": 36,
+    "marcador_visita": 29
   },
   {
     "id_evento": "401909900",
@@ -239,7 +252,7 @@
     "abbr_visita": "CLE",
     "fecha_cdmx": "2026-10-31",
     "hora_cdmx": "18:00",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_IN_PROGRESS",
     "provider": "DraftKings",
     "linea_spread": 9.5,
     "spread_detalles": "CLE -9.5",
@@ -294,7 +307,10 @@
         "detalle": "Proyección Calibrada: 233.1 pts vs línea 235.5 (Edge: +3.5%, EV: +6.6%)"
       }
     ],
-    "timestamp": "2026-10-31T14:57:18.642945-06:00"
+    "timestamp": "2026-10-31T14:57:18.642945-06:00",
+    "descripcion_estado": "In Progress",
+    "marcador_local": 33,
+    "marcador_visita": 40
   },
   {
     "id_evento": "401909901",
@@ -305,7 +321,7 @@
     "abbr_visita": "MIN",
     "fecha_cdmx": "2026-10-31",
     "hora_cdmx": "18:00",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_IN_PROGRESS",
     "provider": "DraftKings",
     "linea_spread": -12.5,
     "spread_detalles": "SA -12.5",
@@ -360,7 +376,10 @@
         "detalle": "🎯 Longshot (+EV 64.8%). Probabilidad (30.5%) menor al 50%. Se sugiere preferir el Spread."
       }
     ],
-    "timestamp": "2026-10-31T14:57:18.667413-06:00"
+    "timestamp": "2026-10-31T14:57:18.667413-06:00",
+    "descripcion_estado": "In Progress",
+    "marcador_local": 46,
+    "marcador_visita": 38
   },
   {
     "id_evento": "401909902",
@@ -371,7 +390,7 @@
     "abbr_visita": "OKC",
     "fecha_cdmx": "2026-10-31",
     "hora_cdmx": "18:30",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_IN_PROGRESS",
     "provider": "DraftKings",
     "linea_spread": -2.5,
     "spread_detalles": "HOU -2.5",
@@ -414,6 +433,9 @@
         "detalle": "Proyección Calibrada: 222.0 pts vs línea 219.5 (Edge: +3.5%, EV: +6.7%)"
       }
     ],
-    "timestamp": "2026-10-31T14:57:18.694411-06:00"
+    "timestamp": "2026-10-31T14:57:18.694411-06:00",
+    "descripcion_estado": "In Progress",
+    "marcador_local": 7,
+    "marcador_visita": 6
   }
 ]
