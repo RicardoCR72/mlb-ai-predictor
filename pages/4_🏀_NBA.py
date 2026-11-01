@@ -113,9 +113,10 @@ def obtener_pick_para_mercado(p: dict, mercado_tipo: str) -> dict:
             or ("Spread" in mercado_tipo and "Spread" in c_mercado)
         ):
             c_prob = float(cand.get("probabilidad", 0.5))
-            c_conf = cand.get("confianza", "MEDIA")
+            # En Moneyline jamás se recomienda un underdog con probabilidad < 50%
             if "Moneyline" in mercado_tipo and c_prob < 0.50:
-                c_conf = "LONGSHOT"
+                continue
+            c_conf = cand.get("confianza", "MEDIA")
             return {
                 "mercado": cand.get("mercado", mercado_tipo),
                 "seleccion": cand.get("seleccion", "N/D"),
@@ -190,6 +191,7 @@ def obtener_pick_para_mercado(p: dict, mercado_tipo: str) -> dict:
 
     elif "Moneyline" in mercado_tipo:
         from core.ui_boleta import formatear_decimal_a_americano
+        from core.calibracion_probabilidades import calibrar_probabilidades_2way
         p_loc_raw = float(p.get("prob_local_win") or 0.5)
         p_vis_raw = float(p.get("prob_visita_win") or 0.5)
         ml_loc = p.get("ml_local")
@@ -198,8 +200,7 @@ def obtener_pick_para_mercado(p: dict, mercado_tipo: str) -> dict:
         cuota_dec_loc = float(p.get("ml_local_dec") or parsear_cuota_decimal(ml_loc) or 1.91)
         cuota_dec_vis = float(p.get("ml_visita_dec") or parsear_cuota_decimal(ml_vis) or 1.91)
 
-        p_loc_cal = float(calibrar_probabilidad(p_loc_raw, cuota_dec_loc))
-        p_vis_cal = float(calibrar_probabilidad(p_vis_raw, cuota_dec_vis))
+        p_loc_cal, p_vis_cal = calibrar_probabilidades_2way(p_loc_raw, p_vis_raw, temp=1.05)
 
         prob_loc_book = american_to_prob(ml_loc) if (ml_loc not in (None, "N/D", "", "None")) else None
         if prob_loc_book is None:
@@ -214,41 +215,33 @@ def obtener_pick_para_mercado(p: dict, mercado_tipo: str) -> dict:
         ev_loc = (p_loc_cal * cuota_dec_loc) - 1.0
         ev_vis = (p_vis_cal * cuota_dec_vis) - 1.0
 
-        spread_det = p.get("spread_detalles", "Spread")
-
-        if ev_loc >= ev_vis:
+        # En Moneyline solo se califica al favorito con valor real (P >= 50%, edge >= 2.5%, EV > 0).
+        # Los underdogs (P < 50%) se juegan en Spread con puntos de ventaja.
+        # Si la línea está ajustada o ninguno tiene ventaja clara, mostrar Línea Eficiente con confianza NEUTRAL.
+        if p_loc_cal >= 0.50 and edge_loc >= 0.025 and ev_loc > 0:
             sel = f"{p.get('equipo_local')} ML"
             prob = p_loc_cal
             momio = ml_loc if ml_loc not in (None, "N/D", "") else formatear_decimal_a_americano(cuota_dec_loc)
             edge = edge_loc
             ev = ev_loc
-        else:
+            conf = "ALTA" if (edge >= 0.060 and ev >= 0.040 and prob >= 0.55) else "MEDIA"
+            det = f"Prob Calibrada: {prob*100:.1f}% vs Book: {prob_loc_book*100:.1f}% (Edge: {edge*100:+.1f}%, EV: +{ev*100:+.1f}%)"
+        elif p_vis_cal >= 0.50 and edge_vis >= 0.025 and ev_vis > 0:
             sel = f"{p.get('equipo_visita')} ML"
             prob = p_vis_cal
             momio = ml_vis if ml_vis not in (None, "N/D", "") else formatear_decimal_a_americano(cuota_dec_vis)
             edge = edge_vis
             ev = ev_vis
-
-        if edge >= 0.065 and ev >= 0.04:
-            if prob >= 0.55:
-                conf = "ALTA"
-                det = f"Prob Calibrada: {prob*100:.1f}% vs Book: {(prob - edge)*100:.1f}% (Edge: {edge*100:+.1f}%, EV: {ev*100:+.1f}%)"
-            elif prob >= 0.50:
-                conf = "MEDIA"
-                det = f"Prob Calibrada: {prob*100:.1f}% vs Book: {(prob - edge)*100:.1f}% (Edge: {edge*100:+.1f}%, EV: {ev*100:+.1f}%)"
-            else:
-                conf = "LONGSHOT"
-                det = f"🎯 Longshot (+EV {ev*100:+.1f}%). Probabilidad de victoria ({prob*100:.1f}%) debajo del 50%. Se sugiere preferir el Spread ({spread_det})."
-        elif edge >= 0.045 and ev >= 0.025:
-            if prob >= 0.50:
-                conf = "MEDIA"
-                det = f"Prob Calibrada: {prob*100:.1f}% vs Book: {(prob - edge)*100:.1f}% (Edge: {edge*100:+.1f}%, EV: {ev*100:+.1f}%)"
-            else:
-                conf = "LONGSHOT"
-                det = f"🎯 Longshot (+EV {ev*100:+.1f}%). Probabilidad de victoria ({prob*100:.1f}%) debajo del 50%. Se sugiere preferir el Spread ({spread_det})."
+            conf = "ALTA" if (edge >= 0.060 and ev >= 0.040 and prob >= 0.55) else "MEDIA"
+            det = f"Prob Calibrada: {prob*100:.1f}% vs Book: {prob_vis_book*100:.1f}% (Edge: {edge*100:+.1f}%, EV: +{ev*100:+.1f}%)"
         else:
+            sel = f"Línea Eficiente ({p.get('equipo_local')} vs {p.get('equipo_visita')})"
+            prob = max(p_loc_cal, p_vis_cal)
+            momio = "N/D"
+            edge = max(edge_loc, edge_vis)
+            ev = max(ev_loc, ev_vis)
             conf = "NEUTRAL"
-            det = f"Sin ventaja sobre la cuota ({edge*100:+.1f}% edge calibrado). Partido en Zona Muerta descartado."
+            det = f"Línea de mercado eficiente (Sin ventaja sobre la cuota). Descartado para proteger bankroll."
 
         return {
             "mercado": "Moneyline",

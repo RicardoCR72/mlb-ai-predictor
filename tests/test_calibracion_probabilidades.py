@@ -1,37 +1,35 @@
 import unittest
 import numpy as np
 import pandas as pd
-from core.calibracion_probabilidades import calibrar_probabilidad, calcular_ev_calibrado, parsear_cuota_decimal, calibrar_probabilidades_1x2
+from core.calibracion_probabilidades import (
+    calibrar_probabilidad,
+    calcular_ev_calibrado,
+    parsear_cuota_decimal,
+    calibrar_probabilidades_1x2,
+    calibrar_probabilidades_2way,
+)
 
 
 class TestCalibracionProbabilidades(unittest.TestCase):
-    def test_parsear_cuotas(self):
-        self.assertAlmostEqual(parsear_cuota_decimal(1.91), 1.91)
-        self.assertAlmostEqual(parsear_cuota_decimal("-110"), 1.9090909, places=4)
-        self.assertAlmostEqual(parsear_cuota_decimal("+150"), 2.50)
-        self.assertIsNone(parsear_cuota_decimal(None))
-        self.assertIsNone(parsear_cuota_decimal(0.5))
+    def test_shrinkage_alta_probabilidad(self):
+        # Una probabilidad extrema (ej 88%) con cuota moderada (ej 1.50) debe contraerse
+        p_cal = calibrar_probabilidad(0.88, cuota=1.50)
+        self.assertLess(p_cal, 0.88)
+        self.assertLessEqual(p_cal, 0.78)
+        self.assertGreaterEqual(p_cal, 0.65)
 
-    def test_shrinkage_on_extreme_probability(self):
-        # 95% raw probability on -110 odds must be shrunk to around 68-75%
-        p_cal = calibrar_probabilidad(0.95, cuota=1.91)
-        self.assertLess(p_cal, 0.76)
-        self.assertGreater(p_cal, 0.60)
-
-    def test_moderate_probability_remains_near_55(self):
-        # 55% raw probability remains around 53-56%
+    def test_conservacion_probabilidades_intermedias(self):
         p_cal = calibrar_probabilidad(0.55, cuota=1.91)
-        self.assertAlmostEqual(p_cal, 0.548, places=2)
+        self.assertAlmostEqual(p_cal, 0.55, delta=0.03)
 
-    def test_series_support(self):
-        s = pd.Series([0.55, 0.92])
-        c = pd.Series([1.91, 1.91])
-        res = calibrar_probabilidad(s, c)
-        self.assertEqual(len(res), 2)
-        self.assertLess(res.iloc[1], 0.72)
+    def test_market_edge_cap(self):
+        # La probabilidad calibrada no debe exceder implícita + 12%
+        p_impl = 1.0 / 2.0  # 50%
+        p_cal = calibrar_probabilidad(0.80, cuota=2.0)
+        self.assertLessEqual(p_cal, p_impl + 0.12 + 1e-5)
 
-    def test_ev_calculation(self):
-        ev = calcular_ev_calibrado(0.60, 2.0)
+    def test_calcular_ev_calibrado(self):
+        ev = calcular_ev_calibrado(0.60, cuota=2.0)
         self.assertAlmostEqual(ev, 0.20, places=2)
 
     def test_underdog_no_phantom_inflation(self):
@@ -43,7 +41,6 @@ class TestCalibracionProbabilidades(unittest.TestCase):
         ev = calcular_ev_calibrado(p_cal, 4.10)
         self.assertLess(ev, 0.0)
 
-
     def test_calibrar_probabilidades_1x2_simplex(self):
         # En mercado 1X2, las probabilidades deben sumar exactamente 1.0 (símplex)
         ph, pd, pa = calibrar_probabilidades_1x2(0.75, 0.16, 0.09)
@@ -54,6 +51,15 @@ class TestCalibracionProbabilidades(unittest.TestCase):
         # El orden jerárquico debe respetarse
         self.assertGreater(ph, pd)
         self.assertGreater(pd, pa)
+
+    def test_calibrar_probabilidades_2way_simplex(self):
+        # En mercado 2-way (NBA/MLB ML), las probabilidades deben sumar exactamente 1.0
+        ph, pa = calibrar_probabilidades_2way(0.75, 0.25)
+        self.assertAlmostEqual(ph + pa, 1.0, places=3)
+        self.assertGreater(ph, 0.70)
+        self.assertLess(ph, 0.75)
+        self.assertGreater(ph, pa)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -298,11 +298,13 @@ def predecir_partidos_hoy(force_refresh: bool = False, fecha: Optional[str] = No
         cuota_dec_away = float(j.get("moneyline_visita_dec") or 1.91)
         cuota_dec_std = 1.909  # -110
 
-        # Calibración Logística (Platt Scaling) de Moneyline
+        # Calibración Logística conjunta en el símplex 2-way (Moneyline)
+        from core.calibracion_probabilidades import calibrar_probabilidades_2way
         prob_ml_home_raw = res_spread["prob_local_win"]
         prob_ml_away_raw = res_spread["prob_visita_win"]
-        prob_ml_home_cal = float(calibrar_probabilidad(prob_ml_home_raw, cuota_dec_home))
-        prob_ml_away_cal = float(calibrar_probabilidad(prob_ml_away_raw, cuota_dec_away))
+        prob_ml_home_cal, prob_ml_away_cal = calibrar_probabilidades_2way(
+            prob_ml_home_raw, prob_ml_away_raw, temp=1.05
+        )
 
         edge_ml_home = prob_ml_home_cal - prob_ml_home_book
         edge_ml_away = prob_ml_away_cal - prob_ml_away_book
@@ -332,9 +334,10 @@ def predecir_partidos_hoy(force_refresh: bool = False, fecha: Optional[str] = No
                     "detalle": f"Proyección Calibrada: {res_tot['total_proyectado']} pts vs línea {linea_tot} (Edge: {edge_tot*100:+.1f}%, EV: {ev_tot*100:+.1f}%)"
                 })
 
-        # 2. Moneyline con valor real calibrado
-        if edge_ml_home >= 0.045 and ev_ml_home >= 0.025:
-            conf_h = "ALTA" if (edge_ml_home >= 0.065 and ev_ml_home >= 0.04 and prob_ml_home_cal >= 0.55) else ("MEDIA" if prob_ml_home_cal >= 0.50 else "LONGSHOT")
+        # 2. Moneyline con valor real calibrado (SOLO favoritos con P >= 50%)
+        # Un underdog (P < 50%) pertenece al mercado de Spread con ventaja de puntos, jamás a Moneyline directo.
+        if prob_ml_home_cal >= 0.50 and edge_ml_home >= 0.035 and ev_ml_home >= 0.020:
+            conf_h = "ALTA" if (edge_ml_home >= 0.060 and ev_ml_home >= 0.04 and prob_ml_home_cal >= 0.55) else "MEDIA"
             picks_candidatos.append({
                 "mercado": "Moneyline",
                 "seleccion": f"{j['equipo_local']} ML",
@@ -345,10 +348,10 @@ def predecir_partidos_hoy(force_refresh: bool = False, fecha: Optional[str] = No
                 "cuota": j.get("moneyline_local") or "-110",
                 "cuota_dec": cuota_dec_home,
                 "confianza": conf_h,
-                "detalle": f"Prob Calibrada: {prob_ml_home_cal*100:.1f}% vs Book: {prob_ml_home_book*100:.1f}% (EV: +{ev_ml_home*100:.1f}%)" if conf_h != "LONGSHOT" else f"🎯 Longshot (+EV {ev_ml_home*100:.1f}%). Probabilidad ({prob_ml_home_cal*100:.1f}%) menor al 50%. Se sugiere preferir el Spread."
+                "detalle": f"Prob Calibrada: {prob_ml_home_cal*100:.1f}% vs Book: {prob_ml_home_book*100:.1f}% (Edge: {edge_ml_home*100:+.1f}%, EV: +{ev_ml_home*100:.1f}%)"
             })
-        elif edge_ml_away >= 0.045 and ev_ml_away >= 0.025:
-            conf_a = "ALTA" if (edge_ml_away >= 0.065 and ev_ml_away >= 0.04 and prob_ml_away_cal >= 0.55) else ("MEDIA" if prob_ml_away_cal >= 0.50 else "LONGSHOT")
+        elif prob_ml_away_cal >= 0.50 and edge_ml_away >= 0.035 and ev_ml_away >= 0.020:
+            conf_a = "ALTA" if (edge_ml_away >= 0.060 and ev_ml_away >= 0.04 and prob_ml_away_cal >= 0.55) else "MEDIA"
             picks_candidatos.append({
                 "mercado": "Moneyline",
                 "seleccion": f"{j['equipo_visita']} ML",
@@ -359,7 +362,7 @@ def predecir_partidos_hoy(force_refresh: bool = False, fecha: Optional[str] = No
                 "cuota": j.get("moneyline_visita") or "-110",
                 "cuota_dec": cuota_dec_away,
                 "confianza": conf_a,
-                "detalle": f"Prob Calibrada: {prob_ml_away_cal*100:.1f}% vs Book: {prob_ml_away_book*100:.1f}% (EV: +{ev_ml_away*100:.1f}%)" if conf_a != "LONGSHOT" else f"🎯 Longshot (+EV {ev_ml_away*100:.1f}%). Probabilidad ({prob_ml_away_cal*100:.1f}%) menor al 50%. Se sugiere preferir el Spread."
+                "detalle": f"Prob Calibrada: {prob_ml_away_cal*100:.1f}% vs Book: {prob_ml_away_book*100:.1f}% (Edge: {edge_ml_away*100:+.1f}%, EV: +{ev_ml_away*100:.1f}%)"
             })
 
         # 3. Spread / Hándicap (Calibrado)

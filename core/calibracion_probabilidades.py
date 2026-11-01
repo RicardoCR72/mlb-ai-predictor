@@ -156,3 +156,20 @@ def calibrar_probabilidades_1x2(
     calibradas = exp_scaled / np.sum(exp_scaled)
     return round(float(calibradas[0]), 4), round(float(calibradas[1]), 4), round(float(calibradas[2]), 4)
 
+
+def calibrar_probabilidades_2way(
+    p_home: float,
+    p_away: float,
+    temp: float = 1.05,
+) -> tuple[float, float]:
+    """Calibra el par de probabilidades 2-way (Moneyline NBA/MLB/NFL) preservando la suma exacta al 100%.
+
+    Aplica Temperature Scaling sobre el logit binario sin romper la simetría ni penalizar
+    injustamente al favorito frente al underdog.
+    """
+    probs = np.array([max(p_home, 1e-4), max(p_away, 1e-4)], dtype=float)
+    probs /= np.sum(probs)
+    log_p = np.log(probs)
+    exp_scaled = np.exp(log_p / max(temp, 1.0))
+    calibradas = exp_scaled / np.sum(exp_scaled)
+    return round(float(calibradas[0]), 4), round(float(calibradas[1]), 4)
