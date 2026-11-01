@@ -191,20 +191,6 @@ def proyectar_partido_futbol(partido: Dict[str, Any]) -> Dict[str, Any]:
     p_btts_si = round(0.70 * p_btts_si_dc + 0.30 * media_btts, 4)
     p_btts_no = round(1.0 - p_btts_si, 4)
 
-    # Doble Oportunidad
-    p_1x = round(p_final_home + p_final_draw, 4)
-    p_x2 = round(p_final_away + p_final_draw, 4)
-
-    # Empate No Acción (Draw No Bet)
-    denom_dnb = max(p_final_home + p_final_away, 0.01)
-    p_dnb_home = round(p_final_home / denom_dnb, 4)
-    p_dnb_away = round(p_final_away / denom_dnb, 4)
-
-    # Marcador más probable
-    max_idx = np.unravel_index(np.argmax(grid), grid.shape)
-    marcador_esperado = f"{max_idx[0]} - {max_idx[1]}"
-    prob_marcador = round(float(grid[max_idx]), 3)
-
     cuota_dec_home = float(partido.get("ml_local_dec") or 1.91)
     cuota_dec_away = float(partido.get("ml_visita_dec") or 1.91)
     cuota_dec_draw = float(partido.get("ml_empate_dec") or 3.20)
@@ -218,6 +204,20 @@ def proyectar_partido_futbol(partido: Dict[str, Any]) -> Dict[str, Any]:
     )
     p_final_over_cal = float(calibrar_probabilidad(p_final_over, cuota_dec_over))
     p_final_under_cal = float(calibrar_probabilidad(p_final_under, cuota_dec_under))
+
+    # Doble Oportunidad calibrada
+    p_1x = round(p_final_home_cal + p_final_draw_cal, 4)
+    p_x2 = round(p_final_away_cal + p_final_draw_cal, 4)
+
+    # Empate No Acción (Draw No Bet)
+    denom_dnb = max(p_final_home_cal + p_final_away_cal, 0.01)
+    p_dnb_home = round(p_final_home_cal / denom_dnb, 4)
+    p_dnb_away = round(p_final_away_cal / denom_dnb, 4)
+
+    # Marcador más probable
+    max_idx = np.unravel_index(np.argmax(grid), grid.shape)
+    marcador_esperado = f"{max_idx[0]} - {max_idx[1]}"
+    prob_marcador = round(float(grid[max_idx]), 3)
 
     # Edges directos calibrados contra probabilidad implícita del bookmaker
     p_impl_home = 1.0 / cuota_dec_home if cuota_dec_home > 1.0 else p_raw_h
@@ -273,8 +273,8 @@ def proyectar_partido_futbol(partido: Dict[str, Any]) -> Dict[str, Any]:
             "detalle": f"xG Proyectado: {xg_total:.2f} goles vs línea {linea_tot:g} (Under Calibrado: {p_final_under_cal*100:.1f}%, EV: +{ev_under*100:.1f}%)",
         })
 
-    # Mercado Moneyline: Local (Favorito sólido con valor calibrado, prob >= 44%, edge >= +2.5%)
-    if p_final_home_cal >= 0.44 and edge_home >= 0.025 and ev_home >= 0.020:
+    # Mercado Moneyline: Mutuamente excluyente. Solo califica el equipo con favoritismo neto y convicción prob >= 48% con ventaja
+    if p_final_home_cal >= 0.48 and p_final_home_cal > (p_final_away_cal + 0.08) and edge_home >= 0.025 and ev_home >= 0.020:
         candidatos.append({
             "mercado": "Moneyline",
             "seleccion": f"{home_team} ML",
@@ -286,9 +286,7 @@ def proyectar_partido_futbol(partido: Dict[str, Any]) -> Dict[str, Any]:
             "confianza": "ALTA" if edge_home >= 0.055 and ev_home >= 0.040 and p_final_home_cal >= 0.52 else "MEDIA",
             "detalle": f"Ventaja local proyectada (Prob Calibrada: {p_final_home_cal*100:.1f}%, xG: {xg_local:.2f} vs {xg_visita:.2f}, EV: +{ev_home*100:.1f}%)",
         })
-
-    # Mercado Moneyline: Visita (Favorito visitante con valor calibrado, prob >= 44%, edge >= +2.5%)
-    if p_final_away_cal >= 0.44 and edge_away >= 0.025 and ev_away >= 0.020:
+    elif p_final_away_cal >= 0.48 and p_final_away_cal > (p_final_home_cal + 0.08) and edge_away >= 0.025 and ev_away >= 0.020:
         candidatos.append({
             "mercado": "Moneyline",
             "seleccion": f"{away_team} ML",
@@ -301,8 +299,43 @@ def proyectar_partido_futbol(partido: Dict[str, Any]) -> Dict[str, Any]:
             "detalle": f"Superioridad visitante proyectada (Prob Calibrada: {p_final_away_cal*100:.1f}%, xG: {xg_visita:.2f} vs {xg_local:.2f}, EV: +{ev_away*100:.1f}%)",
         })
 
+    # Mercado Doble Oportunidad (1X / X2): Absorbe el valor en partidos cerrados o underdogs sin arriesgar empate
+    cuota_dec_1x = round(1.0 / (1.0 / cuota_dec_home + 1.0 / cuota_dec_draw) * 1.05, 2) if cuota_dec_home > 1.0 and cuota_dec_draw > 1.0 else 1.35
+    p_1x_impl = 1.0 / cuota_dec_1x
+    edge_1x = round(p_1x - p_1x_impl, 4)
+    ev_1x = calcular_ev(p_1x, cuota_dec_1x)
+    if p_1x >= 0.65 and edge_1x >= 0.025 and ev_1x >= 0.020 and p_final_home_cal >= 0.38:
+        candidatos.append({
+            "mercado": "Doble Oportunidad (1X/X2)",
+            "seleccion": f"{home_team} o Empate (1X)",
+            "probabilidad": p_1x,
+            "edge": edge_1x,
+            "ev": ev_1x,
+            "cuota": f"{cuota_dec_1x:.2f}",
+            "cuota_dec": cuota_dec_1x,
+            "confianza": "ALTA" if p_1x >= 0.75 and edge_1x >= 0.05 else "MEDIA",
+            "detalle": f"Doble Oportunidad Local sólida (Prob 1X: {p_1x*100:.1f}%, EV: {ev_1x*100:+.1f}%)",
+        })
+
+    cuota_dec_x2 = round(1.0 / (1.0 / cuota_dec_away + 1.0 / cuota_dec_draw) * 1.05, 2) if cuota_dec_away > 1.0 and cuota_dec_draw > 1.0 else 1.35
+    p_x2_impl = 1.0 / cuota_dec_x2
+    edge_x2 = round(p_x2 - p_x2_impl, 4)
+    ev_x2 = calcular_ev(p_x2, cuota_dec_x2)
+    if p_x2 >= 0.65 and edge_x2 >= 0.025 and ev_x2 >= 0.020 and p_final_away_cal >= 0.38:
+        candidatos.append({
+            "mercado": "Doble Oportunidad (1X/X2)",
+            "seleccion": f"Empate o {away_team} (X2)",
+            "probabilidad": p_x2,
+            "edge": edge_x2,
+            "ev": ev_x2,
+            "cuota": f"{cuota_dec_x2:.2f}",
+            "cuota_dec": cuota_dec_x2,
+            "confianza": "ALTA" if p_x2 >= 0.75 and edge_x2 >= 0.05 else "MEDIA",
+            "detalle": f"Doble Oportunidad Visitante sólida (Prob X2: {p_x2*100:.1f}%, EV: {ev_x2*100:+.1f}%)",
+        })
+
     # Mercado Moneyline: Empate de alto valor
-    if p_final_draw_cal >= 0.28 and edge_draw >= 0.045 and ev_draw >= 0.040:
+    if p_final_draw_cal >= 0.30 and edge_draw >= 0.050 and ev_draw >= 0.040:
         candidatos.append({
             "mercado": "Moneyline",
             "seleccion": "Empate (X)",

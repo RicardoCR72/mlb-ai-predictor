@@ -63,7 +63,7 @@ CREATE TABLE IF NOT EXISTS nba_registro_picks (
     resultado VARCHAR(16) DEFAULT 'PENDIENTE',
     unidades_ganadas DOUBLE DEFAULT NULL,
     actualizado_en DATETIME NOT NULL,
-    UNIQUE KEY uq_nba_pick (id_juego, mercado, seleccion)
+    UNIQUE KEY uq_nba_pick (id_juego, mercado)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 """
 
@@ -335,11 +335,11 @@ def guardar_predicciones_nba(predicciones: List[Dict[str, Any]]) -> None:
 
         if not df_nuevas_filtradas.empty:
             df_total = pd.concat([df_existente, df_nuevas_filtradas], ignore_index=True)
-            df_total = df_total.drop_duplicates(subset=["id_juego", "mercado", "seleccion"], keep="last")
+            df_total = df_total.drop_duplicates(subset=["id_juego", "mercado"], keep="last")
         else:
             df_total = df_existente
     else:
-        df_total = df_nuevas.drop_duplicates(subset=["id_juego", "mercado", "seleccion"], keep="first")
+        df_total = df_nuevas.drop_duplicates(subset=["id_juego", "mercado"], keep="last")
 
     if "fecha" in df_total.columns:
         df_total["fecha"] = df_total["fecha"].astype(str)
@@ -548,7 +548,7 @@ def liquidar_partidos_pendientes_nba() -> dict[str, Any]:
                     df_db["fecha"] = df_db["fecha"].astype(str)
                 if "actualizado_en" in df_db.columns:
                     df_db["actualizado_en"] = pd.to_datetime(df_db["actualizado_en"], errors="coerce")
-                df = pd.concat([df, df_db], ignore_index=True).drop_duplicates(subset=["id_juego", "mercado", "seleccion"], keep="last")
+                df = pd.concat([df, df_db], ignore_index=True).drop_duplicates(subset=["id_juego", "mercado"], keep="last")
     except Exception:
         pass
 
@@ -653,7 +653,7 @@ def liquidar_partidos_pendientes_nba() -> dict[str, Any]:
                 liquidados_indices.append(idx)
 
     if liquidados_count > 0:
-        df = df.drop_duplicates(subset=["id_juego", "mercado", "seleccion"], keep="last")
+        df = df.drop_duplicates(subset=["id_juego", "mercado"], keep="last")
         if "fecha" in df.columns:
             df["fecha"] = df["fecha"].astype(str)
         if "actualizado_en" in df.columns:

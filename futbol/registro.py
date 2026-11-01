@@ -58,7 +58,7 @@ CREATE TABLE IF NOT EXISTS futbol_registro_picks (
     resultado VARCHAR(16) DEFAULT 'PENDIENTE',
     unidades_ganadas DOUBLE DEFAULT NULL,
     actualizado_en DATETIME NOT NULL,
-    UNIQUE KEY uq_futbol_pick (id_juego, mercado, seleccion)
+    UNIQUE KEY uq_futbol_pick (id_juego, mercado)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 """
 
@@ -225,10 +225,12 @@ def guardar_picks_en_historial(nuevos: List[Dict[str, Any]]) -> None:
     else:
         df_total = df_nuevos
 
-    # Deduplicar por id_juego, mercado y selección
-    cols_dedup = [c for c in ["id_juego", "mercado", "seleccion"] if c in df_total.columns]
+    # Deduplicar estrictamente por id_juego y mercado (un solo pick por mercado por partido)
+    cols_dedup = [c for c in ["id_juego", "mercado"] if c in df_total.columns]
     if cols_dedup:
         df_total = df_total.drop_duplicates(subset=cols_dedup, keep="last")
+    if all(c in df_total.columns for c in ["fecha", "equipo_local", "equipo_visitante", "mercado"]):
+        df_total = df_total.drop_duplicates(subset=["fecha", "equipo_local", "equipo_visitante", "mercado"], keep="last")
 
     # Guardar en local
     try:
@@ -251,6 +253,12 @@ def guardar_picks_en_historial(nuevos: List[Dict[str, Any]]) -> None:
                 resultado, unidades_ganadas, actualizado_en
             ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             ON DUPLICATE KEY UPDATE
+                seleccion = VALUES(seleccion),
+                linea = VALUES(linea),
+                cuota = VALUES(cuota),
+                probabilidad = VALUES(probabilidad),
+                edge = VALUES(edge),
+                confianza = VALUES(confianza),
                 marcador_local = VALUES(marcador_local),
                 marcador_visitante = VALUES(marcador_visitante),
                 resultado = VALUES(resultado),
@@ -717,6 +725,7 @@ def render_historial_futbol(mercado_activo: str):
         l_nom = g_df["liga_nombre"].iloc[0] if "liga_nombre" in g_df.columns else "Fútbol"
         l_band = g_df["liga_bandera"].iloc[0] if "liga_bandera" in g_df.columns else "⚽"
 
+        picks_unicos = g_df.drop_duplicates(subset=["mercado"], keep="last")
         partidos_grupos.append({
             "fecha": f_val,
             "hora_cdmx": h_cdmx,
@@ -726,8 +735,8 @@ def render_historial_futbol(mercado_activo: str):
             "equipo_local": el_val,
             "marcador_visitante": mv,
             "marcador_local": ml,
-            "picks": g_df.to_dict(orient="records"),
-            "unidades_totales": float(pd.to_numeric(g_df["unidades_ganadas"], errors="coerce").fillna(0.0).sum()),
+            "picks": picks_unicos.to_dict(orient="records"),
+            "unidades_totales": float(pd.to_numeric(picks_unicos["unidades_ganadas"], errors="coerce").fillna(0.0).sum()),
         })
 
     total_partidos = len(partidos_grupos)
