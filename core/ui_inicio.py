@@ -85,7 +85,7 @@ def render_home():
                 '<div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:0.5rem; margin-bottom:0.4rem;">'
                 '<div>'
                 '<span class="perf-tag-badge">AUDITORÍA Y VALIDACIÓN</span>'
-                '<h3 style="margin:0.35rem 0 0.15rem; font-size:1.25rem; font-weight:900; color:#ffffff;">📊 Rendimiento del Oráculo</h3>'
+                '<h3 style="margin:0.35rem 0 0.15rem; font-size:1.25rem; font-weight:900; color:#ffffff;">📊 Rendimiento de OVERDOG AI</h3>'
                 '<p style="margin:0; font-size:0.84rem; color:#94a3b8;">Evolución de bankroll, comparación de mercados, ROI verificado y validación estadística de todos los modelos.</p>'
                 '</div>'
                 '</div>',

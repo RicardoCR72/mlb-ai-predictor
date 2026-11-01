@@ -311,7 +311,7 @@ def render_top_picks_section():
                 f'</div>'
                 f'<div style="display:flex; justify-content:space-between; align-items:flex-end; margin:0.4rem 0 0.1rem;">'
                 f'<div>'
-                f'<div style="font-size:0.68rem; color:#8fa0b5; font-weight:700;">PROBABILIDAD ORÁCULO</div>'
+                f'<div style="font-size:0.68rem; color:#8fa0b5; font-weight:700;">PROBABILIDAD OVERDOG</div>'
                 f'<div class="top-pick-prob" style="color:{p["color"]};">{p["probabilidad"]*100:.1f}%</div>'
                 f'</div>'
                 f'<div style="display:flex; align-items:center;">'

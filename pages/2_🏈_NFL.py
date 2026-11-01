@@ -6,7 +6,7 @@ from pathlib import Path
 import streamlit as st
 
 st.set_page_config(
-    page_title="NFL Oráculo AI",
+    page_title="NFL · OVERDOG AI",
     page_icon="🏈",
     layout="wide",
 )
@@ -29,7 +29,7 @@ st.markdown(
     '<div class="nfl-brand">'
     '<span class="nfl-logo">🏈</span>'
     '<div>'
-    '<div>ORÁCULO <span class="nfl-accent">NFL AI V2</span></div>'
+    '<div>OVERDOG <span class="nfl-accent">NFL AI V2</span></div>'
     '<div class="nfl-status">Ensamble EPA + LightGBM + LR Calibrado · Filtro de Zona Muerta · nflverse Data Pipeline</div>'
     '</div>'
     '</div>'

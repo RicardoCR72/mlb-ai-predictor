@@ -1,5 +1,5 @@
 import streamlit as st
-st.set_page_config(page_title='Calibración de confianza', page_icon='📐', layout='wide')
+st.set_page_config(page_title='Calibración · OVERDOG AI', page_icon='🎯', layout='wide')
 from core.ui_navegacion_movil import install_navigation
 install_navigation()
 from core.ui_diseno import apply_design

@@ -239,7 +239,7 @@ def modern_sport_card_html(pick, *, market, state='', details=()):
     pick_box_html = (
         f'<div class="pick-box">'
         f'<div style="min-width: 0; flex: 1;">'
-        f'<div class="pick-title">Recomendación Oficial del Oráculo AI ({safe(market)})</div>'
+        f'<div class="pick-title">Recomendación Oficial OVERDOG AI ({safe(market)})</div>'
         f'<div class="pick-sel">{safe(pick.get("seleccion", ""))}</div>'
         f'<div style="font-size: 0.8rem; color: #8295b3; margin-top: 0.2rem;">Cuota: <b>{odds_text}</b> · Prob. Modelo: <b>{prob_pct:.1f}%</b></div>'
         f'</div>'

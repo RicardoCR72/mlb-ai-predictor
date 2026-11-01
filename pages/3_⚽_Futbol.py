@@ -21,7 +21,7 @@ import numpy as np
 import streamlit as st
 
 st.set_page_config(
-    page_title="Fútbol Oráculo AI · Ligas Mundiales",
+    page_title="Fútbol · OVERDOG AI",
     page_icon="⚽",
     layout="wide",
 )
@@ -593,7 +593,7 @@ def render_cartelera_futbol(predicciones: list[dict], mercado_activo: str):
                     prob_hit = float(pick_data.get("probabilidad", 0.5)) * 100
                     res_box_html = (
                         f'<div style="text-align: right;">'
-                        f'<div style="font-size: 0.72rem; color: #8ba797; font-weight: 700;">PROBABILIDAD ORÁCULO</div>'
+                        f'<div style="font-size: 0.72rem; color: #8ba797; font-weight: 700;">PROBABILIDAD OVERDOG</div>'
                         f'<div style="font-size: 1.25rem; font-weight: 900; color: #94a3b8;">{prob_hit:.1f}%</div>'
                         f'</div>'
                     )
@@ -624,7 +624,7 @@ def render_cartelera_futbol(predicciones: list[dict], mercado_activo: str):
                     prob_hit = float(pick_data.get("probabilidad", 0.5)) * 100
                     res_box_html = (
                         f'<div style="text-align: right;">'
-                        f'<div style="font-size: 0.72rem; color: #8ba797; font-weight: 700;">PROBABILIDAD ORÁCULO</div>'
+                        f'<div style="font-size: 0.72rem; color: #8ba797; font-weight: 700;">PROBABILIDAD OVERDOG</div>'
                         f'<div style="font-size: 1.25rem; font-weight: 900; color: #00e676;">{prob_hit:.1f}%</div>'
                         f'</div>'
                     )
@@ -632,7 +632,7 @@ def render_cartelera_futbol(predicciones: list[dict], mercado_activo: str):
                 prob_hit = float(pick_data.get("probabilidad", 0.5)) * 100
                 res_box_html = (
                     f'<div style="text-align: right;">'
-                    f'<div style="font-size: 0.72rem; color: #8ba797; font-weight: 700;">PROBABILIDAD ORÁCULO</div>'
+                    f'<div style="font-size: 0.72rem; color: #8ba797; font-weight: 700;">PROBABILIDAD OVERDOG</div>'
                     f'<div style="font-size: 1.25rem; font-weight: 900; color: #00e676;">{prob_hit:.1f}%</div>'
                     f'</div>'
                 )
@@ -727,7 +727,7 @@ st.markdown(
 <div class="futbol-brand">
 <span class="futbol-logo">⚽</span>
 <div>
-<div style="font-size: 1.05rem; font-weight: 900; color: #ffffff;">ORÁCULO <span class="futbol-accent">FÚTBOL AI V2</span></div>
+<div style="font-size: 1.05rem; font-weight: 900; color: #ffffff;">OVERDOG <span class="futbol-accent">FÚTBOL AI V2</span></div>
 <div class="futbol-status">8 Ligas Mundiales · Cuotas DraftKings · Modelo Dixon-Coles Bivariado Calibrado</div>
 </div>
 </div>

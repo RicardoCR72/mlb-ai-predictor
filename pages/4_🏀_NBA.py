@@ -21,7 +21,7 @@ import streamlit as st
 logger = logging.getLogger(__name__)
 
 st.set_page_config(
-    page_title="NBA Oráculo AI · Pronósticos y Rendimiento",
+    page_title="NBA · OVERDOG AI",
     page_icon="🏀",
     layout="wide",
 )
@@ -950,7 +950,7 @@ st.markdown(
 <div class="nba-brand">
 <span class="nba-logo">🏀</span>
 <div>
-<div style="font-size: 1.05rem; font-weight: 900; color: #ffffff;">ORÁCULO <span class="nba-accent">NBA AI V2</span></div>
+<div style="font-size: 1.05rem; font-weight: 900; color: #ffffff;">OVERDOG <span class="nba-accent">NBA AI V2</span></div>
 <div class="nba-status">DraftKings Odds · Ensamble Ridge-GradientBoosting · Shrinkage Bayesiano y Calibración Logística</div>
 </div>
 </div>

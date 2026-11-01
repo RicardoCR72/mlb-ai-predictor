@@ -68,7 +68,7 @@ def render_sidebar_panel():
             <span class="sidebar-sport-tag">⚽ Fútbol (8 Ligas)</span>
             <span class="sidebar-sport-tag">🏀 NBA</span>
           </div>
-          <div class="sidebar-footer-caption">ORÁCULO SPORTS AI · v2.5 PRO</div>
+          <div class="sidebar-footer-caption">OVERDOG SPORTS AI · v2.5 PRO</div>
         </div>""",
         unsafe_allow_html=True,
     )

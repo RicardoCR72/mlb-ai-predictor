@@ -38,7 +38,7 @@ def render():
         '<div class="calib-brand">'
         '<span class="calib-logo">📐</span>'
         '<div>'
-        '<div>ORÁCULO <span class="calib-accent">CALIBRACIÓN AI</span></div>'
+        '<div>OVERDOG <span class="calib-accent">CALIBRACIÓN AI</span></div>'
         '<div class="calib-status">Reliability Deciles · Brier Score & Log-Loss · Diagnóstico Probabilístico</div>'
         '</div>'
         '</div>'

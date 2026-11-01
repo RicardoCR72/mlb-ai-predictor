@@ -23,3 +23,4 @@ def test_page_renders_without_errors(page_file):
     app = AppTest.from_file(page_file, default_timeout=30)
     app.run()
     assert not app.exception, f"Exception occurred while rendering {page_file}: {app.exception}"
+

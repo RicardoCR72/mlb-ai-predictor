@@ -7,7 +7,7 @@ import pandas as pd
 import streamlit as st
 
 st.set_page_config(
-    page_title="MLB Oráculo AI",
+    page_title="MLB · OVERDOG AI",
     page_icon="⚾",
     layout="wide",
 )
@@ -32,7 +32,7 @@ st.markdown(
     '<div class="mlb-brand">'
     '<span class="mlb-logo">⚾</span>'
     '<div>'
-    '<div>ORÁCULO <span class="mlb-accent">MLB AI V5</span></div>'
+    '<div>OVERDOG <span class="mlb-accent">MLB AI V5</span></div>'
     '<div class="mlb-status">Ensamble V5 (LightGBM + DNN) · Sabermetría FIP/xFIP/K-BB% · Calibración & Filtro Zona Muerta</div>'
     '</div>'
     '</div>'

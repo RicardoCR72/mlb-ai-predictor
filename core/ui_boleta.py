@@ -160,11 +160,11 @@ def render_widget_boleta(sidebar: bool = False) -> None:
                 st.rerun()
         with b_act2:
             resumen_texto = "\\n".join([f"• [{p.get('deporte')}] {p.get('partido')}: {p.get('seleccion')} ({p.get('momio')})" for p in boleta])
-            resumen_completo = f"🎟️ MI SELECCIÓN ORÁCULO AI ({parlay_amer}):\\n{resumen_texto}\\nCuota Total: {parlay_dec:.2f}x"
+            resumen_completo = f"🎟️ MI SELECCIÓN OVERDOG AI ({parlay_amer}):\\n{resumen_texto}\\nCuota Total: {parlay_dec:.2f}x"
             st.download_button(
                 "📋 Descargar Boleta",
                 resumen_completo,
-                file_name="boleta_oraculo.txt",
+                file_name="boleta_overdog.txt",
                 mime="text/plain",
                 key=f"dl_slip_{sidebar}",
                 use_container_width=True,

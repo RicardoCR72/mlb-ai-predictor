@@ -1,7 +1,7 @@
 import streamlit as st
 from pathlib import Path
 
-st.set_page_config(page_title='Rendimiento', page_icon='📊', layout='wide')
+st.set_page_config(page_title='Rendimiento · OVERDOG AI', page_icon='📊', layout='wide')
 from core.ui_navegacion_movil import install_navigation
 install_navigation()
 from core.ui_diseno import apply_design
