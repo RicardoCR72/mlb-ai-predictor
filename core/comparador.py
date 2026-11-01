@@ -45,6 +45,10 @@ def normalize(frame,*,sport,market,identity,american=False,verified=False):
         np.where(out['resultado'].eq('GANADA') & valid,out['cuota']-1,np.nan)))
     out['identidad']=out[identity].astype(str).agg('|'.join,axis=1)
     out=out.drop_duplicates(['modelo','identidad'],keep='first')
+    if 'linea' in out:
+        out['linea'] = pd.to_numeric(out['linea'], errors='coerce')
+    if 'linea_total' in out:
+        out['linea_total'] = pd.to_numeric(out['linea_total'], errors='coerce')
     details=['seleccion','linea','linea_total','equipo_local','equipo_visitante','start_utc','publicada_utc','quote_utc','captured_utc','jugador','candidato','valor_real','total_real','marcador_local','marcador_visitante','home_runs','away_runs','tipo_prop','motivo_devolucion']
     return out.reindex(columns=COLUMNS+[c for c in details if c in out and c not in COLUMNS])
 

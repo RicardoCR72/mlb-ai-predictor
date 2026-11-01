@@ -145,6 +145,18 @@ def _normalizar_df_historial(df: pd.DataFrame) -> pd.DataFrame:
         df["cuota"] = df["pick_cuota"]
     if "pick_probabilidad" not in df.columns and "probabilidad" in df.columns:
         df["pick_probabilidad"] = df["probabilidad"]
+    if "linea" in df.columns:
+        df["linea"] = pd.to_numeric(df["linea"], errors="coerce").fillna(2.5)
+    if "cuota" in df.columns:
+        df["cuota"] = pd.to_numeric(df["cuota"], errors="coerce").fillna(1.85)
+    if "probabilidad" in df.columns:
+        df["probabilidad"] = pd.to_numeric(df["probabilidad"], errors="coerce").fillna(0.50)
+    if "edge" in df.columns:
+        df["edge"] = pd.to_numeric(df["edge"], errors="coerce").fillna(0.0)
+    if "marcador_local" in df.columns:
+        df["marcador_local"] = pd.to_numeric(df["marcador_local"], errors="coerce")
+    if "marcador_visitante" in df.columns:
+        df["marcador_visitante"] = pd.to_numeric(df["marcador_visitante"], errors="coerce")
     return df
 
 
