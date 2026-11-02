@@ -68,6 +68,14 @@ def read_legacy_models(conn):
           AND 1=(SELECT COUNT(*) FROM juegos j2 WHERE DATE(j2.fecha)=DATE(r.fecha)
             AND j2.equipo_local=r.equipo_local AND j2.equipo_visitante=r.equipo_visitante)
         ORDER BY r.fecha DESC'''),
+        ('NFL Moneyline','NFL','Moneyline',True,['id_juego'],'''
+        SELECT STR_TO_DATE(fecha_cdmx, '%Y-%m-%d') AS fecha, 2026 AS temporada, id_juego,
+               modelo_version AS modelo, probabilidad_pick AS probabilidad, cuota_pick AS cuota,
+               resultado_pick AS resultado, seleccion, equipo_local, equipo_visita AS equipo_visitante,
+               marcador_local, marcador_visita AS marcador_visitante
+        FROM nfl_predicciones_moneyline
+        WHERE confianza IN ('ALTA', 'MEDIA')
+        ORDER BY actualizado_en DESC, id_prediccion DESC'''),
         ('NFL Totales','NFL','Totales',True,['id_juego'],'''
         SELECT j.fecha,j.temporada,p.id_juego,p.modelo_version AS modelo,p.probabilidad_pick/100 AS probabilidad,
           p.cuota_pick AS cuota,p.resultado_pick AS resultado,p.seleccion,p.linea_total,p.total_real,j.equipo_local,j.equipo_visitante,j.marcador_local,j.marcador_visitante
