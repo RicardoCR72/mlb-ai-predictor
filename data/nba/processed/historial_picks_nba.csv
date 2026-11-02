@@ -1,9 +1,9 @@
 id,id_juego,fecha,hora_cdmx,equipo_local,equipo_visitante,mercado,seleccion,linea,cuota,probabilidad,edge,confianza,marcador_local,marcador_visitante,resultado,unidades_ganadas,actualizado_en
 6431,401909903_spread,2026-11-01,14:30,Orlando Magic,Boston Celtics,Spread,Orlando Magic +7.5,7.5,1.909,0.569,0.045,MEDIA,97.0,108.0,PERDIDA,-1.0,2026-11-01 19:21:33
 6409,401909904_tot,2026-11-01,16:00,Indiana Pacers,Brooklyn Nets,Totales (UNDER),UNDER 231.5,231.5,1.909,0.563,0.04,MEDIA,,,PENDIENTE,,2026-11-01 12:18:02
-6367,401909904_tot,2026-11-01,16:00,Indiana Pacers,Brooklyn Nets,Totales (UNDER),UNDER 230.5,230.5,1.909,0.559,0.035,MEDIA,12.0,14.0,PENDIENTE,,2026-11-01 19:49:41
-6366,401909904_ml,2026-11-01,16:00,Indiana Pacers,Brooklyn Nets,Moneyline,Indiana Pacers ML,0.0,1.571,0.709,0.072,ALTA,12.0,14.0,PENDIENTE,,2026-11-01 19:49:41
-6365,401909903_spread,2026-11-01,14:30,Orlando Magic,Boston Celtics,Spread,Orlando Magic +6.5,6.5,1.909,0.565,0.041,MEDIA,74.0,74.0,GANADA,0.909,2026-11-01 19:49:41
+6367,401909904_tot,2026-11-01,16:00,Indiana Pacers,Brooklyn Nets,Totales (UNDER),UNDER 230.5,230.5,1.909,0.559,0.035,MEDIA,12.0,14.0,PENDIENTE,,2026-11-01 22:56:01
+6366,401909904_ml,2026-11-01,16:00,Indiana Pacers,Brooklyn Nets,Moneyline,Indiana Pacers ML,0.0,1.571,0.709,0.072,ALTA,12.0,14.0,PENDIENTE,,2026-11-01 22:56:01
+6365,401909903_spread,2026-11-01,14:30,Orlando Magic,Boston Celtics,Spread,Orlando Magic +6.5,6.5,1.909,0.565,0.041,MEDIA,74.0,74.0,GANADA,0.909,2026-11-01 22:56:01
 6341,401909899_tot,2026-10-31,18:00,Memphis Grizzlies,Sacramento Kings,Totales (UNDER),UNDER 230.5,230.5,1.909,0.55,0.026,MEDIA,136.0,105.0,PERDIDA,-1.0,2026-10-31 21:57:07
 6338,401909898_ml,2026-10-31,17:00,New Orleans Pelicans,Atlanta Hawks,Moneyline,Atlanta Hawks ML,0.0,1.541,0.724,0.102,ALTA,121.0,99.0,PERDIDA,-1.0,2026-10-31 21:57:07
 6336,401909897_ml,2026-10-31,16:00,Charlotte Hornets,Philadelphia 76ers,Moneyline,Philadelphia 76ers ML,0.0,1.893,0.588,0.084,ALTA,104.0,109.0,GANADA,0.893,2026-10-31 21:57:07

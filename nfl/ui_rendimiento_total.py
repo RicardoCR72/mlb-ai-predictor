@@ -349,3 +349,4 @@ def render():
         file_name=f"rendimiento_total_nfl_{periodo.lower().replace(' ', '_')}.csv",
         mime="text/csv",
     )
+

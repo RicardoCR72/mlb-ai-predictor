@@ -27,4 +27,6 @@ modelos_nfl/*.json
 *.tmp
 data/cache/
 data/nba/cache/
-scratch/
+scratch/
+*.mp4
+*.mp3
