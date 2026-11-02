@@ -63,8 +63,12 @@ def render_comparison(show_title=True):
         state_message('Aún no hay picks guardados disponibles para comparar.');return
     names=model_names(frame)
     frame=label_models(frame,names)
-    sport=safe_select('Deporte',['Todos']+sorted(frame.deporte.unique()),key='comparison_sport')
-    if sport!='Todos':frame=frame[frame.deporte.eq(sport)]
+    sport_options = ['Todos', 'Todos (excepto NBA)'] + sorted(frame.deporte.unique())
+    sport = safe_select('Deporte', sport_options, key='comparison_sport')
+    if sport == 'Todos (excepto NBA)':
+        frame = frame[frame.deporte.ne('NBA')]
+    elif sport != 'Todos':
+        frame = frame[frame.deporte.eq(sport)]
     frame=performance_filters(frame,'fecha','comparison',season_col='Temporada',probability_col='probabilidad',probability_scale=100,
         market_col='mercado',result_col='resultado',provenance_col='procedencia',expanded=True,
         extra_keys={'sport':'comparison_sport','minimum':'comparison_minimum'})

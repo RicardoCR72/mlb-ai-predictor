@@ -4,7 +4,7 @@ import streamlit as st
 from core import preferencias
 from core.ui_controles import state_message
 
-SUFFIXES=('period','start','end','season','confidence','market','result','week','provenance','order')
+SUFFIXES=('period','start','end','season','confidence','market','exclude_market','result','week','provenance','order')
 
 
 def managed(key,extra):return {suffix:key+'_'+suffix for suffix in SUFFIXES}|(extra or {})

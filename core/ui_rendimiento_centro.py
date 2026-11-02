@@ -74,8 +74,13 @@ def render_overview():
         mapping={str(r.id_juego):f'{r.temporada} · NFL {int(r.semana):02}' for r in games.itertuples() if pd.notna(r.semana)}
         frame['semana_nfl']=[mapping.get(str(r.identidad).split('|')[0]) if r.deporte=='NFL' else None for r in frame.itertuples()]
     cols=st.columns(2)
-    with cols[0]:sport=safe_select('Deporte',['Todos']+sorted(frame.deporte.unique()),key='center_sport')
-    if sport!='Todos':frame=frame[frame.deporte.eq(sport)]
+    with cols[0]:
+        sport_options = ['Todos', 'Todos (excepto NBA)'] + sorted(frame.deporte.unique())
+        sport = safe_select('Deporte', sport_options, key='center_sport')
+    if sport == 'Todos (excepto NBA)':
+        frame = frame[frame.deporte.ne('NBA')]
+    elif sport != 'Todos':
+        frame = frame[frame.deporte.eq(sport)]
     with cols[1]:model=safe_select('Modelo',['Todos']+sorted(frame.modelo_visible.unique()),key='center_model')
     if model!='Todos':frame=frame[frame.modelo_visible.eq(model)]
     frame=frame[frame.resultado.isin(['GANADA','PERDIDA','PUSH'])].copy()

@@ -11,7 +11,8 @@ PERIODS = ['Todo el historial','Hoy','Últimos 7 días','Este mes','Temporada','
 
 def filter_frame(frame, date_col, *, period='Todo el historial', today=None, start=None, end=None,
                  season_col=None, season=None, probability_col=None, probability_scale=1, minimum=0,
-                 market_col=None, market=None, result_col=None, result=None, week_col=None, week=None, provenance_col=None, provenance=None):
+                 market_col=None, market=None, exclude_market=None, result_col=None, result=None,
+                 week_col=None, week=None, provenance_col=None, provenance=None):
     result_frame = frame.copy()
     today = today or datetime.now(ZoneInfo('America/Mexico_City')).date()
     if period in ('Hoy','Últimos 7 días','Este mes','Rango personalizado'):
@@ -31,8 +32,30 @@ def filter_frame(frame, date_col, *, period='Todo el historial', today=None, sta
     if minimum > 0 and probability_col:
         p = pd.to_numeric(result_frame[probability_col], errors='coerce') * probability_scale
         result_frame = result_frame[p.ge(minimum) & p.le(100)]
-    for col, value in ((market_col,market),(result_col,result),(week_col,week),(provenance_col,provenance)):
-        if col and value is not None: result_frame = result_frame[result_frame[col].astype(str).eq(str(value))]
+    
+    # Inclusión de mercado(s) (soporta selección individual o múltiple agrupada)
+    if market_col and market is not None:
+        if isinstance(market, (list, tuple, set)):
+            if len(market) > 0:
+                result_frame = result_frame[result_frame[market_col].astype(str).isin([str(v) for v in market])]
+        else:
+            result_frame = result_frame[result_frame[market_col].astype(str).eq(str(market))]
+
+    # Exclusión de mercado(s) (ej: descartar yardas terrestres)
+    if market_col and exclude_market is not None:
+        if isinstance(exclude_market, (list, tuple, set)):
+            if len(exclude_market) > 0:
+                result_frame = result_frame[~result_frame[market_col].astype(str).isin([str(v) for v in exclude_market])]
+        else:
+            result_frame = result_frame[~result_frame[market_col].astype(str).eq(str(exclude_market))]
+
+    for col, value in ((result_col,result),(week_col,week),(provenance_col,provenance)):
+        if col and value is not None:
+            if isinstance(value, (list, tuple, set)):
+                if len(value) > 0:
+                    result_frame = result_frame[result_frame[col].astype(str).isin([str(v) for v in value])]
+            else:
+                result_frame = result_frame[result_frame[col].astype(str).eq(str(value))]
     return result_frame
 
 
@@ -73,22 +96,83 @@ def performance_filters(frame, date_col, key, *, season_col=None, probability_co
                 format_func=lambda value: value if value=='Todas' else f'Semana {float(value):g}')
             week = None if choice=='Todas' else choice
         selected = {}
-        for kind,col,label in [('market',market_col,'Mercado'),('result',result_col,'Resultado'),('provenance',provenance_col,'Procedencia')]:
+        for kind,col,label in [('result',result_col,'Resultado'),('provenance',provenance_col,'Procedencia')]:
             if col and col in frame:
                 values = sorted(frame[col].dropna().astype(str).unique())
                 choice = safe_select(label,['Todos']+values,key=key+'_'+kind,
                     **({'help':'Indica si el registro se verificó antes del partido, conserva una hora no comprobable o fue reconstruido.'} if kind=='provenance' else {}))
                 selected[kind] = None if choice=='Todos' else choice
+
+        if market_col and market_col in frame:
+            market_values = sorted(frame[market_col].dropna().astype(str).unique())
+            m_key = key + '_market'
+            current_val = st.session_state.get(m_key)
+            if isinstance(current_val, str):
+                if current_val == 'Todos' or current_val not in market_values:
+                    st.session_state[m_key] = []
+                else:
+                    st.session_state[m_key] = [current_val]
+            elif isinstance(current_val, (list, tuple)):
+                valid_vals = [v for v in current_val if v in market_values]
+                if len(valid_vals) != len(current_val):
+                    st.session_state[m_key] = valid_vals
+            elif current_val is not None:
+                st.session_state[m_key] = []
+
+            m_col1, m_col2 = st.columns(2)
+            with m_col1:
+                market_choice = st.multiselect(
+                    'Mercados a incluir (combina varios)',
+                    options=market_values,
+                    key=m_key,
+                    placeholder='Todos los mercados (o elige varios)...',
+                    help='Selecciona uno o varios mercados para analizarlos en conjunto. Si lo dejas vacío, se incluyen todos.'
+                )
+                selected['market'] = market_choice if market_choice else None
+
+            with m_col2:
+                ex_key = key + '_exclude_market'
+                ex_current = st.session_state.get(ex_key)
+                if not isinstance(ex_current, list):
+                    st.session_state[ex_key] = []
+                else:
+                    valid_ex = [v for v in ex_current if v in market_values]
+                    if len(valid_ex) != len(ex_current):
+                        st.session_state[ex_key] = valid_ex
+
+                exclude_choice = st.multiselect(
+                    '🚫 Excluir mercados específicos',
+                    options=market_values,
+                    key=ex_key,
+                    placeholder='Ninguno excluido (ej. Yardas terrestres)...',
+                    help='Descarta mercados concretos del cálculo del ROI y acierto.'
+                )
+                selected['exclude_market'] = exclude_choice if exclude_choice else None
+
     filtered = filter_frame(frame,date_col,period=period,start=start,end=end,season_col=season_col,season=season,
         probability_col=probability_col,probability_scale=probability_scale,minimum=minimum,
-        market_col=market_col,market=selected.get('market'),result_col=result_col,result=selected.get('result'),
+        market_col=market_col,market=selected.get('market'),exclude_market=selected.get('exclude_market'),
+        result_col=result_col,result=selected.get('result'),
         week_col=week_col,week=week,provenance_col=provenance_col,provenance=selected.get('provenance'))
     if candidates:filtered=filtered[filtered[candidate_col].eq(1)]
     summary=[period]
     if start and end:summary.append(f'{start:%d/%m}–{end:%d/%m}')
     if season:summary.append('Temporada '+str(season))
     if week:summary.append('Semana '+str(week))
-    summary.extend(str(v) for v in selected.values() if v is not None)
+    if selected.get('market'):
+        if isinstance(selected['market'], (list, tuple, set)):
+            summary.append('Mercados: ' + ', '.join(str(m) for m in selected['market']))
+        else:
+            summary.append(str(selected['market']))
+    if selected.get('exclude_market'):
+        if isinstance(selected['exclude_market'], (list, tuple, set)):
+            summary.append('Excluyendo: ' + ', '.join(str(m) for m in selected['exclude_market']))
+        else:
+            summary.append('Excluyendo: ' + str(selected['exclude_market']))
+    for k in ('result', 'provenance'):
+        v = selected.get(k)
+        if v is not None:
+            summary.append(str(v))
     if minimum:summary.append(f'Confianza ≥ {minimum}%')
     st.caption(' · '.join(summary))
     st.caption(f'Muestra filtrada: {len(filtered):,} registros. Fechas en CDMX; las métricas usan esta selección.')
