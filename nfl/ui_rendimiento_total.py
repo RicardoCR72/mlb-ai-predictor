@@ -3,7 +3,7 @@ Unifica en una sola visión ejecutiva:
 1. Moneyline (Ganador Directo)
 2. Totales de Partido (Over / Under)
 3. Props de Jugadores (Yardas recepción, recepciones, pases, touchdowns, terrestres)
-Permite auditar el resumen completo de la jornada de hoy o de cualquier fecha/semana.
+Permite auditar el resumen completo de la jornada de hoy o de cualquier fecha/semana de la NFL.
 """
 from __future__ import annotations
 
@@ -16,7 +16,6 @@ import streamlit as st
 
 from core.db import get_db_connection
 from core.constants import ZONA_CDMX
-from core.ui_boleta import parsear_cuota_decimal
 
 NOMBRES_MERCADOS = {
     "Moneyline": "Moneyline (1X2)",
@@ -30,9 +29,26 @@ NOMBRES_MERCADOS = {
 }
 
 
+def fecha_a_semana_nfl(dt: Any) -> Optional[int]:
+    """Calcula la semana oficial NFL 2026 a partir de la fecha de juego (Semana 1 = 8 Sep 2026)."""
+    if dt is None or pd.isna(dt):
+        return None
+    if isinstance(dt, datetime):
+        dt = dt.date()
+    elif isinstance(dt, str):
+        try:
+            dt = datetime.strptime(str(dt)[:10], "%Y-%m-%d").date()
+        except Exception:
+            return None
+    # Inicio oficial Semana 1 temporada 2026 (martes previo al Kickoff)
+    inicio_temp = date(2026, 9, 8)
+    dias = (dt - inicio_temp).days
+    return int((dias // 7) + 1) if dias >= 0 else 1
+
+
 @st.cache_data(ttl=30)
 def cargar_rendimiento_consolidado_nfl() -> pd.DataFrame:
-    """Extrae y unifica los tres registros oficiales de NFL desde MySQL."""
+    """Extrae y unifica los tres registros oficiales de NFL desde MySQL con su respectiva semana."""
     conn = None
     try:
         conn = get_db_connection()
@@ -46,7 +62,8 @@ def cargar_rendimiento_consolidado_nfl() -> pd.DataFrame:
                    'Equipo' as jugador, seleccion, 'N/D' as linea,
                    CONCAT(COALESCE(marcador_visita, 0), ' - ', COALESCE(marcador_local, 0)) as valor_real,
                    cuota_pick as cuota, cuota_dec, probabilidad_pick as probabilidad,
-                   confianza, resultado_pick as resultado, beneficio_unidades as unidades
+                   confianza, resultado_pick as resultado, beneficio_unidades as unidades,
+                   NULL as semana_raw
             FROM nfl_predicciones_moneyline
             WHERE confianza IN ('ALTA', 'MEDIA')
         """)
@@ -63,7 +80,8 @@ def cargar_rendimiento_consolidado_nfl() -> pd.DataFrame:
                    p.cuota_pick as cuota, NULL as cuota_dec,
                    p.probabilidad_pick / 100.0 as probabilidad,
                    p.estado_pick as confianza, p.resultado_pick as resultado,
-                   p.beneficio_unidades as unidades
+                   p.beneficio_unidades as unidades,
+                   CAST(j.semana AS CHAR) as semana_raw
             FROM nfl_predicciones_totales p
             JOIN nfl_juegos j ON j.id_juego = p.id_juego
             WHERE p.estado_pick = 'PICK'
@@ -81,7 +99,8 @@ def cargar_rendimiento_consolidado_nfl() -> pd.DataFrame:
                    p.cuota_pick as cuota, NULL as cuota_dec,
                    p.probabilidad_pick as probabilidad,
                    p.estado_pick as confianza, p.resultado_pick as resultado,
-                   p.beneficio_unidades as unidades
+                   p.beneficio_unidades as unidades,
+                   CAST(j.semana AS CHAR) as semana_raw
             FROM nfl_proyecciones_props p
             JOIN nfl_juegos j ON j.id_juego = p.id_juego
             JOIN nfl_jugadores ju ON ju.id_jugador = p.id_jugador
@@ -106,6 +125,10 @@ def cargar_rendimiento_consolidado_nfl() -> pd.DataFrame:
     df["unidades"] = pd.to_numeric(df["unidades"], errors="coerce")
     df["probabilidad"] = pd.to_numeric(df["probabilidad"], errors="coerce")
     df["resultado"] = df["resultado"].fillna("PENDIENTE").astype(str).str.strip().str.upper()
+
+    # Cálculo y asignación de semana oficial
+    df["semana"] = pd.to_numeric(df["semana_raw"], errors="coerce")
+    df["semana"] = df["semana"].fillna(df["fecha"].apply(fecha_a_semana_nfl)).astype("Int64")
 
     return df
 
@@ -153,17 +176,29 @@ def render():
 
     # Controles de Filtrado
     hoy_cdmx = datetime.now(ZONA_CDMX).date()
+    semanas_disponibles = sorted([int(s) for s in df["semana"].dropna().unique()], reverse=True)
 
-    with st.expander("🔍 Filtros de Auditoría y Periodo", expanded=True):
-        col_f1, col_f2 = st.columns([1.2, 1.8], gap="medium")
+    with st.expander("🔍 Filtros de Auditoría: Semana, Periodo y Mercados", expanded=True):
+        col_sem, col_f1, col_f2 = st.columns([1.2, 1.2, 1.6], gap="medium")
+        
+        with col_sem:
+            opciones_semana = ["Todas las semanas"] + [
+                f"Semana {s}" + (" (Actual)" if s == 8 else "") for s in semanas_disponibles
+            ]
+            semana_sel_str = st.selectbox(
+                "🏈 Filtrar por Semana NFL:",
+                opciones_semana,
+                index=0,
+                key="nfl_total_semana_sel",
+            )
+
         with col_f1:
             periodo = st.selectbox(
-                "Periodo a Evaluar:",
+                "Periodo / Fecha:",
                 [
+                    "Cualquier fecha (Toda la temporada)",
                     "Hoy (Domingo 1 de Noviembre)",
-                    "Semana 8 (Actual)",
                     "Últimos 7 días",
-                    "Todo el Historial 2026",
                     "Rango personalizado",
                 ],
                 key="nfl_total_periodo",
@@ -172,9 +207,6 @@ def render():
         start_date = end_date = None
         if periodo == "Hoy (Domingo 1 de Noviembre)":
             start_date = end_date = date(2026, 11, 1)
-        elif periodo == "Semana 8 (Actual)":
-            start_date = date(2026, 10, 29)
-            end_date = date(2026, 11, 2)
         elif periodo == "Últimos 7 días":
             start_date = hoy_cdmx - timedelta(days=6)
             end_date = hoy_cdmx
@@ -188,13 +220,18 @@ def render():
         if start_date and end_date:
             df_f = df_f[(df_f["fecha"] >= start_date) & (df_f["fecha"] <= end_date)]
 
+        # Filtrar por semana si se seleccionó una
+        if semana_sel_str != "Todas las semanas":
+            num_sem = int(semana_sel_str.replace("Semana ", "").split()[0])
+            df_f = df_f[df_f["semana"] == num_sem]
+
         with col_f2:
             mercados_disponibles = sorted(df_f["mercado"].unique().tolist())
             mercados_sel = st.multiselect(
-                "Mercados incluidos (selecciona varios o déjalo vacío para todos):",
+                "Mercados incluidos (vacío = todos):",
                 options=mercados_disponibles,
                 default=[],
-                placeholder="Todos los mercados activos...",
+                placeholder="Todos los mercados...",
                 key="nfl_tot_mercados_sel",
             )
 
@@ -243,9 +280,6 @@ def render():
     win_rate = (ganadas / (ganadas + perdidas) * 100) if (ganadas + perdidas) > 0 else 0.0
     unidades_netas = float(liquidados["unidades"].sum(skipna=True))
     roi_global = (unidades_netas / total_evaluados * 100) if total_evaluados > 0 else 0.0
-
-    color_u = "#00e676" if unidades_netas > 0 else ("#ff5252" if unidades_netas < 0 else "#94a3b8")
-    color_roi = "#00e676" if roi_global > 0 else ("#ff5252" if roi_global < 0 else "#94a3b8")
 
     # 4 Tarjetas Métricas Principales
     st.markdown("<div style='margin-top: 0.5rem;'></div>", unsafe_allow_html=True)
@@ -302,17 +336,58 @@ def render():
                     unsafe_allow_html=True,
                 )
 
+    # Desglose interactivo Semana a Semana (si hay más de 1 semana visible)
+    semanas_en_vista = sorted(df_f["semana"].dropna().unique().tolist())
+    if len(semanas_en_vista) > 1:
+        st.markdown("<div style='margin-bottom: 1.2rem;'></div>", unsafe_allow_html=True)
+        with st.expander("📅 Resumen Comparativo Semana a Semana", expanded=True):
+            filas_semanas = []
+            for s in sorted(semanas_en_vista, reverse=True):
+                sub_sem = liquidados[liquidados["semana"] == s]
+                tot_s = len(sub_sem)
+                g_s = int((sub_sem["resultado"] == "GANADA").sum())
+                p_s = int((sub_sem["resultado"] == "PERDIDA").sum())
+                u_s = float(sub_sem["unidades"].sum(skipna=True))
+                wr_s = (g_s / (g_s + p_s) * 100) if (g_s + p_s) > 0 else 0.0
+                roi_s = (u_s / tot_s * 100) if tot_s > 0 else 0.0
+                filas_semanas.append({
+                    "Semana": f"Semana {s}" + (" (Actual)" if s == 8 else ""),
+                    "Picks Evaluados": tot_s,
+                    "Récord": f"{g_s}G - {p_s}P",
+                    "Acierto (%)": wr_s,
+                    "Unidades Netas (u)": u_s,
+                    "ROI (%)": roi_s,
+                })
+            
+            df_semanas_summary = pd.DataFrame(filas_semanas)
+            st.dataframe(
+                df_semanas_summary,
+                hide_index=True,
+                use_container_width=True,
+                column_config={
+                    "Semana": st.column_config.TextColumn("Semana NFL", width="medium"),
+                    "Picks Evaluados": st.column_config.NumberColumn("Picks", width="small"),
+                    "Récord": st.column_config.TextColumn("Récord (G - P)", width="small"),
+                    "Acierto (%)": st.column_config.NumberColumn("Win Rate", format="%.1f%%"),
+                    "Unidades Netas (u)": st.column_config.NumberColumn("Unidades", format="%+.2f u"),
+                    "ROI (%)": st.column_config.NumberColumn("ROI", format="%+.1f%%"),
+                }
+            )
+
     st.markdown("<div style='margin-bottom: 1.2rem;'></div>", unsafe_allow_html=True)
 
     # Tabla Detallada de Auditoría
     st.subheader("📋 Auditoría Partida por Partida")
 
     display_df = df_f[[
-        "fecha_str", "partido", "jugador", "pilar", "mercado",
+        "semana", "fecha_str", "partido", "jugador", "pilar", "mercado",
         "seleccion", "linea", "valor_real", "cuota", "resultado", "unidades"
     ]].copy()
 
+    display_df["semana"] = display_df["semana"].map(lambda s: f"Semana {s}" if pd.notna(s) else "N/D")
+
     display_df = display_df.rename(columns={
+        "semana": "Semana",
         "fecha_str": "Fecha",
         "partido": "Partido",
         "jugador": "Jugador / Sujeto",
@@ -327,6 +402,7 @@ def render():
     })
 
     table_cfg = {
+        "Semana": st.column_config.TextColumn("Semana", width="small"),
         "Fecha": st.column_config.TextColumn("Fecha", width="small"),
         "Partido": st.column_config.TextColumn("Partido", width="medium"),
         "Jugador / Sujeto": st.column_config.TextColumn("Jugador", width="medium"),
@@ -342,11 +418,12 @@ def render():
 
     st.dataframe(display_df, hide_index=True, use_container_width=True, column_config=table_cfg)
 
+    # Nombre dinámico de archivo CSV según filtros
+    tag_sem = semana_sel_str.lower().replace(" ", "_").replace("(", "").replace(")", "")
     csv_data = display_df.to_csv(index=False).encode("utf-8")
     st.download_button(
         "📥 Descargar Auditoría NFL Consolidada (CSV)",
         data=csv_data,
-        file_name=f"rendimiento_total_nfl_{periodo.lower().replace(' ', '_')}.csv",
+        file_name=f"rendimiento_total_nfl_{tag_sem}.csv",
         mime="text/csv",
     )
-

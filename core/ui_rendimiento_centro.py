@@ -72,7 +72,13 @@ def render_overview():
     games=nfl_games()
     if not games.empty:
         mapping={str(r.id_juego):f'{r.temporada} · NFL {int(r.semana):02}' for r in games.itertuples() if pd.notna(r.semana)}
-        frame['semana_nfl']=[mapping.get(str(r.identidad).split('|')[0]) if r.deporte=='NFL' else None for r in frame.itertuples()]
+        from nfl.ui_rendimiento_total import fecha_a_semana_nfl
+        frame['semana_nfl']=[
+            (mapping.get(str(r.identidad).split('|')[0]) or (
+                f'{r.Temporada} · NFL {fecha_a_semana_nfl(r.fecha):02}' if fecha_a_semana_nfl(r.fecha) else None
+            )) if r.deporte=='NFL' else None
+            for r in frame.itertuples()
+        ]
     cols=st.columns(2)
     with cols[0]:
         sport_options = ['Todos', 'Todos (excepto NBA)'] + sorted(frame.deporte.unique())
