@@ -397,7 +397,7 @@
     "abbr_visita": "SAC",
     "fecha_cdmx": "2026-11-02",
     "hora_cdmx": "19:00",
-    "estado": "STATUS_IN_PROGRESS",
+    "estado": "STATUS_FINAL",
     "provider": "DraftKings",
     "linea_spread": -8.5,
     "spread_detalles": "DAL -8.5",
@@ -453,9 +453,11 @@
       }
     ],
     "timestamp": "2026-11-02T16:11:56.456348-06:00",
-    "descripcion_estado": "In Progress",
-    "marcador_local": 91,
-    "marcador_visita": 106
+    "descripcion_estado": "Final",
+    "marcador_local": 100,
+    "marcador_visita": 115,
+    "resultado": "GANADA",
+    "unidades_ganadas": 0.909
   },
   {
     "id_evento": "401909914",
@@ -466,7 +468,7 @@
     "abbr_visita": "NOP",
     "fecha_cdmx": "2026-11-02",
     "hora_cdmx": "19:00",
-    "estado": "STATUS_IN_PROGRESS",
+    "estado": "STATUS_FINAL",
     "provider": "DraftKings",
     "linea_spread": -5.5,
     "spread_detalles": "MEM -5.5",
@@ -510,9 +512,11 @@
       }
     ],
     "timestamp": "2026-11-02T16:11:56.461424-06:00",
-    "descripcion_estado": "In Progress",
-    "marcador_local": 124,
-    "marcador_visita": 124
+    "descripcion_estado": "Final",
+    "marcador_local": 134,
+    "marcador_visita": 135,
+    "resultado": "PERDIDA",
+    "unidades_ganadas": -1.0
   },
   {
     "id_evento": "401909915",
@@ -523,7 +527,7 @@
     "abbr_visita": "MIL",
     "fecha_cdmx": "2026-11-02",
     "hora_cdmx": "19:00",
-    "estado": "STATUS_IN_PROGRESS",
+    "estado": "STATUS_FINAL",
     "provider": "DraftKings",
     "linea_spread": -10.5,
     "spread_detalles": "MIN -10.5",
@@ -554,9 +558,11 @@
     "confianza": "NEUTRAL",
     "candidatos": [],
     "timestamp": "2026-11-02T16:11:56.466484-06:00",
-    "descripcion_estado": "In Progress",
-    "marcador_local": 110,
-    "marcador_visita": 96
+    "descripcion_estado": "Final",
+    "marcador_local": 112,
+    "marcador_visita": 100,
+    "resultado": "GANADA",
+    "unidades_ganadas": 0.236
   },
   {
     "id_evento": "401909916",
@@ -567,7 +573,7 @@
     "abbr_visita": "BOS",
     "fecha_cdmx": "2026-11-02",
     "hora_cdmx": "19:30",
-    "estado": "STATUS_IN_PROGRESS",
+    "estado": "STATUS_FINAL",
     "provider": "DraftKings",
     "linea_spread": -4.5,
     "spread_detalles": "HOU -4.5",
@@ -611,9 +617,11 @@
       }
     ],
     "timestamp": "2026-11-02T16:11:56.471599-06:00",
-    "descripcion_estado": "In Progress",
-    "marcador_local": 78,
-    "marcador_visita": 71
+    "descripcion_estado": "Final",
+    "marcador_local": 109,
+    "marcador_visita": 93,
+    "resultado": "PERDIDA",
+    "unidades_ganadas": -1.0
   },
   {
     "id_evento": "401909917",
@@ -624,7 +632,7 @@
     "abbr_visita": "UTA",
     "fecha_cdmx": "2026-11-02",
     "hora_cdmx": "19:30",
-    "estado": "STATUS_IN_PROGRESS",
+    "estado": "STATUS_FINAL",
     "provider": "DraftKings",
     "linea_spread": -16.5,
     "spread_detalles": "SA -16.5",
@@ -668,9 +676,11 @@
       }
     ],
     "timestamp": "2026-11-02T16:11:56.476699-06:00",
-    "descripcion_estado": "In Progress",
-    "marcador_local": 89,
-    "marcador_visita": 67
+    "descripcion_estado": "Final",
+    "marcador_local": 119,
+    "marcador_visita": 97,
+    "resultado": "PERDIDA",
+    "unidades_ganadas": -1.0
   },
   {
     "id_evento": "401909918",
@@ -681,7 +691,7 @@
     "abbr_visita": "POR",
     "fecha_cdmx": "2026-11-02",
     "hora_cdmx": "20:00",
-    "estado": "STATUS_HALFTIME",
+    "estado": "STATUS_FINAL",
     "provider": "DraftKings",
     "linea_spread": -4.5,
     "spread_detalles": "DEN -4.5",
@@ -712,9 +722,11 @@
     "confianza": "NEUTRAL",
     "candidatos": [],
     "timestamp": "2026-11-02T16:11:56.481739-06:00",
-    "descripcion_estado": "Halftime",
-    "marcador_local": 66,
-    "marcador_visita": 58
+    "descripcion_estado": "Final",
+    "marcador_local": 110,
+    "marcador_visita": 118,
+    "resultado": "PERDIDA",
+    "unidades_ganadas": -1.0
   },
   {
     "id_evento": "401909919",
@@ -725,7 +737,7 @@
     "abbr_visita": "PHX",
     "fecha_cdmx": "2026-11-02",
     "hora_cdmx": "21:00",
-    "estado": "STATUS_IN_PROGRESS",
+    "estado": "STATUS_FINAL",
     "provider": "DraftKings",
     "linea_spread": -2.5,
     "spread_detalles": "GS -2.5",
@@ -769,9 +781,11 @@
       }
     ],
     "timestamp": "2026-11-02T16:11:56.486819-06:00",
-    "descripcion_estado": "In Progress",
-    "marcador_local": 6,
-    "marcador_visita": 14
+    "descripcion_estado": "Final",
+    "marcador_local": 116,
+    "marcador_visita": 113,
+    "resultado": "GANADA",
+    "unidades_ganadas": 0.704
   },
   {
     "id_evento": "401909920",
@@ -782,7 +796,7 @@
     "abbr_visita": "TOR",
     "fecha_cdmx": "2026-11-02",
     "hora_cdmx": "21:00",
-    "estado": "STATUS_IN_PROGRESS",
+    "estado": "STATUS_FINAL",
     "provider": "DraftKings",
     "linea_spread": 4.5,
     "spread_detalles": "TOR -4.5",
@@ -850,9 +864,11 @@
       }
     ],
     "timestamp": "2026-11-02T16:11:56.491954-06:00",
-    "descripcion_estado": "In Progress",
-    "marcador_local": 14,
-    "marcador_visita": 10
+    "descripcion_estado": "Final",
+    "marcador_local": 118,
+    "marcador_visita": 125,
+    "resultado": "PERDIDA",
+    "unidades_ganadas": -1.0
   },
   {
     "id_evento": "401909921",
@@ -863,7 +879,7 @@
     "abbr_visita": "MIA",
     "fecha_cdmx": "2026-11-02",
     "hora_cdmx": "21:00",
-    "estado": "STATUS_IN_PROGRESS",
+    "estado": "STATUS_FINAL",
     "provider": "DraftKings",
     "linea_spread": -2.5,
     "spread_detalles": "LAL -2.5",
@@ -907,8 +923,10 @@
       }
     ],
     "timestamp": "2026-11-02T16:11:56.497185-06:00",
-    "descripcion_estado": "In Progress",
-    "marcador_local": 18,
-    "marcador_visita": 14
+    "descripcion_estado": "Final",
+    "marcador_local": 138,
+    "marcador_visita": 117,
+    "resultado": "PERDIDA",
+    "unidades_ganadas": -1.0
   }
 ]
