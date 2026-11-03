@@ -513,10 +513,10 @@
     "equipo_visita": "CHI",
     "fecha_cdmx": "2026-11-02",
     "hora_cdmx": "19:15",
-    "estado": "STATUS_SCHEDULED",
-    "descripcion_estado": "Mon, November 2nd at 8:15 PM EST",
-    "marcador_local": 0,
-    "marcador_visita": 0,
+    "estado": "STATUS_FINAL",
+    "descripcion_estado": "Final",
+    "marcador_local": 17,
+    "marcador_visita": 34,
     "provider": "DraftKings",
     "spread_line": -3.0,
     "ml_local": "-166",
@@ -539,9 +539,10 @@
     "diff_total_epa": -8.024,
     "diff_pass_epa": -3.003,
     "diff_injury_ol": 1.0,
-    "resultado_pick": "PENDIENTE",
-    "beneficio_unidades": null,
-    "ganador_real": null,
-    "timestamp": "2026-10-27T23:29:29.427954-06:00"
+    "resultado_pick": "PERDIDA",
+    "beneficio_unidades": -1.0,
+    "ganador_real": "CHI",
+    "timestamp": "2026-10-27T23:29:29.427954-06:00",
+    "evaluado_en": "2026-11-03 06:57:19"
   }
 ]
