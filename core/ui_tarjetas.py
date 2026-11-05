@@ -317,13 +317,19 @@ def render_pick(pick, *, market, state='', details=(), allow_register=True):
         from core.ui_grafica_cobertura import render_grafica_cobertura
         dep = str(pick.get('deporte') or 'MLB')
         ref = pick.get('referencia') or {}
-        linea_val = ref.get('linea') if isinstance(ref, dict) else None
+        linea_val = pick.get('linea')
+        if linea_val is None and isinstance(ref, dict):
+            linea_val = ref.get('linea') if ref.get('linea') is not None else ref.get('line')
         eq_loc = pick.get('equipo_local')
         eq_vis = pick.get('equipo_visitante')
         if not eq_loc and '@' in str(pick.get('partido', '')):
             parts = str(pick.get('partido', '')).split('@')
             eq_vis = parts[0].strip()
             eq_loc = parts[1].strip()
+
+        jugador_val = pick.get('player_name') or (ref.get('player_name') if isinstance(ref, dict) else None)
+        if not jugador_val and isinstance(ref, dict):
+            jugador_val = ref.get('id_jugador')
 
         render_grafica_cobertura(
             deporte=dep,
@@ -332,7 +338,7 @@ def render_pick(pick, *, market, state='', details=(), allow_register=True):
             linea=linea_val,
             equipo=eq_loc,
             rival=eq_vis,
-            jugador=pick.get('player_name') or (ref.get('id_jugador') if isinstance(ref, dict) else None),
+            jugador=jugador_val,
             key_suffix=f"card_{pick_key(pick)}",
         )
     except Exception as e_card_cov:
@@ -351,16 +357,20 @@ def nfl_pick(row, prop=False):
     raw_odds = row.get('cuota_pick') if prop else row.get('odds_pick')
     try: odds = decimal_odds(raw_odds)
     except (TypeError, ValueError): odds = None
-    reference = dict(game_id=str(row['id_juego']), side=side, line=line)
+    p_name = str(row.get('player_name') or '').strip()
+    p_id = str(row.get('id_jugador') or '').strip()
+    reference = dict(game_id=str(row['id_juego']), side=side, line=line, linea=line)
     if pd.notna(row.get('inicio_utc')):
         reference['inicio_utc'] = kickoff(row['inicio_utc'])
-    if prop: reference.update(id_jugador=str(row['id_jugador']), tipo_prop=str(row['tipo_prop']))
-    label = (str(row['player_name'])+' · ' if prop else '') + str(side)
+    if prop:
+        reference.update(id_jugador=p_id, player_name=p_name, tipo_prop=str(row['tipo_prop']))
+    label = (p_name+' · ' if (prop and p_name) else '') + str(side)
     if line is not None and side in ('OVER','UNDER'): label += f' {line:g}'
     return dict(fecha=row['gameday'], deporte='NFL', partido=f"{row['away_team']} @ {row['home_team']}",
                 seleccion=label, casa=str(row.get('casa_apuestas') or 'DraftKings') if prop else 'nflverse · casa no verificada',
                 cuota=odds, probabilidad=number(row['probabilidad_pick'] if prop else row['prob_pick']),
                 origen='nfl_prop' if prop else 'nfl_total', referencia=reference,
+                linea=line, player_name=p_name, player_id=p_id,
                 modelo=row.get('modelo_version'),mercado_confianza=row.get('tipo_prop') if prop else 'Totales',
                 cuota_capturada_utc=row.get('timestamp_captura') if prop else None)
 

@@ -66,7 +66,7 @@ def _cargar_nfl_player_stats():
     if p.exists():
         try:
             cols = [
-                "player_display_name", "player_name", "season", "week", "opponent_team",
+                "player_id", "player_display_name", "player_name", "season", "week", "opponent_team",
                 "receiving_yards", "receptions", "rushing_yards", "passing_yards",
                 "passing_tds", "rushing_tds", "receiving_tds"
             ]
@@ -253,43 +253,106 @@ def obtener_datos_cobertura(
     # =========================================================================
     if "NFL" in deporte_up and ("prop" in mercado_str or jugador):
         df_players = _cargar_nfl_player_stats()
-        unidad = "yds"
-        col_stat = "receiving_yards"
-        if "recep" in mercado_str:
+
+        # Si la línea no vino explícita, extraerla de la selección (ej. "OVER 18.5" -> 18.5)
+        if linea_val is None:
+            m_lin = re.search(r'(?:OVER|UNDER|MÁS|MENOS|\+|\-)?\s*(\d+(?:\.\d+)?)', str(seleccion), re.IGNORECASE)
+            if m_lin:
+                try:
+                    linea_val = float(m_lin.group(1))
+                except Exception:
+                    linea_val = None
+
+        # Diferenciar con precisión Recepciones de Yardas de Recepción
+        m_check = f"{mercado_str} {sel_up}".lower()
+        if "yard" in m_check or "yds" in m_check:
+            if "receiv" in m_check or "recep" in m_check or "atrap" in m_check:
+                col_stat = "receiving_yards"
+                unidad = "yds"
+            elif "rush" in m_check or "carrer" in m_check or "tierr" in m_check:
+                col_stat = "rushing_yards"
+                unidad = "yds"
+            elif "pass" in m_check or "pase" in m_check:
+                col_stat = "passing_yards"
+                unidad = "yds"
+            else:
+                col_stat = "receiving_yards"
+                unidad = "yds"
+        elif "recep" in m_check or "atrap" in m_check or "rec" in m_check:
             col_stat = "receptions"
             unidad = "rec"
-        elif "rush" in mercado_str or "carrer" in mercado_str or "tierr" in mercado_str:
+        elif "rush" in m_check or "carrer" in m_check or "tierr" in m_check:
             col_stat = "rushing_yards"
             unidad = "yds"
-        elif "pass" in mercado_str or "pase" in mercado_str:
-            col_stat = "passing_yards" if "td" not in mercado_str else "passing_tds"
-            unidad = "yds" if "td" not in mercado_str else "tds"
-        elif "td" in mercado_str or "anota" in sel_up or "anota" in mercado_str:
+        elif "pass" in m_check or "pase" in m_check:
+            if "td" in m_check:
+                col_stat = "passing_tds"
+                unidad = "tds"
+            else:
+                col_stat = "passing_yards"
+                unidad = "yds"
+        elif "td" in m_check or "anota" in m_check or "touchdown" in m_check:
             col_stat = "anytime_td"
             unidad = "tds"
-            if linea_val is None:
-                linea_val = 0.5
+        else:
+            col_stat = "receiving_yards"
+            unidad = "yds"
 
         if linea_val is None:
-            linea_val = 49.5
+            if col_stat == "receptions":
+                linea_val = 4.5
+            elif col_stat in ("passing_tds", "anytime_td"):
+                linea_val = 0.5
+            elif col_stat == "rushing_yards":
+                linea_val = 45.5
+            elif col_stat == "passing_yards":
+                linea_val = 225.5
+            else:
+                linea_val = 39.5
 
         if not df_players.empty and jugador:
-            sub = df_players[
-                df_players.player_display_name.str.contains(str(jugador), case=False, na=False) |
-                df_players.player_name.str.contains(str(jugador), case=False, na=False)
-            ].copy()
+            jug_str = str(jugador).strip()
+            sub_id = None
+            if "·" in jug_str:
+                for p_j in [p.strip() for p in jug_str.split("·")]:
+                    if p_j.startswith("00-"):
+                        sub_id = p_j
+                    else:
+                        jug_str = p_j
+            elif jug_str.startswith("00-"):
+                sub_id = jug_str
+
+            cond = pd.Series(False, index=df_players.index)
+            if sub_id and "player_id" in df_players.columns:
+                cond = cond | (df_players["player_id"] == sub_id)
+
+            clean_name = re.sub(r'^[0-9\-\s\·]+', '', jug_str).strip()
+            if clean_name:
+                cond = cond | (
+                    df_players["player_display_name"].str.contains(clean_name, case=False, na=False) |
+                    df_players["player_name"].str.contains(clean_name, case=False, na=False)
+                )
+                if "." in clean_name:
+                    apellido = clean_name.split(".")[-1].strip()
+                    if len(apellido) >= 3:
+                        cond = cond | (
+                            df_players["player_name"].str.contains(apellido, case=False, na=False) |
+                            df_players["player_display_name"].str.contains(apellido, case=False, na=False)
+                        )
+
+            sub = df_players[cond].sort_values(["season", "week"]).copy()
             if not sub.empty:
                 ultimos = sub.tail(n_juegos)
                 for _, r in ultimos.iterrows():
                     wk = r.get("week", "")
                     opp = r.get("opponent_team", "OPP")
-                    etiqueta = f"Sem {wk} vs {opp}" if wk else f"vs {opp}"
+                    etiqueta = f"S{int(wk)} vs {opp}" if pd.notna(wk) and str(wk).isdigit() else f"vs {opp}"
                     if col_stat == "anytime_td":
                         val = float((r.get("rushing_tds") or 0) + (r.get("receiving_tds") or 0))
                     else:
                         val = float(r.get(col_stat) or 0.0)
 
-                    if "UNDER" in sel_up:
+                    if "UNDER" in sel_up or "MENOS" in sel_up:
                         cubrio = val < linea_val
                     elif "OVER" in sel_up or "MÁS" in sel_up:
                         cubrio = val > linea_val
@@ -452,7 +515,12 @@ def obtener_datos_cobertura(
                     val = max(20.0, val)
                 cubrio = (val > linea_val) if ("OVER" in sel_up) else (val < linea_val)
             else:
-                val = float(round(max(0.0, linea_val + np.random.uniform(4.0, 16.0) * (1.0 if hit else -0.8)), 1))
+                if "rec" in unidad:
+                    val = float(round(max(0.0, linea_val + np.random.uniform(1.0, 3.0) * (1.0 if hit else -1.0))))
+                elif "td" in unidad:
+                    val = float(np.random.choice([1.0, 2.0]) if hit else 0.0)
+                else:
+                    val = float(round(max(0.0, linea_val + np.random.uniform(4.0, 16.0) * (1.0 if hit else -0.8)), 1))
                 cubrio = (val > linea_val) if ("OVER" in sel_up) else (val < linea_val)
 
             simulados.append({
@@ -705,11 +773,20 @@ def render_grafica_cobertura(
         badge_bg = "rgba(56, 189, 248, 0.12)"
         badge_txt = f"🎯 VALOR CONTRA-CORRIENTE (+EV)"
 
-    sub_nombre = f"{jugador} · " if jugador else ""
+    texto_sel = str(seleccion).strip()
+    texto_sel = re.sub(r'^(00-\d+\s*·\s*)', '', texto_sel)
+    jug_clean = str(jugador or '').strip()
+    jug_clean = re.sub(r'^(00-\d+\s*·?\s*)', '', jug_clean).strip()
+
+    if jug_clean and jug_clean.lower() not in texto_sel.lower():
+        titulo_pick = f"{jug_clean} · {texto_sel}"
+    else:
+        titulo_pick = texto_sel
+
     header_html = (
         f'<div style="display:flex; justify-content:space-between; align-items:center; margin-top:0.6rem; margin-bottom:0.35rem; padding:0.4rem 0.65rem; background:#0b1320; border-radius:8px; border:1px solid #1c2b42;">'
         f'<div style="font-size:0.78rem; color:#cbd5e1; font-weight:700;">'
-        f'📊 Cobertura de Línea Reciente · <span style="color:#ffffff;">{sub_nombre}{seleccion}</span>'
+        f'📊 Cobertura de Línea Reciente · <span style="color:#ffffff;">{titulo_pick}</span>'
         f'</div>'
         f'<div style="font-size:0.74rem; font-weight:800; color:{badge_color}; background:{badge_bg}; padding:0.15rem 0.5rem; border-radius:4px; border:1px solid {badge_color}44;">'
         f'{badge_txt}'
