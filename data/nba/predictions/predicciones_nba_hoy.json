@@ -8,7 +8,7 @@
     "abbr_visita": "PHI",
     "fecha_cdmx": "2026-11-04",
     "hora_cdmx": "18:00",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_IN_PROGRESS",
     "provider": "DraftKings",
     "linea_spread": -2.5,
     "spread_detalles": "DET -2.5",
@@ -63,7 +63,10 @@
         "detalle": "Proyección Calibrada: 222.2 pts vs línea 219.5 (Edge: +3.8%, EV: +7.2%)"
       }
     ],
-    "timestamp": "2026-11-04T14:18:48.947340-06:00"
+    "timestamp": "2026-11-04T14:18:48.947340-06:00",
+    "descripcion_estado": "In Progress",
+    "marcador_local": 68,
+    "marcador_visita": 79
   },
   {
     "id_evento": "401909923",
@@ -74,7 +77,7 @@
     "abbr_visita": "ATL",
     "fecha_cdmx": "2026-11-04",
     "hora_cdmx": "18:00",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_IN_PROGRESS",
     "provider": "DraftKings",
     "linea_spread": 3.5,
     "spread_detalles": "ATL -3.5",
@@ -129,7 +132,10 @@
         "detalle": "Margen Proyectado Visita: +7.5 pts (Spread: -3.5)"
       }
     ],
-    "timestamp": "2026-11-04T14:18:48.954676-06:00"
+    "timestamp": "2026-11-04T14:18:48.954676-06:00",
+    "descripcion_estado": "In Progress",
+    "marcador_local": 89,
+    "marcador_visita": 101
   },
   {
     "id_evento": "401909924",
@@ -140,7 +146,7 @@
     "abbr_visita": "MIL",
     "fecha_cdmx": "2026-11-04",
     "hora_cdmx": "18:30",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_IN_PROGRESS",
     "provider": "DraftKings",
     "linea_spread": -10.5,
     "spread_detalles": "BOS -10.5",
@@ -170,7 +176,10 @@
     "pick_detalle": "Líneas de mercado eficientes (Sin ventaja clara. Margen: +9.7 pts)",
     "confianza": "NEUTRAL",
     "candidatos": [],
-    "timestamp": "2026-11-04T14:18:48.961847-06:00"
+    "timestamp": "2026-11-04T14:18:48.961847-06:00",
+    "descripcion_estado": "In Progress",
+    "marcador_local": 74,
+    "marcador_visita": 65
   },
   {
     "id_evento": "401909925",
@@ -181,7 +190,7 @@
     "abbr_visita": "CHA",
     "fecha_cdmx": "2026-11-04",
     "hora_cdmx": "18:30",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_HALFTIME",
     "provider": "DraftKings",
     "linea_spread": 3.5,
     "spread_detalles": "CHA -3.5",
@@ -248,7 +257,10 @@
         "detalle": "Margen Proyectado: +0.7 pts (Spread: +3.5)"
       }
     ],
-    "timestamp": "2026-11-04T14:18:48.969137-06:00"
+    "timestamp": "2026-11-04T14:18:48.969137-06:00",
+    "descripcion_estado": "Halftime",
+    "marcador_local": 50,
+    "marcador_visita": 57
   },
   {
     "id_evento": "401909926",
@@ -259,7 +271,7 @@
     "abbr_visita": "CHI",
     "fecha_cdmx": "2026-11-04",
     "hora_cdmx": "18:30",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_IN_PROGRESS",
     "provider": "DraftKings",
     "linea_spread": -12.5,
     "spread_detalles": "NY -12.5",
@@ -302,7 +314,10 @@
         "detalle": "Margen Proyectado Visita: -5.3 pts (Spread: +12.5)"
       }
     ],
-    "timestamp": "2026-11-04T14:18:48.976274-06:00"
+    "timestamp": "2026-11-04T14:18:48.976274-06:00",
+    "descripcion_estado": "In Progress",
+    "marcador_local": 90,
+    "marcador_visita": 54
   },
   {
     "id_evento": "401909927",
@@ -313,7 +328,7 @@
     "abbr_visita": "IND",
     "fecha_cdmx": "2026-11-04",
     "hora_cdmx": "19:00",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_IN_PROGRESS",
     "provider": "DraftKings",
     "linea_spread": -6.5,
     "spread_detalles": "MEM -6.5",
@@ -343,7 +358,10 @@
     "pick_detalle": "Líneas de mercado eficientes (Sin ventaja clara. Margen: +4.0 pts)",
     "confianza": "NEUTRAL",
     "candidatos": [],
-    "timestamp": "2026-11-04T14:18:48.983609-06:00"
+    "timestamp": "2026-11-04T14:18:48.983609-06:00",
+    "descripcion_estado": "In Progress",
+    "marcador_local": 52,
+    "marcador_visita": 54
   },
   {
     "id_evento": "401909928",
@@ -354,7 +372,7 @@
     "abbr_visita": "UTA",
     "fecha_cdmx": "2026-11-04",
     "hora_cdmx": "19:00",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_IN_PROGRESS",
     "provider": "DraftKings",
     "linea_spread": -4.5,
     "spread_detalles": "NO -4.5",
@@ -384,7 +402,10 @@
     "pick_detalle": "Líneas de mercado eficientes (Sin ventaja clara. Margen: +2.4 pts)",
     "confianza": "NEUTRAL",
     "candidatos": [],
-    "timestamp": "2026-11-04T14:18:48.990698-06:00"
+    "timestamp": "2026-11-04T14:18:48.990698-06:00",
+    "descripcion_estado": "In Progress",
+    "marcador_local": 42,
+    "marcador_visita": 34
   },
   {
     "id_evento": "401909929",
@@ -395,7 +416,7 @@
     "abbr_visita": "CLE",
     "fecha_cdmx": "2026-11-04",
     "hora_cdmx": "19:00",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_IN_PROGRESS",
     "provider": "DraftKings",
     "linea_spread": -3.5,
     "spread_detalles": "OKC -3.5",
@@ -425,7 +446,10 @@
     "pick_detalle": "Líneas de mercado eficientes (Sin ventaja clara. Margen: +2.6 pts)",
     "confianza": "NEUTRAL",
     "candidatos": [],
-    "timestamp": "2026-11-04T14:18:48.997776-06:00"
+    "timestamp": "2026-11-04T14:18:48.997776-06:00",
+    "descripcion_estado": "In Progress",
+    "marcador_local": 60,
+    "marcador_visita": 41
   },
   {
     "id_evento": "401909930",
@@ -436,7 +460,7 @@
     "abbr_visita": "MIN",
     "fecha_cdmx": "2026-11-04",
     "hora_cdmx": "19:30",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_IN_PROGRESS",
     "provider": "DraftKings",
     "linea_spread": -7.5,
     "spread_detalles": "HOU -7.5",
@@ -479,7 +503,10 @@
         "detalle": "Proyección Calibrada: 220.7 pts vs línea 218.5 (Edge: +3.3%, EV: +6.3%)"
       }
     ],
-    "timestamp": "2026-11-04T14:18:49.005545-06:00"
+    "timestamp": "2026-11-04T14:18:49.005545-06:00",
+    "descripcion_estado": "In Progress",
+    "marcador_local": 28,
+    "marcador_visita": 23
   },
   {
     "id_evento": "401909931",
@@ -491,10 +518,10 @@
     "fecha_cdmx": "2026-11-04",
     "hora_cdmx": "20:00",
     "estado": "STATUS_SCHEDULED",
-    "provider": "DraftKings",
+    "provider": "Draft Kings",
     "linea_spread": -4.5,
     "spread_detalles": "DEN -4.5",
-    "linea_total": 231.5,
+    "linea_total": 230.5,
     "ml_local": "-191",
     "ml_visita": "+160",
     "ml_local_dec": 1.524,
@@ -506,10 +533,10 @@
     "prob_visita_win_cruda": 0.4122,
     "prob_cover_home": 0.4423,
     "prob_cover_away": 0.5507,
-    "total_proyectado": 229.5,
-    "prob_over": 0.4314,
-    "prob_under": 0.5686,
-    "edge_puntos_total": -2.0,
+    "total_proyectado": 228.9,
+    "prob_over": 0.4451,
+    "prob_under": 0.5549,
+    "edge_puntos_total": -1.6,
     "pick_mercado": "Moneyline",
     "pick_seleccion": "Denver Nuggets ML",
     "pick_probabilidad": 0.5837,
@@ -520,7 +547,7 @@
     "pick_detalle": "Líneas de mercado eficientes (Sin ventaja clara. Margen: +2.4 pts)",
     "confianza": "NEUTRAL",
     "candidatos": [],
-    "timestamp": "2026-11-04T14:18:49.012820-06:00"
+    "timestamp": "2026-11-04T20:03:32.476498-06:00"
   },
   {
     "id_evento": "401909932",
@@ -533,35 +560,35 @@
     "hora_cdmx": "20:00",
     "estado": "STATUS_SCHEDULED",
     "provider": "DraftKings",
-    "linea_spread": 2.5,
-    "spread_detalles": "POR -2.5",
+    "linea_spread": 3.5,
+    "spread_detalles": "POR -3.5",
     "linea_total": 227.5,
-    "ml_local": "+125",
-    "ml_visita": "-148",
-    "ml_local_dec": 2.25,
-    "ml_visita_dec": 1.676,
-    "margen_local_esperado": -1.39,
-    "prob_local_win": 0.4511,
-    "prob_visita_win": 0.5489,
-    "prob_local_win_cruda": 0.4487,
-    "prob_visita_win_cruda": 0.5513,
-    "prob_cover_home": 0.5425,
-    "prob_cover_away": 0.4695,
+    "ml_local": "+120",
+    "ml_visita": "-142",
+    "ml_local_dec": 2.2,
+    "ml_visita_dec": 1.704,
+    "margen_local_esperado": -1.89,
+    "prob_local_win": 0.4338,
+    "prob_visita_win": 0.5662,
+    "prob_local_win_cruda": 0.4305,
+    "prob_visita_win_cruda": 0.5695,
+    "prob_cover_home": 0.5466,
+    "prob_cover_away": 0.4558,
     "total_proyectado": 227.8,
     "prob_over": 0.5114,
     "prob_under": 0.4886,
     "edge_puntos_total": 0.3,
     "pick_mercado": "Moneyline",
     "pick_seleccion": "Portland Trail Blazers ML",
-    "pick_probabilidad": 0.5489,
-    "pick_edge": -0.0478,
-    "pick_ev": -0.08,
-    "pick_cuota": "-148",
-    "pick_cuota_dec": 1.676,
-    "pick_detalle": "Líneas de mercado eficientes (Sin ventaja clara. Margen: -1.4 pts)",
+    "pick_probabilidad": 0.5662,
+    "pick_edge": -0.0207,
+    "pick_ev": -0.0352,
+    "pick_cuota": "-142",
+    "pick_cuota_dec": 1.704,
+    "pick_detalle": "Líneas de mercado eficientes (Sin ventaja clara. Margen: -1.9 pts)",
     "confianza": "NEUTRAL",
     "candidatos": [],
-    "timestamp": "2026-11-04T14:18:49.020190-06:00"
+    "timestamp": "2026-11-04T20:03:32.483572-06:00"
   },
   {
     "id_evento": "401909933",
@@ -577,10 +604,10 @@
     "linea_spread": -12.5,
     "spread_detalles": "SA -12.5",
     "linea_total": 226.5,
-    "ml_local": "-597",
-    "ml_visita": "+443",
-    "ml_local_dec": 1.168,
-    "ml_visita_dec": 5.43,
+    "ml_local": "-620",
+    "ml_visita": "+458",
+    "ml_local_dec": 1.161,
+    "ml_visita_dec": 5.58,
     "margen_local_esperado": 7.17,
     "prob_local_win": 0.733,
     "prob_visita_win": 0.267,
@@ -615,7 +642,7 @@
         "detalle": "Margen Proyectado Visita: -7.2 pts (Spread: +12.5)"
       }
     ],
-    "timestamp": "2026-11-04T14:18:49.027683-06:00"
+    "timestamp": "2026-11-04T20:03:32.490944-06:00"
   },
   {
     "id_evento": "401909934",
@@ -631,10 +658,10 @@
     "linea_spread": 12.5,
     "spread_detalles": "LAL -12.5",
     "linea_total": 233.5,
-    "ml_local": "+454",
-    "ml_visita": "-620",
-    "ml_local_dec": 5.54,
-    "ml_visita_dec": 1.161,
+    "ml_local": "+470",
+    "ml_visita": "-650",
+    "ml_local_dec": 5.7,
+    "ml_visita_dec": 1.154,
     "margen_local_esperado": -6.38,
     "prob_local_win": 0.2893,
     "prob_visita_win": 0.7107,
@@ -681,7 +708,7 @@
         "detalle": "Proyección Calibrada: 229.8 pts vs línea 233.5 (Edge: +4.8%, EV: +9.1%)"
       }
     ],
-    "timestamp": "2026-11-04T14:18:49.035176-06:00"
+    "timestamp": "2026-11-04T20:03:32.498093-06:00"
   },
   {
     "id_evento": "401909935",
@@ -759,6 +786,6 @@
         "detalle": "Proyección Calibrada: 229.9 pts vs línea 233.5 (Edge: +4.7%, EV: +9.0%)"
       }
     ],
-    "timestamp": "2026-11-04T14:18:49.043188-06:00"
+    "timestamp": "2026-11-04T20:03:32.505306-06:00"
   }
 ]
