@@ -312,6 +312,32 @@ def render_pick(pick, *, market, state='', details=(), allow_register=True):
         pick=dict(pick,contexto_confianza=text(for_pick(pick)))
     st.markdown(card_html(pick, market=market, state=state, details=details), unsafe_allow_html=True)
 
+    # Gráfica interactiva de barras de cobertura de línea frente a los últimos juegos
+    try:
+        from core.ui_grafica_cobertura import render_grafica_cobertura
+        dep = str(pick.get('deporte') or 'MLB')
+        ref = pick.get('referencia') or {}
+        linea_val = ref.get('linea') if isinstance(ref, dict) else None
+        eq_loc = pick.get('equipo_local')
+        eq_vis = pick.get('equipo_visitante')
+        if not eq_loc and '@' in str(pick.get('partido', '')):
+            parts = str(pick.get('partido', '')).split('@')
+            eq_vis = parts[0].strip()
+            eq_loc = parts[1].strip()
+
+        render_grafica_cobertura(
+            deporte=dep,
+            mercado=str(market),
+            seleccion=str(pick.get('seleccion', '')),
+            linea=linea_val,
+            equipo=eq_loc,
+            rival=eq_vis,
+            jugador=pick.get('player_name') or (ref.get('id_jugador') if isinstance(ref, dict) else None),
+            key_suffix=f"card_{pick_key(pick)}",
+        )
+    except Exception as e_card_cov:
+        pass
+
 
 
 def registration(pick):

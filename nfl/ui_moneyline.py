@@ -266,6 +266,21 @@ def render_cartelera(predicciones: list[dict]):
 </div>"""
         st.markdown(card_html, unsafe_allow_html=True)
 
+        # Gráfica interactiva de barras de cobertura de línea frente a los últimos juegos
+        try:
+            from core.ui_grafica_cobertura import render_grafica_cobertura
+            render_grafica_cobertura(
+                deporte="NFL",
+                mercado="Moneyline",
+                seleccion=str(pick_sel or home),
+                linea=0.0,
+                equipo=str(home),
+                rival=str(away),
+                key_suffix=f"nfl_ml_{p.get('id_evento', idx)}_{pick_sel}",
+            )
+        except Exception as e_cov_ml:
+            pass
+
         if resultado_pick not in ["GANADA", "PERDIDA", "PUSH"]:
             from core.ui_boleta import render_boton_boleta
             partido_id = str(p.get("id_evento") or p.get("id_juego") or f"{away}_{home}_{idx}")

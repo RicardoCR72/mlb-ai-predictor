@@ -657,6 +657,21 @@ def render_cartelera_futbol(predicciones: list[dict], mercado_activo: str):
 
             st.markdown(pick_box_html, unsafe_allow_html=True)
 
+            # Gráfica interactiva de barras de cobertura de línea frente a los últimos juegos
+            try:
+                from core.ui_grafica_cobertura import render_grafica_cobertura
+                render_grafica_cobertura(
+                    deporte="FUTBOL",
+                    mercado=str(pick_data.get("mercado") or mercado_tipo),
+                    seleccion=str(pick_data.get("seleccion", "")),
+                    linea=float(p.get("linea_total", 2.5)),
+                    equipo=str(loc_name),
+                    rival=str(vis_name),
+                    key_suffix=f"fut_{p.get('id_evento', idx)}_{mercado_tipo}_{pick_data.get('seleccion', '')}",
+                )
+            except Exception as e_cov_f:
+                pass
+
             if confianza in ["ALTA", "MEDIA"]:
                 from core.ui_boleta import render_boton_boleta
                 partido_id = str(p.get("id_partido") or p.get("id_evento") or f"{p.get('equipo_visita')}_{p.get('equipo_local')}_{idx}")

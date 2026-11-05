@@ -250,6 +250,23 @@ def mostrar_prop(fila):
                 + formatear_porcentaje(fila["probabilidad_under"])
             )
 
+        # Gráfica interactiva de barras de cobertura de línea frente a los últimos juegos
+        try:
+            from core.ui_grafica_cobertura import render_grafica_cobertura
+            lin_val = float(fila["linea"]) if pd.notna(fila.get("linea")) else None
+            render_grafica_cobertura(
+                deporte="NFL",
+                mercado=str(fila.get("tipo_prop") or fila.get("mercado")),
+                seleccion=str(fila.get("seleccion")),
+                linea=lin_val,
+                equipo=str(fila.get("team")),
+                rival=str(fila.get("opponent_team") or fila.get("away_team")),
+                jugador=str(fila.get("player_name")),
+                key_suffix=f"prop_{fila.get('player_name', '')}_{fila.get('tipo_prop', '')}_{getattr(fila, 'name', '')}",
+            )
+        except Exception as e_cov_p:
+            pass
+
         estado_lesion = texto_seguro(
             fila.get("estado_lesion"), "healthy_or_unlisted"
         )

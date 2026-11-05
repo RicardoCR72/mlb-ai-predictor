@@ -7,10 +7,8 @@ from nfl.persistence.totals import valor_mysql
 from nfl.settings import PROPS_MODEL_VERSION as MODELO_VERSION
 
 def obtener_conexion():
-    configuracion = obtener_configuracion_mysql()
-    if configuracion is None:
-        return None
-    return mysql.connector.connect(**configuracion)
+    from core.db import get_db_connection
+    return get_db_connection()
 
 def sincronizar_catalogos(conexion, features, juegos):
     cursor = conexion.cursor()
