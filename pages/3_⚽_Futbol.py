@@ -657,20 +657,21 @@ def render_cartelera_futbol(predicciones: list[dict], mercado_activo: str):
 
             st.markdown(pick_box_html, unsafe_allow_html=True)
 
-            # Gráfica interactiva de barras de cobertura de línea frente a los últimos juegos
-            try:
-                from core.ui_grafica_cobertura import render_grafica_cobertura
-                render_grafica_cobertura(
-                    deporte="FUTBOL",
-                    mercado=str(pick_data.get("mercado") or mercado_tipo),
-                    seleccion=str(pick_data.get("seleccion", "")),
-                    linea=float(p.get("linea_total", 2.5)),
-                    equipo=str(loc_name),
-                    rival=str(vis_name),
-                    key_suffix=f"fut_{p.get('id_evento', idx)}_{mercado_tipo}_{pick_data.get('seleccion', '')}",
-                )
-            except Exception as e_cov_f:
-                pass
+            # Gráfica interactiva de barras de cobertura de línea (Exclusivo para Totales: 2 gráficas en paralelo)
+            m_actual = str(pick_data.get("mercado") or mercado_tipo).lower()
+            if "total" in m_actual or "gol" in m_actual:
+                try:
+                    from core.ui_grafica_cobertura import render_grafica_cobertura_totales_dual
+                    render_grafica_cobertura_totales_dual(
+                        deporte="FUTBOL",
+                        seleccion=str(pick_data.get("seleccion", "")),
+                        linea=float(p.get("linea_total", 2.5)),
+                        equipo_visita=str(vis_name),
+                        equipo_local=str(loc_name),
+                        key_suffix=f"fut_tot_{p.get('id_evento', idx)}",
+                    )
+                except Exception as e_cov_f:
+                    pass
 
             if confianza in ["ALTA", "MEDIA"]:
                 from core.ui_boleta import render_boton_boleta

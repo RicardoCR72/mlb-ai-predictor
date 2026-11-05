@@ -573,21 +573,21 @@ Los partidos de hoy ({n_liquidados} juegos) ya finalizaron y están auditados en
         with st.container(border=True):
             st.markdown(card_top_html + teams_html + pick_box_html, unsafe_allow_html=True)
 
-            # Gráfica interactiva de barras de cobertura de línea frente a los últimos juegos
-            try:
-                from core.ui_grafica_cobertura import render_grafica_cobertura
-                lin_nba = float(p.get("linea_total") or p.get("total_line") or 228.5) if "total" in str(mercado).lower() else None
-                render_grafica_cobertura(
-                    deporte="NBA",
-                    mercado=str(mercado),
-                    seleccion=str(pick_info.get("seleccion", "")),
-                    linea=lin_nba,
-                    equipo=str(p.get("equipo_local") or p.get("abbr_local")),
-                    rival=str(p.get("equipo_visita") or p.get("abbr_visita")),
-                    key_suffix=f"nba_{p.get('id_evento', idx)}_{mercado}_{pick_info.get('seleccion', '')}",
-                )
-            except Exception as e_cov_nba:
-                pass
+            # Gráfica interactiva de barras de cobertura de línea (Exclusivo para Totales: 2 gráficas en paralelo)
+            if "total" in str(mercado).lower():
+                try:
+                    from core.ui_grafica_cobertura import render_grafica_cobertura_totales_dual
+                    lin_nba = float(p.get("linea_total") or p.get("total_line") or 228.5)
+                    render_grafica_cobertura_totales_dual(
+                        deporte="NBA",
+                        seleccion=str(pick_info.get("seleccion", "")),
+                        linea=lin_nba,
+                        equipo_visita=str(p.get("equipo_visita") or p.get("abbr_visita")),
+                        equipo_local=str(p.get("equipo_local") or p.get("abbr_local")),
+                        key_suffix=f"nba_tot_{p.get('id_evento', idx)}",
+                    )
+                except Exception as e_cov_nba:
+                    pass
 
             if conf in ["ALTA", "MEDIA"]:
                 evento_id = str(p.get("id_evento") or p.get("id_juego") or f"{p.get('abbr_visita')}_{p.get('abbr_local')}_{idx}")

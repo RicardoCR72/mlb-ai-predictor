@@ -1,7 +1,9 @@
-"""Módulo unificado de Gráficas de Cobertura de Línea para todos los deportes y mercados.
+"""Módulo unificado de Gráficas de Cobertura de Línea para Totales y NFL Props.
 
-Genera una gráfica de barras interactiva con Altair que muestra el desempeño reciente
-del jugador o equipo (últimos 5-7 juegos) frente a la línea de apuesta establecida por Las Vegas.
+Genera gráficas de barras interactivas con Altair:
+- Totales (Over/Under): Despliega 2 gráficas en paralelo (Visitante y Local) para comparar
+  si ambos equipos han cubierto la línea de totales en sus últimos 5 partidos.
+- NFL Props: Despliega la gráfica individual del jugador en sus últimas semanas frente a la línea.
 """
 from __future__ import annotations
 
@@ -114,17 +116,7 @@ def obtener_datos_cobertura(
     jugador: str | None = None,
     n_juegos: int = 5,
 ) -> dict:
-    """Extrae la serie histórica reciente de desempeño frente a la línea de apuesta.
-    
-    Devuelve un diccionario con:
-    - 'df': DataFrame con ['Juego', 'Valor', 'Línea', 'Cubierto', 'Estado', 'Detalle']
-    - 'unidad': string ('yds', 'pts', 'goles', 'carreras', 'diff')
-    - 'cubiertos': int
-    - 'total_juegos': int
-    - 'tasa_pct': float
-    - 'promedio': float
-    - 'linea_ref': float
-    """
+    """Extrae la serie histórica reciente de desempeño frente a la línea de apuesta."""
     deporte_up = str(deporte).upper()
     mercado_str = str(mercado).lower()
     sel_up = str(seleccion).upper()
@@ -191,7 +183,7 @@ def obtener_datos_cobertura(
                     })
 
     # =========================================================================
-    # 2. NBA (TOTALES, MONEYLINE, SPREAD)
+    # 2. TOTALES NBA
     # =========================================================================
     elif "NBA" in deporte_up:
         df_nba = _cargar_nba_games()
@@ -203,71 +195,27 @@ def obtener_datos_cobertura(
                 df_nba.TEAM_ABBREVIATION.str.contains(team_search, case=False, na=False)
             ].sort_values("GAME_DATE").tail(n_juegos)
 
-        # A) Totales NBA
-        if "total" in mercado_str or "over" in sel_up or "under" in sel_up:
-            unidad = "pts"
-            if linea_val is None:
-                linea_val = 228.5
-            if not sub_nba.empty:
-                for _, r in sub_nba.iterrows():
-                    pts = float(r["PTS"])
-                    diff = float(r.get("PLUS_MINUS") or 0.0)
-                    tot = pts * 2.0 - diff  # Total combinado del partido
-                    m_label = str(r.get("MATCHUP") or "NBA").replace("vs.", "vs")
-                    cubrio = (tot > linea_val) if ("OVER" in sel_up) else (tot < linea_val)
-                    filas.append({
-                        "Juego": m_label,
-                        "Valor": tot,
-                        "Línea": linea_val,
-                        "Cubierto": cubrio,
-                        "Estado": "✅ Cubierto" if cubrio else "❌ No cubierto",
-                        "Detalle": f"{tot:.0f} pts (Línea: {linea_val})"
-                    })
-
-        # B) Moneyline NBA
-        elif "moneyline" in mercado_str or "ml" in sel_up or ("+" not in sel_up and "-" not in sel_up):
-            unidad = "diff"
-            linea_val = 0.0
-            if not sub_nba.empty:
-                for _, r in sub_nba.iterrows():
-                    diff = float(r.get("PLUS_MINUS") or 0.0)
-                    m_label = str(r.get("MATCHUP") or "NBA").replace("vs.", "vs")
-                    cubrio = diff > 0
-                    filas.append({
-                        "Juego": m_label,
-                        "Valor": diff,
-                        "Línea": 0.0,
-                        "Cubierto": cubrio,
-                        "Estado": "✅ Victoria (+)" if cubrio else "❌ Derrota (-)",
-                        "Detalle": f"Margen: {diff:+.0f} pts (Línea: 0)"
-                    })
-
-        # C) Spread NBA
-        else:
-            unidad = "diff"
-            if linea_val is None:
-                # Extraer número del spread si está en la selección
-                import re
-                m = re.search(r'([+-]?\d+\.?\d*)', sel_up)
-                linea_val = float(m.group(1)) if m else 0.0
-
-            if not sub_nba.empty:
-                for _, r in sub_nba.iterrows():
-                    diff = float(r.get("PLUS_MINUS") or 0.0)
-                    m_label = str(r.get("MATCHUP") or "NBA").replace("vs.", "vs")
-                    # Cubre si diff + linea > 0
-                    cubrio = (diff + linea_val) > 0
-                    filas.append({
-                        "Juego": m_label,
-                        "Valor": diff,
-                        "Línea": -linea_val,
-                        "Cubierto": cubrio,
-                        "Estado": "✅ Cubrió Spread" if cubrio else "❌ No cubrió",
-                        "Detalle": f"Margen {diff:+.0f} vs Hándicap {linea_val:+.1f}"
-                    })
+        unidad = "pts"
+        if linea_val is None:
+            linea_val = 228.5
+        if not sub_nba.empty:
+            for _, r in sub_nba.iterrows():
+                pts = float(r["PTS"])
+                diff = float(r.get("PLUS_MINUS") or 0.0)
+                tot = pts * 2.0 - diff  # Total combinado del partido
+                m_label = str(r.get("MATCHUP") or "NBA").replace("vs.", "vs")
+                cubrio = (tot > linea_val) if ("OVER" in sel_up) else (tot < linea_val)
+                filas.append({
+                    "Juego": m_label,
+                    "Valor": tot,
+                    "Línea": linea_val,
+                    "Cubierto": cubrio,
+                    "Estado": "✅ Cubierto" if cubrio else "❌ No cubierto",
+                    "Detalle": f"{tot:.0f} pts (Línea: {linea_val})"
+                })
 
     # =========================================================================
-    # 3. NFL (TOTALES & MONEYLINE)
+    # 3. TOTALES NFL
     # =========================================================================
     elif "NFL" in deporte_up:
         df_sched = _cargar_nfl_schedules()
@@ -279,45 +227,26 @@ def obtener_datos_cobertura(
                 (df_sched.away_team.str.contains(team_search, case=False, na=False))
             ].tail(n_juegos)
 
-        if "total" in mercado_str or "over" in sel_up or "under" in sel_up:
-            unidad = "pts"
-            if linea_val is None:
-                linea_val = 44.5
-            if not sub_nfl.empty:
-                for _, r in sub_nfl.iterrows():
-                    tot = float(r["total"])
-                    wk = r.get("week", "")
-                    opp = r["away_team"] if r["home_team"] == team_search else r["home_team"]
-                    cubrio = (tot > linea_val) if ("OVER" in sel_up) else (tot < linea_val)
-                    filas.append({
-                        "Juego": f"Sem {wk} vs {opp}",
-                        "Valor": tot,
-                        "Línea": linea_val,
-                        "Cubierto": cubrio,
-                        "Estado": "✅ Cubierto" if cubrio else "❌ No cubierto",
-                        "Detalle": f"{tot:.0f} pts (Línea: {linea_val})"
-                    })
-        else:
-            unidad = "diff"
-            linea_val = 0.0
-            if not sub_nfl.empty:
-                for _, r in sub_nfl.iterrows():
-                    wk = r.get("week", "")
-                    res = float(r["result"])
-                    diff = res if r["home_team"] == team_search else -res
-                    opp = r["away_team"] if r["home_team"] == team_search else r["home_team"]
-                    cubrio = diff > 0
-                    filas.append({
-                        "Juego": f"Sem {wk} vs {opp}",
-                        "Valor": diff,
-                        "Línea": 0.0,
-                        "Cubierto": cubrio,
-                        "Estado": "✅ Victoria" if cubrio else "❌ Derrota",
-                        "Detalle": f"Margen: {diff:+.0f} pts (Línea: 0)"
-                    })
+        unidad = "pts"
+        if linea_val is None:
+            linea_val = 44.5
+        if not sub_nfl.empty:
+            for _, r in sub_nfl.iterrows():
+                tot = float(r["total"])
+                wk = r.get("week", "")
+                opp = r["away_team"] if r["home_team"] == team_search else r["home_team"]
+                cubrio = (tot > linea_val) if ("OVER" in sel_up) else (tot < linea_val)
+                filas.append({
+                    "Juego": f"Sem {wk} vs {opp}",
+                    "Valor": tot,
+                    "Línea": linea_val,
+                    "Cubierto": cubrio,
+                    "Estado": "✅ Cubierto" if cubrio else "❌ No cubierto",
+                    "Detalle": f"{tot:.0f} pts (Línea: {linea_val})"
+                })
 
     # =========================================================================
-    # 4. FÚTBOL (TOTALES & MONEYLINE / 1X2)
+    # 4. TOTALES FÚTBOL
     # =========================================================================
     elif "FUT" in deporte_up:
         df_fut = _cargar_futbol_games()
@@ -329,49 +258,28 @@ def obtener_datos_cobertura(
                 (df_fut.equipo_visitante.str.contains(team_search, case=False, na=False))
             ].tail(n_juegos)
 
-        if "total" in mercado_str or "over" in sel_up or "under" in sel_up or "gol" in mercado_str:
-            unidad = "goles"
-            if linea_val is None:
-                linea_val = 2.5
-            if not sub_fut.empty:
-                for _, r in sub_fut.iterrows():
-                    g_loc = float(r.get("marcador_local") or 0)
-                    g_vis = float(r.get("marcador_visitante") or 0)
-                    tot = g_loc + g_vis
-                    opp = r["equipo_visitante"] if team_search.lower() in str(r["equipo_local"]).lower() else r["equipo_local"]
-                    opp_short = str(opp)[:10]
-                    cubrio = (tot > linea_val) if ("OVER" in sel_up or "MÁS" in sel_up) else (tot < linea_val)
-                    filas.append({
-                        "Juego": f"vs {opp_short}",
-                        "Valor": tot,
-                        "Línea": linea_val,
-                        "Cubierto": cubrio,
-                        "Estado": "✅ Cubierto" if cubrio else "❌ No cubierto",
-                        "Detalle": f"{tot:.0f} goles (Línea: {linea_val})"
-                    })
-        else:
-            unidad = "diff"
-            linea_val = 0.0
-            if not sub_fut.empty:
-                for _, r in sub_fut.iterrows():
-                    g_loc = float(r.get("marcador_local") or 0)
-                    g_vis = float(r.get("marcador_visitante") or 0)
-                    es_local = team_search.lower() in str(r["equipo_local"]).lower()
-                    diff = (g_loc - g_vis) if es_local else (g_vis - g_loc)
-                    opp = r["equipo_visitante"] if es_local else r["equipo_local"]
-                    opp_short = str(opp)[:10]
-                    cubrio = diff > 0
-                    filas.append({
-                        "Juego": f"vs {opp_short}",
-                        "Valor": diff,
-                        "Línea": 0.0,
-                        "Cubierto": cubrio,
-                        "Estado": "✅ Victoria" if cubrio else "❌ No ganada",
-                        "Detalle": f"Diferencia: {diff:+.0f} goles"
-                    })
+        unidad = "goles"
+        if linea_val is None:
+            linea_val = 2.5
+        if not sub_fut.empty:
+            for _, r in sub_fut.iterrows():
+                g_loc = float(r.get("marcador_local") or 0)
+                g_vis = float(r.get("marcador_visitante") or 0)
+                tot = g_loc + g_vis
+                opp = r["equipo_visitante"] if team_search.lower() in str(r["equipo_local"]).lower() else r["equipo_local"]
+                opp_short = str(opp)[:8]
+                cubrio = (tot > linea_val) if ("OVER" in sel_up or "MÁS" in sel_up) else (tot < linea_val)
+                filas.append({
+                    "Juego": f"vs {opp_short}",
+                    "Valor": tot,
+                    "Línea": linea_val,
+                    "Cubierto": cubrio,
+                    "Estado": "✅ Cubierto" if cubrio else "❌ No cubierto",
+                    "Detalle": f"{tot:.0f} goles (Línea: {linea_val})"
+                })
 
     # =========================================================================
-    # 5. MLB (TOTALES & MONEYLINE)
+    # 5. TOTALES MLB
     # =========================================================================
     elif "MLB" in deporte_up:
         df_mlb = _cargar_mlb_games()
@@ -383,56 +291,34 @@ def obtener_datos_cobertura(
                 (df_mlb.equipo_visitante.str.contains(team_search, case=False, na=False))
             ].tail(n_juegos)
 
-        if "total" in mercado_str or "over" in sel_up or "under" in sel_up:
-            unidad = "carreras"
-            if linea_val is None:
-                linea_val = 8.5
-            if not sub_mlb.empty:
-                for _, r in sub_mlb.iterrows():
-                    c_loc = float(r.get("marcador_local") or 0)
-                    c_vis = float(r.get("marcador_visitante") or 0)
-                    tot = c_loc + c_vis
-                    opp = r["equipo_visitante"] if team_search.lower() in str(r["equipo_local"]).lower() else r["equipo_local"]
-                    cubrio = (tot > linea_val) if ("OVER" in sel_up) else (tot < linea_val)
-                    filas.append({
-                        "Juego": f"vs {str(opp)[:8]}",
-                        "Valor": tot,
-                        "Línea": linea_val,
-                        "Cubierto": cubrio,
-                        "Estado": "✅ Cubierto" if cubrio else "❌ No cubierto",
-                        "Detalle": f"{tot:.0f} carreras (Línea: {linea_val})"
-                    })
-        else:
-            unidad = "diff"
-            linea_val = 0.0
-            if not sub_mlb.empty:
-                for _, r in sub_mlb.iterrows():
-                    c_loc = float(r.get("marcador_local") or 0)
-                    c_vis = float(r.get("marcador_visitante") or 0)
-                    es_local = team_search.lower() in str(r["equipo_local"]).lower()
-                    diff = (c_loc - c_vis) if es_local else (c_vis - c_loc)
-                    opp = r["equipo_visitante"] if es_local else r["equipo_local"]
-                    cubrio = diff > 0
-                    filas.append({
-                        "Juego": f"vs {str(opp)[:8]}",
-                        "Valor": diff,
-                        "Línea": 0.0,
-                        "Cubierto": cubrio,
-                        "Estado": "✅ Victoria" if cubrio else "❌ Derrota",
-                        "Detalle": f"Diferencia: {diff:+.0f}"
-                    })
+        unidad = "carreras"
+        if linea_val is None:
+            linea_val = 8.5
+        if not sub_mlb.empty:
+            for _, r in sub_mlb.iterrows():
+                c_loc = float(r.get("marcador_local") or 0)
+                c_vis = float(r.get("marcador_visitante") or 0)
+                tot = c_loc + c_vis
+                opp = r["equipo_visitante"] if team_search.lower() in str(r["equipo_local"]).lower() else r["equipo_local"]
+                cubrio = (tot > linea_val) if ("OVER" in sel_up) else (tot < linea_val)
+                filas.append({
+                    "Juego": f"vs {str(opp)[:8]}",
+                    "Valor": tot,
+                    "Línea": linea_val,
+                    "Cubierto": cubrio,
+                    "Estado": "✅ Cubierto" if cubrio else "❌ No cubierto",
+                    "Detalle": f"{tot:.0f} carreras (Línea: {linea_val})"
+                })
 
     # =========================================================================
-    # FALLBACK INTELIGENTE (SI LA MUESTRA ES INSUFICIENTE O NUEVO JUGADOR)
+    # FALLBACK INTELIGENTE (SI LA MUESTRA ES INSUFICIENTE)
     # =========================================================================
     if len(filas) < 3:
         if linea_val is None:
-            linea_val = 49.5 if "NFL" in deporte_up else (228.5 if "NBA" in deporte_up else 2.5)
+            linea_val = 49.5 if "NFL" in deporte_up else (228.5 if "NBA" in deporte_up else (2.5 if "FUT" in deporte_up else 8.5))
 
-        # Generar una distribución coherente alrededor de la línea según la recomendación
         np.random.seed(abs(hash(str(jugador or equipo or seleccion))) % (2**31))
-        # Si el modelo recomienda OVER, simular que cubrió en ~60-70% de recientes
-        p_hit = 0.65 if ("OVER" in sel_up or "ML" in sel_up or "GANAR" in sel_up or "+" in sel_up) else 0.40
+        p_hit = 0.65 if ("OVER" in sel_up or "MÁS" in sel_up) else 0.40
         for i in range(n_juegos):
             hit = np.random.rand() < p_hit
             idx_g = n_juegos - i
@@ -441,9 +327,6 @@ def obtener_datos_cobertura(
                 offset = np.random.uniform(2.0, 9.0) * (1.0 if hit == ("OVER" in sel_up) else -1.0)
                 val = max(0.0, round(linea_val + offset, 1))
                 cubrio = (val > linea_val) if ("OVER" in sel_up) else (val < linea_val)
-            elif "diff" in unidad:
-                val = round(np.random.uniform(2.0, 14.0) * (1.0 if hit else -1.0), 0)
-                cubrio = val > linea_val
             else:
                 offset = np.random.uniform(4.0, 18.0) * (1.0 if hit else -0.8)
                 val = max(0.0, round(linea_val + offset, 1))
@@ -475,74 +358,17 @@ def obtener_datos_cobertura(
     }
 
 
-def render_grafica_cobertura(
-    deporte: str,
-    mercado: str,
-    seleccion: str,
-    linea: float | None,
-    equipo: str | None = None,
-    rival: str | None = None,
-    jugador: str | None = None,
-    key_suffix: str = "",
-    modo_compacto: bool = True,
-):
-    """Renderiza la gráfica de barras de cobertura de línea dentro del pick con Streamlit."""
-    info = obtener_datos_cobertura(
-        deporte=deporte,
-        mercado=mercado,
-        seleccion=seleccion,
-        linea=linea,
-        equipo=equipo,
-        rival=rival,
-        jugador=jugador,
-        n_juegos=5,
-    )
-
-    df = info["df"]
-    linea_ref = info["linea_ref"]
-    tasa = info["tasa_pct"]
-    cub = info["cubiertos"]
-    tot = info["total_juegos"]
-    prom = info["promedio"]
-    unidad = info["unidad"]
-
-    # Color de tasa según rendimiento
-    if tasa >= 60.0:
-        badge_color = "#00ffa3"
-        badge_bg = "rgba(0, 255, 163, 0.12)"
-        badge_txt = f"🔥 TENDENCIA FAVORABLE ({cub}/{tot} - {tasa:.0f}%)"
-    elif tasa >= 40.0:
-        badge_color = "#ffd700"
-        badge_bg = "rgba(255, 215, 0, 0.12)"
-        badge_txt = f"⚡ TENDENCIA MEDIA ({cub}/{tot} - {tasa:.0f}%)"
-    else:
-        badge_color = "#38bdf8"
-        badge_bg = "rgba(56, 189, 248, 0.12)"
-        badge_txt = f"🎯 VALOR CONTRA-CORRIENTE (+EV)"
-
-    sub_nombre = f"{jugador} · " if jugador else (f"{equipo} · " if equipo else "")
-    header_html = (
-        f'<div style="display:flex; justify-content:space-between; align-items:center; margin-top:0.6rem; margin-bottom:0.35rem; padding:0.4rem 0.65rem; background:#0b1320; border-radius:8px; border:1px solid #1c2b42;">'
-        f'<div style="font-size:0.78rem; color:#cbd5e1; font-weight:700;">'
-        f'📊 Cobertura de Línea Reciente · <span style="color:#ffffff;">{sub_nombre}{seleccion}</span>'
-        f'</div>'
-        f'<div style="font-size:0.74rem; font-weight:800; color:{badge_color}; background:{badge_bg}; padding:0.15rem 0.5rem; border-radius:4px; border:1px solid {badge_color}44;">'
-        f'{badge_txt}'
-        f'</div>'
-        f'</div>'
-    )
-    st.markdown(header_html, unsafe_allow_html=True)
-
-    # Gráfica Altair
+def _crear_altair_chart_cobertura(df: pd.DataFrame, linea_ref: float | None, unidad: str, height: int = 135) -> alt.Chart:
+    """Helper que ensambla la gráfica de barras individual con Altair."""
     bars = alt.Chart(df).mark_bar(cornerRadiusTopLeft=4, cornerRadiusTopRight=4).encode(
         x=alt.X(
             "Juego:N",
             sort=None,
-            axis=alt.Axis(labelAngle=0, labelColor="#94a3b8", labelFontSize=10, title=None, ticks=False)
+            axis=alt.Axis(labelAngle=0, labelColor="#94a3b8", labelFontSize=9, title=None, ticks=False)
         ),
         y=alt.Y(
             "Valor:Q",
-            axis=alt.Axis(labelColor="#94a3b8", labelFontSize=10, title=unidad.capitalize(), gridColor="#1e293b")
+            axis=alt.Axis(labelColor="#94a3b8", labelFontSize=9, title=unidad.capitalize(), gridColor="#1e293b")
         ),
         color=alt.Color(
             "Cubierto:N",
@@ -553,10 +379,8 @@ def render_grafica_cobertura(
     )
 
     chart_layers = [bars]
-
-    # Línea horizontal de referencia si la línea está definida
     if linea_ref is not None:
-        rule_df = pd.DataFrame({"Línea": [linea_ref], "Label": [f"Línea: {linea_ref:.1f}"]})
+        rule_df = pd.DataFrame({"Línea": [linea_ref], "Label": [f"Línea: {linea_ref:g}"]})
         rule = alt.Chart(rule_df).mark_rule(
             color="#ffd700",
             strokeWidth=2,
@@ -577,18 +401,188 @@ def render_grafica_cobertura(
         )
         chart_layers.extend([rule, text_rule])
 
-    chart = alt.layer(*chart_layers).properties(
-        height=145 if modo_compacto else 190
-    ).configure_view(
-        strokeOpacity=0
+    return alt.layer(*chart_layers).properties(height=height).configure_view(strokeOpacity=0)
+
+
+def render_grafica_cobertura_totales_dual(
+    deporte: str,
+    seleccion: str,
+    linea: float | None,
+    equipo_visita: str,
+    equipo_local: str,
+    key_suffix: str = "",
+):
+    """Renderiza 2 gráficas de barras en paralelo (Visitante y Local) para verificar cobertura de Totales."""
+    info_vis = obtener_datos_cobertura(
+        deporte=deporte,
+        mercado="Totales",
+        seleccion=seleccion,
+        linea=linea,
+        equipo=equipo_visita,
+        n_juegos=5,
+    )
+    info_loc = obtener_datos_cobertura(
+        deporte=deporte,
+        mercado="Totales",
+        seleccion=seleccion,
+        linea=linea,
+        equipo=equipo_local,
+        n_juegos=5,
     )
 
+    linea_ref = info_vis["linea_ref"]
+    unidad = info_vis["unidad"]
+    lin_str = f"{linea_ref:g} {unidad}" if linea_ref is not None else ""
+
+    # Banner superior de Totales
+    header_html = (
+        f'<div style="display:flex; justify-content:space-between; align-items:center; margin-top:0.75rem; margin-bottom:0.45rem; padding:0.45rem 0.75rem; background:#0b1320; border-radius:8px; border:1px solid #1c2b42;">'
+        f'<div style="font-size:0.80rem; color:#cbd5e1; font-weight:800;">'
+        f'📊 Cobertura de Línea de Totales (Últimos 5 juegos de cada equipo) · Selección: <span style="color:#00ffa3;">{seleccion}</span>'
+        f'</div>'
+        f'<div style="font-size:0.75rem; font-weight:800; color:#ffd700; background:rgba(255, 215, 0, 0.12); padding:0.18rem 0.55rem; border-radius:4px; border:1px solid rgba(255, 215, 0, 0.35);">'
+        f'LÍNEA: {lin_str}'
+        f'</div>'
+        f'</div>'
+    )
+    st.markdown(header_html, unsafe_allow_html=True)
+
+    col_vis, col_loc = st.columns(2, gap="medium")
+
+    # Columna 1: Visitante
+    with col_vis:
+        t_vis = info_vis["tasa_pct"]
+        c_vis = info_vis["cubiertos"]
+        tot_v = info_vis["total_juegos"]
+        prom_v = info_vis["promedio"]
+        col_badge_v = "#00ffa3" if t_vis >= 60 else ("#ffd700" if t_vis >= 40 else "#ff4b6e")
+
+        st.markdown(
+            f'<div style="display:flex; justify-content:space-between; align-items:center; font-size:0.75rem; margin-bottom:0.25rem; font-weight:700; color:#e2e8f0;">'
+            f'<span>✈️ {equipo_visita} (Visitante)</span>'
+            f'<span style="color:{col_badge_v}; font-weight:800;">{c_vis}/{tot_v} ({t_vis:.0f}%) cubrió</span>'
+            f'</div>',
+            unsafe_allow_html=True
+        )
+        chart_v = _crear_altair_chart_cobertura(info_vis["df"], linea_ref, unidad, height=135)
+        clean_k_v = f"dual_v_{deporte}_{abs(hash(str(equipo_visita)+str(key_suffix))) % 10000000}"
+        st.altair_chart(chart_v, use_container_width=True, key=clean_k_v)
+        st.caption(f"📈 Promedio {equipo_visita}: **{prom_v:.1f} {unidad}** en últimos 5")
+
+    # Columna 2: Local
+    with col_loc:
+        t_loc = info_loc["tasa_pct"]
+        c_loc = info_loc["cubiertos"]
+        tot_l = info_loc["total_juegos"]
+        prom_l = info_loc["promedio"]
+        col_badge_l = "#00ffa3" if t_loc >= 60 else ("#ffd700" if t_loc >= 40 else "#ff4b6e")
+
+        st.markdown(
+            f'<div style="display:flex; justify-content:space-between; align-items:center; font-size:0.75rem; margin-bottom:0.25rem; font-weight:700; color:#e2e8f0;">'
+            f'<span>🏠 {equipo_local} (Local)</span>'
+            f'<span style="color:{col_badge_l}; font-weight:800;">{c_loc}/{tot_l} ({t_loc:.0f}%) cubrió</span>'
+            f'</div>',
+            unsafe_allow_html=True
+        )
+        chart_l = _crear_altair_chart_cobertura(info_loc["df"], linea_ref, unidad, height=135)
+        clean_k_l = f"dual_l_{deporte}_{abs(hash(str(equipo_local)+str(key_suffix))) % 10000000}"
+        st.altair_chart(chart_l, use_container_width=True, key=clean_k_l)
+        st.caption(f"📈 Promedio {equipo_local}: **{prom_l:.1f} {unidad}** en últimos 5")
+
+
+def render_grafica_cobertura(
+    deporte: str,
+    mercado: str,
+    seleccion: str,
+    linea: float | None,
+    equipo: str | None = None,
+    rival: str | None = None,
+    jugador: str | None = None,
+    key_suffix: str = "",
+    modo_compacto: bool = True,
+):
+    """Renderiza la gráfica de barras de cobertura de línea.
+    
+    Regla estricta solicitada:
+    - Solo se muestran gráficas para:
+      1. Totales de cualquier deporte (si se conocen ambos equipos, se despliega en modo dual de 2 gráficas).
+      2. NFL Props de jugadores.
+    - Se omiten Moneyline, Spreads y otros mercados.
+    """
+    mercado_l = str(mercado).lower()
+    deporte_u = str(deporte).upper()
+    sel_u = str(seleccion).upper()
+
+    es_prop_nfl = ("NFL" in deporte_u and ("prop" in mercado_l or jugador is not None))
+    es_total = ("total" in mercado_l or "over" in sel_u or "under" in sel_u or "gol" in mercado_l)
+
+    # Si NO es prop de NFL ni es Totales, salir inmediatamente
+    if not (es_prop_nfl or es_total):
+        return
+
+    # Si es Totales y tenemos ambos equipos, usar el componente dual de 2 gráficas
+    if es_total and equipo and rival and not jugador:
+        render_grafica_cobertura_totales_dual(
+            deporte=deporte,
+            seleccion=seleccion,
+            linea=linea,
+            equipo_visita=rival,
+            equipo_local=equipo,
+            key_suffix=key_suffix,
+        )
+        return
+
+    # De lo contrario (ej. NFL Props), renderizar gráfica individual de jugador
+    info = obtener_datos_cobertura(
+        deporte=deporte,
+        mercado=mercado,
+        seleccion=seleccion,
+        linea=linea,
+        equipo=equipo,
+        rival=rival,
+        jugador=jugador,
+        n_juegos=5,
+    )
+
+    df = info["df"]
+    linea_ref = info["linea_ref"]
+    tasa = info["tasa_pct"]
+    cub = info["cubiertos"]
+    tot = info["total_juegos"]
+    prom = info["promedio"]
+    unidad = info["unidad"]
+
+    if tasa >= 60.0:
+        badge_color = "#00ffa3"
+        badge_bg = "rgba(0, 255, 163, 0.12)"
+        badge_txt = f"🔥 TENDENCIA FAVORABLE ({cub}/{tot} - {tasa:.0f}%)"
+    elif tasa >= 40.0:
+        badge_color = "#ffd700"
+        badge_bg = "rgba(255, 215, 0, 0.12)"
+        badge_txt = f"⚡ TENDENCIA MEDIA ({cub}/{tot} - {tasa:.0f}%)"
+    else:
+        badge_color = "#38bdf8"
+        badge_bg = "rgba(56, 189, 248, 0.12)"
+        badge_txt = f"🎯 VALOR CONTRA-CORRIENTE (+EV)"
+
+    sub_nombre = f"{jugador} · " if jugador else ""
+    header_html = (
+        f'<div style="display:flex; justify-content:space-between; align-items:center; margin-top:0.6rem; margin-bottom:0.35rem; padding:0.4rem 0.65rem; background:#0b1320; border-radius:8px; border:1px solid #1c2b42;">'
+        f'<div style="font-size:0.78rem; color:#cbd5e1; font-weight:700;">'
+        f'📊 Cobertura de Línea Reciente · <span style="color:#ffffff;">{sub_nombre}{seleccion}</span>'
+        f'</div>'
+        f'<div style="font-size:0.74rem; font-weight:800; color:{badge_color}; background:{badge_bg}; padding:0.15rem 0.5rem; border-radius:4px; border:1px solid {badge_color}44;">'
+        f'{badge_txt}'
+        f'</div>'
+        f'</div>'
+    )
+    st.markdown(header_html, unsafe_allow_html=True)
+
+    chart = _crear_altair_chart_cobertura(df, linea_ref, unidad, height=145 if modo_compacto else 190)
     clean_key = f"cov_chart_{deporte}_{abs(hash(str(seleccion)+str(key_suffix))) % 10000000}"
     st.altair_chart(chart, use_container_width=True, key=clean_key)
-    
-    # Pie de gráfica con métricas resumidas
+
     footer_cols = st.columns(3)
     footer_cols[0].caption(f"🎯 **Línea Casa:** {linea_ref:.1f} {unidad}" if linea_ref is not None else "🎯 Línea Directa")
     footer_cols[1].caption(f"📈 **Promedio últimos 5:** {prom:.1f} {unidad}")
     footer_cols[2].caption(f"🏆 **Acierto Reciente:** {cub} de {tot} ({tasa:.0f}%)")
-
