@@ -209,6 +209,6 @@ id,id_juego,fecha,hora_cdmx,equipo_local,equipo_visitante,mercado,seleccion,line
 ,401909935_ml,2026-11-04,21:30,Los Angeles Clippers,Miami Heat,Moneyline,Los Angeles Clippers ML,0.0,2.8,0.527,0.17,MEDIA,116.0,117.0,PERDIDA,-1.0,2026-11-05 13:23:53.263083
 ,401909935_spread,2026-11-04,21:30,Los Angeles Clippers,Miami Heat,Spread,Los Angeles Clippers +5.5,5.5,1.909,0.585,0.061,ALTA,116.0,117.0,GANADA,0.909,2026-11-05 13:23:53.263083
 ,401909935_tot,2026-11-04,21:30,Los Angeles Clippers,Miami Heat,Totales (UNDER),UNDER 233.5,233.5,1.909,0.571,0.047,MEDIA,116.0,117.0,GANADA,0.909,2026-11-05 13:23:53.263083
-,401909936_ml,2026-11-05,20:00,Phoenix Suns,Orlando Magic,Moneyline,Orlando Magic ML,0.0,1.962,0.555,0.045,MEDIA,,,PENDIENTE,,2026-11-05 13:23:54.399790
-,401909937_tot,2026-11-05,21:00,Golden State Warriors,Miami Heat,Totales (UNDER),UNDER 235.5,235.5,1.909,0.589,0.066,ALTA,,,PENDIENTE,,2026-11-05 13:23:54.399790
-,401909937_spread,2026-11-05,21:00,Golden State Warriors,Miami Heat,Spread,Miami Heat +7.5,7.5,1.909,0.571,0.047,MEDIA,,,PENDIENTE,,2026-11-05 13:23:54.399790
+,401909936_ml,2026-11-05,20:00,Phoenix Suns,Orlando Magic,Moneyline,Orlando Magic ML,0.0,1.962,0.555,0.045,MEDIA,,,PENDIENTE,,2026-11-05 20:29:49.223264
+,401909937_tot,2026-11-05,21:00,Golden State Warriors,Miami Heat,Totales (UNDER),UNDER 232.5,232.5,1.909,0.577,0.053,MEDIA,,,PENDIENTE,,2026-11-05 20:29:49.223264
+,401909937_spread,2026-11-05,21:00,Golden State Warriors,Miami Heat,Spread,Miami Heat +6.5,6.5,1.909,0.567,0.043,MEDIA,,,PENDIENTE,,2026-11-05 20:29:49.223264
