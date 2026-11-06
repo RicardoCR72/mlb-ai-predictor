@@ -650,6 +650,10 @@ def agregar_lineas_y_probabilidades(proyecciones, lineas):
         resultado["cuota_over"],
         resultado["cuota_under"],
     )
+    return seleccionar_candidatos(resultado)
+
+
+def seleccionar_candidatos(resultado):
     decimal = resultado["cuota_pick"].apply(american_a_decimal)
     try:
         from core.calibracion_probabilidades import calibrar_probabilidad
@@ -667,8 +671,8 @@ def agregar_lineas_y_probabilidades(proyecciones, lineas):
     resultado["estado_pick"] = "NO PICK"
     resultado.loc[resultado["linea"].isna(), "estado_pick"] = "SIN LINEA"
     umbrales_edge = {
-        "receptions": 0.75,
-        "receiving_yards": 10.0,
+        "receptions": 0.65,
+        "receiving_yards": 8.0,
         "passing_yards": 25.0,
         "passing_tds": 0.35,
         "rushing_yards": 20.0,
@@ -781,6 +785,86 @@ def agregar_lineas_y_probabilidades(proyecciones, lineas):
         resultado.get("player_passing_tds_avg_5", pd.Series(0.0, index=resultado.index)), errors="coerce"
     ).fillna(0.0)
     candidato &= ~(es_under_pass_tds & (pass_tds_promedio >= 2.0))
+
+    # Candado 7: Trampa de Líneas Bajas en WRs y TEs (Trap Lines)
+    # En la NFL, cuando una casa de apuestas fija la línea de un WR o TE en <= 22.0 yardas (o <= 1.5 recepciones),
+    # no se trata de un error de ineficiencia: indica que el QB titular está ausente, el jugador tiene conteo
+    # severo de snaps o el esquema ofensivo es inoperante. Prohibir OVERs en estas líneas trampa.
+    es_wr_te = resultado["position"].isin(["WR", "TE"])
+    trampa_rec_yds = es_wr_te & resultado["tipo_prop"].eq("receiving_yards") & resultado["seleccion"].eq("OVER") & (linea_val <= 22.0)
+    trampa_recs = es_wr_te & resultado["tipo_prop"].eq("receptions") & resultado["seleccion"].eq("OVER") & (linea_val <= 1.5)
+    candidato &= ~trampa_rec_yds
+    candidato &= ~trampa_recs
+
+    # Candado 8: Killswitch de QB Ausente / Incertidumbre de Pasador
+    # Si en un partido las casas publicaron líneas de pase para un equipo pero congelaron/retiraron las
+    # líneas del equipo rival, indica ausencia confirmada o duda crítica del QB titular.
+    # En ese escenario, se bloquean todos los OVERs del juego aéreo para la ofensiva sin línea de pase.
+    partidos_con_pase = resultado.loc[
+        resultado["tipo_prop"].isin(["passing_yards", "passing_tds"]) & resultado["linea"].notna()
+    ]
+    if not partidos_con_pase.empty and "game_id" in resultado.columns:
+        equipos_con_pase_dict = (
+            partidos_con_pase.groupby("game_id")["team"]
+            .unique()
+            .to_dict()
+        )
+        for gid, eq_con_pase in equipos_con_pase_dict.items():
+            juego_mask = resultado["game_id"].eq(gid)
+            todos_equipos = set(resultado.loc[juego_mask, "team"].dropna().unique())
+            sin_linea_pase = todos_equipos - set(eq_con_pase)
+            if sin_linea_pase:
+                es_over_aereo = (
+                    resultado["tipo_prop"].isin(["receiving_yards", "receptions", "passing_yards", "passing_tds"])
+                    & resultado["seleccion"].eq("OVER")
+                )
+                candidato &= ~(juego_mask & resultado["team"].isin(sin_linea_pase) & es_over_aereo)
+
+    # Candado 9: Diversificación y Anti-Canibalización en Receptores
+    es_rec_prop = resultado["tipo_prop"].isin(["receiving_yards", "receptions"])
+
+    # 9A. Máximo 1 pick por jugador individual (evita recomendar simultáneamente OVER recepciones + OVER yardas)
+    if (candidato & es_rec_prop).any():
+        indices_un_pick_jugador = (
+            resultado.loc[candidato & es_rec_prop]
+            .sort_values(
+                ["game_id", "player_id", "ev_estimado", "probabilidad_pick"],
+                ascending=[True, True, False, False],
+            )
+            .groupby(["game_id", "player_id"], sort=False)
+            .head(1)
+            .index
+        )
+        candidato &= ~es_rec_prop | resultado.index.isin(indices_un_pick_jugador)
+
+    # 9B. Máximo 2 picks aéreos (OVER) por equipo (evita colapso en cascada si la ofensiva no camina)
+    es_over_rec = es_rec_prop & resultado["seleccion"].eq("OVER")
+    if (candidato & es_over_rec).any():
+        indices_max_equipo_rec = (
+            resultado.loc[candidato & es_over_rec]
+            .sort_values(
+                ["game_id", "team", "ev_estimado", "probabilidad_pick"],
+                ascending=[True, True, False, False],
+            )
+            .groupby(["game_id", "team"], sort=False)
+            .head(2)
+            .index
+        )
+        candidato &= ~es_over_rec | resultado.index.isin(indices_max_equipo_rec)
+
+    # 9C. Máximo 3 picks de receptores (OVER) por partido en total (garantiza diversificación entre juegos)
+    if (candidato & es_over_rec).any():
+        indices_max_partido_rec = (
+            resultado.loc[candidato & es_over_rec]
+            .sort_values(
+                ["game_id", "ev_estimado", "probabilidad_pick"],
+                ascending=[True, False, False],
+            )
+            .groupby("game_id", sort=False)
+            .head(3)
+            .index
+        )
+        candidato &= ~es_over_rec | resultado.index.isin(indices_max_partido_rec)
 
     resultado.loc[candidato, "estado_pick"] = "CANDIDATO"
     revisar_lesion = candidato & resultado["player_injury_status"].eq(
