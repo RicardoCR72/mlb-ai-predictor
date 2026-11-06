@@ -209,6 +209,16 @@ id,id_juego,fecha,hora_cdmx,equipo_local,equipo_visitante,mercado,seleccion,line
 ,401909935_ml,2026-11-04,21:30,Los Angeles Clippers,Miami Heat,Moneyline,Los Angeles Clippers ML,0.0,2.8,0.527,0.17,MEDIA,116.0,117.0,PERDIDA,-1.0,2026-11-05 13:23:53.263083
 ,401909935_spread,2026-11-04,21:30,Los Angeles Clippers,Miami Heat,Spread,Los Angeles Clippers +5.5,5.5,1.909,0.585,0.061,ALTA,116.0,117.0,GANADA,0.909,2026-11-05 13:23:53.263083
 ,401909935_tot,2026-11-04,21:30,Los Angeles Clippers,Miami Heat,Totales (UNDER),UNDER 233.5,233.5,1.909,0.571,0.047,MEDIA,116.0,117.0,GANADA,0.909,2026-11-05 13:23:53.263083
-,401909937_spread,2026-11-05,21:00,Golden State Warriors,Miami Heat,Spread,Miami Heat +6.5,6.5,1.909,0.567,0.043,MEDIA,,,PENDIENTE,,2026-11-06 02:05:28.199334
-,401909936_ml,2026-11-05,20:00,Phoenix Suns,Orlando Magic,Moneyline,Orlando Magic ML,0.0,2.02,0.555,0.06,MEDIA,,,PENDIENTE,,2026-11-06 02:05:31.434746
-,401909937_tot,2026-11-05,21:00,Golden State Warriors,Miami Heat,Totales (UNDER),UNDER 235.5,235.5,1.909,0.589,0.066,ALTA,,,PENDIENTE,,2026-11-06 02:05:31.434746
+,401909937_spread,2026-11-05,21:00,Golden State Warriors,Miami Heat,Spread,Miami Heat +6.5,6.5,1.909,0.567,0.043,MEDIA,120.0,100.0,PERDIDA,-1.0,2026-11-06 13:06:17.496208
+,401909936_ml,2026-11-05,20:00,Phoenix Suns,Orlando Magic,Moneyline,Orlando Magic ML,0.0,2.02,0.555,0.06,MEDIA,117.0,104.0,PERDIDA,-1.0,2026-11-06 13:06:17.496208
+,401909937_tot,2026-11-05,21:00,Golden State Warriors,Miami Heat,Totales (UNDER),UNDER 235.5,235.5,1.909,0.589,0.066,ALTA,120.0,100.0,GANADA,0.909,2026-11-06 13:06:17.496208
+,401909287_ml,2026-11-06,18:00,Atlanta Hawks,Washington Wizards,Moneyline,Atlanta Hawks ML,0.0,1.389,0.814,0.094,ALTA,,,PENDIENTE,,2026-11-06 13:06:18.267119
+,401909287_spread,2026-11-06,18:00,Atlanta Hawks,Washington Wizards,Spread,Atlanta Hawks -6.5,-6.5,1.909,0.566,0.042,MEDIA,,,PENDIENTE,,2026-11-06 13:06:18.267119
+,401909288_ml,2026-11-06,18:00,Charlotte Hornets,Boston Celtics,Moneyline,Boston Celtics ML,0.0,1.309,0.81,0.046,MEDIA,,,PENDIENTE,,2026-11-06 13:06:18.267119
+,401909288_tot,2026-11-06,18:00,Charlotte Hornets,Boston Celtics,Totales (OVER),OVER 209.5,209.5,1.909,0.583,0.059,ALTA,,,PENDIENTE,,2026-11-06 13:06:18.267119
+,401909289_ml,2026-11-06,18:30,Cleveland Cavaliers,Philadelphia 76ers,Moneyline,Cleveland Cavaliers ML,0.0,2.24,0.701,0.254,ALTA,,,PENDIENTE,,2026-11-06 13:06:18.267119
+,401909289_spread,2026-11-06,18:30,Cleveland Cavaliers,Philadelphia 76ers,Spread,Cleveland Cavaliers +2.5,2.5,1.909,0.604,0.08,ALTA,,,PENDIENTE,,2026-11-06 13:06:18.267119
+,401909292_spread,2026-11-06,19:00,Milwaukee Bucks,Toronto Raptors,Spread,Milwaukee Bucks +6.5,6.5,1.909,0.568,0.044,MEDIA,,,PENDIENTE,,2026-11-06 13:06:18.267119
+,401909293_ml,2026-11-06,19:00,New Orleans Pelicans,Minnesota Timberwolves,Moneyline,Minnesota Timberwolves ML,0.0,1.543,0.733,0.085,ALTA,,,PENDIENTE,,2026-11-06 13:06:18.267119
+,401909294_tot,2026-11-06,21:00,Los Angeles Lakers,Portland Trail Blazers,Totales (UNDER),UNDER 231.5,231.5,1.909,0.555,0.031,MEDIA,,,PENDIENTE,,2026-11-06 13:06:18.267119
+,401909295_spread,2026-11-06,21:00,Sacramento Kings,San Antonio Spurs,Spread,Sacramento Kings +15.5,15.5,1.909,0.609,0.085,ALTA,,,PENDIENTE,,2026-11-06 13:06:18.267119
