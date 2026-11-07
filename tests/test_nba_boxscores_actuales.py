@@ -34,3 +34,4 @@ def test_perfiles_recientes_usan_partidos_2026():
     # Al menos el 80% de los equipos deben tener juegos con fecha en 2026
     equipos_con_2026 = sum(1 for p in perfiles.values() if "2026-" in str(p.get("LAST_DATE", "")))
     assert equipos_con_2026 >= 25
+

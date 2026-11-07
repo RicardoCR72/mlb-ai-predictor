@@ -1021,16 +1021,25 @@ hay_pendientes_por_liquidar = any(
     for p in predicciones_actuales
 )
 
-# Nivel 1: Selector principal de mercado o rendimiento total consolidado
+# Nivel 1: Selector principal de mercado, props o rendimiento total consolidado
 mercado = st.radio(
     "Mercado NBA",
-    ["Totales de Partido", "Moneyline (Ganador Directo)", "Spread (Línea de Puntos)", "🏆 Rendimiento Total NBA"],
+    [
+        "Totales de Partido",
+        "Moneyline (Ganador Directo)",
+        "Spread (Línea de Puntos)",
+        "🎯 Props de Jugadores (0 Créditos)",
+        "🏆 Rendimiento Total NBA",
+    ],
     horizontal=True,
     label_visibility="collapsed",
     key="nba_mercado_principal",
 )
 
-if mercado == "🏆 Rendimiento Total NBA":
+if mercado == "🎯 Props de Jugadores (0 Créditos)":
+    from nba.ui_props import renderizar_ui_props_nba
+    renderizar_ui_props_nba()
+elif mercado == "🏆 Rendimiento Total NBA":
     from nba.ui_rendimiento_total import render as render_rendimiento_total_nba
     render_rendimiento_total_nba()
 else:

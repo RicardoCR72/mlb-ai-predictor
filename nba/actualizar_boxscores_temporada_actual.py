@@ -266,3 +266,4 @@ if __name__ == "__main__":
     except Exception:
         pass
     actualizar_dataset_temporada_actual()
+

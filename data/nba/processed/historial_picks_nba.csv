@@ -229,11 +229,11 @@ id,id_juego,fecha,hora_cdmx,equipo_local,equipo_visitante,mercado,seleccion,line
 2424.0,401909089_ml,2026-10-20,17:00,New York Knicks,Philadelphia 76ers,Moneyline,New York Knicks ML,0.0,1.65,0.765,0.159,ALTA,100.0,106.0,PERDIDA,-1.0,2026-10-25 00:10:48.000000
 2423.0,401909088_tot,2026-10-20,13:00,Detroit Pistons,Boston Celtics,Totales (UNDER),UNDER 228.0,228.0,1.909,0.586,0.29,MEDIA,121.0,113.0,PERDIDA,-1.0,2026-10-25 00:10:48.000000
 2422.0,401909088_ml,2026-10-20,13:00,Detroit Pistons,Boston Celtics,Moneyline,Boston Celtics ML,0.0,1.65,0.651,0.045,ALTA,121.0,113.0,PERDIDA,-1.0,2026-10-25 00:10:48.000000
-,401909938_tot,2026-11-07,16:00,Indiana Pacers,Denver Nuggets,Totales (UNDER),UNDER 229.5,229.5,1.909,0.613,0.089,ALTA,,,PENDIENTE,,2026-11-07 13:27:44.160074
-,401909939_tot,2026-11-07,18:30,Atlanta Hawks,Brooklyn Nets,Totales (UNDER),UNDER 226.5,226.5,1.909,0.556,0.033,MEDIA,,,PENDIENTE,,2026-11-07 13:27:44.160074
-,401909940_spread,2026-11-07,19:00,Cleveland Cavaliers,New York Knicks,Spread,Cleveland Cavaliers +5.5,5.5,1.909,0.576,0.052,MEDIA,,,PENDIENTE,,2026-11-07 13:27:44.160074
-,401909941_tot,2026-11-07,19:00,Oklahoma City Thunder,Washington Wizards,Totales (UNDER),UNDER 222.5,222.5,1.909,0.62,0.096,MEDIA,,,PENDIENTE,,2026-11-07 13:27:44.160074
-,401909941_spread,2026-11-07,19:00,Oklahoma City Thunder,Washington Wizards,Spread,Washington Wizards +12.5,12.5,1.909,0.57,0.046,MEDIA,,,PENDIENTE,,2026-11-07 13:27:44.160074
-,401909942_tot,2026-11-07,19:30,Golden State Warriors,Orlando Magic,Totales (UNDER),UNDER 222.5,222.5,1.909,0.615,0.091,ALTA,,,PENDIENTE,,2026-11-07 13:27:44.160074
-,401909944_tot,2026-11-07,21:00,Portland Trail Blazers,San Antonio Spurs,Totales (UNDER),UNDER 229.5,229.5,1.909,0.579,0.056,ALTA,,,PENDIENTE,,2026-11-07 13:27:44.160074
-,401909944_spread,2026-11-07,21:00,Portland Trail Blazers,San Antonio Spurs,Spread,Portland Trail Blazers +5.5,5.5,1.909,0.564,0.04,MEDIA,,,PENDIENTE,,2026-11-07 13:27:44.160074
+,401909938_tot,2026-11-07,16:00,Indiana Pacers,Denver Nuggets,Totales (UNDER),UNDER 229.5,229.5,1.909,0.613,0.089,ALTA,,,PENDIENTE,,2026-11-07 13:50:13.404111
+,401909939_tot,2026-11-07,18:30,Atlanta Hawks,Brooklyn Nets,Totales (UNDER),UNDER 226.5,226.5,1.909,0.556,0.033,MEDIA,,,PENDIENTE,,2026-11-07 13:50:13.404111
+,401909940_spread,2026-11-07,19:00,Cleveland Cavaliers,New York Knicks,Spread,Cleveland Cavaliers +5.5,5.5,1.909,0.576,0.052,MEDIA,,,PENDIENTE,,2026-11-07 13:50:13.404111
+,401909941_tot,2026-11-07,19:00,Oklahoma City Thunder,Washington Wizards,Totales (UNDER),UNDER 222.5,222.5,1.909,0.62,0.096,MEDIA,,,PENDIENTE,,2026-11-07 13:50:13.404111
+,401909941_spread,2026-11-07,19:00,Oklahoma City Thunder,Washington Wizards,Spread,Washington Wizards +12.5,12.5,1.909,0.57,0.046,MEDIA,,,PENDIENTE,,2026-11-07 13:50:13.404111
+,401909942_tot,2026-11-07,19:30,Golden State Warriors,Orlando Magic,Totales (UNDER),UNDER 222.5,222.5,1.909,0.615,0.091,ALTA,,,PENDIENTE,,2026-11-07 13:50:13.404111
+,401909944_tot,2026-11-07,21:00,Portland Trail Blazers,San Antonio Spurs,Totales (UNDER),UNDER 229.5,229.5,1.909,0.579,0.056,ALTA,,,PENDIENTE,,2026-11-07 13:50:13.404111
+,401909944_spread,2026-11-07,21:00,Portland Trail Blazers,San Antonio Spurs,Spread,Portland Trail Blazers +5.5,5.5,1.909,0.564,0.04,MEDIA,,,PENDIENTE,,2026-11-07 13:50:13.404111
