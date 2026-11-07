@@ -611,7 +611,7 @@ Los partidos de hoy ({n_liquidados} juegos) ya finalizaron y están auditados en
                 "prob": pick_info["probabilidad"],
             } if conf in ["ALTA", "MEDIA", "LONGSHOT"] else None
 
-            ev_num = ev_calc * 100.0
+            ev_num = float(ev_calc)
             if conf == "ALTA" or ev_num >= 10.0:
                 estrellas_nba = "⭐⭐⭐"
             elif conf == "MEDIA" or ev_num >= 5.0:

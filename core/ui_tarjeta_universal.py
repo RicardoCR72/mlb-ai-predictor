@@ -105,10 +105,11 @@ def render_tarjeta_universal(
             if subtitulo:
                 st.caption(subtitulo)
         with c2:
+            signo_ev = "+" if ev_pct > 0 else ""
             st.markdown(
                 f"<div style='text-align:right;'>"
                 f"<span style='font-size:1.1rem;'>{estrellas}</span><br>"
-                f"<b style='color:{color_ev};'>+{ev_pct:.1f}% EV</b>"
+                f"<b style='color:{color_ev};'>{signo_ev}{ev_pct:.1f}% EV</b>"
                 f"</div>",
                 unsafe_allow_html=True
             )
@@ -183,3 +184,4 @@ def render_tarjeta_universal(
                 render_boton_boleta(boton_boleta, key=f"btn_slip_{key_graf}")
             except Exception:
                 pass
+
