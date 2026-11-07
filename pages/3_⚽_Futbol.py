@@ -724,55 +724,55 @@ def render_cartelera_futbol(predicciones: list[dict], mercado_activo: str):
             else:
                 st.markdown(pick_box_html, unsafe_allow_html=True)
 
-            # Gráfica interactiva de barras de cobertura de línea (Exclusivo para Totales: 2 gráficas en paralelo)
-            m_actual = str(pick_data.get("mercado") or mercado_tipo).lower()
-            if "total" in m_actual or "gol" in m_actual:
-                try:
-                    from core.ui_grafica_cobertura import render_grafica_cobertura_totales_dual
-                    render_grafica_cobertura_totales_dual(
-                        deporte="FUTBOL",
-                        seleccion=str(pick_data.get("seleccion", "")),
-                        linea=float(p.get("linea_total", 2.5)),
-                        equipo_visita=str(vis_name),
-                        equipo_local=str(loc_name),
-                        key_suffix=f"fut_tot_{p.get('id_evento', idx)}",
-                    )
-                except Exception as e_cov_f:
-                    pass
+                # Gráfica interactiva de barras de cobertura de línea (Exclusivo para Totales: 2 gráficas en paralelo)
+                m_actual = str(pick_data.get("mercado") or mercado_tipo).lower()
+                if "total" in m_actual or "gol" in m_actual:
+                    try:
+                        from core.ui_grafica_cobertura import render_grafica_cobertura_totales_dual
+                        render_grafica_cobertura_totales_dual(
+                            deporte="FUTBOL",
+                            seleccion=str(pick_data.get("seleccion", "")),
+                            linea=float(p.get("linea_total", 2.5)),
+                            equipo_visita=str(vis_name),
+                            equipo_local=str(loc_name),
+                            key_suffix=f"fut_tot_{p.get('id_evento', idx)}",
+                        )
+                    except Exception as e_cov_f:
+                        pass
 
-            if confianza in ["ALTA", "MEDIA"]:
-                from core.ui_boleta import render_boton_boleta
-                partido_id = str(p.get("id_partido") or p.get("id_evento") or f"{p.get('equipo_visita')}_{p.get('equipo_local')}_{idx}")
-                clean_mercado = str(pick_data.get("mercado")).replace(" ", "_").replace("(", "").replace(")", "")
-                slip_item = {
-                    "id": f"FUTBOL_{partido_id}_{clean_mercado}_{pick_data.get('seleccion')}",
-                    "deporte": f"Fútbol ({p.get('liga_nombre', 'Ligas')})",
-                    "icono": "⚽",
-                    "partido": f"{p.get('equipo_visita')} vs {p.get('equipo_local')}",
-                    "mercado": pick_data.get("mercado"),
-                    "seleccion": pick_data.get("seleccion"),
-                    "momio": pick_data.get("cuota"),
-                    "prob": pick_data.get("probabilidad"),
-                }
-                render_boton_boleta(slip_item, key=f"btn_futbol_slip_{partido_id}_{clean_mercado}_{idx}")
-            elif confianza == "LONGSHOT":
-                st.warning(f"⚠️ **Longshot de Alto Riesgo:** Aunque tiene valor matemático (+EV +{ev_calc_f:.1f}%), la probabilidad de ganar es solo del {prob_f*100:.1f}%. Recomendación: Reducir stake a 0.25u o descartar.")
-                from core.ui_boleta import render_boton_boleta
-                partido_id = str(p.get("id_partido") or p.get("id_evento") or f"{p.get('equipo_visita')}_{p.get('equipo_local')}_{idx}")
-                clean_mercado = str(pick_data.get("mercado")).replace(" ", "_").replace("(", "").replace(")", "")
-                slip_item = {
-                    "id": f"FUTBOL_{partido_id}_{clean_mercado}_{pick_data.get('seleccion')}",
-                    "deporte": f"Fútbol ({p.get('liga_nombre', 'Ligas')})",
-                    "icono": "⚽",
-                    "partido": f"{p.get('equipo_visita')} vs {p.get('equipo_local')}",
-                    "mercado": pick_data.get("mercado"),
-                    "seleccion": pick_data.get("seleccion"),
-                    "momio": pick_data.get("cuota"),
-                    "prob": pick_data.get("probabilidad"),
-                }
-                render_boton_boleta(slip_item, key=f"btn_futbol_slip_{partido_id}_{clean_mercado}_{idx}")
-            else:
-                st.caption("🛡️ *Filtro de Disciplina Activo: Este partido está en la Zona Muerta (edge < +4.5% o margen de goles insuficiente). Descartado para apuestas.*")
+                if confianza in ["ALTA", "MEDIA"]:
+                    from core.ui_boleta import render_boton_boleta
+                    partido_id = str(p.get("id_partido") or p.get("id_evento") or f"{p.get('equipo_visita')}_{p.get('equipo_local')}_{idx}")
+                    clean_mercado = str(pick_data.get("mercado")).replace(" ", "_").replace("(", "").replace(")", "")
+                    slip_item = {
+                        "id": f"FUTBOL_{partido_id}_{clean_mercado}_{pick_data.get('seleccion')}",
+                        "deporte": f"Fútbol ({p.get('liga_nombre', 'Ligas')})",
+                        "icono": "⚽",
+                        "partido": f"{p.get('equipo_visita')} vs {p.get('equipo_local')}",
+                        "mercado": pick_data.get("mercado"),
+                        "seleccion": pick_data.get("seleccion"),
+                        "momio": pick_data.get("cuota"),
+                        "prob": pick_data.get("probabilidad"),
+                    }
+                    render_boton_boleta(slip_item, key=f"btn_futbol_slip_{partido_id}_{clean_mercado}_{idx}")
+                elif confianza == "LONGSHOT":
+                    st.warning(f"⚠️ **Longshot de Alto Riesgo:** Aunque tiene valor matemático (+EV +{ev_calc_f:.1f}%), la probabilidad de ganar es solo del {prob_f*100:.1f}%. Recomendación: Reducir stake a 0.25u o descartar.")
+                    from core.ui_boleta import render_boton_boleta
+                    partido_id = str(p.get("id_partido") or p.get("id_evento") or f"{p.get('equipo_visita')}_{p.get('equipo_local')}_{idx}")
+                    clean_mercado = str(pick_data.get("mercado")).replace(" ", "_").replace("(", "").replace(")", "")
+                    slip_item = {
+                        "id": f"FUTBOL_{partido_id}_{clean_mercado}_{pick_data.get('seleccion')}",
+                        "deporte": f"Fútbol ({p.get('liga_nombre', 'Ligas')})",
+                        "icono": "⚽",
+                        "partido": f"{p.get('equipo_visita')} vs {p.get('equipo_local')}",
+                        "mercado": pick_data.get("mercado"),
+                        "seleccion": pick_data.get("seleccion"),
+                        "momio": pick_data.get("cuota"),
+                        "prob": pick_data.get("probabilidad"),
+                    }
+                    render_boton_boleta(slip_item, key=f"btn_futbol_slip_{partido_id}_{clean_mercado}_{idx}")
+                else:
+                    st.caption("🛡️ *Filtro de Disciplina Activo: Este partido está en la Zona Muerta (edge < +4.5% o margen de goles insuficiente). Descartado para apuestas.*")
 
             with st.expander("Ver detalles de cuotas y desglose"):
                 col_d1, col_d2 = st.columns(2)

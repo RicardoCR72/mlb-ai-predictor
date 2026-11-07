@@ -630,7 +630,7 @@ Los partidos de hoy ({n_liquidados} juegos) ya finalizaron y están auditados en
                 proyeccion_modelo=proy_c,
                 seleccion=pick_info["seleccion"],
                 momio_americano=pick_info["momio"],
-                cuota_decimal=float(cuota_dec_loc if pick_info["seleccion"].startswith(str(p.get('equipo_local'))) else cuota_dec_vis),
+                cuota_decimal=float(c_dec or 1.909),
                 ev_pct=ev_num,
                 estrellas=estrellas_nba,
                 tendencia=pick_info["detalle"],
