@@ -57,3 +57,4 @@ def test_calcular_impacto_lesiones_partido():
     assert "candado_lesion" in res
     # El ajuste total debe ser negativo o cero (las lesiones reducen puntos)
     assert res["ajuste_total_puntos"] <= 0.0
+

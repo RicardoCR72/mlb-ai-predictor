@@ -312,3 +312,4 @@ def calcular_impacto_lesiones_partido(
         "alertas": alertas,
         "candado_lesion": hay_candado,
     }
+

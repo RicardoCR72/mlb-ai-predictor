@@ -18,9 +18,16 @@ logging.basicConfig(
 )
 logger = logging.getLogger("nba_pipeline_auto")
 
-def ejecutar_pipeline_nba(force_refresh: bool = True):
+def ejecutar_pipeline_nba(force_refresh: bool = True, sincronizar_boxscores: bool = False):
     from nba.registro import liquidar_partidos_pendientes_nba
     from nba.predecir_hoy import predecir_partidos_hoy
+
+    if sincronizar_boxscores:
+        try:
+            from nba.actualizar_boxscores_temporada_actual import actualizar_dataset_temporada_actual
+            actualizar_dataset_temporada_actual()
+        except Exception as e_box:
+            logger.warning(f"Error sincronizando boxscores recientes: {e_box}")
 
     logger.info("🏀 [1/2] Liquidando partidos concluidos y actualizando marcadores finales...")
     res_liq = liquidar_partidos_pendientes_nba()
