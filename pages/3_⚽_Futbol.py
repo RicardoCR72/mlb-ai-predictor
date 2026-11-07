@@ -702,7 +702,7 @@ def render_cartelera_futbol(predicciones: list[dict], mercado_activo: str):
                 render_tarjeta_universal(
                     deporte="FUTBOL",
                     titulo=f"{vis_name} vs {loc_name}",
-                    subtitulo=f"⏰ {hora_cdmx} CDMX · {bandera} {liga_nom}",
+                    subtitulo=f"⏰ {hora_txt} · {bandera} {liga_nom}",
                     mercado=f"⚽ {pick_data.get('mercado')}",
                     linea_casa=lin_fut,
                     proyeccion_modelo=proy_fut,

@@ -643,8 +643,8 @@ Los partidos de hoy ({n_liquidados} juegos) ya finalizaron y están auditados en
                 etiqueta_proyeccion=lbl_p,
                 boton_boleta=slip_item,
             )
-                render_boton_boleta(slip_item, key=f"btn_nba_slip_{evento_id}_{clean_mercado}_{idx}")
-            else:
+
+            if conf == "NEUTRAL":
                 st.caption("🛡️ *Filtro de Disciplina Activo: Este partido está en la Zona Muerta (edge < +4.5%). Descartado para apuestas.*")
 
             with st.expander("📊 Ver desglose analítico completo (Spreads, Totales y Probabilidades 1X2)"):
