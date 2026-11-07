@@ -629,33 +629,7 @@ Los partidos de hoy ({n_liquidados} juegos) ya finalizaron y están auditados en
             else:
                 estrellas_nba = "⚪"
 
-            render_tarjeta_universal(
-                deporte="NBA",
-                titulo=f"{p.get('equipo_visita')} @ {p.get('equipo_local')}",
-                subtitulo=f"⏰ {p.get('hora_cdmx', '')} CDMX · 🏟️ {p.get('estadio', 'NBA Arena')}",
-                mercado=f"🏀 {mercado}",
-                linea_casa=lin_c,
-                proyeccion_modelo=proy_c,
-                seleccion=pick_info["seleccion"],
-                momio_americano=pick_info["momio"],
-                cuota_decimal=float(c_dec or 1.909),
-                ev_pct=ev_num,
-                estrellas=estrellas_nba,
-                tendencia=pick_info["detalle"],
-                alerta_contexto=alerta_msg,
-                equipo=str(p.get("equipo_local") or p.get("abbr_local")),
-                rival=str(p.get("equipo_visita") or p.get("abbr_visita")),
-                desplegar_grafica_directa=False,
-                key_suffix=f"nba_match_{evento_id}",
-                etiqueta_linea=lbl_l,
-                etiqueta_proyeccion=lbl_p,
-                boton_boleta=slip_item,
-            )
-
-            if conf == "NEUTRAL":
-                st.caption("🛡️ *Filtro de Disciplina Activo: Este partido está en la Zona Muerta (edge < +4.5%). Descartado para apuestas.*")
-
-            with st.expander("📊 Ver desglose analítico completo (Spreads, Totales y Probabilidades 1X2)"):
+            def _render_nba_desglose():
                 col_c1, col_c2, col_c3 = st.columns(3)
                 with col_c1:
                     st.caption("🏀 **Probabilidad Ganador (Moneyline)**")
@@ -683,11 +657,11 @@ Los partidos de hoy ({n_liquidados} juegos) ya finalizaron y están auditados en
                     st.write(f"Línea: **{spread_det}**")
                     st.markdown(f"<span class='stat-pill'>Cubrir spread: Local {prob_cov_loc:.1f}% | Visita {prob_cov_vis:.1f}%</span>", unsafe_allow_html=True)
 
-            # Reporte médico y de bajas oficiales ESPN
             les_vis = p.get("lesiones_visita", [])
             les_loc = p.get("lesiones_local", [])
+            fn_lesiones = None
             if les_vis or les_loc:
-                with st.expander(f"🏥 Reporte de Lesiones ESPN ({len(les_vis)} en {p.get('abbr_visita')} vs {len(les_loc)} en {p.get('abbr_local')})"):
+                def _render_nba_lesiones():
                     c_inj1, c_inj2 = st.columns(2)
                     with c_inj1:
                         st.caption(f"**{p.get('equipo_visita')} ({len(les_vis)} bajas/dudas)**")
@@ -708,6 +682,35 @@ Los partidos de hoy ({n_liquidados} juegos) ya finalizaron y están auditados en
                                 unsafe_allow_html=True
                             )
                     st.caption(f"Ajuste en proyecciones: Spread **{float(p.get('ajuste_spread_lesiones', 0.0)):+.1f} pts** | Totales **{float(p.get('ajuste_totales_lesiones', 0.0)):+.1f} pts**")
+                fn_lesiones = _render_nba_lesiones
+
+            render_tarjeta_universal(
+                deporte="NBA",
+                titulo=f"{p.get('equipo_visita')} @ {p.get('equipo_local')}",
+                subtitulo=f"⏰ {p.get('hora_cdmx', '')} CDMX · 🏟️ {p.get('estadio', 'NBA Arena')}",
+                mercado=f"🏀 {mercado}",
+                linea_casa=lin_c,
+                proyeccion_modelo=proy_c,
+                seleccion=pick_info["seleccion"],
+                momio_americano=pick_info["momio"],
+                cuota_decimal=float(c_dec or 1.909),
+                ev_pct=ev_num,
+                estrellas=estrellas_nba,
+                tendencia=pick_info["detalle"],
+                alerta_contexto=alerta_msg,
+                equipo=str(p.get("equipo_local") or p.get("abbr_local")),
+                rival=str(p.get("equipo_visita") or p.get("abbr_visita")),
+                desplegar_grafica_directa=False,
+                key_suffix=f"nba_match_{evento_id}",
+                etiqueta_linea=lbl_l,
+                etiqueta_proyeccion=lbl_p,
+                boton_boleta=slip_item,
+                contenido_desglose=_render_nba_desglose,
+                contenido_lesiones=fn_lesiones,
+            )
+
+            if conf == "NEUTRAL":
+                st.caption("🛡️ *Filtro de Disciplina Activo: Este partido está en la Zona Muerta (edge < +4.5%). Descartado para apuestas.*")
 
     render_widget_boleta()
 

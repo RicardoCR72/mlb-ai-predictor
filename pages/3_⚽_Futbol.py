@@ -713,6 +713,21 @@ def render_cartelera_futbol(predicciones: list[dict], mercado_activo: str):
                     "prob": pick_data.get("probabilidad"),
                 } if confianza in ["ALTA", "MEDIA", "LONGSHOT"] else None
 
+                def _render_futbol_desglose():
+                    col_d1, col_d2 = st.columns(2)
+                    with col_d1:
+                        st.write("**Cuotas DraftKings Moneyline:**")
+                        st.write(f"- {p.get('equipo_local')} (Local): {p.get('moneyline_local')} ({p.get('ml_local_dec')})")
+                        st.write(f"- Empate: {p.get('moneyline_empate')} ({p.get('ml_empate_dec')})")
+                        st.write(f"- {p.get('equipo_visita')} (Visita): {p.get('moneyline_visita')} ({p.get('ml_visita_dec')})")
+                    with col_d2:
+                        st.write("**Totales y Mercados Alternativos:**")
+                        st.write(f"- OVER {p.get('linea_total', 2.5):g}: {p.get('over_momio')} ({p.get('over_momio_dec')})")
+                        st.write(f"- UNDER {p.get('linea_total', 2.5):g}: {p.get('under_momio')} ({p.get('under_momio_dec')})")
+                        st.write(f"- BTTS SÍ: **{p.get('prob_btts_si', 0.52)*100:.1f}%** · BTTS NO: **{p.get('prob_btts_no', 0.48)*100:.1f}%**")
+                        st.write(f"- Doble Op 1X: **{p.get('prob_1x', 0.70)*100:.1f}%** · X2: **{p.get('prob_x2', 0.60)*100:.1f}%**")
+                        st.write(f"- Edge del Pick: **+{pick_data.get('edge', 0.0)*100:.1f}%**")
+
                 render_tarjeta_universal(
                     deporte="FUTBOL",
                     titulo=f"{vis_name} vs {loc_name}",
@@ -734,6 +749,7 @@ def render_cartelera_futbol(predicciones: list[dict], mercado_activo: str):
                     etiqueta_linea=lbl_lf,
                     etiqueta_proyeccion=lbl_pf,
                     boton_boleta=slip_f,
+                    contenido_desglose=_render_futbol_desglose,
                 )
             else:
                 st.markdown(pick_box_html, unsafe_allow_html=True)
@@ -788,20 +804,20 @@ def render_cartelera_futbol(predicciones: list[dict], mercado_activo: str):
                 else:
                     st.caption("🛡️ *Filtro de Disciplina Activo: Este partido está en la Zona Muerta (edge < +4.5% o margen de goles insuficiente). Descartado para apuestas.*")
 
-            with st.expander("Ver detalles de cuotas y desglose"):
-                col_d1, col_d2 = st.columns(2)
-                with col_d1:
-                    st.write("**Cuotas DraftKings Moneyline:**")
-                    st.write(f"- {p.get('equipo_local')} (Local): {p.get('moneyline_local')} ({p.get('ml_local_dec')})")
-                    st.write(f"- Empate: {p.get('moneyline_empate')} ({p.get('ml_empate_dec')})")
-                    st.write(f"- {p.get('equipo_visita')} (Visita): {p.get('moneyline_visita')} ({p.get('ml_visita_dec')})")
-                with col_d2:
-                    st.write("**Totales y Mercados Alternativos:**")
-                    st.write(f"- OVER {p.get('linea_total', 2.5):g}: {p.get('over_momio')} ({p.get('over_momio_dec')})")
-                    st.write(f"- UNDER {p.get('linea_total', 2.5):g}: {p.get('under_momio')} ({p.get('under_momio_dec')})")
-                    st.write(f"- BTTS SÍ: **{p.get('prob_btts_si', 0.52)*100:.1f}%** · BTTS NO: **{p.get('prob_btts_no', 0.48)*100:.1f}%**")
-                    st.write(f"- Doble Op 1X: **{p.get('prob_1x', 0.70)*100:.1f}%** · X2: **{p.get('prob_x2', 0.60)*100:.1f}%**")
-                    st.write(f"- Edge del Pick: **+{pick_data.get('edge', 0.0)*100:.1f}%**")
+                with st.expander("Ver detalles de cuotas y desglose"):
+                    col_d1, col_d2 = st.columns(2)
+                    with col_d1:
+                        st.write("**Cuotas DraftKings Moneyline:**")
+                        st.write(f"- {p.get('equipo_local')} (Local): {p.get('moneyline_local')} ({p.get('ml_local_dec')})")
+                        st.write(f"- Empate: {p.get('moneyline_empate')} ({p.get('ml_empate_dec')})")
+                        st.write(f"- {p.get('equipo_visita')} (Visita): {p.get('moneyline_visita')} ({p.get('ml_visita_dec')})")
+                    with col_d2:
+                        st.write("**Totales y Mercados Alternativos:**")
+                        st.write(f"- OVER {p.get('linea_total', 2.5):g}: {p.get('over_momio')} ({p.get('over_momio_dec')})")
+                        st.write(f"- UNDER {p.get('linea_total', 2.5):g}: {p.get('under_momio')} ({p.get('under_momio_dec')})")
+                        st.write(f"- BTTS SÍ: **{p.get('prob_btts_si', 0.52)*100:.1f}%** · BTTS NO: **{p.get('prob_btts_no', 0.48)*100:.1f}%**")
+                        st.write(f"- Doble Op 1X: **{p.get('prob_1x', 0.70)*100:.1f}%** · X2: **{p.get('prob_x2', 0.60)*100:.1f}%**")
+                        st.write(f"- Edge del Pick: **+{pick_data.get('edge', 0.0)*100:.1f}%**")
 
     from core.ui_boleta import render_widget_boleta
     render_widget_boleta()

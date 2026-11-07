@@ -82,6 +82,9 @@ def render_tarjeta_universal(
     etiqueta_linea: str = "Línea Casa",
     etiqueta_proyeccion: str = "Proyección",
     boton_boleta: Optional[Dict[str, Any]] = None,
+    contenido_desglose: Optional[Any] = None,
+    contenido_lesiones: Optional[Any] = None,
+    mostrar_grafica: bool = True,
 ):
     """Renderiza una tarjeta de pronóstico de alta fidelidad homologada."""
     color_pick = _color_por_seleccion(seleccion)
@@ -139,7 +142,7 @@ def render_tarjeta_universal(
                 unsafe_allow_html=True
             )
 
-        # 5. Gráfica de cobertura de los últimos 5 juegos
+        # 5. Analítica, Gráfica y Desglose Unificado (1 solo menú con pestañas)
         lin_num = float(linea_casa) if isinstance(linea_casa, (int, float)) else None
         if lin_num is None:
             m_lin = re.search(r'(\d+(?:\.\d+)?)', str(seleccion))
@@ -152,19 +155,7 @@ def render_tarjeta_universal(
         key_graf = f"{deporte}_{abs(hash(str(titulo) + str(mercado) + str(seleccion) + str(key_suffix))) % 10000000}"
 
         if desplegar_grafica_directa:
-            render_grafica_cobertura(
-                deporte=deporte,
-                mercado=mercado,
-                seleccion=seleccion,
-                linea=lin_num,
-                equipo=equipo,
-                rival=rival,
-                jugador=jugador,
-                key_suffix=key_graf,
-                modo_compacto=True,
-            )
-        else:
-            with st.expander("📊 Ver gráfica últimos 5 partidos vs línea", expanded=False):
+            if mostrar_grafica:
                 render_grafica_cobertura(
                     deporte=deporte,
                     mercado=mercado,
@@ -176,6 +167,58 @@ def render_tarjeta_universal(
                     key_suffix=key_graf,
                     modo_compacto=True,
                 )
+            if callable(contenido_desglose):
+                contenido_desglose()
+            if callable(contenido_lesiones):
+                contenido_lesiones()
+        else:
+            tabs_config = []
+            if mostrar_grafica:
+                tabs_config.append(("📊 Gráfica L5", "grafica"))
+            if callable(contenido_desglose):
+                tabs_config.append(("⚖️ Desglose de Mercados", "desglose"))
+            if callable(contenido_lesiones):
+                tabs_config.append(("🏥 Reporte de Lesiones", "lesiones"))
+
+            if len(tabs_config) > 1:
+                with st.expander("🔍 Analítica Completa (Gráfica, Mercados y Bajas)", expanded=False):
+                    creadas = st.tabs([t[0] for t in tabs_config])
+                    for tab_ui, (_, tipo) in zip(creadas, tabs_config):
+                        with tab_ui:
+                            if tipo == "grafica":
+                                render_grafica_cobertura(
+                                    deporte=deporte,
+                                    mercado=mercado,
+                                    seleccion=seleccion,
+                                    linea=lin_num,
+                                    equipo=equipo,
+                                    rival=rival,
+                                    jugador=jugador,
+                                    key_suffix=key_graf,
+                                    modo_compacto=True,
+                                )
+                            elif tipo == "desglose":
+                                contenido_desglose()
+                            elif tipo == "lesiones":
+                                contenido_lesiones()
+            elif len(tabs_config) == 1:
+                with st.expander(f"{tabs_config[0][0]} vs línea" if tabs_config[0][1] == "grafica" else tabs_config[0][0], expanded=False):
+                    if tabs_config[0][1] == "grafica":
+                        render_grafica_cobertura(
+                            deporte=deporte,
+                            mercado=mercado,
+                            seleccion=seleccion,
+                            linea=lin_num,
+                            equipo=equipo,
+                            rival=rival,
+                            jugador=jugador,
+                            key_suffix=key_graf,
+                            modo_compacto=True,
+                        )
+                    elif tabs_config[0][1] == "desglose":
+                        contenido_desglose()
+                    elif tabs_config[0][1] == "lesiones":
+                        contenido_lesiones()
 
         # 6. Botón opcional de agregar a la boleta
         if boton_boleta:
