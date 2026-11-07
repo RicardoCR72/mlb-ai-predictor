@@ -690,7 +690,7 @@ def render_cartelera_futbol(predicciones: list[dict], mercado_activo: str):
                     lbl_lf = "Línea"
                     lbl_pf = "Probabilidad"
 
-                ev_fut = float(p.get("ev_total", 0.0) or 0.0) * 100.0
+                ev_fut = float(ev_calc_f)
                 if confianza == "ALTA" or ev_fut >= 10.0:
                     estrellas_f = "⭐⭐⭐"
                 elif confianza == "MEDIA" or ev_fut >= 5.0:
