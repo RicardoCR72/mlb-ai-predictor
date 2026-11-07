@@ -224,9 +224,9 @@ id,id_juego,fecha,hora_cdmx,equipo_local,equipo_visitante,mercado,seleccion,line
 ,401909293_spread,2026-11-06,19:00,New Orleans Pelicans,Minnesota Timberwolves,Spread,Minnesota Timberwolves -3.5,-3.5,1.909,0.559,0.036,MEDIA,109.0,115.0,GANADA,0.909,2026-11-07 11:50:42.433072
 ,401909294_tot,2026-11-06,21:00,Los Angeles Lakers,Portland Trail Blazers,Totales (UNDER),UNDER 231.5,231.5,1.909,0.555,0.031,MEDIA,124.0,118.0,PERDIDA,-1.0,2026-11-07 11:50:42.433072
 ,401909295_spread,2026-11-06,21:00,Sacramento Kings,San Antonio Spurs,Spread,Sacramento Kings +17.5,17.5,1.909,0.617,0.094,ALTA,109.0,124.0,GANADA,0.909,2026-11-07 11:50:42.433072
-,401909938_spread,2026-11-07,16:00,Indiana Pacers,Denver Nuggets,Spread,Indiana Pacers +7.5,7.5,1.909,0.574,0.051,MEDIA,,,PENDIENTE,,2026-11-07 11:50:44.323938
-,401909940_ml,2026-11-07,19:00,Cleveland Cavaliers,New York Knicks,Moneyline,Cleveland Cavaliers ML,0.0,2.6,0.533,0.149,MEDIA,,,PENDIENTE,,2026-11-07 11:50:44.323938
-,401909940_spread,2026-11-07,19:00,Cleveland Cavaliers,New York Knicks,Spread,Cleveland Cavaliers +4.5,4.5,1.909,0.578,0.055,MEDIA,,,PENDIENTE,,2026-11-07 11:50:44.323938
-,401909941_ml,2026-11-07,19:00,Oklahoma City Thunder,Washington Wizards,Moneyline,Oklahoma City Thunder ML,0.0,1.21,0.871,0.044,MEDIA,,,PENDIENTE,,2026-11-07 11:50:44.323938
-,401909942_spread,2026-11-07,19:30,Golden State Warriors,Orlando Magic,Spread,Orlando Magic +6.5,6.5,1.909,0.562,0.038,MEDIA,,,PENDIENTE,,2026-11-07 11:50:44.323938
-,401909944_spread,2026-11-07,21:00,Portland Trail Blazers,San Antonio Spurs,Spread,Portland Trail Blazers +5.5,5.5,1.909,0.574,0.05,MEDIA,,,PENDIENTE,,2026-11-07 11:50:44.323938
+,401909941_ml,2026-11-07,19:00,Oklahoma City Thunder,Washington Wizards,Moneyline,Oklahoma City Thunder ML,0.0,1.21,0.871,0.044,MEDIA,,,PENDIENTE,,2026-11-07 17:57:46.378268
+,401909942_spread,2026-11-07,19:30,Golden State Warriors,Orlando Magic,Spread,Orlando Magic +6.5,6.5,1.909,0.562,0.038,MEDIA,,,PENDIENTE,,2026-11-07 17:57:46.378268
+,401909938_spread,2026-11-07,16:00,Indiana Pacers,Denver Nuggets,Spread,Indiana Pacers +7.5,7.5,1.909,0.574,0.051,MEDIA,,,PENDIENTE,,2026-11-07 17:57:50.018687
+,401909940_ml,2026-11-07,19:00,Cleveland Cavaliers,New York Knicks,Moneyline,Cleveland Cavaliers ML,0.0,2.7,0.516,0.145,MEDIA,,,PENDIENTE,,2026-11-07 17:57:50.018687
+,401909940_spread,2026-11-07,19:00,Cleveland Cavaliers,New York Knicks,Spread,Cleveland Cavaliers +5.5,5.5,1.909,0.583,0.059,MEDIA,,,PENDIENTE,,2026-11-07 17:57:50.018687
+,401909944_spread,2026-11-07,21:00,Portland Trail Blazers,San Antonio Spurs,Spread,Portland Trail Blazers +5.5,5.5,1.909,0.574,0.05,MEDIA,,,PENDIENTE,,2026-11-07 17:57:50.018687
