@@ -654,6 +654,9 @@ Los partidos de hoy ({n_liquidados} juegos) ya finalizaron y están auditados en
 
 def render_historial_nba(mercado_filtro: str = ""):
     """Renderiza la auditoría histórica de apuestas de la NBA."""
+    st.info(
+        "💡 **Rendimiento Diario Total**: Para consultar el balance unificado de **todos los mercados (Totales + Moneyline + Spread)** agrupados día por día, selecciona la pestaña **'🏆 Rendimiento Total NBA'** en el menú superior."
+    )
     df_hist = cargar_historial_rendimiento()
 
     if df_hist.empty:
@@ -986,51 +989,55 @@ hay_pendientes_por_liquidar = any(
     for p in predicciones_actuales
 )
 
-# Nivel 1: Selector principal de mercado
+# Nivel 1: Selector principal de mercado o rendimiento total consolidado
 mercado = st.radio(
     "Mercado NBA",
-    ["Totales de Partido", "Moneyline (Ganador Directo)", "Spread (Línea de Puntos)"],
+    ["Totales de Partido", "Moneyline (Ganador Directo)", "Spread (Línea de Puntos)", "🏆 Rendimiento Total NBA"],
     horizontal=True,
     label_visibility="collapsed",
     key="nba_mercado_principal",
 )
 
-# Nivel 2: Selector interno de sección (abajo de mercado)
-seccion = st.radio(
-    "Sección NBA",
-    ["Picks de hoy", "Rendimiento e Historial"],
-    horizontal=True,
-    label_visibility="collapsed",
-    key="nba_seccion",
-)
-
-# Nivel 3: Barra superior de 2 botones al 50%/50% en estilo dark glassmorphic
-st.markdown("<div style='margin-bottom: 0.8rem;'></div>", unsafe_allow_html=True)
-col1, col2 = st.columns(2, gap="medium")
-
-with col1:
-    lbl_btn_res = "Liquidar / Sincronizar Resultados"
-    help_btn_res = "Consulta marcadores finales de ESPN, liquida las apuestas concluidas y las registra en Rendimiento e Historial."
-    if st.button(lbl_btn_res, key="btn_act_res_nba", type="primary", use_container_width=True, help=help_btn_res):
-        with st.spinner("Consultando marcadores ESPN y liquidando partidos NBA..."):
-            res = liquidar_partidos_pendientes_nba()
-            if res.get("evaluados", 0) > 0:
-                st.success(f"✅ {res['mensaje']}")
-            else:
-                st.info(f"ℹ️ {res['mensaje']}")
-            st.rerun()
-
-with col2:
-    if st.button("Actualizar Cuotas DraftKings", key="btn_act_cuotas_nba", type="primary", use_container_width=True, help="Consulta las últimas líneas de DraftKings y actualiza las predicciones de hoy."):
-        with st.spinner("Consultando DraftKings y ejecutando modelos NBA..."):
-            cargar_predicciones(forzar=True)
-            st.success("✅ Cuotas y predicciones actualizadas desde DraftKings.")
-            st.rerun()
-
-st.markdown("<div style='margin-bottom: 1.1rem;'></div>", unsafe_allow_html=True)
-
-# Nivel 4 y 5: Renderizado de la sección seleccionada
-if seccion == "Rendimiento e Historial":
-    render_historial_nba(mercado)
+if mercado == "🏆 Rendimiento Total NBA":
+    from nba.ui_rendimiento_total import render as render_rendimiento_total_nba
+    render_rendimiento_total_nba()
 else:
-    render_cartelera_nba(predicciones_actuales, mercado)
+    # Nivel 2: Selector interno de sección (abajo de mercado)
+    seccion = st.radio(
+        "Sección NBA",
+        ["Picks de hoy", "Rendimiento e Historial"],
+        horizontal=True,
+        label_visibility="collapsed",
+        key="nba_seccion",
+    )
+
+    # Nivel 3: Barra superior de 2 botones al 50%/50% en estilo dark glassmorphic
+    st.markdown("<div style='margin-bottom: 0.8rem;'></div>", unsafe_allow_html=True)
+    col1, col2 = st.columns(2, gap="medium")
+
+    with col1:
+        lbl_btn_res = "Liquidar / Sincronizar Resultados"
+        help_btn_res = "Consulta marcadores finales de ESPN, liquida las apuestas concluidas y las registra en Rendimiento e Historial."
+        if st.button(lbl_btn_res, key="btn_act_res_nba", type="primary", use_container_width=True, help=help_btn_res):
+            with st.spinner("Consultando marcadores ESPN y liquidando partidos NBA..."):
+                res = liquidar_partidos_pendientes_nba()
+                if res.get("evaluados", 0) > 0:
+                    st.success(f"✅ {res['mensaje']}")
+                else:
+                    st.info(f"ℹ️ {res['mensaje']}")
+                st.rerun()
+
+    with col2:
+        if st.button("Actualizar Cuotas DraftKings", key="btn_act_cuotas_nba", type="primary", use_container_width=True, help="Consulta las últimas líneas de DraftKings y actualiza las predicciones de hoy."):
+            with st.spinner("Consultando DraftKings y ejecutando modelos NBA..."):
+                cargar_predicciones(forzar=True)
+                st.success("✅ Cuotas y predicciones actualizadas desde DraftKings.")
+                st.rerun()
+
+    st.markdown("<div style='margin-bottom: 1.1rem;'></div>", unsafe_allow_html=True)
+
+    # Nivel 4 y 5: Renderizado de la sección seleccionada
+    if seccion == "Rendimiento e Historial":
+        render_historial_nba(mercado)
+    else:
+        render_cartelera_nba(predicciones_actuales, mercado)
