@@ -453,6 +453,20 @@ def render_cartelera_futbol(predicciones: list[dict], mercado_activo: str):
     elif filtro_estado == "Solo Finalizados":
         filtrados = [p for p in filtrados if _es_partido_pasado(p)]
 
+    # Ordenar de MAYOR a MENOR por EV% al filtrar por picks calificados
+    if solo_ev and filtrados:
+        from core.ui_boleta import parsear_cuota_decimal
+        def _obtener_ev_futbol(partido):
+            pd_item = obtener_pick_para_mercado_futbol(partido, mercado_activo)
+            c_dec = parsear_cuota_decimal(pd_item.get("cuota"))
+            prob = float(pd_item.get("probabilidad", 0.5) or 0.5)
+            if c_dec > 1.0 and prob > 0:
+                return (prob * c_dec - 1.0) * 100.0
+            return float(partido.get("ev_total", 0.0) or 0.0) * 100.0
+
+        filtrados.sort(key=_obtener_ev_futbol, reverse=True)
+        st.caption("🔥 Mostrando picks calificados ordenados de **Mayor a Menor Valor Esperado (+EV)**.")
+
     if not filtrados:
         if filtro_fecha == "Solo Hoy" and n_finalizados > 0:
             st.info("⚽ Los partidos programados para hoy ya finalizaron y han sido liquidados en **Rendimiento e Historial**. Selecciona **'Hoy y Próximos'** o **'Solo Mañana'** para consultar los siguientes partidos por disputarse.")

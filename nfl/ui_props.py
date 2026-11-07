@@ -635,6 +635,9 @@ def render():
                 candidatos_mostrar = candidatos_mostrar[
                     (candidatos_mostrar["ev_estimado"] > 0) & (candidatos_mostrar["estado_pick"] == "CANDIDATO")
                 ]
+                if not candidatos_mostrar.empty and "ev_estimado" in candidatos_mostrar.columns:
+                    candidatos_mostrar = candidatos_mostrar.sort_values(by="ev_estimado", ascending=False).reset_index(drop=True)
+                st.caption("🔥 Mostrando props calificados ordenados de **Mayor a Menor Valor Esperado (+EV)**.")
 
             if partidos_candidatos[partido_candidato] is not None:
                 candidatos_mostrar = candidatos_mostrar[
@@ -655,8 +658,11 @@ def render():
             if candidatos_mostrar.empty:
                 state_message('No quedan candidatos pendientes para ese partido y mercado en la semana actual.',kind='filters')
             else:
-                filas_candidatos = list(render_order(candidatos_mostrar,'nfl_prop_picks',date_col='gameday',
-                    confidence_col='probabilidad_pick',ev_col='ev_estimado',upcoming=True).iterrows())
+                if solo_ev_props:
+                    filas_candidatos = list(candidatos_mostrar.iterrows())
+                else:
+                    filas_candidatos = list(render_order(candidatos_mostrar,'nfl_prop_picks',date_col='gameday',
+                        confidence_col='probabilidad_pick',ev_col='ev_estimado',upcoming=True).iterrows())
                 for inicio in range(0, len(filas_candidatos), 2):
                     columnas_picks = st.columns(2, gap="medium")
                     for columna, (_, fila) in zip(

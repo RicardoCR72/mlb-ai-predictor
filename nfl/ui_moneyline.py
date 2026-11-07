@@ -152,6 +152,23 @@ def render_cartelera(predicciones: list[dict]):
             p for p in lista_mostrar
             if p.get("confianza") in ["ALTA", "MEDIA"]
         ]
+        if lista_mostrar:
+            from core.ui_boleta import parsear_cuota_decimal
+            def _get_ev_nfl_ml(p):
+                ev = p.get("ev_estimado")
+                if ev is not None:
+                    try:
+                        return float(ev)
+                    except (ValueError, TypeError):
+                        pass
+                c = parsear_cuota_decimal(p.get("pick_cuota"))
+                prob = float(p.get("pick_prob", 0.5) or 0.5)
+                if c > 1.0 and prob > 0:
+                    return (prob * c - 1.0) * 100.0
+                return float(p.get("pick_edge", 0.0) or 0.0) * 100.0
+
+            lista_mostrar.sort(key=_get_ev_nfl_ml, reverse=True)
+            st.caption("🔥 Mostrando picks calificados ordenados de **Mayor a Menor Valor Esperado (+EV)**.")
 
     if not lista_mostrar:
         st.warning("No hay partidos o picks que coincidan con los filtros de búsqueda seleccionados.")

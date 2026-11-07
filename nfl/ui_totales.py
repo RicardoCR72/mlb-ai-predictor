@@ -313,6 +313,9 @@ def render():
 
         if solo_ev_tot or seccion_totales == "🔥 Picks filtrados":
             base_mostrar = picks.copy()
+            if not base_mostrar.empty and "ev" in base_mostrar.columns:
+                base_mostrar = base_mostrar.sort_values(by="ev", ascending=False).reset_index(drop=True)
+            st.caption("🔥 Mostrando picks calificados ordenados de **Mayor a Menor Valor Esperado (+EV)**.")
         else:
             base_mostrar = filtrado.copy()
 
@@ -325,9 +328,12 @@ def render():
         if base_mostrar.empty:
             st.warning("No hay partidos o picks que coincidan con los filtros de búsqueda seleccionados.")
         else:
-            filas_picks = list(
-                render_order(base_mostrar, 'nfl_total_picks', date_col='gameday', confidence_col='prob_pick', ev_col='ev', upcoming=True).iterrows()
-            )
+            if solo_ev_tot or seccion_totales == "🔥 Picks filtrados":
+                filas_picks = list(base_mostrar.iterrows())
+            else:
+                filas_picks = list(
+                    render_order(base_mostrar, 'nfl_total_picks', date_col='gameday', confidence_col='prob_pick', ev_col='ev', upcoming=True).iterrows()
+                )
             for inicio in range(0, len(filas_picks), 2):
                 columnas = st.columns(2, gap="medium")
                 for columna, (_, fila) in zip(

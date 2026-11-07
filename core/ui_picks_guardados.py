@@ -63,6 +63,18 @@ def render_mlb_today(market):
     if solo_ev_mlb:
         if 'probabilidad' in shown:
             shown = shown[shown['probabilidad'] >= 0.54]
+        if not shown.empty:
+            from core.ui_boleta import parsear_cuota_decimal
+            def _calc_ev_mlb(row):
+                p_val = float(row.get('probabilidad', 0.5) or 0.5)
+                c_dec = parsear_cuota_decimal(row.get('cuota'))
+                if c_dec > 1.0 and p_val > 0:
+                    return (p_val * c_dec - 1.0) * 100.0
+                return (p_val * 1.909 - 1.0) * 100.0
+
+            shown['_ev_calc'] = shown.apply(_calc_ev_mlb, axis=1)
+            shown = shown.sort_values('_ev_calc', ascending=False)
+            st.caption("🔥 Mostrando picks calificados ordenados de **Mayor a Menor Valor Esperado (+EV)**.")
 
     if shown.empty:
         st.warning("No hay partidos o picks que coincidan con los filtros de búsqueda seleccionados.")
