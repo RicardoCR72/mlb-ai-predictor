@@ -65,7 +65,7 @@ def cargar_lineas(conexion, game_ids):
                linea, cuota_over, cuota_under, timestamp_captura
         FROM nfl_lineas_props
         WHERE id_juego IN ({marcadores})
-          AND LOWER(TRIM(casa_apuestas)) = 'draftkings'
+          AND LOWER(TRIM(casa_apuestas)) IN ('bovada', 'draftkings')
     """
     cursor = conexion.cursor(dictionary=True)
     cursor.execute(consulta, tuple(game_ids))
