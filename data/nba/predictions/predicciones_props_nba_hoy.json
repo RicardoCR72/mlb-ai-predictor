@@ -25,7 +25,7 @@
     "ev_pct": 83.2,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 5/5 últimos (promedia 12.6 vs línea 19.5)",
+    "trend": "Under en 5/5 últimos (promedia 11.8 en L5 vs línea 19.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -55,7 +55,7 @@
     "ev_pct": 83.1,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 5/5 últimos (promedia 2.9 vs línea 4.5)",
+    "trend": "Under en 5/5 últimos (promedia 2.8 en L5 vs línea 4.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -85,7 +85,7 @@
     "ev_pct": 82.2,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 3/5 últimos (promedia 9.1 vs línea 12.5)",
+    "trend": "Under en 3/5 últimos (promedia 9.1 en L5 vs línea 12.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -115,7 +115,7 @@
     "ev_pct": 81.4,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 3/5 últimos (promedia 3.7 vs línea 3.5)",
+    "trend": "Over en 3/5 últimos (promedia 3.4 en L5 vs línea 3.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 1
   },
@@ -145,7 +145,7 @@
     "ev_pct": 78.6,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 5/5 últimos (promedia 25.3 vs línea 22.5)",
+    "trend": "Over en 5/5 últimos (promedia 25.3 en L5 vs línea 22.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -175,7 +175,7 @@
     "ev_pct": 77.9,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 3/4 últimos (promedia 13.2 vs línea 16.5)",
+    "trend": "Under en 3/4 últimos (promedia 13.2 en L5 vs línea 16.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -205,7 +205,7 @@
     "ev_pct": 77.9,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 3/4 últimos (promedia 11.0 vs línea 14.5)",
+    "trend": "Under en 3/4 últimos (promedia 11.0 en L5 vs línea 14.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -235,7 +235,7 @@
     "ev_pct": 77.9,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 3/5 últimos (promedia 8.2 vs línea 12.5)",
+    "trend": "Under en 3/5 últimos (promedia 8.2 en L5 vs línea 12.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -265,7 +265,7 @@
     "ev_pct": 77.5,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 5/5 últimos (promedia 9.8 vs línea 17.5)",
+    "trend": "Under en 5/5 últimos (promedia 9.1 en L5 vs línea 17.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -295,7 +295,7 @@
     "ev_pct": 77.2,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 3/5 últimos (promedia 13.7 vs línea 9.5)",
+    "trend": "Over en 3/5 últimos (promedia 12.7 en L5 vs línea 9.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -325,7 +325,7 @@
     "ev_pct": 75.0,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 4/5 últimos (promedia 21.3 vs línea 16.5)",
+    "trend": "Over en 4/5 últimos (promedia 19.7 en L5 vs línea 16.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -355,7 +355,7 @@
     "ev_pct": 74.5,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 4/5 últimos (promedia 5.8 vs línea 3.5)",
+    "trend": "Over en 4/5 últimos (promedia 5.4 en L5 vs línea 3.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -385,7 +385,7 @@
     "ev_pct": 74.4,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 5/5 últimos (promedia 1.0 vs línea 3.5)",
+    "trend": "Under en 5/5 últimos (promedia 0.8 en L5 vs línea 3.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -415,7 +415,7 @@
     "ev_pct": 70.7,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 4/5 últimos (promedia 16.7 vs línea 12.5)",
+    "trend": "Over en 4/5 últimos (promedia 15.5 en L5 vs línea 12.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -445,7 +445,7 @@
     "ev_pct": 70.7,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 4/5 últimos (promedia 14.2 vs línea 17.5)",
+    "trend": "Under en 4/5 últimos (promedia 14.2 en L5 vs línea 17.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -475,7 +475,7 @@
     "ev_pct": 70.4,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 4/5 últimos (promedia 32.7 vs línea 35.5)",
+    "trend": "Under en 4/5 últimos (promedia 32.7 en L5 vs línea 35.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -505,7 +505,7 @@
     "ev_pct": 68.7,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 4/5 últimos (promedia 27.5 vs línea 24.5)",
+    "trend": "Over en 4/5 últimos (promedia 25.5 en L5 vs línea 24.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -535,7 +535,7 @@
     "ev_pct": 68.3,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 4/5 últimos (promedia 28.0 vs línea 23.5)",
+    "trend": "Over en 4/5 últimos (promedia 25.9 en L5 vs línea 23.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -565,7 +565,7 @@
     "ev_pct": 67.4,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 3/5 últimos (promedia 20.8 vs línea 17.5)",
+    "trend": "Over en 3/5 últimos (promedia 19.3 en L5 vs línea 17.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -595,7 +595,7 @@
     "ev_pct": 67.4,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 2/5 últimos (promedia 14.7 vs línea 18.5)",
+    "trend": "Under en 2/5 últimos (promedia 14.7 en L5 vs línea 18.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -625,7 +625,7 @@
     "ev_pct": 67.0,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 4/5 últimos (promedia 32.6 vs línea 29.5)",
+    "trend": "Over en 4/5 últimos (promedia 30.2 en L5 vs línea 29.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -655,7 +655,7 @@
     "ev_pct": 67.0,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 4/5 últimos (promedia 10.9 vs línea 16.5)",
+    "trend": "Under en 4/5 últimos (promedia 10.1 en L5 vs línea 16.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -685,7 +685,7 @@
     "ev_pct": 67.0,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 4/5 últimos (promedia 25.8 vs línea 19.5)",
+    "trend": "Over en 4/5 últimos (promedia 23.9 en L5 vs línea 19.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -715,7 +715,7 @@
     "ev_pct": 66.5,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 3/5 últimos (promedia 25.6 vs línea 20.5)",
+    "trend": "Over en 3/5 últimos (promedia 23.7 en L5 vs línea 20.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -745,7 +745,7 @@
     "ev_pct": 66.3,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 3/5 últimos (promedia 3.9 vs línea 2.5)",
+    "trend": "Over en 3/5 últimos (promedia 3.6 en L5 vs línea 2.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -775,7 +775,7 @@
     "ev_pct": 65.7,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 4/5 últimos (promedia 15.4 vs línea 10.5)",
+    "trend": "Over en 4/5 últimos (promedia 14.3 en L5 vs línea 10.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -805,7 +805,7 @@
     "ev_pct": 65.6,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 4/5 últimos (promedia 21.0 vs línea 15.5)",
+    "trend": "Over en 4/5 últimos (promedia 19.8 en L5 vs línea 15.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -835,7 +835,7 @@
     "ev_pct": 65.0,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 3/5 últimos (promedia 30.8 vs línea 33.5)",
+    "trend": "Under en 3/5 últimos (promedia 30.8 en L5 vs línea 33.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -865,7 +865,7 @@
     "ev_pct": 65.0,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 4/5 últimos (promedia 33.1 vs línea 38.5)",
+    "trend": "Under en 4/5 últimos (promedia 33.1 en L5 vs línea 38.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -895,7 +895,7 @@
     "ev_pct": 65.0,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 3/5 últimos (promedia 8.9 vs línea 10.5)",
+    "trend": "Under en 3/5 últimos (promedia 8.2 en L5 vs línea 10.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -925,7 +925,7 @@
     "ev_pct": 64.7,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 2/5 últimos (promedia 16.2 vs línea 18.5)",
+    "trend": "Under en 2/5 últimos (promedia 16.2 en L5 vs línea 18.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -955,7 +955,7 @@
     "ev_pct": 63.7,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 2/5 últimos (promedia 33.0 vs línea 27.5)",
+    "trend": "Over en 2/5 últimos (promedia 30.6 en L5 vs línea 27.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -985,7 +985,7 @@
     "ev_pct": 63.6,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 3/5 últimos (promedia 23.2 vs línea 20.5)",
+    "trend": "Over en 3/5 últimos (promedia 23.2 en L5 vs línea 20.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -1015,7 +1015,7 @@
     "ev_pct": 63.6,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 4/5 últimos (promedia 25.5 vs línea 22.5)",
+    "trend": "Over en 4/5 últimos (promedia 25.5 en L5 vs línea 22.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -1045,7 +1045,7 @@
     "ev_pct": 63.4,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 4/5 últimos (promedia 8.0 vs línea 10.5)",
+    "trend": "Under en 4/5 últimos (promedia 8.0 en L5 vs línea 10.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -1075,7 +1075,7 @@
     "ev_pct": 63.3,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 3/5 últimos (promedia 17.5 vs línea 13.5)",
+    "trend": "Over en 3/5 últimos (promedia 16.2 en L5 vs línea 13.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -1105,7 +1105,7 @@
     "ev_pct": 62.8,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 2/5 últimos (promedia 25.5 vs línea 22.5)",
+    "trend": "Over en 2/5 últimos (promedia 23.6 en L5 vs línea 22.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -1135,7 +1135,7 @@
     "ev_pct": 62.1,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 4/4 últimos (promedia 9.0 vs línea 12.5)",
+    "trend": "Under en 4/4 últimos (promedia 9.0 en L5 vs línea 12.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -1165,7 +1165,7 @@
     "ev_pct": 62.1,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 5/5 últimos (promedia 20.6 vs línea 18.5)",
+    "trend": "Over en 5/5 últimos (promedia 20.6 en L5 vs línea 18.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -1195,7 +1195,7 @@
     "ev_pct": 62.0,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 4/5 últimos (promedia 8.9 vs línea 12.5)",
+    "trend": "Under en 4/5 últimos (promedia 8.9 en L5 vs línea 12.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -1225,7 +1225,7 @@
     "ev_pct": 62.0,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 4/5 últimos (promedia 22.8 vs línea 18.5)",
+    "trend": "Over en 4/5 últimos (promedia 21.1 en L5 vs línea 18.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -1255,7 +1255,7 @@
     "ev_pct": 60.8,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 5/5 últimos (promedia 21.4 vs línea 19.5)",
+    "trend": "Over en 5/5 últimos (promedia 21.4 en L5 vs línea 19.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -1285,7 +1285,7 @@
     "ev_pct": 60.7,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 4/5 últimos (promedia 13.3 vs línea 10.5)",
+    "trend": "Over en 4/5 últimos (promedia 13.3 en L5 vs línea 10.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -1315,7 +1315,7 @@
     "ev_pct": 60.7,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 4/5 últimos (promedia 20.3 vs línea 17.5)",
+    "trend": "Over en 4/5 últimos (promedia 20.3 en L5 vs línea 17.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -1345,7 +1345,7 @@
     "ev_pct": 60.5,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 3/5 últimos (promedia 12.1 vs línea 13.5)",
+    "trend": "Under en 3/5 últimos (promedia 12.1 en L5 vs línea 13.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -1375,7 +1375,7 @@
     "ev_pct": 59.9,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 2/5 últimos (promedia 28.1 vs línea 25.5)",
+    "trend": "Over en 2/5 últimos (promedia 28.1 en L5 vs línea 25.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -1405,7 +1405,7 @@
     "ev_pct": 59.7,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 3/5 últimos (promedia 25.1 vs línea 22.5)",
+    "trend": "Over en 3/5 últimos (promedia 25.1 en L5 vs línea 22.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -1435,7 +1435,7 @@
     "ev_pct": 59.6,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 2/5 últimos (promedia 30.7 vs línea 27.5)",
+    "trend": "Over en 2/5 últimos (promedia 28.4 en L5 vs línea 27.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -1465,7 +1465,7 @@
     "ev_pct": 59.5,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 3/5 últimos (promedia 24.1 vs línea 19.5)",
+    "trend": "Over en 3/5 últimos (promedia 24.1 en L5 vs línea 19.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -1495,7 +1495,7 @@
     "ev_pct": 58.5,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 4/5 últimos (promedia 26.9 vs línea 24.5)",
+    "trend": "Over en 4/5 últimos (promedia 24.9 en L5 vs línea 24.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -1525,7 +1525,7 @@
     "ev_pct": 58.0,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 2/5 últimos (promedia 29.3 vs línea 26.5)",
+    "trend": "Over en 2/5 últimos (promedia 27.1 en L5 vs línea 26.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -1555,7 +1555,7 @@
     "ev_pct": 57.9,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 4/5 últimos (promedia 26.5 vs línea 24.5)",
+    "trend": "Over en 4/5 últimos (promedia 24.5 en L5 vs línea 24.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -1585,7 +1585,7 @@
     "ev_pct": 57.2,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 2/5 últimos (promedia 15.1 vs línea 18.5)",
+    "trend": "Under en 2/5 últimos (promedia 15.1 en L5 vs línea 18.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -1615,7 +1615,7 @@
     "ev_pct": 56.8,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 3/5 últimos (promedia 19.2 vs línea 14.5)",
+    "trend": "Over en 3/5 últimos (promedia 17.8 en L5 vs línea 14.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -1645,7 +1645,7 @@
     "ev_pct": 56.6,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 4/5 últimos (promedia 14.9 vs línea 11.5)",
+    "trend": "Over en 4/5 últimos (promedia 13.4 en L5 vs línea 11.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -1675,7 +1675,7 @@
     "ev_pct": 56.3,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 2/5 últimos (promedia 24.5 vs línea 20.5)",
+    "trend": "Over en 2/5 últimos (promedia 22.7 en L5 vs línea 20.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -1705,7 +1705,7 @@
     "ev_pct": 56.3,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 2/5 últimos (promedia 18.9 vs línea 15.5)",
+    "trend": "Over en 2/5 últimos (promedia 17.5 en L5 vs línea 15.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -1735,7 +1735,7 @@
     "ev_pct": 56.1,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 2/5 últimos (promedia 3.5 vs línea 3.5)",
+    "trend": "Over en 2/5 últimos (promedia 3.0 en L5 vs línea 3.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 1
   },
@@ -1765,7 +1765,7 @@
     "ev_pct": 55.8,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 4/5 últimos (promedia 34.3 vs línea 31.5)",
+    "trend": "Over en 4/5 últimos (promedia 34.3 en L5 vs línea 31.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -1795,7 +1795,7 @@
     "ev_pct": 55.7,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 2/5 últimos (promedia 4.8 vs línea 4.5)",
+    "trend": "Over en 2/5 últimos (promedia 4.6 en L5 vs línea 4.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 1
   },
@@ -1825,7 +1825,7 @@
     "ev_pct": 55.4,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 4/5 últimos (promedia 32.6 vs línea 30.5)",
+    "trend": "Over en 4/5 últimos (promedia 32.6 en L5 vs línea 30.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -1855,7 +1855,7 @@
     "ev_pct": 54.7,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 4/5 últimos (promedia 20.4 vs línea 22.5)",
+    "trend": "Under en 4/5 últimos (promedia 20.4 en L5 vs línea 22.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -1885,7 +1885,7 @@
     "ev_pct": 54.5,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 3/5 últimos (promedia 19.3 vs línea 15.5)",
+    "trend": "Over en 3/5 últimos (promedia 17.9 en L5 vs línea 15.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -1915,7 +1915,7 @@
     "ev_pct": 54.3,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 2/5 últimos (promedia 34.1 vs línea 29.5)",
+    "trend": "Over en 2/5 últimos (promedia 31.6 en L5 vs línea 29.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -1945,7 +1945,7 @@
     "ev_pct": 54.3,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 3/5 últimos (promedia 17.7 vs línea 14.5)",
+    "trend": "Over en 3/5 últimos (promedia 16.4 en L5 vs línea 14.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -1975,7 +1975,7 @@
     "ev_pct": 53.7,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 2/5 últimos (promedia 27.0 vs línea 24.5)",
+    "trend": "Over en 2/5 últimos (promedia 25.0 en L5 vs línea 24.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -2005,7 +2005,7 @@
     "ev_pct": 53.6,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 5/5 últimos (promedia 3.7 vs línea 4.5)",
+    "trend": "Under en 5/5 últimos (promedia 3.4 en L5 vs línea 4.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -2035,7 +2035,7 @@
     "ev_pct": 53.2,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 5/5 últimos (promedia 11.2 vs línea 8.5)",
+    "trend": "Over en 5/5 últimos (promedia 11.6 en L5 vs línea 8.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -2065,7 +2065,7 @@
     "ev_pct": 52.4,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 3/5 últimos (promedia 22.0 vs línea 19.5)",
+    "trend": "Over en 3/5 últimos (promedia 20.4 en L5 vs línea 19.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -2095,7 +2095,7 @@
     "ev_pct": 52.3,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 4/5 últimos (promedia 10.0 vs línea 11.5)",
+    "trend": "Under en 4/5 últimos (promedia 10.0 en L5 vs línea 11.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -2125,7 +2125,7 @@
     "ev_pct": 52.2,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 4/5 últimos (promedia 10.9 vs línea 12.5)",
+    "trend": "Under en 4/5 últimos (promedia 10.9 en L5 vs línea 12.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -2155,7 +2155,7 @@
     "ev_pct": 51.8,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 2/5 últimos (promedia 29.6 vs línea 27.5)",
+    "trend": "Over en 2/5 últimos (promedia 29.6 en L5 vs línea 27.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -2185,7 +2185,7 @@
     "ev_pct": 51.6,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 3/5 últimos (promedia 42.7 vs línea 36.5)",
+    "trend": "Over en 3/5 últimos (promedia 39.4 en L5 vs línea 36.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -2215,7 +2215,7 @@
     "ev_pct": 51.6,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 2/5 últimos (promedia 30.6 vs línea 28.5)",
+    "trend": "Over en 2/5 últimos (promedia 28.3 en L5 vs línea 28.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -2245,7 +2245,7 @@
     "ev_pct": 51.5,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 2/5 últimos (promedia 16.6 vs línea 14.5)",
+    "trend": "Over en 2/5 últimos (promedia 15.4 en L5 vs línea 14.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -2275,7 +2275,7 @@
     "ev_pct": 51.1,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 3/5 últimos (promedia 17.6 vs línea 19.5)",
+    "trend": "Under en 3/5 últimos (promedia 17.6 en L5 vs línea 19.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -2305,7 +2305,7 @@
     "ev_pct": 50.7,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 3/5 últimos (promedia 23.8 vs línea 21.5)",
+    "trend": "Over en 3/5 últimos (promedia 22.0 en L5 vs línea 21.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -2335,7 +2335,7 @@
     "ev_pct": 50.6,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 4/5 últimos (promedia 14.0 vs línea 15.5)",
+    "trend": "Under en 4/5 últimos (promedia 13.0 en L5 vs línea 15.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -2365,7 +2365,7 @@
     "ev_pct": 50.6,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 4/5 últimos (promedia 3.7 vs línea 2.5)",
+    "trend": "Over en 4/5 últimos (promedia 3.4 en L5 vs línea 2.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -2395,7 +2395,7 @@
     "ev_pct": 49.7,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 4/5 últimos (promedia 18.1 vs línea 13.5)",
+    "trend": "Over en 4/5 últimos (promedia 16.8 en L5 vs línea 13.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -2425,7 +2425,7 @@
     "ev_pct": 49.7,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 3/5 últimos (promedia 14.6 vs línea 11.5)",
+    "trend": "Over en 3/5 últimos (promedia 13.0 en L5 vs línea 11.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -2455,7 +2455,7 @@
     "ev_pct": 49.7,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 1/5 últimos (promedia 14.5 vs línea 11.5)",
+    "trend": "Over en 1/5 últimos (promedia 13.4 en L5 vs línea 11.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -2485,7 +2485,7 @@
     "ev_pct": 49.6,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 4/5 últimos (promedia 8.9 vs línea 13.5)",
+    "trend": "Under en 4/5 últimos (promedia 8.4 en L5 vs línea 13.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -2515,7 +2515,7 @@
     "ev_pct": 49.6,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 3/5 últimos (promedia 25.1 vs línea 22.5)",
+    "trend": "Over en 3/5 últimos (promedia 23.2 en L5 vs línea 22.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -2545,7 +2545,7 @@
     "ev_pct": 49.5,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 5/5 últimos (promedia 9.3 vs línea 6.5)",
+    "trend": "Over en 5/5 últimos (promedia 9.0 en L5 vs línea 6.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -2575,7 +2575,7 @@
     "ev_pct": 49.1,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 3/5 últimos (promedia 9.8 vs línea 11.5)",
+    "trend": "Under en 3/5 últimos (promedia 9.8 en L5 vs línea 11.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -2605,7 +2605,7 @@
     "ev_pct": 49.0,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 3/5 últimos (promedia 15.1 vs línea 12.5)",
+    "trend": "Over en 3/5 últimos (promedia 14.0 en L5 vs línea 12.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -2635,7 +2635,7 @@
     "ev_pct": 48.6,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 3/5 últimos (promedia 32.4 vs línea 30.5)",
+    "trend": "Over en 3/5 últimos (promedia 30.0 en L5 vs línea 30.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -2665,7 +2665,7 @@
     "ev_pct": 47.3,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 5/5 últimos (promedia 25.6 vs línea 21.5)",
+    "trend": "Over en 5/5 últimos (promedia 26.6 en L5 vs línea 21.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -2695,7 +2695,7 @@
     "ev_pct": 47.2,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 2/5 últimos (promedia 10.9 vs línea 12.5)",
+    "trend": "Under en 2/5 últimos (promedia 10.9 en L5 vs línea 12.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -2725,7 +2725,7 @@
     "ev_pct": 46.9,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 3/5 últimos (promedia 28.2 vs línea 29.5)",
+    "trend": "Under en 3/5 últimos (promedia 28.2 en L5 vs línea 29.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -2755,7 +2755,7 @@
     "ev_pct": 46.9,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 3/5 últimos (promedia 12.3 vs línea 10.5)",
+    "trend": "Over en 3/5 últimos (promedia 11.4 en L5 vs línea 10.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -2785,7 +2785,7 @@
     "ev_pct": 46.8,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 3/5 últimos (promedia 13.3 vs línea 14.5)",
+    "trend": "Under en 3/5 últimos (promedia 13.3 en L5 vs línea 14.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -2815,7 +2815,7 @@
     "ev_pct": 46.8,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 3/5 últimos (promedia 3.0 vs línea 2.5)",
+    "trend": "Over en 3/5 últimos (promedia 3.0 en L5 vs línea 2.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 1
   },
@@ -2845,7 +2845,7 @@
     "ev_pct": 46.6,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 3/5 últimos (promedia 33.6 vs línea 30.5)",
+    "trend": "Over en 3/5 últimos (promedia 33.6 en L5 vs línea 30.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -2875,7 +2875,7 @@
     "ev_pct": 46.6,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 2/5 últimos (promedia 30.9 vs línea 27.5)",
+    "trend": "Over en 2/5 últimos (promedia 30.9 en L5 vs línea 27.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -2905,7 +2905,7 @@
     "ev_pct": 46.5,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 4/5 últimos (promedia 41.7 vs línea 39.5)",
+    "trend": "Over en 4/5 últimos (promedia 41.7 en L5 vs línea 39.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -2935,7 +2935,7 @@
     "ev_pct": 46.4,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 4/5 últimos (promedia 32.1 vs línea 30.5)",
+    "trend": "Over en 4/5 últimos (promedia 32.1 en L5 vs línea 30.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -2965,7 +2965,7 @@
     "ev_pct": 46.2,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 3/5 últimos (promedia 16.9 vs línea 15.5)",
+    "trend": "Over en 3/5 últimos (promedia 16.9 en L5 vs línea 15.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -2995,7 +2995,7 @@
     "ev_pct": 46.0,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 3/5 últimos (promedia 25.9 vs línea 24.5)",
+    "trend": "Over en 3/5 últimos (promedia 24.0 en L5 vs línea 24.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -3025,7 +3025,7 @@
     "ev_pct": 46.0,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 4/5 últimos (promedia 9.4 vs línea 11.5)",
+    "trend": "Under en 4/5 últimos (promedia 9.2 en L5 vs línea 11.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -3055,7 +3055,7 @@
     "ev_pct": 45.9,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 3/5 últimos (promedia 15.2 vs línea 12.5)",
+    "trend": "Over en 3/5 últimos (promedia 14.1 en L5 vs línea 12.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -3085,7 +3085,7 @@
     "ev_pct": 45.9,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 4/5 últimos (promedia 3.2 vs línea 2.5)",
+    "trend": "Over en 4/5 últimos (promedia 3.2 en L5 vs línea 2.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 1
   },
@@ -3115,7 +3115,7 @@
     "ev_pct": 45.8,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 4/5 últimos (promedia 15.8 vs línea 17.5)",
+    "trend": "Under en 4/5 últimos (promedia 14.6 en L5 vs línea 17.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -3145,7 +3145,7 @@
     "ev_pct": 45.7,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 3/5 últimos (promedia 4.2 vs línea 3.5)",
+    "trend": "Over en 3/5 últimos (promedia 4.2 en L5 vs línea 3.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 1
   },
@@ -3175,7 +3175,7 @@
     "ev_pct": 45.7,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 2/5 últimos (promedia 2.0 vs línea 1.5)",
+    "trend": "Over en 2/5 últimos (promedia 1.6 en L5 vs línea 1.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 1
   },
@@ -3205,7 +3205,7 @@
     "ev_pct": 45.5,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 3/5 últimos (promedia 2.0 vs línea 2.5)",
+    "trend": "Under en 3/5 últimos (promedia 2.0 en L5 vs línea 2.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -3235,7 +3235,7 @@
     "ev_pct": 45.1,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 3/5 últimos (promedia 2.0 vs línea 2.5)",
+    "trend": "Under en 3/5 últimos (promedia 2.0 en L5 vs línea 2.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -3265,7 +3265,7 @@
     "ev_pct": 45.1,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 2/5 últimos (promedia 19.2 vs línea 17.5)",
+    "trend": "Over en 2/5 últimos (promedia 17.8 en L5 vs línea 17.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -3295,7 +3295,7 @@
     "ev_pct": 44.9,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 5/5 últimos (promedia 30.7 vs línea 25.5)",
+    "trend": "Over en 5/5 últimos (promedia 32.2 en L5 vs línea 25.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -3325,7 +3325,7 @@
     "ev_pct": 44.6,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 3/5 últimos (promedia 12.1 vs línea 15.5)",
+    "trend": "Under en 3/5 últimos (promedia 12.8 en L5 vs línea 15.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -3355,7 +3355,7 @@
     "ev_pct": 44.6,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 5/5 últimos (promedia 5.9 vs línea 4.5)",
+    "trend": "Over en 5/5 últimos (promedia 5.6 en L5 vs línea 4.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -3385,7 +3385,7 @@
     "ev_pct": 44.4,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 4/5 últimos (promedia 23.1 vs línea 24.5)",
+    "trend": "Under en 4/5 últimos (promedia 21.4 en L5 vs línea 24.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -3415,7 +3415,7 @@
     "ev_pct": 44.2,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 2/5 últimos (promedia 20.3 vs línea 18.5)",
+    "trend": "Over en 2/5 últimos (promedia 18.8 en L5 vs línea 18.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -3445,7 +3445,7 @@
     "ev_pct": 43.9,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 2/5 últimos (promedia 30.0 vs línea 27.5)",
+    "trend": "Over en 2/5 últimos (promedia 27.8 en L5 vs línea 27.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -3475,7 +3475,7 @@
     "ev_pct": 43.6,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 3/5 últimos (promedia 20.6 vs línea 19.5)",
+    "trend": "Over en 3/5 últimos (promedia 20.6 en L5 vs línea 19.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -3505,7 +3505,7 @@
     "ev_pct": 42.9,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 5/5 últimos (promedia 2.0 vs línea 3.5)",
+    "trend": "Under en 5/5 últimos (promedia 1.8 en L5 vs línea 3.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -3535,7 +3535,7 @@
     "ev_pct": 42.5,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 3/5 últimos (promedia 23.9 vs línea 22.5)",
+    "trend": "Over en 3/5 últimos (promedia 23.9 en L5 vs línea 22.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -3565,7 +3565,7 @@
     "ev_pct": 42.4,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 2/5 últimos (promedia 23.2 vs línea 21.5)",
+    "trend": "Over en 2/5 últimos (promedia 23.2 en L5 vs línea 21.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -3595,7 +3595,7 @@
     "ev_pct": 42.0,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 4/5 últimos (promedia 8.4 vs línea 6.5)",
+    "trend": "Over en 4/5 últimos (promedia 8.8 en L5 vs línea 6.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -3625,7 +3625,7 @@
     "ev_pct": 42.0,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 5/5 últimos (promedia 18.7 vs línea 15.5)",
+    "trend": "Over en 5/5 últimos (promedia 19.6 en L5 vs línea 15.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -3655,7 +3655,7 @@
     "ev_pct": 41.6,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 3/5 últimos (promedia 21.4 vs línea 22.5)",
+    "trend": "Under en 3/5 últimos (promedia 19.8 en L5 vs línea 22.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -3685,7 +3685,7 @@
     "ev_pct": 41.5,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 4/5 últimos (promedia 5.4 vs línea 6.5)",
+    "trend": "Under en 4/5 últimos (promedia 4.2 en L5 vs línea 6.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -3715,7 +3715,7 @@
     "ev_pct": 41.4,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 4/5 últimos (promedia 23.5 vs línea 21.5)",
+    "trend": "Over en 4/5 últimos (promedia 21.8 en L5 vs línea 21.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -3745,7 +3745,7 @@
     "ev_pct": 41.4,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 2/5 últimos (promedia 2.2 vs línea 1.5)",
+    "trend": "Over en 2/5 últimos (promedia 2.0 en L5 vs línea 1.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 1
   },
@@ -3775,7 +3775,7 @@
     "ev_pct": 41.1,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 1/5 últimos (promedia 23.5 vs línea 21.5)",
+    "trend": "Over en 1/5 últimos (promedia 21.8 en L5 vs línea 21.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -3805,7 +3805,7 @@
     "ev_pct": 41.0,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 3/5 últimos (promedia 17.2 vs línea 15.5)",
+    "trend": "Over en 3/5 últimos (promedia 15.9 en L5 vs línea 15.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -3835,7 +3835,7 @@
     "ev_pct": 40.9,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 4/5 últimos (promedia 30.8 vs línea 26.5)",
+    "trend": "Over en 4/5 últimos (promedia 28.8 en L5 vs línea 26.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -3865,7 +3865,7 @@
     "ev_pct": 40.8,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 4/5 últimos (promedia 4.8 vs línea 3.5)",
+    "trend": "Over en 4/5 últimos (promedia 4.6 en L5 vs línea 3.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 1
   },
@@ -3895,7 +3895,7 @@
     "ev_pct": 40.4,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 4/5 últimos (promedia 16.8 vs línea 19.5)",
+    "trend": "Under en 4/5 últimos (promedia 16.8 en L5 vs línea 19.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -3925,7 +3925,7 @@
     "ev_pct": 40.2,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 3/5 últimos (promedia 3.2 vs línea 2.5)",
+    "trend": "Over en 3/5 últimos (promedia 3.0 en L5 vs línea 2.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -3955,7 +3955,7 @@
     "ev_pct": 40.0,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 5/5 últimos (promedia 1.3 vs línea 2.5)",
+    "trend": "Under en 5/5 últimos (promedia 1.2 en L5 vs línea 2.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -3985,7 +3985,7 @@
     "ev_pct": 39.6,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 3/5 últimos (promedia 7.3 vs línea 9.5)",
+    "trend": "Under en 3/5 últimos (promedia 8.0 en L5 vs línea 9.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -4015,7 +4015,7 @@
     "ev_pct": 39.3,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 2/4 últimos (promedia 20.2 vs línea 18.5)",
+    "trend": "Over en 2/4 últimos (promedia 18.7 en L5 vs línea 18.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -4045,7 +4045,7 @@
     "ev_pct": 39.3,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 3/5 últimos (promedia 21.8 vs línea 20.5)",
+    "trend": "Over en 3/5 últimos (promedia 20.2 en L5 vs línea 20.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -4075,7 +4075,7 @@
     "ev_pct": 39.1,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 5/5 últimos (promedia 3.1 vs línea 4.5)",
+    "trend": "Under en 5/5 últimos (promedia 2.6 en L5 vs línea 4.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -4105,7 +4105,7 @@
     "ev_pct": 38.6,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 4/5 últimos (promedia 19.4 vs línea 13.5)",
+    "trend": "Over en 4/5 últimos (promedia 18.2 en L5 vs línea 13.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -4135,7 +4135,7 @@
     "ev_pct": 38.5,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Under en 3/5 últimos (promedia 12.7 vs línea 14.5)",
+    "trend": "Under en 3/5 últimos (promedia 12.7 en L5 vs línea 14.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -4165,7 +4165,7 @@
     "ev_pct": 38.5,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Under en 2/5 últimos (promedia 22.6 vs línea 24.5)",
+    "trend": "Under en 2/5 últimos (promedia 22.6 en L5 vs línea 24.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -4195,7 +4195,7 @@
     "ev_pct": 38.2,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 3/5 últimos (promedia 40.5 vs línea 36.5)",
+    "trend": "Over en 3/5 últimos (promedia 37.8 en L5 vs línea 36.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -4225,7 +4225,7 @@
     "ev_pct": 37.8,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 4/5 últimos (promedia 20.3 vs línea 21.5)",
+    "trend": "Under en 4/5 últimos (promedia 20.3 en L5 vs línea 21.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -4255,7 +4255,7 @@
     "ev_pct": 37.7,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 4/5 últimos (promedia 22.1 vs línea 23.5)",
+    "trend": "Under en 4/5 últimos (promedia 22.1 en L5 vs línea 23.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -4285,7 +4285,7 @@
     "ev_pct": 37.2,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 4/5 últimos (promedia 19.0 vs línea 12.5)",
+    "trend": "Over en 4/5 últimos (promedia 18.2 en L5 vs línea 12.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -4315,7 +4315,7 @@
     "ev_pct": 37.2,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 4/5 últimos (promedia 6.2 vs línea 4.5)",
+    "trend": "Over en 4/5 últimos (promedia 6.0 en L5 vs línea 4.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -4345,7 +4345,7 @@
     "ev_pct": 36.1,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 3/4 últimos (promedia 15.2 vs línea 19.5)",
+    "trend": "Under en 3/4 últimos (promedia 15.2 en L5 vs línea 19.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -4375,7 +4375,7 @@
     "ev_pct": 35.8,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 2/5 últimos (promedia 9.6 vs línea 10.5)",
+    "trend": "Under en 2/5 últimos (promedia 8.9 en L5 vs línea 10.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -4405,7 +4405,7 @@
     "ev_pct": 35.5,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Under en 3/5 últimos (promedia 23.0 vs línea 24.5)",
+    "trend": "Under en 3/5 últimos (promedia 23.0 en L5 vs línea 24.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -4435,7 +4435,7 @@
     "ev_pct": 35.5,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 4/5 últimos (promedia 5.7 vs línea 3.5)",
+    "trend": "Over en 4/5 últimos (promedia 6.2 en L5 vs línea 3.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -4465,7 +4465,7 @@
     "ev_pct": 35.4,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 4/5 últimos (promedia 1.4 vs línea 1.5)",
+    "trend": "Under en 4/5 últimos (promedia 1.2 en L5 vs línea 1.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -4495,7 +4495,7 @@
     "ev_pct": 35.3,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 4/5 últimos (promedia 3.5 vs línea 2.5)",
+    "trend": "Over en 4/5 últimos (promedia 3.0 en L5 vs línea 2.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 1
   },
@@ -4525,7 +4525,7 @@
     "ev_pct": 35.2,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 4/5 últimos (promedia 7.7 vs línea 5.5)",
+    "trend": "Over en 4/5 últimos (promedia 8.0 en L5 vs línea 5.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -4555,7 +4555,7 @@
     "ev_pct": 35.0,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 2/4 últimos (promedia 10.8 vs línea 8.5)",
+    "trend": "Over en 2/4 últimos (promedia 10.0 en L5 vs línea 8.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -4585,7 +4585,7 @@
     "ev_pct": 35.0,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 3/5 últimos (promedia 15.0 vs línea 16.5)",
+    "trend": "Under en 3/5 últimos (promedia 15.0 en L5 vs línea 16.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -4615,7 +4615,7 @@
     "ev_pct": 34.7,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 2/5 últimos (promedia 31.3 vs línea 29.5)",
+    "trend": "Over en 2/5 últimos (promedia 31.3 en L5 vs línea 29.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -4645,7 +4645,7 @@
     "ev_pct": 34.4,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 2/5 últimos (promedia 2.2 vs línea 2.5)",
+    "trend": "Over en 2/5 últimos (promedia 2.0 en L5 vs línea 2.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 1
   },
@@ -4675,7 +4675,7 @@
     "ev_pct": 34.3,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 4/5 últimos (promedia 3.6 vs línea 2.5)",
+    "trend": "Over en 4/5 últimos (promedia 3.6 en L5 vs línea 2.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 1
   },
@@ -4705,7 +4705,7 @@
     "ev_pct": 34.3,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 3/5 últimos (promedia 3.7 vs línea 2.5)",
+    "trend": "Over en 3/5 últimos (promedia 3.4 en L5 vs línea 2.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 1
   },
@@ -4735,7 +4735,7 @@
     "ev_pct": 34.3,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 3/5 últimos (promedia 18.6 vs línea 17.5)",
+    "trend": "Over en 3/5 últimos (promedia 17.2 en L5 vs línea 17.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -4765,7 +4765,7 @@
     "ev_pct": 34.1,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 3/5 últimos (promedia 21.2 vs línea 22.5)",
+    "trend": "Under en 3/5 últimos (promedia 21.2 en L5 vs línea 22.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -4795,7 +4795,7 @@
     "ev_pct": 33.8,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 3/5 últimos (promedia 25.2 vs línea 23.5)",
+    "trend": "Over en 3/5 últimos (promedia 23.3 en L5 vs línea 23.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -4825,7 +4825,7 @@
     "ev_pct": 33.8,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 5/5 últimos (promedia 3.1 vs línea 2.5)",
+    "trend": "Over en 5/5 últimos (promedia 3.0 en L5 vs línea 2.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 1
   },
@@ -4855,7 +4855,7 @@
     "ev_pct": 33.6,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 4/5 últimos (promedia 6.6 vs línea 8.5)",
+    "trend": "Under en 4/5 últimos (promedia 6.2 en L5 vs línea 8.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -4885,7 +4885,7 @@
     "ev_pct": 33.3,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 4/5 últimos (promedia 2.2 vs línea 2.5)",
+    "trend": "Under en 4/5 últimos (promedia 2.2 en L5 vs línea 2.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -4915,7 +4915,7 @@
     "ev_pct": 33.2,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 3/5 últimos (promedia 7.3 vs línea 5.5)",
+    "trend": "Over en 3/5 últimos (promedia 7.0 en L5 vs línea 5.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -4945,7 +4945,7 @@
     "ev_pct": 33.1,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 3/5 últimos (promedia 5.1 vs línea 5.5)",
+    "trend": "Under en 3/5 últimos (promedia 5.2 en L5 vs línea 5.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -4975,7 +4975,7 @@
     "ev_pct": 32.4,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 3/5 últimos (promedia 12.5 vs línea 8.5)",
+    "trend": "Over en 3/5 últimos (promedia 12.2 en L5 vs línea 8.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -5005,7 +5005,7 @@
     "ev_pct": 32.4,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 3/5 últimos (promedia 16.5 vs línea 11.5)",
+    "trend": "Over en 3/5 últimos (promedia 15.8 en L5 vs línea 11.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -5035,7 +5035,7 @@
     "ev_pct": 32.2,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 3/5 últimos (promedia 25.1 vs línea 20.5)",
+    "trend": "Over en 3/5 últimos (promedia 23.6 en L5 vs línea 20.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -5065,7 +5065,7 @@
     "ev_pct": 32.0,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 3/5 últimos (promedia 3.3 vs línea 3.5)",
+    "trend": "Over en 3/5 últimos (promedia 3.6 en L5 vs línea 3.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 1
   },
@@ -5095,7 +5095,7 @@
     "ev_pct": 32.0,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 1/5 últimos (promedia 28.1 vs línea 26.5)",
+    "trend": "Over en 1/5 últimos (promedia 26.0 en L5 vs línea 26.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -5125,7 +5125,7 @@
     "ev_pct": 32.0,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 4/5 últimos (promedia 16.5 vs línea 17.5)",
+    "trend": "Under en 4/5 últimos (promedia 15.3 en L5 vs línea 17.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -5155,7 +5155,7 @@
     "ev_pct": 31.8,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 3/5 últimos (promedia 19.6 vs línea 15.5)",
+    "trend": "Over en 3/5 últimos (promedia 20.0 en L5 vs línea 15.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -5185,7 +5185,7 @@
     "ev_pct": 31.5,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 2/5 últimos (promedia 3.1 vs línea 2.5)",
+    "trend": "Over en 2/5 últimos (promedia 2.8 en L5 vs línea 2.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -5215,7 +5215,7 @@
     "ev_pct": 31.2,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 4/5 últimos (promedia 2.8 vs línea 2.5)",
+    "trend": "Over en 4/5 últimos (promedia 3.2 en L5 vs línea 2.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 1
   },
@@ -5245,7 +5245,7 @@
     "ev_pct": 31.1,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 3/5 últimos (promedia 14.4 vs línea 12.5)",
+    "trend": "Over en 3/5 últimos (promedia 13.3 en L5 vs línea 12.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -5275,7 +5275,7 @@
     "ev_pct": 30.9,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 4/5 últimos (promedia 4.4 vs línea 3.5)",
+    "trend": "Over en 4/5 últimos (promedia 4.6 en L5 vs línea 3.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -5305,7 +5305,7 @@
     "ev_pct": 30.9,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Under en 3/5 últimos (promedia 18.1 vs línea 19.5)",
+    "trend": "Under en 3/5 últimos (promedia 16.8 en L5 vs línea 19.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -5335,7 +5335,7 @@
     "ev_pct": 30.8,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 2/5 últimos (promedia 20.2 vs línea 17.5)",
+    "trend": "Over en 2/5 últimos (promedia 18.4 en L5 vs línea 17.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -5365,7 +5365,7 @@
     "ev_pct": 30.4,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 4/5 últimos (promedia 42.4 vs línea 47.5)",
+    "trend": "Under en 4/5 últimos (promedia 42.4 en L5 vs línea 47.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -5395,7 +5395,7 @@
     "ev_pct": 30.1,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 2/5 últimos (promedia 13.3 vs línea 11.5)",
+    "trend": "Over en 2/5 últimos (promedia 12.3 en L5 vs línea 11.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -5425,7 +5425,7 @@
     "ev_pct": 30.0,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 3/5 últimos (promedia 30.6 vs línea 29.5)",
+    "trend": "Over en 3/5 últimos (promedia 30.6 en L5 vs línea 29.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -5455,7 +5455,7 @@
     "ev_pct": 29.7,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 4/5 últimos (promedia 7.3 vs línea 8.5)",
+    "trend": "Under en 4/5 últimos (promedia 7.4 en L5 vs línea 8.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -5485,7 +5485,7 @@
     "ev_pct": 29.5,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 4/5 últimos (promedia 3.2 vs línea 3.5)",
+    "trend": "Under en 4/5 últimos (promedia 2.8 en L5 vs línea 3.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -5515,7 +5515,7 @@
     "ev_pct": 29.4,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 3/5 últimos (promedia 2.3 vs línea 2.5)",
+    "trend": "Under en 3/5 últimos (promedia 2.2 en L5 vs línea 2.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -5545,7 +5545,7 @@
     "ev_pct": 29.3,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 3/5 últimos (promedia 15.7 vs línea 11.5)",
+    "trend": "Over en 3/5 últimos (promedia 14.2 en L5 vs línea 11.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -5575,7 +5575,7 @@
     "ev_pct": 29.1,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 3/5 últimos (promedia 25.4 vs línea 23.5)",
+    "trend": "Over en 3/5 últimos (promedia 23.8 en L5 vs línea 23.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -5605,7 +5605,7 @@
     "ev_pct": 29.0,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 4/5 últimos (promedia 7.4 vs línea 5.5)",
+    "trend": "Over en 4/5 últimos (promedia 7.2 en L5 vs línea 5.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -5635,7 +5635,7 @@
     "ev_pct": 28.8,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 4/5 últimos (promedia 18.8 vs línea 15.5)",
+    "trend": "Over en 4/5 últimos (promedia 19.6 en L5 vs línea 15.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -5665,7 +5665,7 @@
     "ev_pct": 28.8,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 3/5 últimos (promedia 4.1 vs línea 3.5)",
+    "trend": "Over en 3/5 últimos (promedia 4.0 en L5 vs línea 3.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 1
   },
@@ -5695,7 +5695,7 @@
     "ev_pct": 28.7,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 4/5 últimos (promedia 5.6 vs línea 5.5)",
+    "trend": "Over en 4/5 últimos (promedia 5.4 en L5 vs línea 5.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -5725,7 +5725,7 @@
     "ev_pct": 28.6,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 2/5 últimos (promedia 18.7 vs línea 17.5)",
+    "trend": "Over en 2/5 últimos (promedia 17.3 en L5 vs línea 17.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -5755,7 +5755,7 @@
     "ev_pct": 28.5,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 3/5 últimos (promedia 15.9 vs línea 16.5)",
+    "trend": "Under en 3/5 últimos (promedia 14.7 en L5 vs línea 16.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -5785,7 +5785,7 @@
     "ev_pct": 28.4,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 3/5 últimos (promedia 9.7 vs línea 7.5)",
+    "trend": "Over en 3/5 últimos (promedia 9.2 en L5 vs línea 7.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -5815,7 +5815,7 @@
     "ev_pct": 28.1,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 3/5 últimos (promedia 19.2 vs línea 21.5)",
+    "trend": "Under en 3/5 últimos (promedia 19.8 en L5 vs línea 21.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -5845,7 +5845,7 @@
     "ev_pct": 27.8,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 2/5 últimos (promedia 19.9 vs línea 17.5)",
+    "trend": "Over en 2/5 últimos (promedia 18.2 en L5 vs línea 17.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -5875,7 +5875,7 @@
     "ev_pct": 27.6,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 3/5 últimos (promedia 15.0 vs línea 13.5)",
+    "trend": "Over en 3/5 últimos (promedia 13.9 en L5 vs línea 13.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -5905,7 +5905,7 @@
     "ev_pct": 27.4,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 4/5 últimos (promedia 17.1 vs línea 15.5)",
+    "trend": "Over en 4/5 últimos (promedia 15.8 en L5 vs línea 15.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -5935,7 +5935,7 @@
     "ev_pct": 27.0,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 3/5 últimos (promedia 12.1 vs línea 15.5)",
+    "trend": "Under en 3/5 últimos (promedia 12.2 en L5 vs línea 15.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -5965,7 +5965,7 @@
     "ev_pct": 27.0,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 3/5 últimos (promedia 17.6 vs línea 18.5)",
+    "trend": "Under en 3/5 últimos (promedia 17.6 en L5 vs línea 18.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -5995,7 +5995,7 @@
     "ev_pct": 27.0,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 4/5 últimos (promedia 14.9 vs línea 10.5)",
+    "trend": "Over en 4/5 últimos (promedia 14.6 en L5 vs línea 10.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -6025,7 +6025,7 @@
     "ev_pct": 26.8,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 5/5 últimos (promedia 3.0 vs línea 1.5)",
+    "trend": "Over en 5/5 últimos (promedia 3.0 en L5 vs línea 1.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 1
   },
@@ -6055,7 +6055,7 @@
     "ev_pct": 26.8,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 4/5 últimos (promedia 31.4 vs línea 26.5)",
+    "trend": "Over en 4/5 últimos (promedia 32.4 en L5 vs línea 26.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -6085,7 +6085,7 @@
     "ev_pct": 26.8,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 4/5 últimos (promedia 25.8 vs línea 20.5)",
+    "trend": "Over en 4/5 últimos (promedia 25.0 en L5 vs línea 20.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -6115,7 +6115,7 @@
     "ev_pct": 26.7,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 3/5 últimos (promedia 28.3 vs línea 27.5)",
+    "trend": "Over en 3/5 últimos (promedia 28.3 en L5 vs línea 27.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -6145,7 +6145,7 @@
     "ev_pct": 26.6,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 4/5 últimos (promedia 4.1 vs línea 2.5)",
+    "trend": "Over en 4/5 últimos (promedia 4.4 en L5 vs línea 2.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -6175,7 +6175,7 @@
     "ev_pct": 26.5,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 3/5 últimos (promedia 10.0 vs línea 6.5)",
+    "trend": "Over en 3/5 últimos (promedia 9.8 en L5 vs línea 6.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -6205,7 +6205,7 @@
     "ev_pct": 26.4,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 4/5 últimos (promedia 2.9 vs línea 3.5)",
+    "trend": "Under en 4/5 últimos (promedia 2.8 en L5 vs línea 3.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -6235,7 +6235,7 @@
     "ev_pct": 26.2,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 4/5 últimos (promedia 5.2 vs línea 4.5)",
+    "trend": "Over en 4/5 últimos (promedia 5.6 en L5 vs línea 4.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 1
   },
@@ -6265,7 +6265,7 @@
     "ev_pct": 26.1,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 2/5 últimos (promedia 17.6 vs línea 16.5)",
+    "trend": "Over en 2/5 últimos (promedia 16.3 en L5 vs línea 16.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -6295,7 +6295,7 @@
     "ev_pct": 26.1,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 3/5 últimos (promedia 18.9 vs línea 17.5)",
+    "trend": "Over en 3/5 últimos (promedia 19.0 en L5 vs línea 17.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -6325,7 +6325,7 @@
     "ev_pct": 26.0,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 3/5 últimos (promedia 3.1 vs línea 2.5)",
+    "trend": "Over en 3/5 últimos (promedia 3.2 en L5 vs línea 2.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 1
   },
@@ -6355,7 +6355,7 @@
     "ev_pct": 25.9,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 4/5 últimos (promedia 2.4 vs línea 3.5)",
+    "trend": "Under en 4/5 últimos (promedia 2.0 en L5 vs línea 3.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -6385,7 +6385,7 @@
     "ev_pct": 25.8,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 2/5 últimos (promedia 11.9 vs línea 12.5)",
+    "trend": "Under en 2/5 últimos (promedia 11.0 en L5 vs línea 12.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -6415,7 +6415,7 @@
     "ev_pct": 25.8,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 3/5 últimos (promedia 10.6 vs línea 6.5)",
+    "trend": "Over en 3/5 últimos (promedia 9.8 en L5 vs línea 6.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -6445,7 +6445,7 @@
     "ev_pct": 25.7,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 3/5 últimos (promedia 7.8 vs línea 6.5)",
+    "trend": "Over en 3/5 últimos (promedia 7.4 en L5 vs línea 6.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -6475,7 +6475,7 @@
     "ev_pct": 25.5,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 4/5 últimos (promedia 6.1 vs línea 4.5)",
+    "trend": "Over en 4/5 últimos (promedia 6.8 en L5 vs línea 4.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -6505,7 +6505,7 @@
     "ev_pct": 25.4,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 4/5 últimos (promedia 25.2 vs línea 24.5)",
+    "trend": "Over en 4/5 últimos (promedia 23.3 en L5 vs línea 24.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -6535,7 +6535,7 @@
     "ev_pct": 25.3,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 3/5 últimos (promedia 1.9 vs línea 1.5)",
+    "trend": "Over en 3/5 últimos (promedia 1.8 en L5 vs línea 1.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 1
   },
@@ -6565,7 +6565,7 @@
     "ev_pct": 25.2,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 3/5 últimos (promedia 37.0 vs línea 37.5)",
+    "trend": "Under en 3/5 últimos (promedia 34.3 en L5 vs línea 37.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -6595,7 +6595,7 @@
     "ev_pct": 25.1,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 3/5 últimos (promedia 5.6 vs línea 4.5)",
+    "trend": "Over en 3/5 últimos (promedia 5.2 en L5 vs línea 4.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -6625,7 +6625,7 @@
     "ev_pct": 25.1,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 5/5 últimos (promedia 2.2 vs línea 3.5)",
+    "trend": "Under en 5/5 últimos (promedia 1.8 en L5 vs línea 3.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -6655,7 +6655,7 @@
     "ev_pct": 25.0,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 3/5 últimos (promedia 5.6 vs línea 6.5)",
+    "trend": "Under en 3/5 últimos (promedia 6.0 en L5 vs línea 6.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -6685,7 +6685,7 @@
     "ev_pct": 24.5,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 3/5 últimos (promedia 5.1 vs línea 5.5)",
+    "trend": "Under en 3/5 últimos (promedia 5.0 en L5 vs línea 5.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -6715,7 +6715,7 @@
     "ev_pct": 24.4,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 4/5 últimos (promedia 12.9 vs línea 15.5)",
+    "trend": "Under en 4/5 últimos (promedia 12.8 en L5 vs línea 15.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -6745,7 +6745,7 @@
     "ev_pct": 24.3,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 3/5 últimos (promedia 29.4 vs línea 24.5)",
+    "trend": "Over en 3/5 últimos (promedia 30.2 en L5 vs línea 24.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -6775,7 +6775,7 @@
     "ev_pct": 24.3,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 2/5 últimos (promedia 23.3 vs línea 20.5)",
+    "trend": "Over en 2/5 últimos (promedia 21.0 en L5 vs línea 20.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -6805,7 +6805,7 @@
     "ev_pct": 24.1,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 4/5 últimos (promedia 7.6 vs línea 8.5)",
+    "trend": "Under en 4/5 últimos (promedia 6.4 en L5 vs línea 8.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -6835,7 +6835,7 @@
     "ev_pct": 23.9,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 3/5 últimos (promedia 22.0 vs línea 17.5)",
+    "trend": "Over en 3/5 últimos (promedia 21.0 en L5 vs línea 17.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -6865,7 +6865,7 @@
     "ev_pct": 23.7,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 3/5 últimos (promedia 2.0 vs línea 1.5)",
+    "trend": "Over en 3/5 últimos (promedia 2.0 en L5 vs línea 1.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 1
   },
@@ -6895,7 +6895,7 @@
     "ev_pct": 23.7,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 5/5 últimos (promedia 4.3 vs línea 2.5)",
+    "trend": "Over en 5/5 últimos (promedia 4.2 en L5 vs línea 2.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -6925,7 +6925,7 @@
     "ev_pct": 23.5,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 3/5 últimos (promedia 34.7 vs línea 36.5)",
+    "trend": "Under en 3/5 últimos (promedia 35.6 en L5 vs línea 36.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -6955,7 +6955,7 @@
     "ev_pct": 23.1,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 4/5 últimos (promedia 24.4 vs línea 20.5)",
+    "trend": "Over en 4/5 últimos (promedia 25.0 en L5 vs línea 20.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -6985,7 +6985,7 @@
     "ev_pct": 23.0,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 4/5 últimos (promedia 5.2 vs línea 4.5)",
+    "trend": "Over en 4/5 últimos (promedia 5.0 en L5 vs línea 4.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -7015,7 +7015,7 @@
     "ev_pct": 22.6,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 3/5 últimos (promedia 12.7 vs línea 13.5)",
+    "trend": "Under en 3/5 últimos (promedia 12.4 en L5 vs línea 13.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -7045,7 +7045,7 @@
     "ev_pct": 22.4,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 3/5 últimos (promedia 3.8 vs línea 3.5)",
+    "trend": "Under en 3/5 últimos (promedia 3.8 en L5 vs línea 3.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -7075,7 +7075,7 @@
     "ev_pct": 22.3,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 4/5 últimos (promedia 2.4 vs línea 3.5)",
+    "trend": "Under en 4/5 últimos (promedia 2.2 en L5 vs línea 3.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -7105,7 +7105,7 @@
     "ev_pct": 22.0,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 3/5 últimos (promedia 5.8 vs línea 4.5)",
+    "trend": "Over en 3/5 últimos (promedia 5.8 en L5 vs línea 4.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -7135,7 +7135,7 @@
     "ev_pct": 21.9,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 4/5 últimos (promedia 5.8 vs línea 4.5)",
+    "trend": "Over en 4/5 últimos (promedia 5.8 en L5 vs línea 4.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -7165,7 +7165,7 @@
     "ev_pct": 21.8,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 4/5 últimos (promedia 4.2 vs línea 2.5)",
+    "trend": "Over en 4/5 últimos (promedia 4.2 en L5 vs línea 2.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 1
   },
@@ -7195,7 +7195,7 @@
     "ev_pct": 21.2,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 2/5 últimos (promedia 32.1 vs línea 29.5)",
+    "trend": "Over en 2/5 últimos (promedia 29.0 en L5 vs línea 29.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -7225,7 +7225,7 @@
     "ev_pct": 21.2,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 2/5 últimos (promedia 14.7 vs línea 13.5)",
+    "trend": "Over en 2/5 últimos (promedia 14.7 en L5 vs línea 13.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -7255,7 +7255,7 @@
     "ev_pct": 21.1,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 4/5 últimos (promedia 30.4 vs línea 24.5)",
+    "trend": "Over en 4/5 últimos (promedia 30.6 en L5 vs línea 24.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -7285,7 +7285,7 @@
     "ev_pct": 21.1,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 2/5 últimos (promedia 8.7 vs línea 7.5)",
+    "trend": "Over en 2/5 últimos (promedia 8.2 en L5 vs línea 7.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -7315,7 +7315,7 @@
     "ev_pct": 20.4,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 3/5 últimos (promedia 21.3 vs línea 17.5)",
+    "trend": "Over en 3/5 últimos (promedia 20.4 en L5 vs línea 17.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -7345,7 +7345,7 @@
     "ev_pct": 20.4,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 2/5 últimos (promedia 2.7 vs línea 2.5)",
+    "trend": "Over en 2/5 últimos (promedia 2.6 en L5 vs línea 2.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 1
   },
@@ -7375,7 +7375,7 @@
     "ev_pct": 20.4,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 3/5 últimos (promedia 2.4 vs línea 2.5)",
+    "trend": "Over en 3/5 últimos (promedia 2.6 en L5 vs línea 2.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 1
   },
@@ -7405,7 +7405,7 @@
     "ev_pct": 20.1,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 4/5 últimos (promedia 9.3 vs línea 11.5)",
+    "trend": "Under en 4/5 últimos (promedia 7.8 en L5 vs línea 11.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -7435,7 +7435,7 @@
     "ev_pct": 19.9,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 4/5 últimos (promedia 1.2 vs línea 1.5)",
+    "trend": "Under en 4/5 últimos (promedia 1.0 en L5 vs línea 1.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -7465,7 +7465,7 @@
     "ev_pct": 19.8,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 3/5 últimos (promedia 19.4 vs línea 20.5)",
+    "trend": "Under en 3/5 últimos (promedia 17.8 en L5 vs línea 20.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -7495,7 +7495,7 @@
     "ev_pct": 19.6,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 3/5 últimos (promedia 1.3 vs línea 1.5)",
+    "trend": "Under en 3/5 últimos (promedia 1.2 en L5 vs línea 1.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -7525,7 +7525,7 @@
     "ev_pct": 19.5,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 2/5 últimos (promedia 8.1 vs línea 6.5)",
+    "trend": "Over en 2/5 últimos (promedia 7.8 en L5 vs línea 6.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -7555,7 +7555,7 @@
     "ev_pct": 19.3,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 4/5 últimos (promedia 13.8 vs línea 15.5)",
+    "trend": "Under en 4/5 últimos (promedia 13.4 en L5 vs línea 15.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -7585,7 +7585,7 @@
     "ev_pct": 19.3,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 4/5 últimos (promedia 28.2 vs línea 28.5)",
+    "trend": "Under en 4/5 últimos (promedia 26.1 en L5 vs línea 28.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -7615,7 +7615,7 @@
     "ev_pct": 19.2,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 3/5 últimos (promedia 3.7 vs línea 3.5)",
+    "trend": "Over en 3/5 últimos (promedia 3.8 en L5 vs línea 3.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 1
   },
@@ -7645,7 +7645,7 @@
     "ev_pct": 19.1,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 4/5 últimos (promedia 5.8 vs línea 4.5)",
+    "trend": "Over en 4/5 últimos (promedia 5.8 en L5 vs línea 4.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -7675,7 +7675,7 @@
     "ev_pct": 19.0,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 3/5 últimos (promedia 7.0 vs línea 8.5)",
+    "trend": "Under en 3/5 últimos (promedia 7.2 en L5 vs línea 8.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -7705,7 +7705,7 @@
     "ev_pct": 18.9,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 4/5 últimos (promedia 28.1 vs línea 28.5)",
+    "trend": "Under en 4/5 últimos (promedia 26.0 en L5 vs línea 28.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -7735,7 +7735,7 @@
     "ev_pct": 18.8,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 3/5 últimos (promedia 2.6 vs línea 2.5)",
+    "trend": "Over en 3/5 últimos (promedia 2.8 en L5 vs línea 2.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 1
   },
@@ -7765,7 +7765,7 @@
     "ev_pct": 18.8,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 3/5 últimos (promedia 14.8 vs línea 11.5)",
+    "trend": "Over en 3/5 últimos (promedia 14.2 en L5 vs línea 11.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -7795,7 +7795,7 @@
     "ev_pct": 18.7,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 2/5 últimos (promedia 24.4 vs línea 23.5)",
+    "trend": "Over en 2/5 últimos (promedia 22.6 en L5 vs línea 23.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -7825,7 +7825,7 @@
     "ev_pct": 18.7,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 3/5 últimos (promedia 20.6 vs línea 22.5)",
+    "trend": "Under en 3/5 últimos (promedia 18.8 en L5 vs línea 22.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -7855,7 +7855,7 @@
     "ev_pct": 18.6,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 2/5 últimos (promedia 13.7 vs línea 14.5)",
+    "trend": "Under en 2/5 últimos (promedia 12.7 en L5 vs línea 14.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -7885,7 +7885,7 @@
     "ev_pct": 18.6,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 3/5 últimos (promedia 13.4 vs línea 11.5)",
+    "trend": "Over en 3/5 últimos (promedia 14.0 en L5 vs línea 11.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -7915,7 +7915,7 @@
     "ev_pct": 18.5,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 2/5 últimos (promedia 18.7 vs línea 21.5)",
+    "trend": "Under en 2/5 últimos (promedia 19.2 en L5 vs línea 21.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -7945,7 +7945,7 @@
     "ev_pct": 18.3,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 3/5 últimos (promedia 1.8 vs línea 1.5)",
+    "trend": "Over en 3/5 últimos (promedia 1.8 en L5 vs línea 1.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 1
   },
@@ -7975,7 +7975,7 @@
     "ev_pct": 18.3,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 4/5 últimos (promedia 2.7 vs línea 3.5)",
+    "trend": "Under en 4/5 últimos (promedia 2.4 en L5 vs línea 3.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -8005,7 +8005,7 @@
     "ev_pct": 18.2,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 4/5 últimos (promedia 11.2 vs línea 11.5)",
+    "trend": "Under en 4/5 últimos (promedia 10.4 en L5 vs línea 11.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -8035,7 +8035,7 @@
     "ev_pct": 18.2,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 5/5 últimos (promedia 3.6 vs línea 1.5)",
+    "trend": "Over en 5/5 últimos (promedia 3.6 en L5 vs línea 1.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 1
   },
@@ -8065,7 +8065,7 @@
     "ev_pct": 18.1,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 1/5 últimos (promedia 14.1 vs línea 14.5)",
+    "trend": "Under en 1/5 últimos (promedia 13.1 en L5 vs línea 14.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -8095,7 +8095,7 @@
     "ev_pct": 17.9,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 4/5 últimos (promedia 32.4 vs línea 27.5)",
+    "trend": "Over en 4/5 últimos (promedia 34.6 en L5 vs línea 27.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -8125,7 +8125,7 @@
     "ev_pct": 17.8,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 4/5 últimos (promedia 31.6 vs línea 27.5)",
+    "trend": "Over en 4/5 últimos (promedia 30.0 en L5 vs línea 27.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -8155,7 +8155,7 @@
     "ev_pct": 17.7,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 3/5 últimos (promedia 30.3 vs línea 29.5)",
+    "trend": "Over en 3/5 últimos (promedia 28.1 en L5 vs línea 29.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -8185,7 +8185,7 @@
     "ev_pct": 17.6,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 3/5 últimos (promedia 2.6 vs línea 2.5)",
+    "trend": "Under en 3/5 últimos (promedia 2.6 en L5 vs línea 2.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -8215,7 +8215,7 @@
     "ev_pct": 17.5,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 2/5 últimos (promedia 2.8 vs línea 2.5)",
+    "trend": "Over en 2/5 últimos (promedia 2.8 en L5 vs línea 2.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -8245,7 +8245,7 @@
     "ev_pct": 17.2,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 3/5 últimos (promedia 23.4 vs línea 24.5)",
+    "trend": "Under en 3/5 últimos (promedia 23.4 en L5 vs línea 24.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -8275,7 +8275,7 @@
     "ev_pct": 17.1,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 2/5 últimos (promedia 30.6 vs línea 27.5)",
+    "trend": "Over en 2/5 últimos (promedia 28.6 en L5 vs línea 27.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -8305,7 +8305,7 @@
     "ev_pct": 17.0,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 4/5 últimos (promedia 11.7 vs línea 9.5)",
+    "trend": "Over en 4/5 últimos (promedia 11.8 en L5 vs línea 9.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -8335,7 +8335,7 @@
     "ev_pct": 16.9,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 3/5 últimos (promedia 15.4 vs línea 17.5)",
+    "trend": "Under en 3/5 últimos (promedia 15.4 en L5 vs línea 17.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -8365,7 +8365,7 @@
     "ev_pct": 16.9,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 2/5 últimos (promedia 15.9 vs línea 14.5)",
+    "trend": "Over en 2/5 últimos (promedia 14.2 en L5 vs línea 14.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -8395,7 +8395,7 @@
     "ev_pct": 16.8,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 3/5 últimos (promedia 23.3 vs línea 25.5)",
+    "trend": "Under en 3/5 últimos (promedia 23.2 en L5 vs línea 25.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -8425,7 +8425,7 @@
     "ev_pct": 16.5,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 3/4 últimos (promedia 2.0 vs línea 2.5)",
+    "trend": "Under en 3/4 últimos (promedia 2.0 en L5 vs línea 2.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -8455,7 +8455,7 @@
     "ev_pct": 16.4,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 3/5 últimos (promedia 5.3 vs línea 5.5)",
+    "trend": "Under en 3/5 últimos (promedia 5.2 en L5 vs línea 5.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -8485,7 +8485,7 @@
     "ev_pct": 16.1,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Under en 2/5 últimos (promedia 14.7 vs línea 15.5)",
+    "trend": "Under en 2/5 últimos (promedia 14.7 en L5 vs línea 15.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -8515,7 +8515,7 @@
     "ev_pct": 15.8,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 3/5 últimos (promedia 25.8 vs línea 25.5)",
+    "trend": "Over en 3/5 últimos (promedia 25.8 en L5 vs línea 25.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -8545,7 +8545,7 @@
     "ev_pct": 15.6,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 3/5 últimos (promedia 10.4 vs línea 9.5)",
+    "trend": "Over en 3/5 últimos (promedia 9.8 en L5 vs línea 9.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -8575,7 +8575,7 @@
     "ev_pct": 15.5,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 5/5 últimos (promedia 2.6 vs línea 1.5)",
+    "trend": "Over en 5/5 últimos (promedia 2.8 en L5 vs línea 1.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 1
   },
@@ -8605,7 +8605,7 @@
     "ev_pct": 15.4,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 3/5 últimos (promedia 6.5 vs línea 4.5)",
+    "trend": "Over en 3/5 últimos (promedia 6.2 en L5 vs línea 4.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -8635,7 +8635,7 @@
     "ev_pct": 15.3,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 4/5 últimos (promedia 2.0 vs línea 0.5)",
+    "trend": "Over en 4/5 últimos (promedia 1.6 en L5 vs línea 0.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 1
   },
@@ -8665,7 +8665,7 @@
     "ev_pct": 15.3,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 3/5 últimos (promedia 3.1 vs línea 3.5)",
+    "trend": "Under en 3/5 últimos (promedia 3.2 en L5 vs línea 3.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -8695,7 +8695,7 @@
     "ev_pct": 15.2,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 3/5 últimos (promedia 15.4 vs línea 17.5)",
+    "trend": "Under en 3/5 últimos (promedia 15.4 en L5 vs línea 17.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -8725,7 +8725,7 @@
     "ev_pct": 15.2,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 4/5 últimos (promedia 4.1 vs línea 2.5)",
+    "trend": "Over en 4/5 últimos (promedia 4.0 en L5 vs línea 2.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 1
   },
@@ -8755,7 +8755,7 @@
     "ev_pct": 15.0,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 3/5 últimos (promedia 18.5 vs línea 16.5)",
+    "trend": "Over en 3/5 últimos (promedia 17.4 en L5 vs línea 16.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -8785,7 +8785,7 @@
     "ev_pct": 14.9,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 2/5 últimos (promedia 10.8 vs línea 9.5)",
+    "trend": "Over en 2/5 últimos (promedia 9.2 en L5 vs línea 9.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -8815,7 +8815,7 @@
     "ev_pct": 14.8,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Under en 2/5 últimos (promedia 28.8 vs línea 29.5)",
+    "trend": "Under en 2/5 últimos (promedia 28.8 en L5 vs línea 29.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -8845,7 +8845,7 @@
     "ev_pct": 14.8,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 2/5 últimos (promedia 6.4 vs línea 5.5)",
+    "trend": "Over en 2/5 últimos (promedia 5.6 en L5 vs línea 5.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -8875,7 +8875,7 @@
     "ev_pct": 14.7,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 4/5 últimos (promedia 1.9 vs línea 1.5)",
+    "trend": "Over en 4/5 últimos (promedia 2.0 en L5 vs línea 1.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 1
   },
@@ -8905,7 +8905,7 @@
     "ev_pct": 14.5,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 4/5 últimos (promedia 12.3 vs línea 13.5)",
+    "trend": "Under en 4/5 últimos (promedia 11.4 en L5 vs línea 13.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -8935,7 +8935,7 @@
     "ev_pct": 14.2,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 4/5 últimos (promedia 3.3 vs línea 2.5)",
+    "trend": "Over en 4/5 últimos (promedia 3.6 en L5 vs línea 2.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 1
   },
@@ -8965,7 +8965,7 @@
     "ev_pct": 14.2,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 4/5 últimos (promedia 5.1 vs línea 5.5)",
+    "trend": "Under en 4/5 últimos (promedia 5.2 en L5 vs línea 5.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -8995,7 +8995,7 @@
     "ev_pct": 14.1,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 3/5 últimos (promedia 7.0 vs línea 6.5)",
+    "trend": "Over en 3/5 últimos (promedia 7.0 en L5 vs línea 6.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -9025,7 +9025,7 @@
     "ev_pct": 14.0,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 4/5 últimos (promedia 37.0 vs línea 37.5)",
+    "trend": "Under en 4/5 últimos (promedia 37.2 en L5 vs línea 37.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -9055,7 +9055,7 @@
     "ev_pct": 14.0,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 2/5 últimos (promedia 2.4 vs línea 1.5)",
+    "trend": "Over en 2/5 últimos (promedia 2.6 en L5 vs línea 1.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 1
   },
@@ -9085,7 +9085,7 @@
     "ev_pct": 14.0,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 4/5 últimos (promedia 35.5 vs línea 32.5)",
+    "trend": "Over en 4/5 últimos (promedia 36.0 en L5 vs línea 32.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -9115,7 +9115,7 @@
     "ev_pct": 13.9,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 4/5 últimos (promedia 22.6 vs línea 24.5)",
+    "trend": "Under en 4/5 últimos (promedia 21.4 en L5 vs línea 24.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -9145,7 +9145,7 @@
     "ev_pct": 13.9,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 4/5 últimos (promedia 49.2 vs línea 42.5)",
+    "trend": "Over en 4/5 últimos (promedia 52.2 en L5 vs línea 42.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -9175,7 +9175,7 @@
     "ev_pct": 13.8,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 2/5 últimos (promedia 28.1 vs línea 27.5)",
+    "trend": "Over en 2/5 últimos (promedia 28.1 en L5 vs línea 27.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -9205,7 +9205,7 @@
     "ev_pct": 13.5,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 3/5 últimos (promedia 2.0 vs línea 1.5)",
+    "trend": "Over en 3/5 últimos (promedia 2.0 en L5 vs línea 1.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 1
   },
@@ -9235,7 +9235,7 @@
     "ev_pct": 13.5,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 2/5 últimos (promedia 2.8 vs línea 2.5)",
+    "trend": "Under en 2/5 últimos (promedia 2.8 en L5 vs línea 2.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -9265,7 +9265,7 @@
     "ev_pct": 13.0,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 2/5 últimos (promedia 10.8 vs línea 11.5)",
+    "trend": "Under en 2/5 últimos (promedia 11.4 en L5 vs línea 11.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -9295,7 +9295,7 @@
     "ev_pct": 12.9,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Under en 4/5 últimos (promedia 5.0 vs línea 5.5)",
+    "trend": "Under en 4/5 últimos (promedia 4.4 en L5 vs línea 5.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -9325,7 +9325,7 @@
     "ev_pct": 12.5,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 3/5 últimos (promedia 11.1 vs línea 9.5)",
+    "trend": "Over en 3/5 últimos (promedia 10.6 en L5 vs línea 9.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -9355,7 +9355,7 @@
     "ev_pct": 12.3,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 2/5 últimos (promedia 13.0 vs línea 13.5)",
+    "trend": "Under en 2/5 últimos (promedia 12.0 en L5 vs línea 13.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -9385,7 +9385,7 @@
     "ev_pct": 12.2,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 4/5 últimos (promedia 4.8 vs línea 2.5)",
+    "trend": "Over en 4/5 últimos (promedia 4.6 en L5 vs línea 2.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 1
   },
@@ -9415,7 +9415,7 @@
     "ev_pct": 12.2,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Under en 3/5 últimos (promedia 6.1 vs línea 7.5)",
+    "trend": "Under en 3/5 últimos (promedia 5.4 en L5 vs línea 7.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -9445,7 +9445,7 @@
     "ev_pct": 12.2,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Under en 3/5 últimos (promedia 1.7 vs línea 1.5)",
+    "trend": "Under en 3/5 últimos (promedia 1.4 en L5 vs línea 1.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -9475,7 +9475,7 @@
     "ev_pct": 12.0,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 3/5 últimos (promedia 27.4 vs línea 25.5)",
+    "trend": "Over en 3/5 últimos (promedia 25.4 en L5 vs línea 25.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -9505,7 +9505,7 @@
     "ev_pct": 12.0,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 4/5 últimos (promedia 3.2 vs línea 1.5)",
+    "trend": "Over en 4/5 últimos (promedia 3.2 en L5 vs línea 1.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 1
   },
@@ -9535,7 +9535,7 @@
     "ev_pct": 11.9,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 3/5 últimos (promedia 15.4 vs línea 12.5)",
+    "trend": "Over en 3/5 últimos (promedia 16.0 en L5 vs línea 12.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -9565,7 +9565,7 @@
     "ev_pct": 11.9,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 4/5 últimos (promedia 23.2 vs línea 19.5)",
+    "trend": "Over en 4/5 últimos (promedia 22.6 en L5 vs línea 19.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -9595,7 +9595,7 @@
     "ev_pct": 11.8,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 4/5 últimos (promedia 2.7 vs línea 1.5)",
+    "trend": "Over en 4/5 últimos (promedia 2.6 en L5 vs línea 1.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 1
   },
@@ -9625,7 +9625,7 @@
     "ev_pct": 11.8,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 3/5 últimos (promedia 12.2 vs línea 12.5)",
+    "trend": "Under en 3/5 últimos (promedia 12.2 en L5 vs línea 12.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -9655,7 +9655,7 @@
     "ev_pct": 11.7,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 5/5 últimos (promedia 3.1 vs línea 1.5)",
+    "trend": "Over en 5/5 últimos (promedia 3.0 en L5 vs línea 1.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 1
   },
@@ -9685,7 +9685,7 @@
     "ev_pct": 11.7,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 4/5 últimos (promedia 23.9 vs línea 25.5)",
+    "trend": "Under en 4/5 últimos (promedia 23.4 en L5 vs línea 25.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -9715,7 +9715,7 @@
     "ev_pct": 11.5,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 3/5 últimos (promedia 2.1 vs línea 1.5)",
+    "trend": "Over en 3/5 últimos (promedia 2.2 en L5 vs línea 1.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -9745,7 +9745,7 @@
     "ev_pct": 11.5,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Under en 3/5 últimos (promedia 12.4 vs línea 13.5)",
+    "trend": "Under en 3/5 últimos (promedia 10.2 en L5 vs línea 13.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -9775,7 +9775,7 @@
     "ev_pct": 11.4,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 3/5 últimos (promedia 12.6 vs línea 10.5)",
+    "trend": "Over en 3/5 últimos (promedia 12.4 en L5 vs línea 10.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -9805,7 +9805,7 @@
     "ev_pct": 11.2,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 3/5 últimos (promedia 8.1 vs línea 7.5)",
+    "trend": "Over en 3/5 últimos (promedia 8.6 en L5 vs línea 7.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -9835,7 +9835,7 @@
     "ev_pct": 11.1,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Under en 2/5 últimos (promedia 25.0 vs línea 27.5)",
+    "trend": "Under en 2/5 últimos (promedia 24.2 en L5 vs línea 27.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -9865,7 +9865,7 @@
     "ev_pct": 11.0,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 1/5 últimos (promedia 18.4 vs línea 17.5)",
+    "trend": "Over en 1/5 últimos (promedia 18.4 en L5 vs línea 17.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -9895,7 +9895,7 @@
     "ev_pct": 11.0,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 3/5 últimos (promedia 8.9 vs línea 8.5)",
+    "trend": "Over en 3/5 últimos (promedia 8.4 en L5 vs línea 8.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -9925,7 +9925,7 @@
     "ev_pct": 10.9,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 3/5 últimos (promedia 28.3 vs línea 24.5)",
+    "trend": "Over en 3/5 últimos (promedia 27.2 en L5 vs línea 24.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -9955,7 +9955,7 @@
     "ev_pct": 10.7,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 4/5 últimos (promedia 9.7 vs línea 9.5)",
+    "trend": "Over en 4/5 últimos (promedia 10.0 en L5 vs línea 9.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -9985,7 +9985,7 @@
     "ev_pct": 10.7,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 2/5 últimos (promedia 23.1 vs línea 22.5)",
+    "trend": "Over en 2/5 últimos (promedia 23.1 en L5 vs línea 22.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -10015,7 +10015,7 @@
     "ev_pct": 10.7,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 4/5 últimos (promedia 5.9 vs línea 6.5)",
+    "trend": "Under en 4/5 últimos (promedia 5.2 en L5 vs línea 6.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -10045,7 +10045,7 @@
     "ev_pct": 10.7,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 3/5 últimos (promedia 21.5 vs línea 20.5)",
+    "trend": "Over en 3/5 últimos (promedia 19.6 en L5 vs línea 20.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -10075,7 +10075,7 @@
     "ev_pct": 10.3,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Over en 3/5 últimos (promedia 21.0 vs línea 20.5)",
+    "trend": "Over en 3/5 últimos (promedia 21.0 en L5 vs línea 20.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -10105,7 +10105,7 @@
     "ev_pct": 10.3,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 4/5 últimos (promedia 26.7 vs línea 27.5)",
+    "trend": "Under en 4/5 últimos (promedia 25.4 en L5 vs línea 27.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -10135,7 +10135,7 @@
     "ev_pct": 10.3,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 3/5 últimos (promedia 5.2 vs línea 5.5)",
+    "trend": "Under en 3/5 últimos (promedia 5.2 en L5 vs línea 5.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -10165,7 +10165,7 @@
     "ev_pct": 10.1,
     "stars": "⭐⭐⭐",
     "confidence": "ALTA",
-    "trend": "Under en 3/5 últimos (promedia 19.6 vs línea 21.5)",
+    "trend": "Under en 3/5 últimos (promedia 19.4 en L5 vs línea 21.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -10195,7 +10195,7 @@
     "ev_pct": 10.1,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 2/5 últimos (promedia 34.0 vs línea 31.5)",
+    "trend": "Over en 2/5 últimos (promedia 31.0 en L5 vs línea 31.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -10225,7 +10225,7 @@
     "ev_pct": 9.8,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 3/5 últimos (promedia 2.9 vs línea 2.5)",
+    "trend": "Over en 3/5 últimos (promedia 2.8 en L5 vs línea 2.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -10255,7 +10255,7 @@
     "ev_pct": 9.8,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 3/5 últimos (promedia 4.9 vs línea 3.5)",
+    "trend": "Over en 3/5 últimos (promedia 5.0 en L5 vs línea 3.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -10285,7 +10285,7 @@
     "ev_pct": 9.7,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Under en 2/5 últimos (promedia 7.6 vs línea 8.5)",
+    "trend": "Under en 2/5 últimos (promedia 7.4 en L5 vs línea 8.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -10315,7 +10315,7 @@
     "ev_pct": 9.7,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Under en 3/5 últimos (promedia 5.2 vs línea 5.5)",
+    "trend": "Under en 3/5 últimos (promedia 5.2 en L5 vs línea 5.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -10345,7 +10345,7 @@
     "ev_pct": 9.7,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 3/5 últimos (promedia 10.6 vs línea 10.5)",
+    "trend": "Over en 3/5 últimos (promedia 10.6 en L5 vs línea 10.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -10375,7 +10375,7 @@
     "ev_pct": 9.6,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 3/5 últimos (promedia 8.7 vs línea 7.5)",
+    "trend": "Over en 3/5 últimos (promedia 8.8 en L5 vs línea 7.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -10405,7 +10405,7 @@
     "ev_pct": 9.6,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 4/5 últimos (promedia 11.6 vs línea 9.5)",
+    "trend": "Over en 4/5 últimos (promedia 12.4 en L5 vs línea 9.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -10435,7 +10435,7 @@
     "ev_pct": 9.5,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Under en 3/5 últimos (promedia 2.0 vs línea 2.5)",
+    "trend": "Under en 3/5 últimos (promedia 2.0 en L5 vs línea 2.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -10465,7 +10465,7 @@
     "ev_pct": 9.5,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 4/5 últimos (promedia 3.5 vs línea 2.5)",
+    "trend": "Over en 4/5 últimos (promedia 3.8 en L5 vs línea 2.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -10495,7 +10495,7 @@
     "ev_pct": 9.5,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 3/5 últimos (promedia 3.4 vs línea 2.5)",
+    "trend": "Over en 3/5 últimos (promedia 3.6 en L5 vs línea 2.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -10525,7 +10525,7 @@
     "ev_pct": 9.2,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 3/5 últimos (promedia 2.2 vs línea 2.5)",
+    "trend": "Over en 3/5 últimos (promedia 2.4 en L5 vs línea 2.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 1
   },
@@ -10555,7 +10555,7 @@
     "ev_pct": 9.1,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 3/5 últimos (promedia 40.4 vs línea 35.5)",
+    "trend": "Over en 3/5 últimos (promedia 42.0 en L5 vs línea 35.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -10585,7 +10585,7 @@
     "ev_pct": 9.0,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 3/5 últimos (promedia 16.6 vs línea 13.5)",
+    "trend": "Over en 3/5 últimos (promedia 16.8 en L5 vs línea 13.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -10615,7 +10615,7 @@
     "ev_pct": 9.0,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 3/5 últimos (promedia 16.4 vs línea 15.5)",
+    "trend": "Over en 3/5 últimos (promedia 15.2 en L5 vs línea 15.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -10645,7 +10645,7 @@
     "ev_pct": 8.9,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 3/5 últimos (promedia 29.6 vs línea 28.5)",
+    "trend": "Over en 3/5 últimos (promedia 27.0 en L5 vs línea 28.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -10675,7 +10675,7 @@
     "ev_pct": 8.9,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Under en 3/4 últimos (promedia 9.4 vs línea 10.5)",
+    "trend": "Under en 3/4 últimos (promedia 8.7 en L5 vs línea 10.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -10705,7 +10705,7 @@
     "ev_pct": 8.8,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 3/5 últimos (promedia 12.4 vs línea 10.5)",
+    "trend": "Over en 3/5 últimos (promedia 11.8 en L5 vs línea 10.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -10735,7 +10735,7 @@
     "ev_pct": 8.8,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Under en 3/5 últimos (promedia 3.3 vs línea 3.5)",
+    "trend": "Under en 3/5 últimos (promedia 3.4 en L5 vs línea 3.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -10765,7 +10765,7 @@
     "ev_pct": 8.8,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 2/5 últimos (promedia 8.6 vs línea 7.5)",
+    "trend": "Over en 2/5 últimos (promedia 8.0 en L5 vs línea 7.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -10795,7 +10795,7 @@
     "ev_pct": 8.7,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 2/5 últimos (promedia 20.6 vs línea 17.5)",
+    "trend": "Over en 2/5 últimos (promedia 20.4 en L5 vs línea 17.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -10825,7 +10825,7 @@
     "ev_pct": 8.6,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Under en 2/5 últimos (promedia 11.4 vs línea 11.5)",
+    "trend": "Under en 2/5 últimos (promedia 11.4 en L5 vs línea 11.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -10855,7 +10855,7 @@
     "ev_pct": 8.6,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Under en 2/5 últimos (promedia 14.1 vs línea 15.5)",
+    "trend": "Under en 2/5 últimos (promedia 13.2 en L5 vs línea 15.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -10885,7 +10885,7 @@
     "ev_pct": 8.6,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 3/5 últimos (promedia 3.6 vs línea 2.5)",
+    "trend": "Over en 3/5 últimos (promedia 3.6 en L5 vs línea 2.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -10915,7 +10915,7 @@
     "ev_pct": 8.5,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 2/5 últimos (promedia 14.3 vs línea 12.5)",
+    "trend": "Over en 2/5 últimos (promedia 12.6 en L5 vs línea 12.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -10945,7 +10945,7 @@
     "ev_pct": 8.3,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 2/5 últimos (promedia 31.2 vs línea 30.5)",
+    "trend": "Over en 2/5 últimos (promedia 30.2 en L5 vs línea 30.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -10975,7 +10975,7 @@
     "ev_pct": 8.1,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Under en 4/5 últimos (promedia 18.4 vs línea 18.5)",
+    "trend": "Under en 4/5 últimos (promedia 17.6 en L5 vs línea 18.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -11005,7 +11005,7 @@
     "ev_pct": 7.8,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 2/5 últimos (promedia 3.9 vs línea 3.5)",
+    "trend": "Over en 2/5 últimos (promedia 3.8 en L5 vs línea 3.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -11035,7 +11035,7 @@
     "ev_pct": 7.6,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 4/5 últimos (promedia 2.8 vs línea 1.5)",
+    "trend": "Over en 4/5 últimos (promedia 3.2 en L5 vs línea 1.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 1
   },
@@ -11065,7 +11065,7 @@
     "ev_pct": 7.3,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Under en 3/5 últimos (promedia 6.2 vs línea 6.5)",
+    "trend": "Under en 3/5 últimos (promedia 6.4 en L5 vs línea 6.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -11095,7 +11095,7 @@
     "ev_pct": 7.2,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 3/5 últimos (promedia 3.6 vs línea 2.5)",
+    "trend": "Over en 3/5 últimos (promedia 3.8 en L5 vs línea 2.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -11125,7 +11125,7 @@
     "ev_pct": 7.1,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Under en 3/5 últimos (promedia 10.4 vs línea 11.5)",
+    "trend": "Under en 3/5 últimos (promedia 10.2 en L5 vs línea 11.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -11155,7 +11155,7 @@
     "ev_pct": 7.1,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 4/5 últimos (promedia 3.7 vs línea 2.5)",
+    "trend": "Over en 4/5 últimos (promedia 3.8 en L5 vs línea 2.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 1
   },
@@ -11185,7 +11185,7 @@
     "ev_pct": 7.0,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Under en 3/5 últimos (promedia 2.5 vs línea 2.5)",
+    "trend": "Under en 3/5 últimos (promedia 2.2 en L5 vs línea 2.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -11215,7 +11215,7 @@
     "ev_pct": 6.8,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 3/5 últimos (promedia 14.0 vs línea 12.5)",
+    "trend": "Over en 3/5 últimos (promedia 12.8 en L5 vs línea 12.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -11245,7 +11245,7 @@
     "ev_pct": 6.8,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 3/5 últimos (promedia 2.9 vs línea 1.5)",
+    "trend": "Over en 3/5 últimos (promedia 2.6 en L5 vs línea 1.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 1
   },
@@ -11275,7 +11275,7 @@
     "ev_pct": 6.7,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 3/5 últimos (promedia 14.2 vs línea 12.5)",
+    "trend": "Over en 3/5 últimos (promedia 14.6 en L5 vs línea 12.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -11305,7 +11305,7 @@
     "ev_pct": 6.7,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 3/5 últimos (promedia 15.4 vs línea 15.5)",
+    "trend": "Over en 3/5 últimos (promedia 15.0 en L5 vs línea 15.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -11335,7 +11335,7 @@
     "ev_pct": 6.7,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Under en 3/5 últimos (promedia 2.8 vs línea 3.5)",
+    "trend": "Under en 3/5 últimos (promedia 2.8 en L5 vs línea 3.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -11365,7 +11365,7 @@
     "ev_pct": 6.6,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Under en 3/5 últimos (promedia 7.1 vs línea 8.5)",
+    "trend": "Under en 3/5 últimos (promedia 6.0 en L5 vs línea 8.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -11395,7 +11395,7 @@
     "ev_pct": 6.6,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 3/5 últimos (promedia 4.1 vs línea 3.5)",
+    "trend": "Over en 3/5 últimos (promedia 4.2 en L5 vs línea 3.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -11425,7 +11425,7 @@
     "ev_pct": 6.3,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 4/5 últimos (promedia 2.2 vs línea 1.5)",
+    "trend": "Over en 4/5 últimos (promedia 2.2 en L5 vs línea 1.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 1
   },
@@ -11455,7 +11455,7 @@
     "ev_pct": 6.3,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Under en 3/4 últimos (promedia 4.2 vs línea 4.5)",
+    "trend": "Under en 3/4 últimos (promedia 4.2 en L5 vs línea 4.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -11485,7 +11485,7 @@
     "ev_pct": 6.0,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 3/5 últimos (promedia 2.8 vs línea 2.5)",
+    "trend": "Over en 3/5 últimos (promedia 2.6 en L5 vs línea 2.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 1
   },
@@ -11515,7 +11515,7 @@
     "ev_pct": 5.7,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 4/5 últimos (promedia 5.2 vs línea 3.5)",
+    "trend": "Over en 4/5 últimos (promedia 5.6 en L5 vs línea 3.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 1
   },
@@ -11545,7 +11545,7 @@
     "ev_pct": 5.6,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 2/5 últimos (promedia 6.1 vs línea 5.5)",
+    "trend": "Over en 2/5 últimos (promedia 5.2 en L5 vs línea 5.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -11575,7 +11575,7 @@
     "ev_pct": 5.5,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Under en 4/5 últimos (promedia 37.5 vs línea 37.5)",
+    "trend": "Under en 4/5 últimos (promedia 34.4 en L5 vs línea 37.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -11605,7 +11605,7 @@
     "ev_pct": 5.5,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Under en 4/5 últimos (promedia 29.1 vs línea 30.5)",
+    "trend": "Under en 4/5 últimos (promedia 25.6 en L5 vs línea 30.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -11635,7 +11635,7 @@
     "ev_pct": 5.4,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 4/5 últimos (promedia 2.1 vs línea 1.5)",
+    "trend": "Over en 4/5 últimos (promedia 2.2 en L5 vs línea 1.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 1
   },
@@ -11665,7 +11665,7 @@
     "ev_pct": 5.3,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 4/5 últimos (promedia 2.4 vs línea 1.5)",
+    "trend": "Over en 4/5 últimos (promedia 2.6 en L5 vs línea 1.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 1
   },
@@ -11695,7 +11695,7 @@
     "ev_pct": 5.2,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 3/5 últimos (promedia 31.2 vs línea 28.5)",
+    "trend": "Over en 3/5 últimos (promedia 30.2 en L5 vs línea 28.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -11725,7 +11725,7 @@
     "ev_pct": 5.1,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 4/5 últimos (promedia 3.1 vs línea 1.5)",
+    "trend": "Over en 4/5 últimos (promedia 3.2 en L5 vs línea 1.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 1
   },
@@ -11755,7 +11755,7 @@
     "ev_pct": 5.1,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Under en 4/5 últimos (promedia 24.6 vs línea 25.5)",
+    "trend": "Under en 4/5 últimos (promedia 21.2 en L5 vs línea 25.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -11785,7 +11785,7 @@
     "ev_pct": 5.1,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 2/5 últimos (promedia 5.1 vs línea 4.5)",
+    "trend": "Over en 2/5 últimos (promedia 4.4 en L5 vs línea 4.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -11815,7 +11815,7 @@
     "ev_pct": 5.0,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 3/5 últimos (promedia 7.2 vs línea 6.5)",
+    "trend": "Over en 3/5 últimos (promedia 7.2 en L5 vs línea 6.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -11845,7 +11845,7 @@
     "ev_pct": 5.0,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Under en 3/5 últimos (promedia 1.8 vs línea 2.5)",
+    "trend": "Under en 3/5 últimos (promedia 1.6 en L5 vs línea 2.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -11875,7 +11875,7 @@
     "ev_pct": 5.0,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Over en 3/5 últimos (promedia 7.2 vs línea 6.5)",
+    "trend": "Over en 3/5 últimos (promedia 6.6 en L5 vs línea 6.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -11905,7 +11905,7 @@
     "ev_pct": 5.0,
     "stars": "⭐⭐",
     "confidence": "MEDIA",
-    "trend": "Under en 4/5 últimos (promedia 2.2 vs línea 2.5)",
+    "trend": "Under en 4/5 últimos (promedia 2.0 en L5 vs línea 2.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -11935,7 +11935,7 @@
     "ev_pct": 4.9,
     "stars": "⭐",
     "confidence": "MODERADA",
-    "trend": "Over en 2/5 últimos (promedia 2.9 vs línea 2.5)",
+    "trend": "Over en 2/5 últimos (promedia 2.6 en L5 vs línea 2.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 1
   },
@@ -11965,7 +11965,7 @@
     "ev_pct": 4.8,
     "stars": "⭐",
     "confidence": "MODERADA",
-    "trend": "Over en 2/5 últimos (promedia 2.2 vs línea 1.5)",
+    "trend": "Over en 2/5 últimos (promedia 2.0 en L5 vs línea 1.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 1
   },
@@ -11995,7 +11995,7 @@
     "ev_pct": 4.8,
     "stars": "⭐",
     "confidence": "MODERADA",
-    "trend": "Under en 3/5 últimos (promedia 5.4 vs línea 5.5)",
+    "trend": "Under en 3/5 últimos (promedia 5.2 en L5 vs línea 5.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -12025,7 +12025,7 @@
     "ev_pct": 4.6,
     "stars": "⭐",
     "confidence": "MODERADA",
-    "trend": "Over en 3/5 últimos (promedia 5.4 vs línea 4.5)",
+    "trend": "Over en 3/5 últimos (promedia 5.0 en L5 vs línea 4.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -12055,7 +12055,7 @@
     "ev_pct": 4.5,
     "stars": "⭐",
     "confidence": "MODERADA",
-    "trend": "Under en 3/5 últimos (promedia 19.5 vs línea 20.5)",
+    "trend": "Under en 3/5 últimos (promedia 19.2 en L5 vs línea 20.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -12085,7 +12085,7 @@
     "ev_pct": 4.5,
     "stars": "⭐",
     "confidence": "MODERADA",
-    "trend": "Under en 3/5 últimos (promedia 2.4 vs línea 2.5)",
+    "trend": "Under en 3/5 últimos (promedia 2.4 en L5 vs línea 2.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -12115,7 +12115,7 @@
     "ev_pct": 4.5,
     "stars": "⭐",
     "confidence": "MODERADA",
-    "trend": "Over en 1/5 últimos (promedia 1.9 vs línea 2.5)",
+    "trend": "Over en 1/5 últimos (promedia 1.6 en L5 vs línea 2.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 1
   },
@@ -12145,7 +12145,7 @@
     "ev_pct": 4.5,
     "stars": "⭐",
     "confidence": "MODERADA",
-    "trend": "Under en 4/5 últimos (promedia 18.4 vs línea 18.5)",
+    "trend": "Under en 4/5 últimos (promedia 18.4 en L5 vs línea 18.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -12175,7 +12175,7 @@
     "ev_pct": 4.4,
     "stars": "⭐",
     "confidence": "MODERADA",
-    "trend": "Over en 2/5 últimos (promedia 18.9 vs línea 18.5)",
+    "trend": "Over en 2/5 últimos (promedia 18.2 en L5 vs línea 18.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -12205,7 +12205,7 @@
     "ev_pct": 4.0,
     "stars": "⭐",
     "confidence": "MODERADA",
-    "trend": "Under en 2/5 últimos (promedia 3.8 vs línea 4.5)",
+    "trend": "Under en 2/5 últimos (promedia 3.6 en L5 vs línea 4.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -12235,7 +12235,7 @@
     "ev_pct": 3.8,
     "stars": "⭐",
     "confidence": "MODERADA",
-    "trend": "Over en 3/5 últimos (promedia 9.7 vs línea 7.5)",
+    "trend": "Over en 3/5 últimos (promedia 9.4 en L5 vs línea 7.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -12265,7 +12265,7 @@
     "ev_pct": 3.7,
     "stars": "⭐",
     "confidence": "MODERADA",
-    "trend": "Under en 3/5 últimos (promedia 5.3 vs línea 5.5)",
+    "trend": "Under en 3/5 últimos (promedia 5.4 en L5 vs línea 5.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -12295,7 +12295,7 @@
     "ev_pct": 3.7,
     "stars": "⭐",
     "confidence": "MODERADA",
-    "trend": "Over en 3/5 últimos (promedia 3.4 vs línea 2.5)",
+    "trend": "Over en 3/5 últimos (promedia 3.6 en L5 vs línea 2.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -12325,7 +12325,7 @@
     "ev_pct": 3.6,
     "stars": "⭐",
     "confidence": "MODERADA",
-    "trend": "Under en 3/5 últimos (promedia 3.1 vs línea 3.5)",
+    "trend": "Under en 3/5 últimos (promedia 2.8 en L5 vs línea 3.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -12355,7 +12355,7 @@
     "ev_pct": 3.4,
     "stars": "⭐",
     "confidence": "MODERADA",
-    "trend": "Over en 2/5 últimos (promedia 26.0 vs línea 23.5)",
+    "trend": "Over en 2/5 últimos (promedia 23.6 en L5 vs línea 23.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -12385,7 +12385,7 @@
     "ev_pct": 3.3,
     "stars": "⭐",
     "confidence": "MODERADA",
-    "trend": "Over en 2/5 últimos (promedia 34.9 vs línea 33.5)",
+    "trend": "Over en 2/5 últimos (promedia 31.4 en L5 vs línea 33.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -12415,7 +12415,7 @@
     "ev_pct": 3.3,
     "stars": "⭐",
     "confidence": "MODERADA",
-    "trend": "Over en 2/5 últimos (promedia 22.2 vs línea 20.5)",
+    "trend": "Over en 2/5 últimos (promedia 20.8 en L5 vs línea 20.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -12445,7 +12445,7 @@
     "ev_pct": 3.3,
     "stars": "⭐",
     "confidence": "MODERADA",
-    "trend": "Over en 2/5 últimos (promedia 5.1 vs línea 4.5)",
+    "trend": "Over en 2/5 últimos (promedia 4.8 en L5 vs línea 4.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -12475,7 +12475,7 @@
     "ev_pct": 3.2,
     "stars": "⭐",
     "confidence": "MODERADA",
-    "trend": "Under en 4/5 últimos (promedia 21.0 vs línea 21.5)",
+    "trend": "Under en 4/5 últimos (promedia 18.6 en L5 vs línea 21.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -12505,7 +12505,7 @@
     "ev_pct": 3.2,
     "stars": "⭐",
     "confidence": "MODERADA",
-    "trend": "Under en 4/5 últimos (promedia 2.6 vs línea 2.5)",
+    "trend": "Under en 4/5 últimos (promedia 2.2 en L5 vs línea 2.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -12535,7 +12535,7 @@
     "ev_pct": 3.0,
     "stars": "⭐",
     "confidence": "MODERADA",
-    "trend": "Over en 3/5 últimos (promedia 2.5 vs línea 2.5)",
+    "trend": "Over en 3/5 últimos (promedia 2.6 en L5 vs línea 2.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -12565,7 +12565,7 @@
     "ev_pct": 3.0,
     "stars": "⭐",
     "confidence": "MODERADA",
-    "trend": "Over en 1/5 últimos (promedia 2.4 vs línea 2.5)",
+    "trend": "Over en 1/5 últimos (promedia 2.4 en L5 vs línea 2.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 1
   },
@@ -12595,7 +12595,7 @@
     "ev_pct": 2.7,
     "stars": "⭐",
     "confidence": "MODERADA",
-    "trend": "Under en 3/5 últimos (promedia 2.2 vs línea 2.5)",
+    "trend": "Under en 3/5 últimos (promedia 2.2 en L5 vs línea 2.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -12625,7 +12625,7 @@
     "ev_pct": 2.7,
     "stars": "⭐",
     "confidence": "MODERADA",
-    "trend": "Over en 3/5 últimos (promedia 30.5 vs línea 29.5)",
+    "trend": "Over en 3/5 últimos (promedia 29.4 en L5 vs línea 29.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -12655,7 +12655,7 @@
     "ev_pct": 2.6,
     "stars": "⭐",
     "confidence": "MODERADA",
-    "trend": "Under en 3/5 últimos (promedia 33.5 vs línea 33.5)",
+    "trend": "Under en 3/5 últimos (promedia 33.5 en L5 vs línea 33.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -12685,7 +12685,7 @@
     "ev_pct": 2.6,
     "stars": "⭐",
     "confidence": "MODERADA",
-    "trend": "Under en 3/5 últimos (promedia 6.5 vs línea 6.5)",
+    "trend": "Under en 3/5 últimos (promedia 6.2 en L5 vs línea 6.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -12715,7 +12715,7 @@
     "ev_pct": 2.4,
     "stars": "⭐",
     "confidence": "MODERADA",
-    "trend": "Over en 1/5 últimos (promedia 21.6 vs línea 20.5)",
+    "trend": "Over en 1/5 últimos (promedia 19.2 en L5 vs línea 20.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -12745,7 +12745,7 @@
     "ev_pct": 2.0,
     "stars": "⭐",
     "confidence": "MODERADA",
-    "trend": "Over en 3/5 últimos (promedia 25.5 vs línea 24.5)",
+    "trend": "Over en 3/5 últimos (promedia 25.4 en L5 vs línea 24.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -12775,7 +12775,7 @@
     "ev_pct": 2.0,
     "stars": "⭐",
     "confidence": "MODERADA",
-    "trend": "Under en 4/5 últimos (promedia 12.0 vs línea 11.5)",
+    "trend": "Under en 4/5 últimos (promedia 11.4 en L5 vs línea 11.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -12805,7 +12805,7 @@
     "ev_pct": 1.8,
     "stars": "⭐",
     "confidence": "MODERADA",
-    "trend": "Under en 3/5 últimos (promedia 29.5 vs línea 29.5)",
+    "trend": "Under en 3/5 últimos (promedia 27.3 en L5 vs línea 29.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -12835,7 +12835,7 @@
     "ev_pct": 1.8,
     "stars": "⭐",
     "confidence": "MODERADA",
-    "trend": "Over en 2/5 últimos (promedia 18.3 vs línea 15.5)",
+    "trend": "Over en 2/5 últimos (promedia 17.8 en L5 vs línea 15.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -12865,7 +12865,7 @@
     "ev_pct": 1.6,
     "stars": "⭐",
     "confidence": "MODERADA",
-    "trend": "Over en 2/5 últimos (promedia 10.0 vs línea 9.5)",
+    "trend": "Over en 2/5 últimos (promedia 9.4 en L5 vs línea 9.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -12895,7 +12895,7 @@
     "ev_pct": 1.5,
     "stars": "⭐",
     "confidence": "MODERADA",
-    "trend": "Under en 3/5 últimos (promedia 15.6 vs línea 15.5)",
+    "trend": "Under en 3/5 últimos (promedia 15.6 en L5 vs línea 15.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -12925,7 +12925,7 @@
     "ev_pct": 1.5,
     "stars": "⭐",
     "confidence": "MODERADA",
-    "trend": "Under en 2/5 últimos (promedia 4.1 vs línea 3.5)",
+    "trend": "Under en 2/5 últimos (promedia 4.4 en L5 vs línea 3.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -12955,7 +12955,7 @@
     "ev_pct": 1.4,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Under en 3/5 últimos (promedia 5.2 vs línea 5.5)",
+    "trend": "Under en 3/5 últimos (promedia 5.2 en L5 vs línea 5.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -12985,7 +12985,7 @@
     "ev_pct": 1.3,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 3/5 últimos (promedia 20.6 vs línea 20.5)",
+    "trend": "Over en 3/5 últimos (promedia 20.4 en L5 vs línea 20.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -13015,7 +13015,7 @@
     "ev_pct": 1.3,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 2/5 últimos (promedia 28.8 vs línea 27.5)",
+    "trend": "Over en 2/5 últimos (promedia 29.2 en L5 vs línea 27.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -13045,7 +13045,7 @@
     "ev_pct": 1.3,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Under en 4/5 últimos (promedia 4.2 vs línea 4.5)",
+    "trend": "Under en 4/5 últimos (promedia 3.8 en L5 vs línea 4.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -13075,7 +13075,7 @@
     "ev_pct": 1.2,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Under en 4/5 últimos (promedia 3.8 vs línea 3.5)",
+    "trend": "Under en 4/5 últimos (promedia 3.6 en L5 vs línea 3.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -13105,7 +13105,7 @@
     "ev_pct": 1.1,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Under en 3/5 últimos (promedia 26.7 vs línea 26.5)",
+    "trend": "Under en 3/5 últimos (promedia 27.4 en L5 vs línea 26.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -13135,7 +13135,7 @@
     "ev_pct": 1.0,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 2/5 últimos (promedia 2.8 vs línea 3.5)",
+    "trend": "Over en 2/5 últimos (promedia 2.6 en L5 vs línea 3.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 1
   },
@@ -13165,7 +13165,7 @@
     "ev_pct": 0.9,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Under en 2/5 últimos (promedia 4.9 vs línea 4.5)",
+    "trend": "Under en 2/5 últimos (promedia 5.2 en L5 vs línea 4.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -13195,7 +13195,7 @@
     "ev_pct": 0.8,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Under en 2/5 últimos (promedia 13.9 vs línea 14.5)",
+    "trend": "Under en 2/5 últimos (promedia 14.6 en L5 vs línea 14.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -13225,7 +13225,7 @@
     "ev_pct": 0.6,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Under en 2/5 últimos (promedia 1.8 vs línea 1.5)",
+    "trend": "Under en 2/5 últimos (promedia 1.6 en L5 vs línea 1.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -13255,7 +13255,7 @@
     "ev_pct": 0.6,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Under en 3/5 últimos (promedia 6.3 vs línea 5.5)",
+    "trend": "Under en 3/5 últimos (promedia 5.6 en L5 vs línea 5.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -13285,7 +13285,7 @@
     "ev_pct": 0.5,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 2/5 últimos (promedia 2.5 vs línea 2.5)",
+    "trend": "Over en 2/5 últimos (promedia 2.6 en L5 vs línea 2.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 1
   },
@@ -13315,7 +13315,7 @@
     "ev_pct": 0.5,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 3/5 últimos (promedia 2.2 vs línea 1.5)",
+    "trend": "Over en 3/5 últimos (promedia 2.4 en L5 vs línea 1.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 1
   },
@@ -13345,7 +13345,7 @@
     "ev_pct": 0.4,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 2/5 últimos (promedia 25.8 vs línea 23.5)",
+    "trend": "Over en 2/5 últimos (promedia 26.0 en L5 vs línea 23.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -13375,7 +13375,7 @@
     "ev_pct": 0.3,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Under en 2/5 últimos (promedia 4.8 vs línea 4.5)",
+    "trend": "Under en 2/5 últimos (promedia 5.0 en L5 vs línea 4.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -13405,7 +13405,7 @@
     "ev_pct": 0.3,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Under en 2/5 últimos (promedia 19.1 vs línea 19.5)",
+    "trend": "Under en 2/5 últimos (promedia 19.1 en L5 vs línea 19.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -13435,7 +13435,7 @@
     "ev_pct": 0.2,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 2/5 últimos (promedia 2.2 vs línea 2.5)",
+    "trend": "Over en 2/5 últimos (promedia 2.2 en L5 vs línea 2.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 1
   },
@@ -13465,7 +13465,7 @@
     "ev_pct": -0.0,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 3/5 últimos (promedia 19.8 vs línea 18.5)",
+    "trend": "Over en 3/5 últimos (promedia 20.0 en L5 vs línea 18.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -13495,7 +13495,7 @@
     "ev_pct": -0.0,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 3/5 últimos (promedia 15.8 vs línea 15.5)",
+    "trend": "Over en 3/5 últimos (promedia 15.8 en L5 vs línea 15.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -13525,7 +13525,7 @@
     "ev_pct": -0.0,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 3/5 últimos (promedia 2.5 vs línea 1.5)",
+    "trend": "Over en 3/5 últimos (promedia 2.6 en L5 vs línea 1.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 1
   },
@@ -13555,7 +13555,7 @@
     "ev_pct": -0.1,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 5/5 últimos (promedia 1.3 vs línea 0.5)",
+    "trend": "Over en 5/5 últimos (promedia 1.4 en L5 vs línea 0.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 1
   },
@@ -13585,7 +13585,7 @@
     "ev_pct": -0.1,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 2/5 últimos (promedia 37.1 vs línea 34.5)",
+    "trend": "Over en 2/5 últimos (promedia 37.4 en L5 vs línea 34.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -13615,7 +13615,7 @@
     "ev_pct": -0.2,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Under en 2/5 últimos (promedia 9.3 vs línea 9.5)",
+    "trend": "Under en 2/5 últimos (promedia 9.4 en L5 vs línea 9.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -13645,7 +13645,7 @@
     "ev_pct": -0.3,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Under en 3/5 últimos (promedia 3.6 vs línea 3.5)",
+    "trend": "Under en 3/5 últimos (promedia 3.2 en L5 vs línea 3.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -13675,7 +13675,7 @@
     "ev_pct": -0.4,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Under en 3/5 últimos (promedia 43.2 vs línea 42.5)",
+    "trend": "Under en 3/5 últimos (promedia 41.0 en L5 vs línea 42.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -13705,7 +13705,7 @@
     "ev_pct": -0.5,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Under en 3/5 últimos (promedia 19.9 vs línea 19.5)",
+    "trend": "Under en 3/5 últimos (promedia 19.0 en L5 vs línea 19.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -13735,7 +13735,7 @@
     "ev_pct": -0.6,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 3/5 últimos (promedia 8.3 vs línea 7.5)",
+    "trend": "Over en 3/5 últimos (promedia 8.2 en L5 vs línea 7.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -13765,7 +13765,7 @@
     "ev_pct": -0.7,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 2/5 últimos (promedia 2.1 vs línea 2.5)",
+    "trend": "Over en 2/5 últimos (promedia 2.2 en L5 vs línea 2.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 1
   },
@@ -13795,7 +13795,7 @@
     "ev_pct": -0.7,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Under en 2/5 últimos (promedia 6.7 vs línea 6.5)",
+    "trend": "Under en 2/5 últimos (promedia 7.0 en L5 vs línea 6.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -13825,7 +13825,7 @@
     "ev_pct": -0.9,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 3/5 últimos (promedia 2.4 vs línea 1.5)",
+    "trend": "Over en 3/5 últimos (promedia 2.4 en L5 vs línea 1.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 1
   },
@@ -13855,7 +13855,7 @@
     "ev_pct": -1.0,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Under en 4/5 últimos (promedia 4.4 vs línea 4.5)",
+    "trend": "Under en 4/5 últimos (promedia 4.0 en L5 vs línea 4.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -13885,7 +13885,7 @@
     "ev_pct": -1.2,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 3/5 últimos (promedia 2.3 vs línea 2.5)",
+    "trend": "Over en 3/5 últimos (promedia 2.4 en L5 vs línea 2.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 1
   },
@@ -13915,7 +13915,7 @@
     "ev_pct": -1.2,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Under en 3/5 últimos (promedia 1.6 vs línea 1.5)",
+    "trend": "Under en 3/5 últimos (promedia 1.4 en L5 vs línea 1.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -13945,7 +13945,7 @@
     "ev_pct": -1.2,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 2/5 últimos (promedia 1.5 vs línea 1.5)",
+    "trend": "Over en 2/5 últimos (promedia 1.4 en L5 vs línea 1.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 1
   },
@@ -13975,7 +13975,7 @@
     "ev_pct": -1.2,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Under en 3/5 últimos (promedia 21.2 vs línea 21.5)",
+    "trend": "Under en 3/5 últimos (promedia 21.2 en L5 vs línea 21.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -14005,7 +14005,7 @@
     "ev_pct": -1.4,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 3/5 últimos (promedia 7.0 vs línea 6.5)",
+    "trend": "Over en 3/5 últimos (promedia 7.0 en L5 vs línea 6.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -14035,7 +14035,7 @@
     "ev_pct": -1.5,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Under en 3/5 últimos (promedia 21.8 vs línea 21.5)",
+    "trend": "Under en 3/5 últimos (promedia 20.2 en L5 vs línea 21.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -14065,7 +14065,7 @@
     "ev_pct": -1.5,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Under en 3/5 últimos (promedia 5.3 vs línea 5.5)",
+    "trend": "Under en 3/5 últimos (promedia 5.4 en L5 vs línea 5.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -14095,7 +14095,7 @@
     "ev_pct": -1.6,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Under en 3/5 últimos (promedia 4.0 vs línea 4.5)",
+    "trend": "Under en 3/5 últimos (promedia 3.6 en L5 vs línea 4.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -14125,7 +14125,7 @@
     "ev_pct": -1.6,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 2/5 últimos (promedia 1.9 vs línea 1.5)",
+    "trend": "Over en 2/5 últimos (promedia 1.6 en L5 vs línea 1.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 1
   },
@@ -14155,7 +14155,7 @@
     "ev_pct": -1.7,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Under en 4/5 últimos (promedia 25.7 vs línea 25.5)",
+    "trend": "Under en 4/5 últimos (promedia 23.8 en L5 vs línea 25.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -14185,7 +14185,7 @@
     "ev_pct": -1.9,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Under en 2/5 últimos (promedia 12.0 vs línea 12.5)",
+    "trend": "Under en 2/5 últimos (promedia 11.8 en L5 vs línea 12.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -14215,7 +14215,7 @@
     "ev_pct": -2.0,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 1/5 últimos (promedia 3.8 vs línea 3.5)",
+    "trend": "Over en 1/5 últimos (promedia 3.6 en L5 vs línea 3.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -14245,7 +14245,7 @@
     "ev_pct": -2.0,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 3/5 últimos (promedia 4.1 vs línea 3.5)",
+    "trend": "Over en 3/5 últimos (promedia 4.2 en L5 vs línea 3.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -14275,7 +14275,7 @@
     "ev_pct": -2.1,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 4/5 últimos (promedia 1.3 vs línea 0.5)",
+    "trend": "Over en 4/5 últimos (promedia 1.2 en L5 vs línea 0.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 1
   },
@@ -14305,7 +14305,7 @@
     "ev_pct": -2.1,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 3/5 últimos (promedia 9.3 vs línea 8.5)",
+    "trend": "Over en 3/5 últimos (promedia 8.4 en L5 vs línea 8.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -14335,7 +14335,7 @@
     "ev_pct": -2.2,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 3/5 últimos (promedia 23.6 vs línea 24.5)",
+    "trend": "Over en 3/5 últimos (promedia 22.4 en L5 vs línea 24.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -14365,7 +14365,7 @@
     "ev_pct": -2.4,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Under en 3/5 últimos (promedia 24.5 vs línea 24.5)",
+    "trend": "Under en 3/5 últimos (promedia 23.0 en L5 vs línea 24.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -14395,7 +14395,7 @@
     "ev_pct": -2.5,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Under en 3/5 últimos (promedia 12.1 vs línea 11.5)",
+    "trend": "Under en 3/5 últimos (promedia 12.4 en L5 vs línea 11.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -14425,7 +14425,7 @@
     "ev_pct": -2.7,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 2/5 últimos (promedia 36.7 vs línea 36.5)",
+    "trend": "Over en 2/5 últimos (promedia 34.0 en L5 vs línea 36.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -14455,7 +14455,7 @@
     "ev_pct": -2.8,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 5/5 últimos (promedia 1.2 vs línea 0.5)",
+    "trend": "Over en 5/5 últimos (promedia 1.2 en L5 vs línea 0.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 1
   },
@@ -14485,7 +14485,7 @@
     "ev_pct": -2.9,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Under en 3/5 últimos (promedia 7.4 vs línea 7.5)",
+    "trend": "Under en 3/5 últimos (promedia 6.8 en L5 vs línea 7.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -14515,7 +14515,7 @@
     "ev_pct": -3.2,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 3/5 últimos (promedia 2.3 vs línea 1.5)",
+    "trend": "Over en 3/5 últimos (promedia 2.4 en L5 vs línea 1.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 1
   },
@@ -14545,7 +14545,7 @@
     "ev_pct": -3.3,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Under en 2/5 últimos (promedia 31.1 vs línea 33.5)",
+    "trend": "Under en 2/5 últimos (promedia 29.6 en L5 vs línea 33.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -14575,7 +14575,7 @@
     "ev_pct": -3.3,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Under en 3/5 últimos (promedia 8.0 vs línea 8.5)",
+    "trend": "Under en 3/5 últimos (promedia 8.0 en L5 vs línea 8.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -14605,7 +14605,7 @@
     "ev_pct": -3.4,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 3/5 últimos (promedia 3.6 vs línea 3.5)",
+    "trend": "Over en 3/5 últimos (promedia 3.6 en L5 vs línea 3.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -14635,7 +14635,7 @@
     "ev_pct": -3.4,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Under en 3/5 últimos (promedia 18.5 vs línea 18.5)",
+    "trend": "Under en 3/5 últimos (promedia 17.1 en L5 vs línea 18.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -14665,7 +14665,7 @@
     "ev_pct": -3.6,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 3/5 últimos (promedia 1.7 vs línea 1.5)",
+    "trend": "Over en 3/5 últimos (promedia 1.6 en L5 vs línea 1.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 1
   },
@@ -14695,7 +14695,7 @@
     "ev_pct": -3.6,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 2/5 últimos (promedia 21.0 vs línea 19.5)",
+    "trend": "Over en 2/5 últimos (promedia 21.2 en L5 vs línea 19.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -14725,7 +14725,7 @@
     "ev_pct": -3.8,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 2/5 últimos (promedia 14.2 vs línea 13.5)",
+    "trend": "Over en 2/5 últimos (promedia 13.4 en L5 vs línea 13.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -14755,7 +14755,7 @@
     "ev_pct": -3.8,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 3/5 últimos (promedia 5.0 vs línea 4.5)",
+    "trend": "Over en 3/5 últimos (promedia 4.2 en L5 vs línea 4.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -14785,7 +14785,7 @@
     "ev_pct": -4.2,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 2/5 últimos (promedia 11.6 vs línea 11.5)",
+    "trend": "Over en 2/5 últimos (promedia 11.6 en L5 vs línea 11.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -14815,7 +14815,7 @@
     "ev_pct": -4.5,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 3/5 últimos (promedia 4.2 vs línea 3.5)",
+    "trend": "Over en 3/5 últimos (promedia 4.0 en L5 vs línea 3.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -14845,7 +14845,7 @@
     "ev_pct": -4.6,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 2/5 últimos (promedia 3.2 vs línea 2.5)",
+    "trend": "Over en 2/5 últimos (promedia 3.0 en L5 vs línea 2.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -14875,7 +14875,7 @@
     "ev_pct": -4.7,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 1/5 últimos (promedia 1.3 vs línea 1.5)",
+    "trend": "Over en 1/5 últimos (promedia 1.2 en L5 vs línea 1.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 1
   },
@@ -14905,7 +14905,7 @@
     "ev_pct": -4.7,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Under en 2/5 últimos (promedia 16.4 vs línea 17.5)",
+    "trend": "Under en 2/5 últimos (promedia 16.2 en L5 vs línea 17.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -14935,7 +14935,7 @@
     "ev_pct": -4.8,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Under en 3/5 últimos (promedia 4.7 vs línea 4.5)",
+    "trend": "Under en 3/5 últimos (promedia 4.6 en L5 vs línea 4.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -14965,7 +14965,7 @@
     "ev_pct": -4.9,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Under en 3/5 últimos (promedia 32.0 vs línea 32.5)",
+    "trend": "Under en 3/5 últimos (promedia 31.4 en L5 vs línea 32.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -14995,7 +14995,7 @@
     "ev_pct": -4.9,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Under en 2/5 últimos (promedia 10.5 vs línea 10.5)",
+    "trend": "Under en 2/5 últimos (promedia 11.2 en L5 vs línea 10.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -15025,7 +15025,7 @@
     "ev_pct": -5.0,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 3/5 últimos (promedia 6.7 vs línea 6.5)",
+    "trend": "Over en 3/5 últimos (promedia 6.6 en L5 vs línea 6.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -15055,7 +15055,7 @@
     "ev_pct": -5.0,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Under en 4/5 últimos (promedia 3.8 vs línea 3.5)",
+    "trend": "Under en 4/5 últimos (promedia 3.6 en L5 vs línea 3.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -15085,7 +15085,7 @@
     "ev_pct": -5.1,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 2/5 últimos (promedia 18.8 vs línea 18.5)",
+    "trend": "Over en 2/5 últimos (promedia 18.8 en L5 vs línea 18.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -15115,7 +15115,7 @@
     "ev_pct": -5.2,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 3/5 últimos (promedia 4.2 vs línea 3.5)",
+    "trend": "Over en 3/5 últimos (promedia 4.0 en L5 vs línea 3.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -15145,7 +15145,7 @@
     "ev_pct": -5.3,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 3/5 últimos (promedia 3.9 vs línea 3.5)",
+    "trend": "Over en 3/5 últimos (promedia 3.6 en L5 vs línea 3.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -15175,7 +15175,7 @@
     "ev_pct": -5.4,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Under en 1/5 últimos (promedia 4.1 vs línea 3.5)",
+    "trend": "Under en 1/5 últimos (promedia 4.2 en L5 vs línea 3.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -15205,7 +15205,7 @@
     "ev_pct": -5.4,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Under en 3/5 últimos (promedia 4.5 vs línea 4.5)",
+    "trend": "Under en 3/5 últimos (promedia 4.2 en L5 vs línea 4.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -15235,7 +15235,7 @@
     "ev_pct": -5.5,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 0/5 últimos (promedia 3.1 vs línea 3.5)",
+    "trend": "Over en 0/5 últimos (promedia 3.0 en L5 vs línea 3.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 1
   },
@@ -15265,7 +15265,7 @@
     "ev_pct": -5.6,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 2/5 últimos (promedia 36.8 vs línea 35.5)",
+    "trend": "Over en 2/5 últimos (promedia 33.8 en L5 vs línea 35.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -15295,7 +15295,7 @@
     "ev_pct": -5.6,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 3/5 últimos (promedia 31.0 vs línea 31.5)",
+    "trend": "Over en 3/5 últimos (promedia 31.6 en L5 vs línea 31.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -15325,7 +15325,7 @@
     "ev_pct": -5.8,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 3/5 últimos (promedia 21.4 vs línea 22.5)",
+    "trend": "Over en 3/5 últimos (promedia 21.4 en L5 vs línea 22.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -15355,7 +15355,7 @@
     "ev_pct": -5.8,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 2/5 últimos (promedia 5.1 vs línea 4.5)",
+    "trend": "Over en 2/5 últimos (promedia 4.6 en L5 vs línea 4.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -15385,7 +15385,7 @@
     "ev_pct": -5.8,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 1/5 últimos (promedia 23.8 vs línea 21.5)",
+    "trend": "Over en 1/5 últimos (promedia 22.2 en L5 vs línea 21.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -15415,7 +15415,7 @@
     "ev_pct": -5.9,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 2/5 últimos (promedia 6.5 vs línea 5.5)",
+    "trend": "Over en 2/5 últimos (promedia 6.4 en L5 vs línea 5.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -15445,7 +15445,7 @@
     "ev_pct": -5.9,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Under en 3/5 últimos (promedia 3.3 vs línea 3.5)",
+    "trend": "Under en 3/5 últimos (promedia 3.0 en L5 vs línea 3.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -15475,7 +15475,7 @@
     "ev_pct": -6.1,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Under en 3/5 últimos (promedia 33.7 vs línea 32.5)",
+    "trend": "Under en 3/5 últimos (promedia 32.0 en L5 vs línea 32.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -15505,7 +15505,7 @@
     "ev_pct": -6.1,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 2/5 últimos (promedia 1.3 vs línea 1.5)",
+    "trend": "Over en 2/5 últimos (promedia 1.4 en L5 vs línea 1.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 1
   },
@@ -15535,7 +15535,7 @@
     "ev_pct": -6.3,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Under en 3/5 últimos (promedia 23.2 vs línea 22.5)",
+    "trend": "Under en 3/5 últimos (promedia 20.8 en L5 vs línea 22.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 0
   },
@@ -15565,7 +15565,7 @@
     "ev_pct": -6.3,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Under en 2/5 últimos (promedia 3.0 vs línea 2.5)",
+    "trend": "Under en 2/5 últimos (promedia 3.2 en L5 vs línea 2.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 0
   },
@@ -15595,7 +15595,7 @@
     "ev_pct": -9.1,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 2/4 últimos (promedia 2.0 vs línea 1.5)",
+    "trend": "Over en 2/4 últimos (promedia 2.0 en L5 vs línea 1.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 1
   },
@@ -15625,7 +15625,7 @@
     "ev_pct": -9.3,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 3/5 últimos (promedia 1.6 vs línea 1.5)",
+    "trend": "Over en 3/5 últimos (promedia 1.2 en L5 vs línea 1.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 1
   },
@@ -15655,7 +15655,7 @@
     "ev_pct": -10.0,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 2/5 últimos (promedia 1.6 vs línea 1.5)",
+    "trend": "Over en 2/5 últimos (promedia 1.2 en L5 vs línea 1.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 1
   },
@@ -15685,7 +15685,7 @@
     "ev_pct": -10.6,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 3/5 últimos (promedia 1.3 vs línea 0.5)",
+    "trend": "Over en 3/5 últimos (promedia 1.4 en L5 vs línea 0.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 1
   },
@@ -15715,7 +15715,7 @@
     "ev_pct": -11.7,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 0/5 últimos (promedia 1.6 vs línea 2.5)",
+    "trend": "Over en 0/5 últimos (promedia 1.2 en L5 vs línea 2.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 1
   },
@@ -15745,7 +15745,7 @@
     "ev_pct": -12.4,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 3/5 últimos (promedia 1.5 vs línea 1.5)",
+    "trend": "Over en 3/5 últimos (promedia 1.6 en L5 vs línea 1.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 1
   },
@@ -15775,7 +15775,7 @@
     "ev_pct": -14.0,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 3/5 últimos (promedia 1.9 vs línea 1.5)",
+    "trend": "Over en 3/5 últimos (promedia 1.8 en L5 vs línea 1.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 1
   },
@@ -15805,7 +15805,7 @@
     "ev_pct": -15.6,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 1/4 últimos (promedia 2.0 vs línea 2.5)",
+    "trend": "Over en 1/4 últimos (promedia 2.0 en L5 vs línea 2.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 1
   },
@@ -15835,7 +15835,7 @@
     "ev_pct": -18.1,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 2/5 últimos (promedia 1.3 vs línea 1.5)",
+    "trend": "Over en 2/5 últimos (promedia 1.4 en L5 vs línea 1.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 1
   },
@@ -15865,7 +15865,7 @@
     "ev_pct": -18.5,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 3/5 últimos (promedia 1.9 vs línea 1.5)",
+    "trend": "Over en 3/5 últimos (promedia 2.0 en L5 vs línea 1.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 1
   },
@@ -15895,7 +15895,7 @@
     "ev_pct": -20.1,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 1/5 últimos (promedia 1.9 vs línea 2.5)",
+    "trend": "Over en 1/5 últimos (promedia 1.8 en L5 vs línea 2.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 1
   },
@@ -15925,7 +15925,7 @@
     "ev_pct": -20.5,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 3/5 últimos (promedia 1.9 vs línea 1.5)",
+    "trend": "Over en 3/5 últimos (promedia 1.8 en L5 vs línea 1.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 1
   },
@@ -15955,7 +15955,7 @@
     "ev_pct": -22.0,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 2/5 últimos (promedia 1.3 vs línea 1.5)",
+    "trend": "Over en 2/5 últimos (promedia 1.2 en L5 vs línea 1.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 1
   },
@@ -15985,7 +15985,7 @@
     "ev_pct": -24.3,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 2/5 últimos (promedia 1.4 vs línea 1.5)",
+    "trend": "Over en 2/5 últimos (promedia 1.6 en L5 vs línea 1.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 1
   },
@@ -16015,7 +16015,7 @@
     "ev_pct": -24.6,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 2/5 últimos (promedia 0.9 vs línea 0.5)",
+    "trend": "Over en 2/5 últimos (promedia 0.8 en L5 vs línea 0.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 1
   },
@@ -16045,7 +16045,7 @@
     "ev_pct": -25.5,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 2/5 últimos (promedia 2.7 vs línea 2.5)",
+    "trend": "Over en 2/5 últimos (promedia 2.2 en L5 vs línea 2.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 1
   },
@@ -16075,7 +16075,7 @@
     "ev_pct": -26.2,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 2/5 últimos (promedia 1.3 vs línea 1.5)",
+    "trend": "Over en 2/5 últimos (promedia 1.4 en L5 vs línea 1.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 1
   },
@@ -16105,7 +16105,7 @@
     "ev_pct": -29.2,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 2/5 últimos (promedia 1.5 vs línea 1.5)",
+    "trend": "Over en 2/5 últimos (promedia 1.2 en L5 vs línea 1.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 1
   },
@@ -16135,7 +16135,7 @@
     "ev_pct": -29.3,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 2/5 últimos (promedia 1.7 vs línea 1.5)",
+    "trend": "Over en 2/5 últimos (promedia 1.6 en L5 vs línea 1.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 1
   },
@@ -16165,7 +16165,7 @@
     "ev_pct": -30.2,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 0/5 últimos (promedia 1.6 vs línea 2.5)",
+    "trend": "Over en 0/5 últimos (promedia 1.2 en L5 vs línea 2.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 1
   },
@@ -16195,7 +16195,7 @@
     "ev_pct": -30.7,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 2/5 últimos (promedia 0.9 vs línea 1.5)",
+    "trend": "Over en 2/5 últimos (promedia 0.8 en L5 vs línea 1.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 1
   },
@@ -16225,7 +16225,7 @@
     "ev_pct": -31.2,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 1/5 últimos (promedia 2.7 vs línea 3.5)",
+    "trend": "Over en 1/5 últimos (promedia 2.2 en L5 vs línea 3.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 1
   },
@@ -16255,7 +16255,7 @@
     "ev_pct": -32.0,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 2/5 últimos (promedia 1.3 vs línea 1.5)",
+    "trend": "Over en 2/5 últimos (promedia 1.0 en L5 vs línea 1.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 1
   },
@@ -16285,7 +16285,7 @@
     "ev_pct": -32.6,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 2/5 últimos (promedia 1.9 vs línea 2.5)",
+    "trend": "Over en 2/5 últimos (promedia 2.0 en L5 vs línea 2.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 1
   },
@@ -16315,7 +16315,7 @@
     "ev_pct": -33.0,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 1/5 últimos (promedia 1.2 vs línea 1.5)",
+    "trend": "Over en 1/5 últimos (promedia 1.2 en L5 vs línea 1.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 1
   },
@@ -16345,7 +16345,7 @@
     "ev_pct": -35.5,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 2/5 últimos (promedia 1.9 vs línea 2.5)",
+    "trend": "Over en 2/5 últimos (promedia 1.8 en L5 vs línea 2.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 1
   },
@@ -16375,7 +16375,7 @@
     "ev_pct": -37.1,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 2/5 últimos (promedia 0.6 vs línea 0.5)",
+    "trend": "Over en 2/5 últimos (promedia 0.4 en L5 vs línea 0.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 1
   },
@@ -16405,7 +16405,7 @@
     "ev_pct": -38.1,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 1/5 últimos (promedia 1.4 vs línea 1.5)",
+    "trend": "Over en 1/5 últimos (promedia 1.2 en L5 vs línea 1.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 1
   },
@@ -16435,7 +16435,7 @@
     "ev_pct": -43.8,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 1/5 últimos (promedia 1.3 vs línea 1.5)",
+    "trend": "Over en 1/5 últimos (promedia 0.8 en L5 vs línea 1.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 1
   },
@@ -16465,7 +16465,7 @@
     "ev_pct": -44.3,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 1/5 últimos (promedia 0.9 vs línea 1.5)",
+    "trend": "Over en 1/5 últimos (promedia 0.6 en L5 vs línea 1.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 1
   },
@@ -16495,7 +16495,7 @@
     "ev_pct": -45.0,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 1/5 últimos (promedia 1.3 vs línea 2.5)",
+    "trend": "Over en 1/5 últimos (promedia 0.8 en L5 vs línea 2.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 1
   },
@@ -16525,7 +16525,7 @@
     "ev_pct": -46.1,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 1/5 últimos (promedia 1.7 vs línea 2.5)",
+    "trend": "Over en 1/5 últimos (promedia 1.6 en L5 vs línea 2.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 1
   },
@@ -16555,7 +16555,7 @@
     "ev_pct": -48.5,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 1/5 últimos (promedia 0.9 vs línea 1.5)",
+    "trend": "Over en 1/5 últimos (promedia 0.8 en L5 vs línea 1.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 1
   },
@@ -16585,7 +16585,7 @@
     "ev_pct": -48.7,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 1/5 últimos (promedia 1.4 vs línea 2.5)",
+    "trend": "Over en 1/5 últimos (promedia 1.2 en L5 vs línea 2.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 1
   },
@@ -16615,7 +16615,7 @@
     "ev_pct": -53.9,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 1/5 últimos (promedia 0.8 vs línea 1.5)",
+    "trend": "Over en 1/5 últimos (promedia 0.6 en L5 vs línea 1.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 1
   },
@@ -16645,7 +16645,7 @@
     "ev_pct": -54.6,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 0/5 últimos (promedia 1.5 vs línea 2.5)",
+    "trend": "Over en 0/5 últimos (promedia 1.2 en L5 vs línea 2.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 1
   },
@@ -16675,7 +16675,7 @@
     "ev_pct": -55.6,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 0/5 últimos (promedia 0.6 vs línea 1.5)",
+    "trend": "Over en 0/5 últimos (promedia 0.4 en L5 vs línea 1.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 1
   },
@@ -16705,7 +16705,7 @@
     "ev_pct": -57.5,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 1/5 últimos (promedia 1.0 vs línea 1.5)",
+    "trend": "Over en 1/5 últimos (promedia 1.0 en L5 vs línea 1.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 1
   },
@@ -16735,7 +16735,7 @@
     "ev_pct": -62.7,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 0/5 últimos (promedia 1.3 vs línea 2.5)",
+    "trend": "Over en 0/5 últimos (promedia 1.0 en L5 vs línea 2.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 1
   },
@@ -16765,7 +16765,7 @@
     "ev_pct": -67.1,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 1/5 últimos (promedia 0.7 vs línea 1.5)",
+    "trend": "Over en 1/5 últimos (promedia 0.6 en L5 vs línea 1.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 1
   },
@@ -16795,7 +16795,7 @@
     "ev_pct": -68.1,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 0/5 últimos (promedia 0.7 vs línea 1.5)",
+    "trend": "Over en 0/5 últimos (promedia 0.6 en L5 vs línea 1.5)",
     "boost_lesion_pct": 8.0,
     "is_milestone": 1
   },
@@ -16825,7 +16825,7 @@
     "ev_pct": -92.6,
     "stars": "⚪",
     "confidence": "NEUTRAL",
-    "trend": "Over en 0/5 últimos (promedia 0.7 vs línea 2.5)",
+    "trend": "Over en 0/5 últimos (promedia 0.6 en L5 vs línea 2.5)",
     "boost_lesion_pct": 0.0,
     "is_milestone": 1
   }

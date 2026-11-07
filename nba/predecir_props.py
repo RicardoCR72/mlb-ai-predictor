@@ -234,11 +234,12 @@ def generar_predicciones_props_hoy(
             estrellas = "⚪"
             confianza = "NEUTRAL"
 
-        # Resumen de tendencia
+        # Resumen de tendencia empírica reciente (L5) vs línea
+        prom_l5_val = stat_l5 if n_l5 > 0 else stat_avg
         if pick_tipo == "OVER":
-            tendencia = f"Over en {ov_l5}/{n_l5} últimos (promedia {proyeccion:.1f} vs línea {linea})"
+            tendencia = f"Over en {ov_l5}/{n_l5} últimos (promedia {prom_l5_val:.1f} en L5 vs línea {linea})"
         else:
-            tendencia = f"Under en {n_l5 - ov_l5}/{n_l5} últimos (promedia {proyeccion:.1f} vs línea {linea})"
+            tendencia = f"Under en {n_l5 - ov_l5}/{n_l5} últimos (promedia {prom_l5_val:.1f} en L5 vs línea {linea})"
 
         predicciones.append({
             "game": row["game"],

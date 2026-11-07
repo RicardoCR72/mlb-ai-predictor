@@ -395,12 +395,32 @@ def obtener_datos_cobertura(
                     linea_val = None
 
         m_check = f"{mercado_str} {sel_up}".lower()
-        if any(w in m_check for w in ["triple", "3-point", "3pt", "threes", "3pm"]):
+        if "pra" in m_check or ("punto" in m_check and "rebot" in m_check and "asist" in m_check):
+            col_stat = "pra"
+            unidad = "pra"
+            if linea_val is None:
+                linea_val = 24.5
+        elif "pr" in m_check or ("punto" in m_check and "rebot" in m_check and "asist" not in m_check):
+            col_stat = "pr"
+            unidad = "pr"
+            if linea_val is None:
+                linea_val = 18.5
+        elif "pa" in m_check or ("punto" in m_check and "asist" in m_check and "rebot" not in m_check):
+            col_stat = "pa"
+            unidad = "pa"
+            if linea_val is None:
+                linea_val = 18.5
+        elif "ra" in m_check or ("rebot" in m_check and "asist" in m_check and "punto" not in m_check):
+            col_stat = "ra"
+            unidad = "ra"
+            if linea_val is None:
+                linea_val = 12.5
+        elif any(w in m_check for w in ["triple", "3-point", "3pt", "threes", "3pm"]):
             col_stat = "t3_made"
             unidad = "3pm"
             if linea_val is None:
                 linea_val = 1.5
-        elif "reb" in m_check:
+        elif any(w in m_check for w in ["rebot", "rebounds", "reb"]):
             col_stat = "reb"
             unidad = "reb"
             if linea_val is None:
@@ -410,21 +430,16 @@ def obtener_datos_cobertura(
             unidad = "ast"
             if linea_val is None:
                 linea_val = 4.5
-        elif "pra" in m_check:
-            col_stat = "pra"
-            unidad = "pra"
+        elif any(w in m_check for w in ["robo", "steal", "stl"]):
+            col_stat = "stl"
+            unidad = "stl"
             if linea_val is None:
-                linea_val = 24.5
-        elif "pr" in m_check and "pra" not in m_check:
-            col_stat = "pr"
-            unidad = "pr"
+                linea_val = 1.5
+        elif any(w in m_check for w in ["bloqueo", "tapon", "block", "blk"]):
+            col_stat = "blk"
+            unidad = "blk"
             if linea_val is None:
-                linea_val = 18.5
-        elif "pa" in m_check and "pra" not in m_check:
-            col_stat = "pa"
-            unidad = "pa"
-            if linea_val is None:
-                linea_val = 18.5
+                linea_val = 1.0
         else:
             col_stat = "pts"
             unidad = "pts"
@@ -449,7 +464,16 @@ def obtener_datos_cobertura(
                     opp = r.get("opponent", "OPP")
                     is_h = int(r.get("is_home", 0)) == 1
                     etiqueta = f"vs {opp}" if is_h else f"@ {opp}"
-                    val = float(r.get(col_stat) or 0.0)
+                    if col_stat == "pra":
+                        val = float(r.get("pra") if "pra" in r and pd.notna(r.get("pra")) else (float(r.get("pts") or 0) + float(r.get("reb") or 0) + float(r.get("ast") or 0)))
+                    elif col_stat == "pr":
+                        val = float(r.get("pr") if "pr" in r and pd.notna(r.get("pr")) else (float(r.get("pts") or 0) + float(r.get("reb") or 0)))
+                    elif col_stat == "pa":
+                        val = float(r.get("pa") if "pa" in r and pd.notna(r.get("pa")) else (float(r.get("pts") or 0) + float(r.get("ast") or 0)))
+                    elif col_stat == "ra":
+                        val = float(r.get("ra") if "ra" in r and pd.notna(r.get("ra")) else (float(r.get("reb") or 0) + float(r.get("ast") or 0)))
+                    else:
+                        val = float(r.get(col_stat) or 0.0)
 
                     if "UNDER" in sel_up or "MENOS" in sel_up:
                         cubrio = val < linea_val
@@ -675,7 +699,7 @@ def _crear_altair_chart_cobertura(df: pd.DataFrame, linea_ref: float | None, uni
         y=alt.Y(
             "Valor:Q",
             stack=None,
-            axis=alt.Axis(labelColor="#94a3b8", labelFontSize=9, title=unidad.capitalize(), gridColor="#1e293b")
+            axis=alt.Axis(labelColor="#94a3b8", labelFontSize=9, title=(unidad.upper() if len(unidad) <= 3 else unidad.capitalize()), gridColor="#1e293b")
         ),
         color=alt.Color(
             "Cubierto:N",
