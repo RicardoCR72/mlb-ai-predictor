@@ -123,6 +123,31 @@ def actualizar_calendario():
 
     )
 
+    # Enriquecer líneas de Totales y Spread de la temporada actual desde ESPN / Bovada (0 Créditos)
+    try:
+        from nfl.proveedor_cuotas import obtener_jornada_nfl_espn
+        partidos_en_vivo = obtener_jornada_nfl_espn()
+        for p_live in partidos_en_vivo:
+            vis = p_live.get("equipo_visita")
+            loc = p_live.get("equipo_local")
+            tot = p_live.get("linea_total")
+            spd = p_live.get("spread_line")
+            if not vis or not loc:
+                continue
+            mask = (
+                (calendario["season"] == TEMPORADA_ACTUAL)
+                & (calendario["away_team"] == vis)
+                & (calendario["home_team"] == loc)
+                & (calendario["home_score"].isna())
+            )
+            if mask.any():
+                if tot is not None:
+                    calendario.loc[mask, "total_line"] = float(tot)
+                if spd is not None:
+                    calendario.loc[mask, "spread_line"] = float(spd)
+    except Exception as e_live:
+        print(f"Aviso: No se pudieron sincronizar líneas en vivo en calendario: {e_live}")
+
     calendario.to_parquet(
 
         RUTA_CALENDARIO,

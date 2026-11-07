@@ -19,7 +19,6 @@ install_navigation()
 
 from core.constants import ZONA_CDMX
 from core.ui_actualizacion import render_update_button
-from core.ui_nfl_creditos import render_prediction_button
 
 hora_actual_cdmx = datetime.now(ZONA_CDMX).strftime("%H:%M")
 

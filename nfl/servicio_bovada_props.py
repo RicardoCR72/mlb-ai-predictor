@@ -504,6 +504,78 @@ def sincronizar_lineas_bovada_a_mysql() -> int:
     return len(registros)
 
 
+def extraer_lineas_partido_bovada() -> Dict[Tuple[str, str], Dict[str, Any]]:
+    """Extrae las líneas de Moneyline, Spread y Totales de Bovada para todos los partidos."""
+    eventos = descargar_mercados_bovada_nfl()
+    if not eventos:
+        return {}
+
+    partidos = {}
+    for ev in eventos:
+        desc = ev.get("description", "")
+        if "@" not in desc:
+            continue
+        partes = desc.split("@")
+        vis_nom = partes[0].strip()
+        loc_nom = partes[1].strip()
+        vis_sigla = EQUIPOS_BOVADA_A_SIGLA.get(vis_nom)
+        loc_sigla = EQUIPOS_BOVADA_A_SIGLA.get(loc_nom)
+        if not vis_sigla or not loc_sigla:
+            continue
+
+        ml_vis, ml_loc = None, None
+        spread_val = None
+        tot_line, tot_over, tot_under = None, None, None
+
+        for dg in ev.get("displayGroups", []):
+            if dg.get("description") != "Game Lines":
+                continue
+            for m in dg.get("markets", []):
+                # Filtrar únicamente mercado de partido completo (period == 'Game')
+                if m.get("period", {}).get("description") != "Game":
+                    continue
+                desc_m = m.get("description", "")
+                if desc_m == "Moneyline":
+                    for o in m.get("outcomes", []):
+                        if o.get("description") == loc_nom:
+                            ml_loc = o.get("price", {}).get("american")
+                        elif o.get("description") == vis_nom:
+                            ml_vis = o.get("price", {}).get("american")
+                elif desc_m == "Point Spread":
+                    for o in m.get("outcomes", []):
+                        if o.get("description") == loc_nom:
+                            h = o.get("price", {}).get("handicap")
+                            if h is not None:
+                                spread_val = float(h)
+                elif desc_m == "Total":
+                    for o in m.get("outcomes", []):
+                        desc_o = o.get("description", "")
+                        p_o = o.get("price", {})
+                        if "Over" in desc_o:
+                            h = p_o.get("handicap")
+                            if h is not None:
+                                tot_line = float(h)
+                            tot_over = p_o.get("american")
+                        elif "Under" in desc_o:
+                            tot_under = p_o.get("american")
+            break
+
+        partidos[(vis_sigla, loc_sigla)] = {
+            "moneyline_local": str(ml_loc) if ml_loc is not None else None,
+            "moneyline_visita": str(ml_vis) if ml_vis is not None else None,
+            "ml_local_dec": _american_a_decimal(ml_loc) if ml_loc is not None else None,
+            "ml_visita_dec": _american_a_decimal(ml_vis) if ml_vis is not None else None,
+            "spread_line": spread_val,
+            "linea_total": tot_line,
+            "over_momio": str(tot_over) if tot_over is not None else None,
+            "under_momio": str(tot_under) if tot_under is not None else None,
+            "over_momio_dec": _american_a_decimal(tot_over) if tot_over is not None else None,
+            "under_momio_dec": _american_a_decimal(tot_under) if tot_under is not None else None,
+        }
+
+    return partidos
+
+
 if __name__ == "__main__":
     df = extraer_props_nfl(usar_cache=False)
     print(f"\n📊 Total props NFL extraídos de Bovada (0 créditos): {len(df)}")

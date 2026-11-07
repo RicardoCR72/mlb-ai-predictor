@@ -90,10 +90,10 @@ def render():
                 st.rerun()
 
     with col2:
-        if st.button("Actualizar Cuotas DraftKings", key="btn_act_cuotas_nfl_ml", type="primary", use_container_width=True, help="Consulta las últimas líneas de Moneyline de DraftKings y actualiza proyecciones."):
-            with st.spinner("Consultando DraftKings y ejecutando modelo calibrado..."):
+        if st.button("⚡ Actualizar Moneyline (0 Créditos · ESPN/DraftKings)", key="btn_act_cuotas_nfl_ml", type="primary", use_container_width=True, help="Consulta cuotas oficiales en tiempo real desde ESPN y Bovada (0 créditos consumidos) y recalcula el ensamble calibrado."):
+            with st.spinner("Consultando ESPN/DraftKings/Bovada y ejecutando modelo calibrado..."):
                 cargar_predicciones_nfl_moneyline(forzar=True)
-                st.success("✅ Cuotas y pronósticos de Moneyline actualizados.")
+                st.success("✅ Cuotas y pronósticos de Moneyline actualizados a 0 créditos.")
                 st.rerun()
 
     st.markdown("<div style='margin-bottom: 1.1rem;'></div>", unsafe_allow_html=True)

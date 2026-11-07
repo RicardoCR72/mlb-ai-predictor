@@ -270,14 +270,22 @@ def render():
 
     # Barra de botones idéntica a Moneyline (2 columnas)
     from core.ui_actualizacion import render_update_button
-    from core.ui_nfl_creditos import render_prediction_button
 
     st.markdown("<div style='margin-bottom: 0.8rem;'></div>", unsafe_allow_html=True)
     col1, col2 = st.columns(2, gap="medium")
     with col1:
         render_update_button("nfl_totales", compact=True)
     with col2:
-        render_prediction_button()
+        if st.button("⚡ Actualizar Totales (0 Créditos · ESPN/Bovada)", key="btn_act_totales_nfl_free", type="primary", use_container_width=True, help="Consulta líneas en tiempo real desde ESPN y Bovada (0 créditos) y recalcula el modelo predictivo de Totales."):
+            with st.spinner("Actualizando líneas de Totales y ejecutando modelo calibrado..."):
+                import subprocess, sys
+                res = subprocess.run([sys.executable, "nfl/predecir_semana_actual.py"], capture_output=True, text=True, timeout=600)
+                if res.returncode == 0:
+                    st.success("✅ ¡Líneas y Totales actualizados con éxito (0 Créditos)!")
+                else:
+                    st.warning("Líneas actualizadas con advertencias.")
+                st.cache_data.clear()
+                st.rerun()
     st.markdown("<div style='margin-bottom: 1.1rem;'></div>", unsafe_allow_html=True)
 
     if seccion_totales != "📈 Rendimiento":

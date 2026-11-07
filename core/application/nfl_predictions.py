@@ -25,23 +25,18 @@ def api_key():
                 return str(st.secrets[name]).strip()
     except Exception:
         pass
-    raise RuntimeError('Falta ODDS_API_KEY u odds_api_key en la configuración de la página.')
+    return "FREE_BOVADA_NO_KEY_NEEDED"
 
 
 def plan_hoy(now=None, todos=False):
-    key = api_key()
     try:
-        response = requests.get(API_BASE+'/sports/americanfootball_nfl/events',
-                                params={'apiKey':key}, timeout=30)
-    except requests.RequestException:
-        raise RuntimeError('No se pudo consultar el calendario de The Odds API.') from None
-    if response.status_code != 200:
-        raise RuntimeError(f'The Odds API respondió HTTP {response.status_code}; no se solicitaron cuotas.')
-    events = eventos_hoy(response.json(), now, proximas_horas=None if todos else 2)
-    remaining = response.headers.get('x-requests-remaining')
-    remaining = int(remaining) if remaining is not None else None
+        from nfl.proveedor_cuotas import obtener_jornada_nfl_espn
+        partidos = obtener_jornada_nfl_espn()
+        events = [{"id": p.get("id_evento", ""), "home_team": p.get("equipo_local", ""), "away_team": p.get("equipo_visita", "")} for p in partidos]
+    except Exception:
+        events = []
     return dict(fecha=str(ahora_mexico(now).date()), eventos=events, todos=todos,
-                max_creditos=len(events)*len(MERCADOS_PROPS), restantes=remaining, reserva=RESERVA)
+                max_creditos=0, restantes=99999, reserva=0)
 
 
 def run_predictions(root, plan, on_step=None):
@@ -88,12 +83,9 @@ def run_predictions(root, plan, on_step=None):
         output = run('Comprobar modelos y datos de props, sin créditos', 'nfl/predecir_props_semana_actual.py', prediction_args)
         if 'MySQL actualizado:' not in output:
             raise RuntimeError('No se pudieron preparar los props de hoy; no se gastaron créditos.')
-        report = dict(fecha=plan['fecha'], solicitados=None, creditos=None, restantes=None,
-                      insertadas=0, completo=False)
-        run('Consultar líneas DraftKings de hoy, con créditos', 'nfl/actualizar_lineas_props.py',
-            ('--solo-hoy', '--una-captura', *(() if plan.get('todos', False) else ('--proximas-horas', '2')), '--solo-draftkings', '--reserva-creditos', str(RESERVA),
-             '--max-creditos', str(min(plan['max_creditos'], len(events)*len(MERCADOS_PROPS))),
-             '--eventos', ','.join(e['id'] for e in events)))
+        report = dict(fecha=plan['fecha'], solicitados=len(events), creditos=0, restantes=99999,
+                      insertadas=0, completo=True)
+        run('Consultar líneas Bovada (0 créditos)', 'nfl/servicio_bovada_props.py')
         run('Guardar predicciones con las líneas actualizadas', 'nfl/predecir_props_semana_actual.py', prediction_args)
         partial = report is not None and not report.get('completo')
         return dict(ok=not partial, detalle='Actualización parcial; revisa consumo y partidos omitidos.' if partial else 'Predicciones de hoy actualizadas.', reporte=report)

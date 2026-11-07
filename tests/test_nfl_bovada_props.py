@@ -68,3 +68,4 @@ def test_resolver_jugador_nfl():
     res3 = _resolver_jugador_nfl("Patrick Mahomes", "", indice)
     assert res3 is not None
     assert res3["id_jugador"] == "00-0033873"
+

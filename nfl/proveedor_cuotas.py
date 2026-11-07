@@ -9,10 +9,16 @@ Extrae directamente de la API Scoreboard de ESPN las cuotas oficiales de DraftKi
 from __future__ import annotations
 
 import logging
+import sys
 from datetime import datetime
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 from zoneinfo import ZoneInfo
 import requests
+
+RAIZ = Path(__file__).resolve().parents[1]
+if str(RAIZ) not in sys.path:
+    sys.path.insert(0, str(RAIZ))
 
 logger = logging.getLogger("nfl_proveedor_cuotas")
 ZONA_CDMX = ZoneInfo("America/Mexico_City")
@@ -199,6 +205,34 @@ def obtener_jornada_nfl_espn(dates: Optional[str] = None) -> List[Dict[str, Any]
             "over_momio_dec": american_to_decimal(over_momio),
             "under_momio_dec": american_to_decimal(under_momio),
         })
+
+    # Complementar cuotas faltantes con el feed gratuito de Bovada (0 Créditos)
+    try:
+        from nfl.servicio_bovada_props import extraer_lineas_partido_bovada
+        bovada_dict = extraer_lineas_partido_bovada()
+        for p in partidos:
+            clave = (p["equipo_visita"], p["equipo_local"])
+            bov = bovada_dict.get(clave)
+            if not bov:
+                continue
+            if p["moneyline_local"] is None and bov.get("moneyline_local"):
+                p["moneyline_local"] = bov["moneyline_local"]
+                p["ml_local_dec"] = bov.get("ml_local_dec")
+                p["provider"] = "Bovada"
+            if p["moneyline_visita"] is None and bov.get("moneyline_visita"):
+                p["moneyline_visita"] = bov["moneyline_visita"]
+                p["ml_visita_dec"] = bov.get("ml_visita_dec")
+                p["provider"] = "Bovada"
+            if p["spread_line"] is None and bov.get("spread_line") is not None:
+                p["spread_line"] = bov["spread_line"]
+            if p["linea_total"] is None and bov.get("linea_total") is not None:
+                p["linea_total"] = bov["linea_total"]
+                p["over_momio"] = bov.get("over_momio")
+                p["under_momio"] = bov.get("under_momio")
+                p["over_momio_dec"] = bov.get("over_momio_dec")
+                p["under_momio_dec"] = bov.get("under_momio_dec")
+    except Exception as e_bov:
+        logger.warning(f"No se pudo consultar Bovada como fallback: {e_bov}")
 
     return partidos
 
