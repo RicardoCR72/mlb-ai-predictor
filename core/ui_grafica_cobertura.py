@@ -24,6 +24,7 @@ RAIZ = Path(__file__).resolve().parents[1]
 _CACHE_NFL_PLAYERS = None
 _CACHE_NFL_SCHED = None
 _CACHE_NBA_GAMES = None
+_CACHE_NBA_PLAYERS = None
 _CACHE_FUTBOL_GAMES = None
 _CACHE_MLB_GAMES = None
 
@@ -90,6 +91,20 @@ def _cargar_nfl_schedules():
             return _CACHE_NFL_SCHED
         except Exception as e:
             logger.warning(f"Error cargando nfl schedules: {e}")
+    return pd.DataFrame()
+
+
+def _cargar_nba_player_stats():
+    global _CACHE_NBA_PLAYERS
+    if _CACHE_NBA_PLAYERS is not None:
+        return _CACHE_NBA_PLAYERS
+    p = RAIZ / "data" / "nba" / "processed" / "player_boxscores_2026_27.parquet"
+    if p.exists():
+        try:
+            _CACHE_NBA_PLAYERS = pd.read_parquet(p)
+            return _CACHE_NBA_PLAYERS
+        except Exception as e:
+            logger.warning(f"Error cargando nba player stats: {e}")
     return pd.DataFrame()
 
 
@@ -366,7 +381,91 @@ def obtener_datos_cobertura(
                     })
 
     # =========================================================================
-    # 2. TOTALES NBA
+    # 2. NBA PROPS DE JUGADORES
+    # =========================================================================
+    elif "NBA" in deporte_up and ("prop" in mercado_str or jugador):
+        df_nba_players = _cargar_nba_player_stats()
+
+        if linea_val is None:
+            m_lin = re.search(r'(?:OVER|UNDER|MÁS|MENOS|\+|\-)?\s*(\d+(?:\.\d+)?)', str(seleccion), re.IGNORECASE)
+            if m_lin:
+                try:
+                    linea_val = float(m_lin.group(1))
+                except Exception:
+                    linea_val = None
+
+        m_check = f"{mercado_str} {sel_up}".lower()
+        if any(w in m_check for w in ["triple", "3-point", "3pt", "threes", "3pm"]):
+            col_stat = "t3_made"
+            unidad = "3pm"
+            if linea_val is None:
+                linea_val = 1.5
+        elif "reb" in m_check:
+            col_stat = "reb"
+            unidad = "reb"
+            if linea_val is None:
+                linea_val = 6.5
+        elif any(w in m_check for w in ["asist", "assist", "ast"]):
+            col_stat = "ast"
+            unidad = "ast"
+            if linea_val is None:
+                linea_val = 4.5
+        elif "pra" in m_check:
+            col_stat = "pra"
+            unidad = "pra"
+            if linea_val is None:
+                linea_val = 24.5
+        elif "pr" in m_check and "pra" not in m_check:
+            col_stat = "pr"
+            unidad = "pr"
+            if linea_val is None:
+                linea_val = 18.5
+        elif "pa" in m_check and "pra" not in m_check:
+            col_stat = "pa"
+            unidad = "pa"
+            if linea_val is None:
+                linea_val = 18.5
+        else:
+            col_stat = "pts"
+            unidad = "pts"
+            if linea_val is None:
+                linea_val = 16.5
+
+        if not df_nba_players.empty and jugador:
+            jug_str = str(jugador).strip()
+            clean_name = re.sub(r'^[0-9\-\s\·]+', '', jug_str).strip()
+            clean_name = re.sub(r'\s+(Jr\.?|Sr\.?|II|III|IV)$', '', clean_name, flags=re.IGNORECASE).strip()
+
+            cond = df_nba_players["player_name"].str.contains(clean_name, case=False, na=False)
+            if not cond.any() and " " in clean_name:
+                apellido = clean_name.split()[-1]
+                if len(apellido) >= 4:
+                    cond = df_nba_players["player_name"].str.contains(apellido, case=False, na=False)
+
+            sub = df_nba_players[cond].sort_values("fecha").copy()
+            if not sub.empty:
+                ultimos = sub.tail(n_juegos)
+                for _, r in ultimos.iterrows():
+                    opp = r.get("opponent", "OPP")
+                    is_h = int(r.get("is_home", 0)) == 1
+                    etiqueta = f"vs {opp}" if is_h else f"@ {opp}"
+                    val = float(r.get(col_stat) or 0.0)
+
+                    if "UNDER" in sel_up or "MENOS" in sel_up:
+                        cubrio = val < linea_val
+                    elif "OVER" in sel_up or "MÁS" in sel_up:
+                        cubrio = val > linea_val
+                    else:
+                        cubrio = val >= linea_val
+
+                    juegos_extraidos.append({
+                        "etiqueta": etiqueta,
+                        "valor": val,
+                        "cubrio": cubrio,
+                    })
+
+    # =========================================================================
+    # 3. TOTALES NBA
     # =========================================================================
     elif "NBA" in deporte_up:
         df_nba = _cargar_nba_games()
@@ -722,10 +821,12 @@ def render_grafica_cobertura(
     sel_u = str(seleccion).upper()
 
     es_prop_nfl = ("NFL" in deporte_u and ("prop" in mercado_l or jugador is not None))
+    es_prop_nba = ("NBA" in deporte_u and ("prop" in mercado_l or jugador is not None))
+    es_prop = (es_prop_nfl or es_prop_nba)
     es_total = ("total" in mercado_l or "over" in sel_u or "under" in sel_u or "gol" in mercado_l)
 
-    # Si NO es prop de NFL ni es Totales, salir inmediatamente
-    if not (es_prop_nfl or es_total):
+    # Si NO es prop ni es Totales, salir inmediatamente
+    if not (es_prop or es_total):
         return
 
     # Si es Totales y tenemos ambos equipos, usar el componente dual de 2 gráficas

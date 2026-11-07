@@ -104,3 +104,48 @@ def test_predicciones_generadas():
     assert df_preds["pick_type"].isin(["OVER", "UNDER"]).all()
     # Debe haber picks con EV positivo
     assert (df_preds["ev_pct"] > 0).any()
+
+
+def test_grafica_cobertura_nba_props():
+    """Verifica que la extracción de los últimos 5 juegos para gráficas de props NBA funcione correctamente."""
+    from core.ui_grafica_cobertura import obtener_datos_cobertura
+
+    # Test Puntos
+    res_pts = obtener_datos_cobertura(
+        deporte="NBA",
+        mercado="Total Points",
+        seleccion="OVER 13.5",
+        linea=13.5,
+        jugador="Aaron Gordon",
+        n_juegos=5
+    )
+    assert res_pts["unidad"] == "pts"
+    assert len(res_pts["df"]) == 5
+    assert 0 <= res_pts["cubiertos"] <= 5
+    assert 0.0 <= res_pts["tasa_pct"] <= 100.0
+
+    # Test Triples
+    res_t3 = obtener_datos_cobertura(
+        deporte="NBA",
+        mercado="Total Triples",
+        seleccion="OVER 3.5",
+        linea=3.5,
+        jugador="Stephen Curry",
+        n_juegos=5
+    )
+    assert res_t3["unidad"] == "3pm"
+    assert len(res_t3["df"]) == 5
+
+    # Test PRA
+    res_pra = obtener_datos_cobertura(
+        deporte="NBA",
+        mercado="Total PRA",
+        seleccion="OVER 40.5",
+        linea=40.5,
+        jugador="Nikola Jokic",
+        n_juegos=5
+    )
+    assert res_pra["unidad"] == "pra"
+    assert len(res_pra["df"]) == 5
+
+

@@ -22,6 +22,7 @@ RUTA_PRED_JSON = RAIZ / "data" / "nba" / "predictions" / "predicciones_props_nba
 
 from nba.predecir_props import generar_predicciones_props_hoy
 from nba.servicio_bovada_props import extraer_props_nba
+from core.ui_grafica_cobertura import render_grafica_cobertura
 
 NOMBRES_MERCADOS_ES = {
     "Total Points": "🏀 Puntos",
@@ -154,13 +155,19 @@ def renderizar_ui_props_nba():
     tab_cards, tab_tabla = st.tabs(["🎴 Tarjetas de Oportunidades", "📋 Tabla Cuantitativa Completa"])
 
     with tab_cards:
+        c_h1, c_h2 = st.columns([2, 1])
+        with c_h1:
+            st.markdown("##### 🎴 Oportunidades de Valor Seleccionadas")
+        with c_h2:
+            desplegar_todas_graficas = st.toggle("📊 Desplegar todas las gráficas", value=False, key="nba_props_toggle_graficas")
+
         # Renderizar en cuadrícula de 2 columnas
         props_a_mostrar = df_filtrado.head(40).to_dict(orient="records")
         cols = st.columns(2)
 
         for i, p in enumerate(props_a_mostrar):
             with cols[i % 2]:
-                _renderizar_tarjeta_prop(p)
+                _renderizar_tarjeta_prop(p, desplegar_grafica_directa=desplegar_todas_graficas)
 
         if total_filtrado > 40:
             st.caption(f"Mostrando los mejores 40 picks de {total_filtrado} disponibles. Consulta la pestaña 'Tabla Cuantitativa' para ver la lista completa.")
@@ -204,8 +211,8 @@ def renderizar_ui_props_nba():
         )
 
 
-def _renderizar_tarjeta_prop(p: Dict[str, Any]):
-    """Dibuja una tarjeta individual con diseño limpio y métricas visuales."""
+def _renderizar_tarjeta_prop(p: Dict[str, Any], desplegar_grafica_directa: bool = False):
+    """Dibuja una tarjeta individual con diseño limpio, métricas visuales y gráfica L5."""
     nombre = p["player_name"]
     equipo = p["team"]
     mercado = NOMBRES_MERCADOS_ES.get(p["market"], p["market"])
@@ -246,3 +253,34 @@ def _renderizar_tarjeta_prop(p: Dict[str, Any]):
         st.caption(f"📈 **Tendencia:** {tendencia}")
         if boost_lesion > 0:
             st.markdown(f"<span style='background:#EF444422; color:#EF4444; padding:2px 6px; border-radius:4px; font-size:0.75rem; font-weight:600;'>🚨 +{boost_lesion:.0f}% Uso por bajas en el equipo</span>", unsafe_allow_html=True)
+
+        # Gráfica de los últimos 5 juegos
+        key_graf = f"nba_prop_{abs(hash(str(p.get('game')) + str(nombre) + str(p.get('market')) + str(linea))) % 10000000}"
+        rival_calc = p.get("away_team") if p.get("home_team") == equipo else p.get("home_team")
+
+        if desplegar_grafica_directa:
+            render_grafica_cobertura(
+                deporte="NBA",
+                mercado=p.get("market", ""),
+                seleccion=f"{pick} {linea}",
+                linea=linea,
+                equipo=equipo,
+                rival=rival_calc,
+                jugador=nombre,
+                key_suffix=key_graf,
+                modo_compacto=True,
+            )
+        else:
+            with st.expander("📊 Ver gráfica últimos 5 partidos vs línea", expanded=False):
+                render_grafica_cobertura(
+                    deporte="NBA",
+                    mercado=p.get("market", ""),
+                    seleccion=f"{pick} {linea}",
+                    linea=linea,
+                    equipo=equipo,
+                    rival=rival_calc,
+                    jugador=nombre,
+                    key_suffix=key_graf,
+                    modo_compacto=True,
+                )
+
