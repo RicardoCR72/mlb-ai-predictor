@@ -573,6 +573,12 @@ Los partidos de hoy ({n_liquidados} juegos) ya finalizaron y están auditados en
         with st.container(border=True):
             st.markdown(card_top_html + teams_html + pick_box_html, unsafe_allow_html=True)
 
+            # Alertas críticas de lesiones y bajas clave
+            alertas_les = p.get("alertas_lesiones", [])
+            if alertas_les:
+                for a in alertas_les:
+                    st.warning(f"{a}")
+
             # Gráfica interactiva de barras de cobertura de línea (Exclusivo para Totales: 2 gráficas en paralelo)
             if "total" in str(mercado).lower():
                 try:
@@ -648,6 +654,32 @@ Los partidos de hoy ({n_liquidados} juegos) ya finalizaron y están auditados en
                     prob_cov_vis = float(p.get("prob_cover_away") or 0.5) * 100
                     st.write(f"Línea: **{spread_det}**")
                     st.markdown(f"<span class='stat-pill'>Cubrir spread: Local {prob_cov_loc:.1f}% | Visita {prob_cov_vis:.1f}%</span>", unsafe_allow_html=True)
+
+            # Reporte médico y de bajas oficiales ESPN
+            les_vis = p.get("lesiones_visita", [])
+            les_loc = p.get("lesiones_local", [])
+            if les_vis or les_loc:
+                with st.expander(f"🏥 Reporte de Lesiones ESPN ({len(les_vis)} en {p.get('abbr_visita')} vs {len(les_loc)} en {p.get('abbr_local')})"):
+                    c_inj1, c_inj2 = st.columns(2)
+                    with c_inj1:
+                        st.caption(f"**{p.get('equipo_visita')} ({len(les_vis)} bajas/dudas)**")
+                        for inj in les_vis[:6]:
+                            color_badge = "#ff4d4d" if inj.get("estado") == "OUT" else "#ffaa00"
+                            st.markdown(
+                                f"<div style='margin-bottom: 0.25rem;'><span style='background: #2a1005; color: {color_badge}; border: 1px solid {color_badge}; padding: 0.1rem 0.35rem; border-radius: 4px; font-size: 0.72rem; font-weight: 800;'>{inj.get('estado')}</span> "
+                                f"<span style='color: #ffffff; font-weight: 700; font-size: 0.82rem;'>{inj.get('jugador')}</span> <span style='color: #a4978e; font-size: 0.78rem;'>({inj.get('posicion')}) · {inj.get('tipo_lesion')}</span></div>",
+                                unsafe_allow_html=True
+                            )
+                    with c_inj2:
+                        st.caption(f"**{p.get('equipo_local')} ({len(les_loc)} bajas/dudas)**")
+                        for inj in les_loc[:6]:
+                            color_badge = "#ff4d4d" if inj.get("estado") == "OUT" else "#ffaa00"
+                            st.markdown(
+                                f"<div style='margin-bottom: 0.25rem;'><span style='background: #2a1005; color: {color_badge}; border: 1px solid {color_badge}; padding: 0.1rem 0.35rem; border-radius: 4px; font-size: 0.72rem; font-weight: 800;'>{inj.get('estado')}</span> "
+                                f"<span style='color: #ffffff; font-weight: 700; font-size: 0.82rem;'>{inj.get('jugador')}</span> <span style='color: #a4978e; font-size: 0.78rem;'>({inj.get('posicion')}) · {inj.get('tipo_lesion')}</span></div>",
+                                unsafe_allow_html=True
+                            )
+                    st.caption(f"Ajuste en proyecciones: Spread **{float(p.get('ajuste_spread_lesiones', 0.0)):+.1f} pts** | Totales **{float(p.get('ajuste_totales_lesiones', 0.0)):+.1f} pts**")
 
     render_widget_boleta()
 

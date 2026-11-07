@@ -156,7 +156,8 @@ def entrenar_modelo_totales() -> Dict[str, Any]:
 def proyectar_partido_totales(
     bundle: Dict[str, Any],
     features_dict: Dict[str, float],
-    linea_total: float = 225.0
+    linea_total: float = 225.0,
+    ajuste_lesiones: float = 0.0,
 ) -> Dict[str, Any]:
     """Calcula los puntos proyectados con Shrinkage Bayesiano y probabilidades Over/Under."""
     features = bundle.get("features", FEATURES_TOTALES)
@@ -198,6 +199,9 @@ def proyectar_partido_totales(
     # Blending de modelo estadístico (60%) y matchup dinámico reciente (40%)
     # Evita que la regresión colapse hacia la media global (225 pts) en equipos de ritmo alto
     modelo_combinado = 0.60 * raw_pred + 0.40 * pts_matchup
+
+    # Aplicar ajuste por reporte oficial de lesiones y ausencias
+    modelo_combinado += float(ajuste_lesiones)
 
     # Shrinkage Bayesiano hacia la línea consensuada del mercado
     if linea_total and linea_total > 0:

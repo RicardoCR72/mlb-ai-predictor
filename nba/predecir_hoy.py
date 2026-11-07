@@ -284,12 +284,24 @@ def predecir_partidos_hoy(force_refresh: bool = False, fecha: Optional[str] = No
             "AWAY_IS_B2B": away_prof.get("IS_B2B", 0),
         }
 
+        # 0. Evaluación oficial del impacto de lesiones y ausencias
+        from nba.servicio_lesiones import calcular_impacto_lesiones_partido
+        info_les = calcular_impacto_lesiones_partido(j["equipo_visita"], j["equipo_local"])
+        ajuste_spread_les = float(info_les.get("ajuste_neto_spread", 0.0))
+        ajuste_tot_les = float(info_les.get("ajuste_total_puntos", 0.0))
+        candado_les = bool(info_les.get("candado_lesion", False))
+        alertas_les = info_les.get("alertas", [])
+
         spread_val = float(j.get("spread_linea") or 0.0)
-        res_spread = proyectar_partido_spread(bundle_spread, feats_spread, spread_line=spread_val)
+        res_spread = proyectar_partido_spread(
+            bundle_spread, feats_spread, spread_line=spread_val, ajuste_lesiones=ajuste_spread_les
+        )
 
         linea_tot_raw = j.get("total_linea")
         linea_tot = float(linea_tot_raw) if linea_tot_raw is not None and float(linea_tot_raw) > 0 else None
-        res_tot = proyectar_partido_totales(bundle_totales, feats_totales, linea_total=linea_tot if linea_tot else 0.0)
+        res_tot = proyectar_partido_totales(
+            bundle_totales, feats_totales, linea_total=linea_tot if linea_tot else 0.0, ajuste_lesiones=ajuste_tot_les
+        )
 
         # Probabilidades implícitas desparasitadas de mercado
         prob_ml_home_book = j.get("moneyline_local_prob") or 0.50
@@ -411,6 +423,11 @@ def predecir_partidos_hoy(force_refresh: bool = False, fecha: Optional[str] = No
             )
             mejor_pick = picks_candidatos[0]
             confianza = mejor_pick.get("confianza", "MEDIA")
+            # Candado de lesión: Si hay una megaestrella en duda (Questionable), limitar confianza a MEDIA
+            if candado_les and confianza == "ALTA":
+                confianza = "MEDIA"
+                mejor_pick["confianza"] = "MEDIA"
+                mejor_pick["detalle"] += " (⚠️ Candado Lesión: Monitorear estatus previo al juego)"
         else:
             # Lean pasivo neutral sin inventar edge artificial
             if res_spread["prob_local_win"] >= res_spread["prob_visita_win"]:
@@ -459,7 +476,7 @@ def predecir_partidos_hoy(force_refresh: bool = False, fecha: Optional[str] = No
             "ml_visita": j["moneyline_visita"],
             "ml_local_dec": j["moneyline_local_dec"],
             "ml_visita_dec": j["moneyline_visita_dec"],
-            # Proyecciones del Modelo V2
+            # Proyecciones del Modelo V2 con ajuste de lesiones
             "margen_local_esperado": res_spread["margen_local_esperado"],
             "prob_local_win": round(prob_ml_home_cal, 4),
             "prob_visita_win": round(prob_ml_away_cal, 4),
@@ -471,6 +488,13 @@ def predecir_partidos_hoy(force_refresh: bool = False, fecha: Optional[str] = No
             "prob_over": round(res_tot["prob_over"], 4),
             "prob_under": round(res_tot["prob_under"], 4),
             "edge_puntos_total": res_tot["edge_puntos"],
+            # Reporte de lesiones e impacto oficial
+            "candado_lesion": candado_les,
+            "alertas_lesiones": alertas_les,
+            "ajuste_spread_lesiones": ajuste_spread_les,
+            "ajuste_totales_lesiones": ajuste_tot_les,
+            "lesiones_visita": info_les.get("lesiones_visita", []),
+            "lesiones_local": info_les.get("lesiones_local", []),
             # Recomendación final y candidatos con valor
             "pick_mercado": mejor_pick["mercado"],
             "pick_seleccion": mejor_pick["seleccion"],

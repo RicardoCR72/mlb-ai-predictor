@@ -96,3 +96,4 @@ def test_agrupacion_diaria_nba():
     assert round(unidades_netas, 2) == 0.82
     assert round(win_rate, 1) == 66.7
     assert round(roi, 1) == 27.3
+

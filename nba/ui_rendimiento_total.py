@@ -536,3 +536,4 @@ def render():
         file_name=f"rendimiento_diario_total_nba_{datetime.now(ZONA_CDMX).strftime('%Y%m%d')}.csv",
         mime="text/csv",
     )
+

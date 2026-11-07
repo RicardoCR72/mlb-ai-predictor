@@ -163,7 +163,8 @@ def entrenar_modelo_spread() -> Dict[str, Any]:
 def proyectar_partido_spread(
     bundle: Dict[str, Any],
     features_dict: Dict[str, float],
-    spread_line: float = 0.0
+    spread_line: float = 0.0,
+    ajuste_lesiones: float = 0.0,
 ) -> Dict[str, Any]:
     """Calcula el margen esperado y las probabilidades de cubrir el spread y ganar Moneyline."""
     features = bundle.get("features", FEATURES_SPREAD)
@@ -182,6 +183,9 @@ def proyectar_partido_spread(
         raw_margin = float(bundle["model"].predict(X)[0])
     else:
         raw_margin = 0.0
+
+    # Aplicar ajuste por reporte oficial de lesiones y ausencias
+    raw_margin += float(ajuste_lesiones)
 
     # Shrinkage Bayesiano hacia el spread de mercado si existe
     if spread_line != 0.0:
