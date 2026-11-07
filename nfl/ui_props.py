@@ -282,42 +282,112 @@ def mostrar_prop(fila):
                 st.write(contexto)
 
 
+from core.ui_tarjeta_universal import render_tarjeta_universal
+
+
 def mostrar_prop_compacto(fila):
-    pick = nfl_pick(fila, prop=True)
     res = str(fila.get('resultado_pick') or '').strip().upper()
     es_resuelta = res in ('GANADA', 'PERDIDA', 'PUSH')
-    state = res if es_resuelta else str(fila['estado_pick'])
 
-    details = [
-        ('Proyección', formatear_porcentaje(fila['proyeccion']) if fila['tipo_prop']=='anytime_td' else formatear_numero(fila['proyeccion'], 2)),
-        ('Edge', formatear_numero(fila['edge'], 2)),
-        ('EV estimado', formatear_porcentaje(fila['ev_estimado'])),
-        ('Lesión', texto_seguro(fila.get('estado_lesion'), 'Sin alerta')),
-        ('Contexto y escenarios', texto_seguro(fila.get('contexto_lesiones'), 'Sin alerta'))
-    ]
     if es_resuelta:
+        # Para picks ya finalizados, mantener vista histórica
+        pick = nfl_pick(fila, prop=True)
+        state = res
+        details = [
+            ('Proyección', formatear_porcentaje(fila['proyeccion']) if fila['tipo_prop']=='anytime_td' else formatear_numero(fila['proyeccion'], 2)),
+            ('Edge', formatear_numero(fila['edge'], 2)),
+            ('EV estimado', formatear_porcentaje(fila['ev_estimado'])),
+            ('Lesión', texto_seguro(fila.get('estado_lesion'), 'Sin alerta')),
+        ]
         if pd.notna(fila.get('valor_real')):
             details.insert(0, ('Resultado real', formatear_numero(fila.get('valor_real'), 1)))
         if pd.notna(fila.get('beneficio_unidades')):
             pick['unidades'] = float(fila['beneficio_unidades'])
             details.insert(1, ('Unidades', f"{float(fila['beneficio_unidades']):+.2f} u"))
 
-    render_pick(pick, market=str(fila['mercado']), state=state, details=details,
-        allow_register=not es_resuelta and fila['seleccion'] in ('OVER','UNDER','ANOTA'))
-    if not es_resuelta and fila.get('seleccion'):
-        from core.ui_boleta import render_boton_boleta
-        prop_id = f"{fila.get('id_juego')}_{fila.get('id_jugador')}_{fila.get('tipo_prop')}"
-        slip_item = {
-            "id": f"NFL_PROP_{prop_id}",
-            "deporte": "NFL",
-            "icono": "🏈",
-            "partido": f"{fila.get('away_team')} @ {fila.get('home_team')}",
-            "mercado": f"Prop: {fila.get('mercado')}",
-            "seleccion": f"{fila.get('player_name')} {fila.get('seleccion')}" + (f" {fila.get('linea')}" if pd.notna(fila.get('linea')) else ""),
-            "momio": str(fila.get('cuota_pick') or "-110"),
-            "prob": fila.get('probabilidad_pick'),
-        }
-        render_boton_boleta(slip_item, key=f"btn_nfl_prop_{prop_id}")
+        render_pick(pick, market=str(fila['mercado']), state=state, details=details, allow_register=False)
+        return
+
+    # Para picks pendientes y cartelera activa: Tarjeta Universal de Alta Fidelidad
+    p_name = str(fila.get("player_name") or "")
+    team = str(fila.get("team") or "")
+    away_t = str(fila.get("away_team") or "")
+    home_t = str(fila.get("home_team") or "")
+    gameday_str = fila["gameday"].strftime("%d/%m/%Y") if pd.notna(fila.get("gameday")) else ""
+    subtitulo = f"🏟️ {away_t} @ {home_t}" + (f" · {gameday_str}" if gameday_str else "")
+
+    mercado_nom = str(fila.get("mercado") or fila.get("tipo_prop") or "Prop")
+    if not mercado_nom.startswith("🏈"):
+        mercado_nom = f"🏈 {mercado_nom}"
+
+    linea_val = fila.get("linea")
+    proy_val = fila.get("proyeccion")
+    sel_raw = str(fila.get("seleccion") or "")
+    sel_str = f"{sel_raw} {linea_val}".strip() if pd.notna(linea_val) else sel_raw
+
+    odds_raw = fila.get("cuota_pick") or 1.91
+    try:
+        cuota_dec = float(decimal_odds(odds_raw) or 1.91)
+    except Exception:
+        cuota_dec = 1.91
+
+    ev_val = float(fila.get("ev_estimado", 0.0) or 0.0)
+    if abs(ev_val) < 1.0:
+        ev_pct = round(ev_val * 100.0, 1)
+    else:
+        ev_pct = round(ev_val, 1)
+
+    if ev_pct >= 10.0:
+        estrellas = "⭐⭐⭐"
+    elif ev_pct >= 5.0:
+        estrellas = "⭐⭐"
+    elif ev_pct > 0.0:
+        estrellas = "⭐"
+    else:
+        estrellas = "⚪"
+
+    prob_pick = float(fila.get("probabilidad_pick", 0.5) or 0.5) * 100.0
+    edge_val = float(fila.get("edge", 0.0) or 0.0)
+    tendencia = f"Prob. Modelo: {prob_pick:.1f}% · Edge: {edge_val:+.2f} vs línea"
+
+    st_lesion = texto_seguro(fila.get("estado_lesion"), "healthy_or_unlisted")
+    alerta = None
+    if st_lesion not in {"healthy_or_unlisted", "healthy", "N/D", "Sin alerta", ""}:
+        alerta = f"🚨 Estatus de lesión: {st_lesion}"
+
+    prop_id = f"{fila.get('id_juego')}_{fila.get('id_jugador')}_{fila.get('tipo_prop')}"
+    slip_item = {
+        "id": f"NFL_PROP_{prop_id}",
+        "deporte": "NFL",
+        "icono": "🏈",
+        "partido": f"{away_t} @ {home_t}",
+        "mercado": f"Prop: {mercado_nom}",
+        "seleccion": f"{p_name} {sel_str}",
+        "momio": str(odds_raw),
+        "prob": fila.get("probabilidad_pick"),
+    }
+
+    render_tarjeta_universal(
+        deporte="NFL",
+        titulo=f"{p_name} ({team})",
+        subtitulo=subtitulo,
+        mercado=mercado_nom,
+        linea_casa=linea_val,
+        proyeccion_modelo=proy_val,
+        seleccion=sel_str,
+        momio_americano=odds_raw,
+        cuota_decimal=cuota_dec,
+        ev_pct=ev_pct,
+        estrellas=estrellas,
+        tendencia=tendencia,
+        alerta_contexto=alerta,
+        jugador=p_name,
+        equipo=team,
+        rival=fila.get("opponent_team") or (away_t if team == home_t else home_t),
+        desplegar_grafica_directa=False,
+        key_suffix=f"nfl_{prop_id}",
+        boton_boleta=slip_item,
+    )
 
 
 

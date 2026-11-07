@@ -297,3 +297,4 @@ if __name__ == "__main__":
     if not df.empty:
         print(df.head(10)[["game", "player_clean", "team", "market", "line", "over_american", "under_american"]])
         print("\nDistribución por mercado:\n", df["market"].value_counts())
+

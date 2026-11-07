@@ -313,3 +313,4 @@ if __name__ == "__main__":
     print(f"✅ Sincronización completada en {time.time() - t0:.1f}s. Jugadores perfilados: {len(perfil)}")
     if not perfil.empty:
         print(perfil.sort_values(by="pts_avg", ascending=False).head(10)[["player_name", "team", "games_played", "min_avg", "pts_avg", "pts_l5", "reb_avg", "ast_avg", "pra_avg"]])
+

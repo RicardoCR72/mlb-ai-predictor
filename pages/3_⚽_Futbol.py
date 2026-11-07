@@ -655,7 +655,74 @@ def render_cartelera_futbol(predicciones: list[dict], mercado_activo: str):
                 f'</div>'
             )
 
-            st.markdown(pick_box_html, unsafe_allow_html=True)
+            if not es_final:
+                from core.ui_tarjeta_universal import render_tarjeta_universal
+                from core.ui_boleta import parsear_cuota_decimal
+                
+                m_act_str = str(pick_data.get("mercado") or mercado_tipo).lower()
+                if "total" in m_act_str or "gol" in m_act_str:
+                    lin_fut = float(p.get("linea_total", 2.5))
+                    proy_fut = float(p.get("total_proyectado", 2.6))
+                    lbl_lf = "Línea Goles"
+                    lbl_pf = "Total xG"
+                elif "1x2" in m_act_str or "ganador" in m_act_str:
+                    lin_fut = "1X2"
+                    proy_fut = f"{float(pick_data.get('probabilidad', 0.5))*100:.0f}%"
+                    lbl_lf = "Mercado"
+                    lbl_pf = "Prob. Dixon-Coles"
+                else:
+                    lin_fut = "Mercado"
+                    proy_fut = f"{float(pick_data.get('probabilidad', 0.5))*100:.0f}%"
+                    lbl_lf = "Línea"
+                    lbl_pf = "Probabilidad"
+
+                ev_fut = float(p.get("ev_total", 0.0) or 0.0) * 100.0
+                if confianza == "ALTA" or ev_fut >= 10.0:
+                    estrellas_f = "⭐⭐⭐"
+                elif confianza == "MEDIA" or ev_fut >= 5.0:
+                    estrellas_f = "⭐⭐"
+                elif ev_fut > 0:
+                    estrellas_f = "⭐"
+                else:
+                    estrellas_f = "⚪"
+
+                partido_id = str(p.get("id_partido") or p.get("id_evento") or f"{p.get('equipo_visita')}_{p.get('equipo_local')}_{idx}")
+                clean_mercado = str(pick_data.get("mercado")).replace(" ", "_").replace("(", "").replace(")", "")
+                slip_f = {
+                    "id": f"FUTBOL_{partido_id}_{clean_mercado}_{pick_data.get('seleccion')}",
+                    "deporte": f"Fútbol ({p.get('liga_nombre', 'Ligas')})",
+                    "icono": "⚽",
+                    "partido": f"{p.get('equipo_visita')} vs {p.get('equipo_local')}",
+                    "mercado": pick_data.get("mercado"),
+                    "seleccion": pick_data.get("seleccion"),
+                    "momio": pick_data.get("cuota"),
+                    "prob": pick_data.get("probabilidad"),
+                } if confianza in ["ALTA", "MEDIA", "LONGSHOT"] else None
+
+                render_tarjeta_universal(
+                    deporte="FUTBOL",
+                    titulo=f"{vis_name} vs {loc_name}",
+                    subtitulo=f"⏰ {hora_cdmx} CDMX · {bandera} {liga_nom}",
+                    mercado=f"⚽ {pick_data.get('mercado')}",
+                    linea_casa=lin_fut,
+                    proyeccion_modelo=proy_fut,
+                    seleccion=str(pick_data.get("seleccion")),
+                    momio_americano=pick_data.get("cuota"),
+                    cuota_decimal=float(parsear_cuota_decimal(pick_data.get("cuota")) or 1.90),
+                    ev_pct=ev_fut,
+                    estrellas=estrellas_f,
+                    tendencia=str(pick_data.get("detalle", "")),
+                    alerta_contexto=None,
+                    equipo=loc_name,
+                    rival=vis_name,
+                    desplegar_grafica_directa=False,
+                    key_suffix=f"fut_match_{partido_id}",
+                    etiqueta_linea=lbl_lf,
+                    etiqueta_proyeccion=lbl_pf,
+                    boton_boleta=slip_f,
+                )
+            else:
+                st.markdown(pick_box_html, unsafe_allow_html=True)
 
             # Gráfica interactiva de barras de cobertura de línea (Exclusivo para Totales: 2 gráficas en paralelo)
             m_actual = str(pick_data.get("mercado") or mercado_tipo).lower()

@@ -22,7 +22,7 @@ RUTA_PRED_JSON = RAIZ / "data" / "nba" / "predictions" / "predicciones_props_nba
 
 from nba.predecir_props import generar_predicciones_props_hoy
 from nba.servicio_bovada_props import extraer_props_nba
-from core.ui_grafica_cobertura import render_grafica_cobertura
+from core.ui_tarjeta_universal import render_tarjeta_universal
 
 NOMBRES_MERCADOS_ES = {
     "Total Points": "🏀 Puntos",
@@ -212,7 +212,7 @@ def renderizar_ui_props_nba():
 
 
 def _renderizar_tarjeta_prop(p: Dict[str, Any], desplegar_grafica_directa: bool = False):
-    """Dibuja una tarjeta individual con diseño limpio, métricas visuales y gráfica L5."""
+    """Dibuja una tarjeta individual usando el componente universal homologado."""
     nombre = p["player_name"]
     equipo = p["team"]
     mercado = NOMBRES_MERCADOS_ES.get(p["market"], p["market"])
@@ -226,61 +226,29 @@ def _renderizar_tarjeta_prop(p: Dict[str, Any], desplegar_grafica_directa: bool 
     tendencia = p.get("trend", "")
     boost_lesion = p.get("boost_lesion_pct", 0.0)
 
-    color_pick = "#10B981" if pick == "OVER" else "#3B82F6"
-    color_ev = "#10B981" if ev >= 5.0 else ("#F59E0B" if ev > 0 else "#EF4444")
+    alerta = f"🚨 +{boost_lesion:.0f}% Uso por bajas en el equipo" if boost_lesion > 0 else None
+    rival_calc = p.get("away_team") if p.get("home_team") == equipo else p.get("home_team")
 
-    # Contenedor con borde
-    with st.container(border=True):
-        c1, c2 = st.columns([3, 1])
-        with c1:
-            st.markdown(f"**{nombre}** `({equipo})` · {mercado}")
-            st.caption(f"🏟️ {p.get('game', '')}")
-        with c2:
-            st.markdown(f"<div style='text-align:right;'><span style='font-size:1.1rem;'>{estrellas}</span><br><b style='color:{color_ev};'>+{ev:.1f}% EV</b></div>", unsafe_allow_html=True)
-
-        # Métricas de Proyección
-        m1, m2, m3 = st.columns(3)
-        m1.metric("Línea Bovada", f"{linea}")
-        m2.metric("Proyección", f"{proy:.1f}")
-        m3.markdown(
-            f"<div style='background:{color_pick}22; padding:6px 10px; border-radius:8px; border:1px solid {color_pick}; text-align:center; margin-top:4px;'>"
-            f"<b style='color:{color_pick}; font-size:1.05rem;'>{pick} {linea}</b><br>"
-            f"<span style='font-size:0.85rem;'>{momio_am} ({cuota_dec:.2f})</span>"
-            f"</div>",
-            unsafe_allow_html=True
-        )
-
-        st.caption(f"📈 **Tendencia:** {tendencia}")
-        if boost_lesion > 0:
-            st.markdown(f"<span style='background:#EF444422; color:#EF4444; padding:2px 6px; border-radius:4px; font-size:0.75rem; font-weight:600;'>🚨 +{boost_lesion:.0f}% Uso por bajas en el equipo</span>", unsafe_allow_html=True)
-
-        # Gráfica de los últimos 5 juegos
-        key_graf = f"nba_prop_{abs(hash(str(p.get('game')) + str(nombre) + str(p.get('market')) + str(linea))) % 10000000}"
-        rival_calc = p.get("away_team") if p.get("home_team") == equipo else p.get("home_team")
-
-        if desplegar_grafica_directa:
-            render_grafica_cobertura(
-                deporte="NBA",
-                mercado=p.get("market", ""),
-                seleccion=f"{pick} {linea}",
-                linea=linea,
-                equipo=equipo,
-                rival=rival_calc,
-                jugador=nombre,
-                key_suffix=key_graf,
-                modo_compacto=True,
-            )
-        else:
-            with st.expander("📊 Ver gráfica últimos 5 partidos vs línea", expanded=False):
-                render_grafica_cobertura(
-                    deporte="NBA",
-                    mercado=p.get("market", ""),
-                    seleccion=f"{pick} {linea}",
-                    linea=linea,
-                    equipo=equipo,
-                    rival=rival_calc,
-                    jugador=nombre,
-                    key_suffix=key_graf,
-                    modo_compacto=True,
-                )
+    render_tarjeta_universal(
+        deporte="NBA",
+        titulo=f"{nombre} ({equipo})",
+        subtitulo=f"🏟️ {p.get('game', '')}",
+        mercado=mercado,
+        linea_casa=linea,
+        proyeccion_modelo=proy,
+        seleccion=f"{pick} {linea}",
+        momio_americano=momio_am,
+        cuota_decimal=cuota_dec,
+        ev_pct=ev,
+        estrellas=estrellas,
+        tendencia=tendencia,
+        alerta_contexto=alerta,
+        jugador=nombre,
+        equipo=equipo,
+        rival=rival_calc,
+        desplegar_grafica_directa=desplegar_grafica_directa,
+        key_suffix=f"nba_prop_{p.get('bovada_game_id')}_{p.get('player_clean')}_{linea}",
+        etiqueta_linea="Línea Bovada",
+        etiqueta_proyeccion="Proyección",
+    )
 

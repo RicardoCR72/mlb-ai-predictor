@@ -570,59 +570,79 @@ Los partidos de hoy ({n_liquidados} juegos) ya finalizaron y están auditados en
             f'</div>'
         )
 
-        with st.container(border=True):
-            st.markdown(card_top_html + teams_html + pick_box_html, unsafe_allow_html=True)
+        if resultado_pick in ["GANADA", "PERDIDA", "PUSH"]:
+            # Vista histórica para partidos finalizados
+            with st.container(border=True):
+                st.markdown(card_top_html + teams_html + pick_box_html, unsafe_allow_html=True)
+        else:
+            # Tarjeta Universal Homologada de Alta Fidelidad
+            from core.ui_tarjeta_universal import render_tarjeta_universal
+            
+            clean_m = str(mercado).lower()
+            if "total" in clean_m:
+                lin_c = float(p.get("linea_total") or p.get("total_line") or 228.5)
+                proy_c = float(p.get("total_proyectado") or 0.0)
+                lbl_l = "Línea Total"
+                lbl_p = "Proy. Total"
+            elif "spread" in clean_m:
+                lin_c = float(p.get("linea_spread") or 0.0)
+                proy_c = float(p.get("margen_local_esperado") or 0.0)
+                lbl_l = "Línea Spread"
+                lbl_p = "Margen Modelo"
+            else:
+                lin_c = "1X2 Directo"
+                proy_c = f"{pick_info['probabilidad']*100:.1f}%"
+                lbl_l = "Mercado"
+                lbl_p = "Prob. Calibrada"
 
-            # Alertas críticas de lesiones y bajas clave
             alertas_les = p.get("alertas_lesiones", [])
-            if alertas_les:
-                for a in alertas_les:
-                    st.warning(f"{a}")
+            alerta_msg = alertas_les[0] if alertas_les else None
 
-            # Gráfica interactiva de barras de cobertura de línea (Exclusivo para Totales: 2 gráficas en paralelo)
-            if "total" in str(mercado).lower():
-                try:
-                    from core.ui_grafica_cobertura import render_grafica_cobertura_totales_dual
-                    lin_nba = float(p.get("linea_total") or p.get("total_line") or 228.5)
-                    render_grafica_cobertura_totales_dual(
-                        deporte="NBA",
-                        seleccion=str(pick_info.get("seleccion", "")),
-                        linea=lin_nba,
-                        equipo_visita=str(p.get("equipo_visita") or p.get("abbr_visita")),
-                        equipo_local=str(p.get("equipo_local") or p.get("abbr_local")),
-                        key_suffix=f"nba_tot_{p.get('id_evento', idx)}",
-                    )
-                except Exception as e_cov_nba:
-                    pass
+            evento_id = str(p.get("id_evento") or p.get("id_juego") or f"{p.get('abbr_visita')}_{p.get('abbr_local')}_{idx}")
+            clean_mercado = str(mercado).replace(" ", "_").replace("(", "").replace(")", "")
+            slip_item = {
+                "id": f"NBA_{evento_id}_{clean_mercado}_{pick_info['seleccion']}",
+                "deporte": "NBA",
+                "icono": "🏀",
+                "partido": p.get("partido") or f"{p.get('equipo_visita')} @ {p.get('equipo_local')}",
+                "mercado": mercado,
+                "seleccion": pick_info["seleccion"],
+                "momio": pick_info["momio"],
+                "prob": pick_info["probabilidad"],
+            } if conf in ["ALTA", "MEDIA", "LONGSHOT"] else None
 
-            if conf in ["ALTA", "MEDIA"]:
-                evento_id = str(p.get("id_evento") or p.get("id_juego") or f"{p.get('abbr_visita')}_{p.get('abbr_local')}_{idx}")
-                clean_mercado = str(mercado).replace(" ", "_").replace("(", "").replace(")", "")
-                slip_item = {
-                    "id": f"NBA_{evento_id}_{clean_mercado}_{pick_info['seleccion']}",
-                    "deporte": "NBA",
-                    "icono": "🏀",
-                    "partido": p.get("partido") or f"{p.get('equipo_visita')} @ {p.get('equipo_local')}",
-                    "mercado": mercado,
-                    "seleccion": pick_info["seleccion"],
-                    "momio": pick_info["momio"],
-                    "prob": pick_info["probabilidad"],
-                }
-                render_boton_boleta(slip_item, key=f"btn_nba_slip_{evento_id}_{clean_mercado}_{idx}")
-            elif conf == "LONGSHOT":
-                st.warning(f"⚠️ **Longshot de Alto Riesgo:** Aunque tiene valor matemático (+EV +{ev_calc:.1f}%), la probabilidad de ganar es solo del **{prob*100:.1f}%**. Sugerencia: reduce el importe a 0.25u o prefiere el **Spread ({p.get('spread_detalles', 'Hándicap')})**.")
-                evento_id = str(p.get("id_evento") or p.get("id_juego") or f"{p.get('abbr_visita')}_{p.get('abbr_local')}_{idx}")
-                clean_mercado = str(mercado).replace(" ", "_").replace("(", "").replace(")", "")
-                slip_item = {
-                    "id": f"NBA_{evento_id}_{clean_mercado}_{pick_info['seleccion']}",
-                    "deporte": "NBA",
-                    "icono": "🏀",
-                    "partido": p.get("partido") or f"{p.get('equipo_visita')} @ {p.get('equipo_local')}",
-                    "mercado": mercado,
-                    "seleccion": pick_info["seleccion"],
-                    "momio": pick_info["momio"],
-                    "prob": pick_info["probabilidad"],
-                }
+            ev_num = ev_calc * 100.0
+            if conf == "ALTA" or ev_num >= 10.0:
+                estrellas_nba = "⭐⭐⭐"
+            elif conf == "MEDIA" or ev_num >= 5.0:
+                estrellas_nba = "⭐⭐"
+            elif ev_num > 0:
+                estrellas_nba = "⭐"
+            else:
+                estrellas_nba = "⚪"
+
+            render_tarjeta_universal(
+                deporte="NBA",
+                titulo=f"{p.get('equipo_visita')} @ {p.get('equipo_local')}",
+                subtitulo=f"⏰ {p.get('hora_cdmx', '')} CDMX · 🏟️ {p.get('estadio', 'NBA Arena')}",
+                mercado=f"🏀 {mercado}",
+                linea_casa=lin_c,
+                proyeccion_modelo=proy_c,
+                seleccion=pick_info["seleccion"],
+                momio_americano=pick_info["momio"],
+                cuota_decimal=float(cuota_dec_loc if pick_info["seleccion"].startswith(str(p.get('equipo_local'))) else cuota_dec_vis),
+                ev_pct=ev_num,
+                estrellas=estrellas_nba,
+                tendencia=pick_info["detalle"],
+                alerta_contexto=alerta_msg,
+                equipo=str(p.get("equipo_local") or p.get("abbr_local")),
+                rival=str(p.get("equipo_visita") or p.get("abbr_visita")),
+                desplegar_grafica_directa=False,
+                key_suffix=f"nba_match_{evento_id}",
+                etiqueta_linea=lbl_l,
+                etiqueta_proyeccion=lbl_p,
+                boton_boleta=slip_item,
+            )
                 render_boton_boleta(slip_item, key=f"btn_nba_slip_{evento_id}_{clean_mercado}_{idx}")
             else:
                 st.caption("🛡️ *Filtro de Disciplina Activo: Este partido está en la Zona Muerta (edge < +4.5%). Descartado para apuestas.*")

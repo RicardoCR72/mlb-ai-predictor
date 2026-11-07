@@ -307,42 +307,128 @@ def pick_key(pick):
 
 
 def render_pick(pick, *, market, state='', details=(), allow_register=True):
-    if allow_register:
-        from core.contexto_confianza import for_pick,text
-        pick=dict(pick,contexto_confianza=text(for_pick(pick)))
-    st.markdown(card_html(pick, market=market, state=state, details=details), unsafe_allow_html=True)
+    status = str(state).strip().upper()
+    es_resuelta = any(k in status for k in ['GANADA', 'PERDIDA', 'PUSH', 'FINAL', 'REAL:'])
 
-    # Gráfica interactiva de barras de cobertura de línea frente a los últimos juegos
+    # Si la tarjeta ya está resuelta (partido finalizado), mantener la auditoría
+    if es_resuelta:
+        if allow_register:
+            from core.contexto_confianza import for_pick, text
+            pick = dict(pick, contexto_confianza=text(for_pick(pick)))
+        st.markdown(card_html(pick, market=market, state=state, details=details), unsafe_allow_html=True)
+
+        try:
+            from core.ui_grafica_cobertura import render_grafica_cobertura
+            dep = str(pick.get('deporte') or 'MLB')
+            ref = pick.get('referencia') or {}
+            linea_val = pick.get('linea')
+            if linea_val is None and isinstance(ref, dict):
+                linea_val = ref.get('linea') if ref.get('linea') is not None else ref.get('line')
+            eq_loc = pick.get('equipo_local')
+            eq_vis = pick.get('equipo_visitante')
+            if not eq_loc and '@' in str(pick.get('partido', '')):
+                parts = str(pick.get('partido', '')).split('@')
+                eq_vis = parts[0].strip()
+                eq_loc = parts[1].strip()
+
+            jugador_val = pick.get('player_name') or (ref.get('player_name') if isinstance(ref, dict) else None)
+            if not jugador_val and isinstance(ref, dict):
+                jugador_val = ref.get('id_jugador')
+
+            render_grafica_cobertura(
+                deporte=dep,
+                mercado=str(market),
+                seleccion=str(pick.get('seleccion', '')),
+                linea=linea_val,
+                equipo=eq_loc,
+                rival=eq_vis,
+                jugador=jugador_val,
+                key_suffix=f"card_{pick_key(pick)}",
+            )
+        except Exception:
+            pass
+        return
+
+    # Para pronósticos pendientes / cartelera activa: Tarjeta Universal de Alta Fidelidad
+    dep = str(pick.get('deporte') or 'MLB').upper()
+    partido = str(pick.get('partido') or '')
+    eq_loc = pick.get('equipo_local')
+    eq_vis = pick.get('equipo_visitante')
+    if not eq_loc and '@' in partido:
+        parts = partido.split('@')
+        eq_vis = parts[0].strip()
+        eq_loc = parts[1].strip()
+    elif not eq_loc and ' vs ' in partido:
+        parts = partido.split(' vs ')
+        eq_loc = parts[0].strip()
+        eq_vis = parts[1].strip()
+
+    ref = pick.get('referencia') or {}
+    linea_val = pick.get('linea')
+    if linea_val is None and isinstance(ref, dict):
+        linea_val = ref.get('linea') if ref.get('linea') is not None else ref.get('line')
+
+    jugador_val = pick.get('player_name') or (ref.get('player_name') if isinstance(ref, dict) else None)
+
+    # Extraer métricas de details
+    proy_val = None
+    ev_val = 0.0
+    tendencia_parts = []
+    alerta_contexto = None
+
+    for k, v in details:
+        k_str = str(k).lower()
+        if 'proy' in k_str:
+            proy_val = v
+        elif 'ev' in k_str:
+            try:
+                ev_val = float(str(v).replace('%', '').replace('+', '').strip())
+            except Exception:
+                pass
+        elif 'lesi' in k_str or 'viento' in k_str:
+            if v and str(v) not in ['Sin alerta', 'healthy_or_unlisted', 'healthy', 'N/D']:
+                alerta_contexto = f"⚠️ {k}: {v}"
+        elif 'p(' in k_str or 'edge' in k_str:
+            tendencia_parts.append(f"{k}: {v}")
+
+    cuota_val = pick.get('cuota') or 1.91
     try:
-        from core.ui_grafica_cobertura import render_grafica_cobertura
-        dep = str(pick.get('deporte') or 'MLB')
-        ref = pick.get('referencia') or {}
-        linea_val = pick.get('linea')
-        if linea_val is None and isinstance(ref, dict):
-            linea_val = ref.get('linea') if ref.get('linea') is not None else ref.get('line')
-        eq_loc = pick.get('equipo_local')
-        eq_vis = pick.get('equipo_visitante')
-        if not eq_loc and '@' in str(pick.get('partido', '')):
-            parts = str(pick.get('partido', '')).split('@')
-            eq_vis = parts[0].strip()
-            eq_loc = parts[1].strip()
+        cuota_dec = float(decimal_odds(cuota_val) or 1.91)
+    except Exception:
+        cuota_dec = 1.91
 
-        jugador_val = pick.get('player_name') or (ref.get('player_name') if isinstance(ref, dict) else None)
-        if not jugador_val and isinstance(ref, dict):
-            jugador_val = ref.get('id_jugador')
+    tendencia = " · ".join(tendencia_parts)
+    if not tendencia:
+        prob = pick.get('probabilidad')
+        if prob:
+            tendencia = f"Probabilidad Modelo: {float(prob)*100:.1f}%"
 
-        render_grafica_cobertura(
-            deporte=dep,
-            mercado=str(market),
-            seleccion=str(pick.get('seleccion', '')),
-            linea=linea_val,
-            equipo=eq_loc,
-            rival=eq_vis,
-            jugador=jugador_val,
-            key_suffix=f"card_{pick_key(pick)}",
-        )
-    except Exception as e_card_cov:
-        pass
+    estrellas = "⭐⭐⭐" if ev_val >= 10.0 else ("⭐⭐" if ev_val >= 5.0 else ("⭐" if ev_val > 0.0 else "⚪"))
+
+    titulo = f"{jugador_val} ({pick.get('team', eq_loc)})" if jugador_val else partido
+    subtitulo = f"🏟️ {date_text(pick)}"
+
+    from core.ui_tarjeta_universal import render_tarjeta_universal
+    render_tarjeta_universal(
+        deporte=dep,
+        titulo=titulo,
+        subtitulo=subtitulo,
+        mercado=str(market),
+        linea_casa=linea_val,
+        proyeccion_modelo=proy_val,
+        seleccion=str(pick.get('seleccion', '')),
+        momio_americano=str(cuota_val),
+        cuota_decimal=cuota_dec,
+        ev_pct=ev_val,
+        estrellas=estrellas,
+        tendencia=tendencia,
+        alerta_contexto=alerta_contexto,
+        jugador=jugador_val,
+        equipo=eq_loc,
+        rival=eq_vis,
+        desplegar_grafica_directa=False,
+        key_suffix=f"pick_{pick_key(pick)}",
+    )
 
 
 
