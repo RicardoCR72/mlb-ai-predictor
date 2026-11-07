@@ -430,6 +430,14 @@ def render_cartelera_nba(predicciones: list[dict], mercado: str):
     elif filtro_estado == "Solo Finalizados":
         lista_mostrar = [p for p in lista_mostrar if _es_partido_pasado_nba(p)]
 
+    # Ordenar de MAYOR a MENOR por EV% al filtrar por picks calificados
+    if solo_ev and lista_mostrar:
+        lista_mostrar.sort(
+            key=lambda p: float(obtener_pick_para_mercado(p, mercado).get("ev", 0.0) or 0.0),
+            reverse=True
+        )
+        st.caption("🔥 Mostrando picks calificados ordenados de **Mayor a Menor Valor Esperado (+EV)**.")
+
     if not lista_mostrar:
         if n_liquidados > 0 and filtro_estado in ["Solo Próximos (Por Jugar)", "Solo Próximos y En Vivo"] and n_pendientes == 0 and n_en_vivo == 0:
             st.markdown(

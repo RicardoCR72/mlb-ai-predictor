@@ -131,6 +131,10 @@ def renderizar_ui_props_nba():
         q = busqueda_jugador.strip().lower()
         df_filtrado = df_filtrado[df_filtrado["player_name"].str.lower().str.contains(q)]
 
+    # Ordenar estrictamente de Mayor a Menor EV%
+    if not df_filtrado.empty and "ev_pct" in df_filtrado.columns:
+        df_filtrado = df_filtrado.sort_values(by="ev_pct", ascending=False).reset_index(drop=True)
+
     # KPIs de la Selección
     kpi1, kpi2, kpi3, kpi4 = st.columns(4)
     total_filtrado = len(df_filtrado)
