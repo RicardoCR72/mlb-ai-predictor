@@ -122,6 +122,24 @@ def render_history(sport,market=None,*,key):
         week_col='Semana' if 'Semana' in frame and frame.Semana.notna().any() else None,
         candidate_col='candidato' if sport=='MLB' and market=='Totales' and 'candidato' in frame else None)
     if frame.empty:state_message('No hay registros para estos filtros.',kind='filters');return
+
+    # Filtro opcional de Valor Esperado (+EV) para descartar volados forzados y Zona Muerta
+    f_ev1, f_ev2 = st.columns([2, 1])
+    with f_ev2:
+        solo_ev_hist = st.checkbox("🔥 Solo picks Calificados (+EV)", key=key+'_ev_filter')
+
+    if solo_ev_hist:
+        from core.ui_boleta import parsear_cuota_decimal
+        def _calc_ev_item(row):
+            p = float(row.get('probabilidad', 0.5) or 0.5)
+            c = parsear_cuota_decimal(row.get('cuota'))
+            return (p * c - 1.0) * 100.0 if (c > 1.0 and p > 0) else -100.0
+
+        ev_vals = frame.apply(_calc_ev_item, axis=1)
+        frame = frame[ev_vals > 0.0].copy()
+        st.caption("🔥 Mostrando únicamente picks calificados con **Valor Esperado positivo (+EV)**. Se descartan partidos forzados de la Zona Muerta (volados del 50.1%).")
+
+    if frame.empty:state_message('No hay registros con Valor Esperado positivo (+EV) para estos filtros.',kind='filters');return
     settled=frame[frame.resultado.isin(['GANADA','PERDIDA','PUSH'])]
     decided=settled[settled.resultado.ne('PUSH')]
     known=settled[np.isfinite(pd.to_numeric(settled.unidades,errors='coerce'))]

@@ -502,7 +502,14 @@ def generate():
                 motivo_filtro = f"Zona Muerta (55-65%) con Edge insuficiente ({edge_matematico*100:+.1f}% < +4.5%) - NO APOSTAR"
         elif not es_alta_confianza:
             aprobado_apuesta = False
-            motivo_filtro = f"Confianza insuficiente ({confianza_final:.1f}% < 55%)"
+            motivo_filtro = f"Confianza insuficiente ({confianza_final:.1f}% < 55%) - Descartado volado de 50.1%"
+
+        # Filtro estricto de Valor Esperado (+EV): Ningún pick se aprueba si EV <= 0
+        p_cuota = float(paga or 1.909)
+        ev_estimado = ((confianza_final / 100.0) * p_cuota - 1.0) * 100.0
+        if ev_estimado <= 0:
+            aprobado_apuesta = False
+            motivo_filtro = f"Zona Muerta / Riesgo de Rake: EV negativo ({ev_estimado:+.1f}%), cuota sin ventaja matemática"
 
         if aprobado_apuesta:
             guardar_pick_ia(
