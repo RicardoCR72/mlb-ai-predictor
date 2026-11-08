@@ -20,14 +20,34 @@ from core.ui_grafica_cobertura import render_grafica_cobertura
 
 
 def _color_por_seleccion(sel_str: str) -> str:
-    """Retorna color distintivo según el tipo de pick."""
-    s = str(sel_str).upper()
-    if "OVER" in s or "MÁS" in s or "LOCAL" in s or "HOME" in s or "1" in s:
+    """Retorna color distintivo según el tipo de pick:
+    * OVER / MÁS -> Verde (#10B981)
+    * UNDER / MENOS -> Azul (#3B82F6)
+    * Local / Home / 1 -> Verde (#10B981)
+    * Visita / Away / 2 -> Azul (#3B82F6)
+    * Empate / Draw / X -> Violeta (#8B5CF6)
+    """
+    s = str(sel_str).strip().upper()
+    # 1. Mercados de Totales y Props (Over / Under)
+    if "OVER" in s or "MÁS" in s or "MAS" in s:
         return "#10B981"  # Verde esmeralda
-    elif "UNDER" in s or "MENOS" in s or "VISITA" in s or "AWAY" in s or "2" in s:
+    if "UNDER" in s or "MENOS" in s:
         return "#3B82F6"  # Azul zafiro
-    elif "X" in s or "EMPATE" in s or "DRAW" in s:
+
+    # 2. Mercados 1X2 / Moneyline (coincidencias de palabra o exactas, evitando que dígitos '1' o '2' en líneas causen falsos positivos)
+    tokens = s.split()
+    if s == "1" or "LOCAL" in tokens or "HOME" in tokens:
+        return "#10B981"  # Verde esmeralda
+    if s == "2" or "VISITA" in tokens or "AWAY" in tokens:
+        return "#3B82F6"  # Azul zafiro
+    if s == "X" or "EMPATE" in tokens or "DRAW" in tokens:
         return "#8B5CF6"  # Violeta
+
+    if "LOCAL" in s or "HOME" in s:
+        return "#10B981"
+    if "VISITA" in s or "AWAY" in s:
+        return "#3B82F6"
+
     return "#10B981"
 
 
