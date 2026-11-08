@@ -60,6 +60,18 @@ MAPA_MERCADOS_STATS = {
 }
 
 
+def normalizar_nombre_atleta(n: str) -> str:
+    """Normaliza nombres de jugadores eliminando acentos, sufijos (Jr, III), puntos y caracteres especiales."""
+    if not n:
+        return ""
+    import unicodedata, re
+    s = unicodedata.normalize("NFKD", str(n)).encode("ASCII", "ignore").decode("utf-8")
+    s = s.lower().strip()
+    s = re.sub(r"[\.\'\,\-]", " ", s)
+    s = re.sub(r"\b(jr|sr|ii|iii|iv|v)\b", "", s)
+    return " ".join(s.split())
+
+
 def liquidar_prop_nba(
     prop: Dict[str, Any] | pd.Series,
     boxscores_evento: pd.DataFrame,
@@ -72,8 +84,12 @@ def liquidar_prop_nba(
       -> Resultado: 'PUSH' (Devolución)
       -> Unidades ganadas: 0.0
       -> Motivo: 'Jugador no participó (DNP / Inactivo)'
-    * Si el jugador jugó (minutos > 0):
-      -> Se compara la estadística oficial contra la línea para determinar GANADA, PERDIDA o PUSH.
+    * Si el jugador participó (minutos > 0):
+      -> La estadística oficial se compara contra la línea.
+      -> Si el jugador hizo 0 del prop (ej. 0 triples) habiendo jugado, NO es push:
+         - Si era OVER: se declara PERDIDA (-1.0 u)
+         - Si era UNDER: se declara GANADA (+cuota u)
+      -> Solo es PUSH si la estadística oficial es exactamente igual a la línea (ej. 2 == 2.0).
     """
     if not partido_finalizado:
         return {
@@ -83,7 +99,8 @@ def liquidar_prop_nba(
             "motivo": "Partido en juego o programado",
         }
 
-    p_clean = str(prop.get("player_clean") or prop.get("player_name", "")).strip().lower()
+    p_nombre = str(prop.get("player_clean") or prop.get("player_name", "")).strip()
+    p_norm = normalizar_nombre_atleta(p_nombre)
     mercado = str(prop.get("market", ""))
     linea = float(prop.get("line") or 0.0)
     pick_tipo = str(prop.get("pick_type", "OVER")).upper()
@@ -98,18 +115,23 @@ def liquidar_prop_nba(
             "motivo": "Jugador no participó (DNP / Inactivo)",
         }
 
-    nombres_box = boxscores_evento["player_name"].astype(str).str.strip().str.lower()
-    filas_jugador = boxscores_evento[nombres_box == p_clean]
+    # Búsqueda robusta por nombre normalizado (ignora Jr., Jr, acentos, etc.)
+    if "norm_name" in boxscores_evento.columns:
+        nombres_box = boxscores_evento["norm_name"].astype(str)
+    else:
+        nombres_box = boxscores_evento["player_name"].apply(normalizar_nombre_atleta)
+
+    filas_jugador = boxscores_evento[nombres_box == p_norm]
 
     if filas_jugador.empty:
-        # Intento de matching por apellido
-        partes = p_clean.split()
-        if len(partes) > 1:
+        # Intento de matching por apellido principal
+        partes = [p for p in p_norm.split() if len(p) > 2]
+        if partes:
             apellido = partes[-1]
-            filas_jugador = boxscores_evento[nombres_box.str.endswith(apellido)]
+            filas_jugador = boxscores_evento[nombres_box.str.contains(apellido, regex=False)]
 
     if filas_jugador.empty:
-        # El jugador no disputó minutos en el partido
+        # El jugador verdaderamente no disputó minutos en el partido
         return {
             "resultado": "PUSH",
             "unidades_ganadas": 0.0,
@@ -120,7 +142,7 @@ def liquidar_prop_nba(
     registro = filas_jugador.iloc[0]
     minutos = float(registro.get("minutos", registro.get("min", 0.0)) or 0.0)
 
-    # Si jugó 0 minutos, es DNP / Push
+    # Si disputó 0 minutos (DNP oficial en planilla), es PUSH
     if minutos <= 0.0:
         return {
             "resultado": "PUSH",
@@ -140,28 +162,30 @@ def liquidar_prop_nba(
 
     valor_real = float(registro[col_stat])
 
+    # Empate exacto con la línea (ej. 2 triples con línea 2.0) -> PUSH
     if valor_real == linea:
         return {
             "resultado": "PUSH",
             "unidades_ganadas": 0.0,
             "valor_real": valor_real,
-            "motivo": f"Empate exacto con la línea ({valor_real} == {linea})",
+            "motivo": f"Empate exacto con la línea ({valor_real:g} == {linea:g})",
         }
 
+    # Evaluación deportiva estándar habiendo jugado minutos
     if pick_tipo == "OVER":
         if valor_real > linea:
             return {
                 "resultado": "GANADA",
                 "unidades_ganadas": round(cuota_dec - 1.0, 3),
                 "valor_real": valor_real,
-                "motivo": f"Superó la línea ({valor_real} > {linea})",
+                "motivo": f"Superó la línea ({valor_real:g} > {linea:g}) con {minutos:g} min",
             }
         else:
             return {
                 "resultado": "PERDIDA",
                 "unidades_ganadas": -1.0,
                 "valor_real": valor_real,
-                "motivo": f"No superó la línea ({valor_real} < {linea})",
+                "motivo": f"No superó la línea ({valor_real:g} < {linea:g}) con {minutos:g} min",
             }
     elif pick_tipo == "UNDER":
         if valor_real < linea:
@@ -169,14 +193,14 @@ def liquidar_prop_nba(
                 "resultado": "GANADA",
                 "unidades_ganadas": round(cuota_dec - 1.0, 3),
                 "valor_real": valor_real,
-                "motivo": f"Se mantuvo bajo la línea ({valor_real} < {linea})",
+                "motivo": f"Se mantuvo bajo la línea ({valor_real:g} < {linea:g}) con {minutos:g} min",
             }
         else:
             return {
                 "resultado": "PERDIDA",
                 "unidades_ganadas": -1.0,
                 "valor_real": valor_real,
-                "motivo": f"Superó la línea ({valor_real} > {linea})",
+                "motivo": f"Superó la línea ({valor_real:g} > {linea:g}) con {minutos:g} min",
             }
 
     return {
@@ -266,8 +290,10 @@ def sincronizar_y_liquidar_props_nba(conn=None) -> Dict[str, Any]:
         except Exception as e:
             logger.warning(f"No se pudieron sincronizar boxscores: {e}")
 
-    if not df_box.empty and "minutos" not in df_box.columns and "min" in df_box.columns:
-        df_box["minutos"] = df_box["min"]
+    if not df_box.empty:
+        if "minutos" not in df_box.columns and "min" in df_box.columns:
+            df_box["minutos"] = df_box["min"]
+        df_box["norm_name"] = df_box["player_name"].apply(normalizar_nombre_atleta)
 
     # 3. Evaluar cada prop
     filas_evaluadas: List[Dict[str, Any]] = []
@@ -346,6 +372,34 @@ def sincronizar_y_liquidar_props_nba(conn=None) -> Dict[str, Any]:
         df_total = df_nuevas
 
     df_total.drop_duplicates(subset=["fecha_str", "jugador", "mercado"], keep="last", inplace=True)
+
+    # Re-evaluar contra los boxscores oficiales para asegurar que ningún jugador que sí jugó quede en PUSH
+    if not df_box.empty:
+        filas_actualizadas = []
+        for _, row in df_total.iterrows():
+            row_dict = row.to_dict()
+            f_str = str(row_dict.get("fecha_str", ""))[:10]
+            sub_box = df_box[df_box["fecha"] == f_str] if "fecha" in df_box.columns else df_box
+            if not sub_box.empty:
+                pick_tipo = "OVER" if "OVER" in str(row_dict.get("seleccion", "")) else "UNDER"
+                p_item = {
+                    "player_name": row_dict.get("jugador"),
+                    "market": row_dict.get("mercado"),
+                    "line": float(row_dict.get("linea", 0.0) or 0.0),
+                    "pick_type": pick_tipo,
+                    "pick_odds_decimal": float(row_dict.get("cuota", 1.91) or 1.91),
+                }
+                res = liquidar_prop_nba(p_item, sub_box, partido_finalizado=True)
+                row_dict["resultado"] = res.get("resultado", row_dict.get("resultado"))
+                row_dict["unidades_ganadas"] = res.get("unidades_ganadas", row_dict.get("unidades_ganadas"))
+                row_dict["unidades"] = res.get("unidades_ganadas", row_dict.get("unidades"))
+                row_dict["valor_real"] = res.get("valor_real", row_dict.get("valor_real"))
+                row_dict["motivo"] = res.get("motivo", row_dict.get("motivo"))
+                if res.get("valor_real") is not None:
+                    row_dict["marcador_final"] = f"Real: {res.get('valor_real'):g} (Línea {float(row_dict.get('linea', 0)):g})"
+            filas_actualizadas.append(row_dict)
+        df_total = pd.DataFrame(filas_actualizadas)
+
     df_total.sort_values(by=["fecha_str", "ev_pct"], ascending=[False, False], inplace=True)
 
     df_total.to_parquet(RUTA_HISTORIAL_PROPS_PARQUET, index=False)
