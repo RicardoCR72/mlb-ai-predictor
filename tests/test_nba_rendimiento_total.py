@@ -10,12 +10,13 @@ from nba.ui_rendimiento_total import (
 
 
 def test_mapa_pilares_y_nombres():
-    """Valida que todos los mercados de la NBA se mapeen correctamente a sus 3 pilares."""
+    """Valida que todos los mercados de la NBA se mapeen correctamente a sus pilares."""
     assert MAPA_PILARES["Totales"] == "Totales"
     assert MAPA_PILARES["Totales (OVER)"] == "Totales"
     assert MAPA_PILARES["Totales (UNDER)"] == "Totales"
     assert MAPA_PILARES["Moneyline"] == "Moneyline"
     assert MAPA_PILARES["Spread"] == "Spread"
+    assert MAPA_PILARES["Props de Jugadores"] == "Props de Jugadores"
 
 
 def test_cargar_rendimiento_consolidado_nba():
@@ -50,8 +51,8 @@ def test_cargar_rendimiento_consolidado_nba():
             else:
                 assert stars == "⚪"
 
-        # Verificar que los pilares pertenezcan a los tres admitidos
-        assert set(df["pilar"].unique()).issubset({"Totales", "Moneyline", "Spread", "Otro"})
+        # Verificar que los pilares pertenezcan a los admitidos (incluyendo Props de Jugadores)
+        assert set(df["pilar"].unique()).issubset({"Totales", "Moneyline", "Spread", "Props de Jugadores", "Otro"})
 
         # Verificar que haya fechas válidas con formato YYYY-MM-DD
         fechas = df["fecha_str"].dropna().tolist()

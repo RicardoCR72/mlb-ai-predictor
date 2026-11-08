@@ -36,6 +36,8 @@ MAPA_PILARES = {
     "Moneyline (Ganador Directo)": "Moneyline",
     "Spread": "Spread",
     "Spread (Línea de Puntos)": "Spread",
+    "Props de Jugadores": "Props de Jugadores",
+    "Props": "Props de Jugadores",
 }
 
 NOMBRES_MERCADOS_LINDOS = {
@@ -44,35 +46,39 @@ NOMBRES_MERCADOS_LINDOS = {
     "Totales (UNDER)": "Totales (UNDER)",
     "Moneyline": "Moneyline (Ganador Directo)",
     "Spread": "Spread (Línea de Puntos)",
+    "Props de Jugadores": "Props de Jugadores",
 }
 
 
 @st.cache_data(ttl=30)
 def cargar_rendimiento_consolidado_nba() -> pd.DataFrame:
-    """Carga y estandariza el historial completo de predicciones NBA desde MySQL o local."""
+    """Carga y estandariza el historial completo de predicciones NBA (Juegos + Props) desde MySQL o local."""
     df = cargar_historial_rendimiento()
-    if df is None or df.empty:
-        return pd.DataFrame()
-
-    df = df.copy()
+    if df is None:
+        df = pd.DataFrame()
+    else:
+        df = df.copy()
 
     # Normalizar fecha
-    df["fecha_str"] = df["fecha"].astype(str).str[:10]
-    df["fecha_dt"] = pd.to_datetime(df["fecha_str"], errors="coerce").dt.date
+    if not df.empty:
+        df["fecha_str"] = df["fecha"].astype(str).str[:10]
+        df["fecha_dt"] = pd.to_datetime(df["fecha_str"], errors="coerce").dt.date
 
-    # Normalizar pilares y nombres de mercado
-    def _obtener_pilar(m_val: Any) -> str:
-        m_str = str(m_val or "").strip()
-        if "Totales" in m_str:
-            return "Totales"
-        if "Moneyline" in m_str:
-            return "Moneyline"
-        if "Spread" in m_str:
-            return "Spread"
-        return "Otro"
+        # Normalizar pilares y nombres de mercado
+        def _obtener_pilar(m_val: Any) -> str:
+            m_str = str(m_val or "").strip()
+            if "Totales" in m_str and "Prop" not in m_str:
+                return "Totales"
+            if "Moneyline" in m_str:
+                return "Moneyline"
+            if "Spread" in m_str:
+                return "Spread"
+            if "Prop" in m_str or any(k in m_str for k in ["Points", "Triples", "Rebounds", "Assists", "PRA", "PR", "PA"]):
+                return "Props de Jugadores"
+            return "Otro"
 
-    df["pilar"] = df["mercado"].apply(_obtener_pilar)
-    df["mercado_display"] = df["mercado"].map(lambda m: NOMBRES_MERCADOS_LINDOS.get(m, m))
+        df["pilar"] = df["mercado"].apply(_obtener_pilar)
+        df["mercado_display"] = df["mercado"].map(lambda m: NOMBRES_MERCADOS_LINDOS.get(m, m))
 
     # Asegurar tipos numéricos
     df["cuota"] = pd.to_numeric(df["cuota"], errors="coerce").fillna(1.91)
@@ -142,6 +148,35 @@ def cargar_rendimiento_consolidado_nba() -> pd.DataFrame:
 
     df["marcador_final"] = df.apply(_formatear_marcador, axis=1)
 
+    # Cargar y fusionar Props de Jugadores si existen
+    try:
+        from nba.evaluar_props import cargar_historial_props_nba
+        df_props = cargar_historial_props_nba()
+        if df_props is not None and not df_props.empty:
+            df_props = df_props.copy()
+            df_props["fecha_str"] = df_props["fecha"].astype(str).str[:10]
+            df_props["fecha_dt"] = pd.to_datetime(df_props["fecha_str"], errors="coerce").dt.date
+            df_props["pilar"] = "Props de Jugadores"
+            df_props["mercado_display"] = df_props["mercado"].astype(str)
+            df_props["cuota"] = pd.to_numeric(df_props["cuota"], errors="coerce").fillna(1.91)
+            df_props["probabilidad"] = pd.to_numeric(df_props["probabilidad"], errors="coerce").fillna(0.5)
+            df_props["edge"] = pd.to_numeric(df_props["edge"], errors="coerce").fillna(0.0)
+            df_props["ev_pct"] = pd.to_numeric(df_props["ev_pct"], errors="coerce").fillna(0.0)
+            df_props["resultado"] = df_props["resultado"].fillna("PENDIENTE").astype(str).str.strip().str.upper()
+            df_props["unidades"] = pd.to_numeric(df_props["unidades"], errors="coerce")
+            if "marcador_final" not in df_props.columns:
+                df_props["marcador_final"] = "En juego"
+            
+            if df is not None and not df.empty:
+                df = pd.concat([df, df_props], ignore_index=True)
+            else:
+                df = df_props.copy()
+    except Exception as exc:
+        logger.warning(f"No se pudieron consolidar props de NBA: {exc}")
+
+    # Re-asegurar estrellas consistentes con EV% en todo el dataset unificado
+    df["stars"] = df["ev_pct"].apply(_asignar_estrellas)
+
     return df
 
 
@@ -157,7 +192,7 @@ def render():
         🏆 RENDIMIENTO DIARIO TOTAL CONSOLIDADO · <span style="color: #ff8c33;">NBA 360°</span>
         </div>
         <div style="color: #c9b9af; font-size: 0.83rem; margin-top: 0.2rem;">
-        Auditoría unificada a 1 unidad plana: <b>Totales de Partido + Moneyline + Spread</b> agrupados día por día.
+        Auditoría unificada a 1 unidad plana: <b>Totales + Moneyline + Spread + Props de Jugadores</b> agrupados día por día.
         </div>
         </div>
         <div>
@@ -174,10 +209,15 @@ def render():
     c_btn1, c_btn2 = st.columns([1.5, 2.5])
     with c_btn1:
         if st.button("🏀 Liquidar / Sincronizar con ESPN", key="btn_sync_espn_nba_tot", type="primary", use_container_width=True):
-            with st.spinner("Consultando marcadores oficiales en ESPN y liquidando partidos NBA..."):
+            with st.spinner("Consultando marcadores oficiales en ESPN y liquidando partidos y props de NBA..."):
                 res = liquidar_partidos_pendientes_nba()
+                try:
+                    from nba.evaluar_props import sincronizar_y_liquidar_props_nba
+                    sincronizar_y_liquidar_props_nba()
+                except Exception as e_p:
+                    logger.warning(f"Error sincronizando props: {e_p}")
                 cargar_rendimiento_consolidado_nba.clear()
-                st.toast(res.get("mensaje", "Liquidación completada"), icon="✅")
+                st.toast("Liquidación completada (Partidos y Props actualizados)", icon="✅")
                 st.rerun()
 
     with c_btn2:
@@ -228,7 +268,7 @@ def render():
             end_date = c_r2.date_input("Hasta", hoy_cdmx, key="nba_tot_end")
 
         with col_f2:
-            mercados_disponibles = ["Totales", "Moneyline", "Spread"]
+            mercados_disponibles = ["Totales", "Moneyline", "Spread", "Props de Jugadores"]
             mercados_sel = st.multiselect(
                 "Mercados incluidos (vacío = todos):",
                 options=mercados_disponibles,
@@ -399,14 +439,15 @@ def render():
 
     st.markdown("<div style='margin-bottom: 1.1rem;'></div>", unsafe_allow_html=True)
 
-    # 7. Desglose por Pilar de Mercado NBA (3 Columnas)
+    # 7. Desglose por Pilar de Mercado NBA (4 Columnas)
     st.subheader("📊 Desglose por Mercado")
-    c_p1, c_p2, c_p3 = st.columns(3)
+    c_p1, c_p2, c_p3, c_p4 = st.columns(4)
 
     for pilar_nom, col_dest, icono in [
-        ("Totales", c_p1, "🎯"),
-        ("Moneyline", c_p2, "👑"),
+        ("Moneyline", c_p1, "👑"),
+        ("Totales", c_p2, "🎯"),
         ("Spread", c_p3, "⚡"),
+        ("Props de Jugadores", c_p4, "🌟"),
     ]:
         sub_df = liquidados[liquidados["pilar"] == pilar_nom]
         sub_tot = len(sub_df)
@@ -564,7 +605,7 @@ def render():
                         str_u = f"+{u_p:.2f} u" if (pd.notna(u_p) and u_p > 0) else (f"{u_p:.2f} u" if pd.notna(u_p) else "0.00 u")
 
                         badge_mercado = p_row.get("pilar", "NBA")
-                        color_badge = "#ff8c33" if badge_mercado == "Totales" else ("#ffd166" if badge_mercado == "Moneyline" else "#06d6a0")
+                        color_badge = "#ff8c33" if badge_mercado == "Totales" else ("#ffd166" if badge_mercado == "Moneyline" else ("#06d6a0" if badge_mercado == "Spread" else "#a78bfa"))
 
                         st.markdown(
                             f"""<div style="background: #140d08; border-radius: 6px; padding: 0.5rem 0.75rem; margin-bottom: 0.35rem; display: flex; justify-content: space-between; align-items: center;">
