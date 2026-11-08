@@ -54,15 +54,18 @@ MAPA_MERCADOS_COLUMNAS = {
 }
 
 
-def _calcular_hit_rate(serie: pd.Series, linea: float) -> Tuple[float, int, int]:
-    """Calcula el porcentaje de partidos en que el jugador superó la línea con suavizado bayesiano."""
+def _calcular_hit_rate(serie: pd.Series, linea: float, suavizado: bool = False) -> Tuple[float, int, int]:
+    """Calcula el porcentaje de partidos en que el jugador superó la línea."""
     if serie.empty:
         return 0.5, 0, 0
     total = len(serie)
     overs = int((serie > linea).sum())
-    # Suavizado bayesiano Beta(4, 4) para evitar extremos 0% o 100% en muestras cortas de inicio de temporada
-    hit_rate_suavizado = round((overs + 4) / (total + 8), 3)
-    return hit_rate_suavizado, overs, total
+    if suavizado:
+        # Suavizado bayesiano Beta(4, 4) para evitar extremos 0% o 100% en muestras cortas
+        rate = round((overs + 4) / (total + 8), 3)
+    else:
+        rate = round(overs / total, 3) if total > 0 else 0.5
+    return rate, overs, total
 
 
 def _comprimir_ev_suave(ev_raw: float) -> float:
@@ -196,8 +199,9 @@ def generar_predicciones_props_hoy(
             # Puntos, PRA, PR, PA
             prob_over = _calcular_probabilidad_normal(linea, mu=proyeccion, sigma=stat_std)
 
-        # 1. Probabilidad cruda del modelo + tendencia empírica reciente
-        prob_over_raw = 0.70 * prob_over + 0.30 * hit_rate_season
+        # 1. Probabilidad cruda del modelo + tendencia empírica reciente (con suavizado bayesiano)
+        hit_rate_bayesiano = round((ov_season + 4) / (n_season + 8), 3) if n_season > 0 else 0.5
+        prob_over_raw = 0.70 * prob_over + 0.30 * hit_rate_bayesiano
 
         # Cuotas decimales de Bovada
         over_dec = row.get("over_decimal")
@@ -298,6 +302,10 @@ def generar_predicciones_props_hoy(
     if not df_res.empty:
         # Ordenar por EV% descendente
         df_res.sort_values(by="ev_pct", ascending=False, inplace=True)
+        # Deduplicar por jugador y mercado: conserva únicamente la línea óptima con mayor EV%
+        # para evitar tarjetas repetidas del mismo atleta en el mismo mercado
+        df_res.drop_duplicates(subset=["player_name", "market"], keep="first", inplace=True)
+        df_res.reset_index(drop=True, inplace=True)
         
         df_res.to_parquet(RUTA_PRED_PARQUET, index=False)
         with open(RUTA_PRED_JSON, "w", encoding="utf-8") as f:

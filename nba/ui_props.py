@@ -131,9 +131,11 @@ def renderizar_ui_props_nba():
         q = busqueda_jugador.strip().lower()
         df_filtrado = df_filtrado[df_filtrado["player_name"].str.lower().str.contains(q)]
 
-    # Ordenar estrictamente de Mayor a Menor EV%
+    # Ordenar estrictamente de Mayor a Menor EV% y deduplicar por jugador y mercado
     if not df_filtrado.empty and "ev_pct" in df_filtrado.columns:
         df_filtrado = df_filtrado.sort_values(by="ev_pct", ascending=False).reset_index(drop=True)
+        # Evita mostrar múltiples tarjetas del mismo jugador en el mismo mercado (conserva la de mayor EV)
+        df_filtrado = df_filtrado.drop_duplicates(subset=["player_name", "market"], keep="first").reset_index(drop=True)
 
     # KPIs de la Selección
     kpi1, kpi2, kpi3, kpi4 = st.columns(4)
