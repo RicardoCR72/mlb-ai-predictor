@@ -278,35 +278,35 @@ def obtener_datos_cobertura(
                 except Exception:
                     linea_val = None
 
-        # Diferenciar con precisión Recepciones de Yardas de Recepción
+        # Diferenciar con precisión Recepciones de Yardas de Recepción, Acarreo y Pase
         m_check = f"{mercado_str} {sel_up}".lower()
         if "yard" in m_check or "yds" in m_check:
-            if "receiv" in m_check or "recep" in m_check or "atrap" in m_check:
-                col_stat = "receiving_yards"
-                unidad = "yds"
-            elif "rush" in m_check or "carrer" in m_check or "tierr" in m_check:
+            if any(w in m_check for w in ["rush", "carrer", "tierr", "terr", "acarreo"]):
                 col_stat = "rushing_yards"
                 unidad = "yds"
-            elif "pass" in m_check or "pase" in m_check:
+            elif any(w in m_check for w in ["pass", "pase", "lanzad", "aere"]):
                 col_stat = "passing_yards"
                 unidad = "yds"
-            else:
+            elif any(w in m_check for w in ["receiv", "recep", "atrap", "aire"]):
                 col_stat = "receiving_yards"
                 unidad = "yds"
-        elif "recep" in m_check or "atrap" in m_check or "rec" in m_check:
-            col_stat = "receptions"
-            unidad = "rec"
-        elif "rush" in m_check or "carrer" in m_check or "tierr" in m_check:
+            else:
+                col_stat = "rushing_yards" if any(w in m_check for w in ["rush", "carrer", "terr"]) else "receiving_yards"
+                unidad = "yds"
+        elif any(w in m_check for w in ["rush", "carrer", "tierr", "terr", "acarreo"]):
             col_stat = "rushing_yards"
             unidad = "yds"
-        elif "pass" in m_check or "pase" in m_check:
+        elif any(w in m_check for w in ["recep", "atrap", "rec"]):
+            col_stat = "receptions"
+            unidad = "rec"
+        elif any(w in m_check for w in ["pass", "pase", "lanzad"]):
             if "td" in m_check:
                 col_stat = "passing_tds"
                 unidad = "tds"
             else:
                 col_stat = "passing_yards"
                 unidad = "yds"
-        elif "td" in m_check or "anota" in m_check or "touchdown" in m_check:
+        elif any(w in m_check for w in ["td", "anota", "touchdown"]):
             col_stat = "anytime_td"
             unidad = "tds"
         else:
