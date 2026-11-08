@@ -33,7 +33,7 @@ st.markdown(
     '<span class="mlb-logo">⚾</span>'
     '<div>'
     '<div>OVERDOG <span class="mlb-accent">MLB AI V5</span></div>'
-    '<div class="mlb-status">Ensamble V5 (LightGBM + DNN) · Sabermetría FIP/xFIP/K-BB% · Calibración & Filtro Zona Muerta</div>'
+    '<div class="mlb-status">Modo Offseason · Ensamble V5 (LightGBM + DNN) · Regresamos en Spring Training 2027</div>'
     '</div>'
     '</div>'
     f'<div style="text-align:right;">'
@@ -61,6 +61,7 @@ idx_defecto = 1 if seccion_guardada == "Rendimiento" else 0
 view = st.radio(
     "Sección MLB",
     ["Picks de hoy", "Rendimiento"],
+    format_func=lambda x: "❄️ Resumen Offseason 2026" if x == "Picks de hoy" else "📈 Rendimiento Histórico",
     index=idx_defecto,
     horizontal=True,
     label_visibility="collapsed",

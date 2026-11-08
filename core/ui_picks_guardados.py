@@ -20,6 +20,12 @@ def render_mlb_today(market):
     hoy_date=now.tz_convert(ZONA_CDMX).date()
     hoy_all=frame[days.eq(hoy_date)].copy()
 
+    # Modo Offseason: Si no hay partidos programados para hoy en MLB, desplegar Resumen Ejecutivo
+    if hoy_all.empty:
+        from mlb.ui_offseason import render_modo_offseason
+        render_modo_offseason()
+        return
+
     total_partidos=hoy_all['identidad'].nunique() if not hoy_all.empty else 0
     pendientes=hoy_all[starts.gt(now)&hoy_all.resultado.eq('PENDIENTE')]['identidad'].nunique() if not hoy_all.empty else 0
     finalizados=max(0,total_partidos-pendientes)
