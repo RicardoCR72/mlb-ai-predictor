@@ -31,9 +31,24 @@ def test_cargar_rendimiento_consolidado_nba():
             "resultado",
             "partido",
             "marcador_final",
+            "ev_pct",
+            "stars",
         ]
         for col in required_cols:
             assert col in df.columns, f"Columna requerida {col} no encontrada"
+
+        # Verificar que las estrellas correspondan al rango de EV
+        for _, row in df.iterrows():
+            ev = row["ev_pct"]
+            stars = row["stars"]
+            if ev >= 10.0:
+                assert stars == "⭐⭐⭐"
+            elif ev >= 5.0:
+                assert stars == "⭐⭐"
+            elif ev > 0.0:
+                assert stars == "⭐"
+            else:
+                assert stars == "⚪"
 
         # Verificar que los pilares pertenezcan a los tres admitidos
         assert set(df["pilar"].unique()).issubset({"Totales", "Moneyline", "Spread", "Otro"})

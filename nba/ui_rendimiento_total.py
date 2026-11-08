@@ -79,6 +79,28 @@ def cargar_rendimiento_consolidado_nba() -> pd.DataFrame:
     df["probabilidad"] = pd.to_numeric(df["probabilidad"], errors="coerce").fillna(0.5)
     df["edge"] = pd.to_numeric(df["edge"], errors="coerce").fillna(0.0)
 
+    # Normalizar EV% y Nivel de Estrellas
+    def _calcular_ev_pct(val: Any) -> float:
+        try:
+            v = float(val)
+            # Para partidos NBA el edge está almacenado en decimal (e.g. 0.05 = 5%, 0.10 = 10%)
+            return round(v * 100.0, 1)
+        except Exception:
+            return 0.0
+
+    df["ev_pct"] = df["edge"].apply(_calcular_ev_pct)
+
+    def _asignar_estrellas(ev: float) -> str:
+        if ev >= 10.0:
+            return "⭐⭐⭐"
+        elif ev >= 5.0:
+            return "⭐⭐"
+        elif ev > 0.0:
+            return "⭐"
+        return "⚪"
+
+    df["stars"] = df["ev_pct"].apply(_asignar_estrellas)
+
     # Normalizar resultado
     df["resultado"] = df["resultado"].fillna("PENDIENTE").astype(str).str.strip().str.upper()
 
@@ -223,8 +245,25 @@ def render():
                 key="nba_tot_resultado_filtro",
             )
 
-        col_sub1, col_sub2 = st.columns(2)
+        col_sub1, col_sub2, col_sub3 = st.columns([1.4, 1.2, 1.4], gap="medium")
         with col_sub1:
+            opciones_ev = {
+                "⭐ Solo Picks de Valor (EV > 0%)": ("min", 0.0),
+                "⭐⭐ Alta Confianza (EV ≥ 5%)": ("min", 5.0),
+                "⭐⭐⭐ Top Picks (EV ≥ 10%)": ("min", 10.0),
+                "⭐ Exclusivo 1 Estrella (0% < EV < 5%)": ("exact", 1),
+                "⭐⭐ Exclusivo 2 Estrellas (5% ≤ EV < 10%)": ("exact", 2),
+                "⭐⭐⭐ Exclusivo 3 Estrellas (EV ≥ 10%)": ("exact", 3),
+                "Todos los picks (Incluye EV negativo)": ("all", -999.0),
+            }
+            ev_sel_label = st.selectbox(
+                "🔥 Nivel de Valor / EV:",
+                list(opciones_ev.keys()),
+                index=0,
+                key="nba_tot_ev_filtro",
+            )
+
+        with col_sub2:
             confianza_sel = st.selectbox(
                 "Nivel de Confianza:",
                 ["Todas las confianzas", "Solo ALTA", "Solo MEDIA"],
@@ -232,7 +271,7 @@ def render():
                 key="nba_tot_confianza_sel",
             )
 
-        with col_sub2:
+        with col_sub3:
             filtro_dia_especifico = st.selectbox(
                 "📆 Aislar Jornada / Día específico:",
                 ["Todas las jornadas"] + [f.strftime("%Y-%m-%d") for f in fechas_disponibles],
@@ -251,6 +290,21 @@ def render():
 
     if mercados_sel:
         df_f = df_f[df_f["pilar"].isin(mercados_sel)]
+
+    # Filtro EV / Nivel de Estrellas
+    modo_ev, val_ev = opciones_ev.get(ev_sel_label, ("min", 0.0))
+    if modo_ev == "min":
+        if val_ev == 0.0:
+            df_f = df_f[df_f["ev_pct"] > 0.0]
+        else:
+            df_f = df_f[df_f["ev_pct"] >= val_ev]
+    elif modo_ev == "exact":
+        if val_ev == 1:
+            df_f = df_f[(df_f["ev_pct"] > 0.0) & (df_f["ev_pct"] < 5.0)]
+        elif val_ev == 2:
+            df_f = df_f[(df_f["ev_pct"] >= 5.0) & (df_f["ev_pct"] < 10.0)]
+        elif val_ev == 3:
+            df_f = df_f[df_f["ev_pct"] >= 10.0]
 
     if confianza_sel == "Solo ALTA":
         df_f = df_f[df_f["confianza"] == "ALTA"]
@@ -297,7 +351,55 @@ def render():
 
     st.markdown("<div style='margin-bottom: 1.1rem;'></div>", unsafe_allow_html=True)
 
-    # 6. Desglose por Pilar de Mercado NBA (3 Columnas)
+    # 6. Desglose Comparativo por Nivel de Estrellas / EV
+    st.subheader("⭐ Auditoría por Nivel de Valor / Estrellas")
+    st.caption("Comparativa directa de rentabilidad según el nivel de Edge (EV%) para identificar qué filtros optimizan el ROI.")
+
+    col_t1, col_t2, col_t3, col_t4 = st.columns(4)
+    tiers_info = [
+        ("⭐⭐⭐ Top Picks", "EV ≥ 10%", liquidados[liquidados["ev_pct"] >= 10.0], col_t1),
+        ("⭐⭐ Alta Confianza", "5% ≤ EV < 10%", liquidados[(liquidados["ev_pct"] >= 5.0) & (liquidados["ev_pct"] < 10.0)], col_t2),
+        ("⭐ Picks de Valor", "0% < EV < 5%", liquidados[(liquidados["ev_pct"] > 0.0) & (liquidados["ev_pct"] < 5.0)], col_t3),
+        ("⚪ Sin Valor", "EV ≤ 0%", liquidados[liquidados["ev_pct"] <= 0.0], col_t4),
+    ]
+    for nombre_tier, rango_desc, sub_df_tier, col_dest in tiers_info:
+        tot_t = len(sub_df_tier)
+        g_t = int((sub_df_tier["resultado"] == "GANADA").sum())
+        p_t = int((sub_df_tier["resultado"] == "PERDIDA").sum())
+        u_t = float(sub_df_tier["unidades"].sum(skipna=True))
+        wr_t = (g_t / (g_t + p_t) * 100) if (g_t + p_t) > 0 else 0.0
+        roi_t = (u_t / tot_t * 100) if tot_t > 0 else 0.0
+        c_u = "#4ade80" if u_t > 0 else ("#f87171" if u_t < 0 else "#cbd5e1")
+
+        with col_dest:
+            with st.container(border=True):
+                st.markdown(
+                    f"""<div style="font-weight: 800; font-size: 0.95rem; color: #ffffff; margin-bottom: 0.15rem;">
+                    {nombre_tier}
+                    </div>
+                    <div style="color: #a4978e; font-size: 0.73rem; margin-bottom: 0.4rem;">{rango_desc}</div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.2rem;">
+                    <span style="color: #a4978e; font-size: 0.8rem;">Evaluados:</span>
+                    <span style="font-weight: 800; color: #ffffff;">{tot_t}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.2rem;">
+                    <span style="color: #a4978e; font-size: 0.8rem;">Récord:</span>
+                    <span style="font-weight: 800; color: #ffffff;">{g_t}G - {p_t}P ({wr_t:.1f}%)</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 0.2rem;">
+                    <span style="color: #a4978e; font-size: 0.8rem;">Unidades:</span>
+                    <span style="font-weight: 900; color: {c_u};">{u_t:+.2f} u</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                    <span style="color: #a4978e; font-size: 0.8rem;">ROI:</span>
+                    <span style="font-weight: 900; color: {c_u};">{roi_t:+.1f}%</span>
+                    </div>""",
+                    unsafe_allow_html=True,
+                )
+
+    st.markdown("<div style='margin-bottom: 1.1rem;'></div>", unsafe_allow_html=True)
+
+    # 7. Desglose por Pilar de Mercado NBA (3 Columnas)
     st.subheader("📊 Desglose por Mercado")
     c_p1, c_p2, c_p3 = st.columns(3)
 
@@ -469,6 +571,7 @@ def render():
                             <div>
                             <span style="background: #2b180f; color: {color_badge}; border: 1px solid {color_badge}; font-size: 0.72rem; font-weight: 800; padding: 0.15rem 0.45rem; border-radius: 4px; margin-right: 0.4rem;">{p_row.get('mercado')}</span>
                             <span style="font-weight: 700; color: #ffffff; font-size: 0.9rem;">{p_row.get('seleccion')}</span>
+                            <span style="color: #ffaa66; font-size: 0.8rem; font-weight: 800; margin-left: 0.4rem;">{p_row.get('stars', '')} ({p_row.get('ev_pct', 0.0):+.1f}% EV)</span>
                             <span style="color: #a4978e; font-size: 0.78rem; margin-left: 0.4rem;">(Cuota: {p_row.get('cuota', 1.91):.2f} · Prob: {float(p_row.get('probabilidad', 0.5))*100:.1f}%)</span>
                             </div>
                             <div style="font-weight: 900; font-size: 0.92rem; color: {color_res};">
@@ -488,7 +591,7 @@ def render():
 
     display_df = df_f[[
         "fecha_str", "hora_cdmx", "partido", "marcador_final",
-        "pilar", "mercado_display", "seleccion", "linea", "cuota", "probabilidad", "confianza", "resultado", "unidades"
+        "pilar", "mercado_display", "seleccion", "stars", "ev_pct", "linea", "cuota", "probabilidad", "confianza", "resultado", "unidades"
     ]].copy().rename(columns={
         "fecha_str": "Fecha",
         "hora_cdmx": "Hora CDMX",
@@ -497,6 +600,8 @@ def render():
         "pilar": "Pilar",
         "mercado_display": "Mercado",
         "seleccion": "Selección",
+        "stars": "Estrellas",
+        "ev_pct": "EV %",
         "linea": "Línea",
         "cuota": "Momio",
         "probabilidad": "Prob. Modelo",
@@ -513,6 +618,8 @@ def render():
         "Pilar": st.column_config.TextColumn("Pilar", width="small"),
         "Mercado": st.column_config.TextColumn("Mercado", width="medium"),
         "Selección": st.column_config.TextColumn("Selección", width="medium"),
+        "Estrellas": st.column_config.TextColumn("Tier", width="small"),
+        "EV %": st.column_config.NumberColumn("EV %", format="%+.1f%%", width="small"),
         "Línea": st.column_config.NumberColumn("Línea", format="%.1f", width="small"),
         "Momio": st.column_config.NumberColumn("Momio", format="%.2f", width="small"),
         "Prob. Modelo": st.column_config.NumberColumn("Prob.", format="%.1f%%", width="small"),
