@@ -237,11 +237,11 @@ id,id_juego,fecha,hora_cdmx,equipo_local,equipo_visitante,mercado,seleccion,line
 ,401909942_tot,2026-11-07,19:30,Golden State Warriors,Orlando Magic,Totales (UNDER),UNDER 220.5,220.5,1.909,0.613,0.089,ALTA,126.0,119.0,PERDIDA,-1.0,2026-11-08 12:02:39.910464
 ,401909944_tot,2026-11-07,21:00,Portland Trail Blazers,San Antonio Spurs,Totales (UNDER),UNDER 229.5,229.5,1.909,0.583,0.059,ALTA,103.0,125.0,GANADA,0.909,2026-11-08 12:02:39.910464
 ,401909944_spread,2026-11-07,21:00,Portland Trail Blazers,San Antonio Spurs,Spread,Portland Trail Blazers +5.5,5.5,1.909,0.56,0.037,MEDIA,103.0,125.0,PERDIDA,-1.0,2026-11-08 12:02:39.910464
-,401909945_tot,2026-11-08,14:30,Chicago Bulls,Philadelphia 76ers,Totales (UNDER),UNDER 238.5,238.5,1.909,0.611,0.088,ALTA,,,PENDIENTE,,2026-11-08 12:02:40.510599
-,401909945_spread,2026-11-08,14:30,Chicago Bulls,Philadelphia 76ers,Spread,Chicago Bulls +9.5,9.5,1.909,0.608,0.084,ALTA,,,PENDIENTE,,2026-11-08 12:02:40.510599
-,401909946_tot,2026-11-08,17:00,Detroit Pistons,Los Angeles Lakers,Totales (UNDER),UNDER 222.5,222.5,1.909,0.558,0.035,MEDIA,,,PENDIENTE,,2026-11-08 12:02:40.510599
-,401909947_tot,2026-11-08,18:00,Minnesota Timberwolves,Utah Jazz,Totales (UNDER),UNDER 223.5,223.5,1.909,0.564,0.04,MEDIA,,,PENDIENTE,,2026-11-08 12:02:40.510599
-,401909950_ml,2026-11-08,20:00,Los Angeles Clippers,New Orleans Pelicans,Moneyline,Los Angeles Clippers ML,0.0,2.0,0.572,0.072,ALTA,,,PENDIENTE,,2026-11-08 12:02:40.510599
-,401909950_spread,2026-11-08,20:00,Los Angeles Clippers,New Orleans Pelicans,Spread,Los Angeles Clippers +1.5,1.5,1.909,0.563,0.039,MEDIA,,,PENDIENTE,,2026-11-08 12:02:40.510599
-,401909951_spread,2026-11-08,20:00,Sacramento Kings,Miami Heat,Spread,Sacramento Kings +8.5,8.5,1.909,0.57,0.046,MEDIA,,,PENDIENTE,,2026-11-08 12:02:40.510599
-,401909951_tot,2026-11-08,20:00,Sacramento Kings,Miami Heat,Totales (UNDER),UNDER 238.5,238.5,1.909,0.566,0.043,MEDIA,,,PENDIENTE,,2026-11-08 12:02:40.510599
+,401909946_tot,2026-11-08,17:00,Detroit Pistons,Los Angeles Lakers,Totales (UNDER),UNDER 222.5,222.5,1.909,0.558,0.035,MEDIA,,,PENDIENTE,,2026-11-08 18:14:37.853611
+,401909945_tot,2026-11-08,14:30,Chicago Bulls,Philadelphia 76ers,Totales (UNDER),UNDER 238.5,238.5,1.909,0.613,0.089,ALTA,,,PENDIENTE,,2026-11-08 18:14:43.210732
+,401909945_spread,2026-11-08,14:30,Chicago Bulls,Philadelphia 76ers,Spread,Chicago Bulls +9.5,9.5,1.909,0.606,0.082,ALTA,,,PENDIENTE,,2026-11-08 18:14:43.210732
+,401909947_tot,2026-11-08,18:00,Minnesota Timberwolves,Utah Jazz,Totales (UNDER),UNDER 221.5,221.5,1.909,0.555,0.031,MEDIA,,,PENDIENTE,,2026-11-08 18:14:43.210732
+,401909950_ml,2026-11-08,20:00,Los Angeles Clippers,New Orleans Pelicans,Moneyline,Los Angeles Clippers ML,0.0,2.03,0.572,0.079,ALTA,,,PENDIENTE,,2026-11-08 18:14:43.210732
+,401909950_spread,2026-11-08,20:00,Los Angeles Clippers,New Orleans Pelicans,Spread,Los Angeles Clippers +1.5,1.5,1.909,0.563,0.039,MEDIA,,,PENDIENTE,,2026-11-08 18:14:43.210732
+,401909951_spread,2026-11-08,20:00,Sacramento Kings,Miami Heat,Spread,Sacramento Kings +10.5,10.5,1.909,0.578,0.054,MEDIA,,,PENDIENTE,,2026-11-08 18:14:43.210732
+,401909951_tot,2026-11-08,20:00,Sacramento Kings,Miami Heat,Totales (UNDER),UNDER 237.5,237.5,1.909,0.562,0.038,MEDIA,,,PENDIENTE,,2026-11-08 18:14:43.210732
