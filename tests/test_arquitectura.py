@@ -41,6 +41,8 @@ class ArchitectureTests(TestCase):
              patch('streamlit.secrets',{}),patch('subprocess.run') as child:
             app=AppTest.from_file(str(ROOT/'pages/2_🏈_NFL.py')).run()
             self.assertFalse(app.exception)
+            next(r for r in app.radio if r.label=='Sección NFL').set_value('Totales de Partido').run()
+            self.assertFalse(app.exception)
             next(r for r in app.radio if r.label=='Sección de totales').set_value('📈 Rendimiento').run()
             self.assertFalse(app.exception)
             next(r for r in app.radio if r.label=='Sección NFL').set_value('📊 Props de jugadores').run()

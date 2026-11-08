@@ -41,10 +41,10 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# Selector de navegación interna compatible con suite de pruebas y responsive
+# Selector de navegación interna: Moneyline primero como mercado estrella
 vista = st.radio(
     "Sección NFL",
-    ["Totales de Partido", "Moneyline", "📊 Props de jugadores", "🏆 Rendimiento Total NFL"],
+    ["Moneyline", "Totales de Partido", "📊 Props de jugadores", "🏆 Rendimiento Total NFL"],
     horizontal=True,
     format_func=lambda x: x.lstrip("📊🏆 "),
     label_visibility="collapsed",
