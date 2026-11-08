@@ -1,28 +1,36 @@
-from core.ui_rendimiento_resumen import history_window
-from core.ui_controles import state_message, roi_sample, render_order
-from core.ui_tarjetas import render_pick, nfl_pick
-from core.ui_rendimiento_diseno import performance_filters, safe_select
+"""Interfaz de usuario para Totales de Partido NFL.
+
+Diseño homologado con Tarjeta Universal de alta fidelidad, 3 métricas ejecutivas,
+estrellas de confianza, botón flotante de boleta y menú analítico unificado con pestañas.
+"""
+from __future__ import annotations
+
 import html
 from datetime import datetime
+from pathlib import Path
 from zoneinfo import ZoneInfo
+from typing import Any
 
-import mysql.connector
 import numpy as np
 import pandas as pd
 import streamlit as st
 
+from core.ui_controles import state_message
+from core.ui_tarjetas import nfl_pick
+from nfl.ui_lesiones_helper import crear_callback_lesiones_nfl
 
 ZONA_MEXICO = ZoneInfo("America/Mexico_City")
+RAIZ = Path(__file__).resolve().parents[1]
 
 
-def filtrar_partidos_pendientes(datos):
+def filtrar_partidos_pendientes(datos: pd.DataFrame) -> pd.DataFrame:
     if datos.empty:
         return datos.copy()
-    states = datos.resultado_pick.fillna('PENDIENTE').astype(str).str.strip().str.upper()
-    return datos[~states.isin(['GANADA', 'PERDIDA', 'PUSH'])].copy()
+    states = datos.resultado_pick.fillna("PENDIENTE").astype(str).str.strip().str.upper()
+    return datos[~states.isin(["GANADA", "PERDIDA", "PUSH"])].copy()
 
 
-def opciones_partidos(datos):
+def opciones_partidos(datos: pd.DataFrame) -> dict:
     """Construye etiquetas legibles y conserva el ID único para filtrar."""
     opciones = {"Todos los partidos": None}
     if datos.empty:
@@ -45,54 +53,40 @@ def opciones_partidos(datos):
     return opciones
 
 
-
-
-def formatear_numero(valor, decimales=2):
-    if pd.isna(valor):
+def formatear_numero(valor: Any, decimales: int = 2) -> str:
+    if pd.isna(valor) or valor is None:
         return "N/D"
-    return f"{float(valor):.{decimales}f}"
+    try:
+        return f"{float(valor):.{decimales}f}"
+    except (ValueError, TypeError):
+        return str(valor)
 
 
-def formatear_porcentaje(valor):
-    if pd.isna(valor):
+def formatear_porcentaje(valor: Any) -> str:
+    if pd.isna(valor) or valor is None:
         return "N/D"
-    return f"{float(valor) * 100:.2f}%"
+    try:
+        return f"{float(valor) * 100:.2f}%"
+    except (ValueError, TypeError):
+        return str(valor)
 
 
-def formatear_momio(valor):
-    if pd.isna(valor):
+def formatear_momio(valor: Any) -> str:
+    if pd.isna(valor) or valor is None:
         return "N/D"
+    try:
+        val = float(valor)
+        if val > 0:
+            return f"+{val:.0f}"
+        return f"{val:.0f}"
+    except (ValueError, TypeError):
+        return str(valor)
 
-    valor = float(valor)
-    if valor > 0:
-        return f"+{valor:.0f}"
-    return f"{valor:.0f}"
 
-
-def html_seguro(valor, defecto="N/D"):
+def html_seguro(valor: Any, defecto: str = "N/D") -> str:
     if valor is None or pd.isna(valor) or not str(valor).strip():
         return html.escape(defecto)
     return html.escape(str(valor).strip())
-
-
-def obtener_secreto(*nombres):
-    """Busca secretos de nivel raíz y también dentro de [mysql]."""
-    for nombre in nombres:
-        if nombre in st.secrets:
-            return st.secrets[nombre]
-
-    if "mysql" in st.secrets:
-        seccion = st.secrets["mysql"]
-        for nombre in nombres:
-            if nombre in seccion:
-                return seccion[nombre]
-
-    return None
-
-
-def configuracion_mysql():
-    from core.db import get_db_credentials
-    return get_db_credentials()
 
 
 def cargar_predicciones_mysql():
@@ -100,102 +94,160 @@ def cargar_predicciones_mysql():
     return read()
 
 
-def mostrar_badge(estado):
-    if estado == "PICK":
-        clase = "pick-badge"
-        texto = "PICK"
-    elif estado == "SIN LÍNEA":
-        clase = "no-line-badge"
-        texto = "SIN LÍNEA"
-    else:
-        clase = "no-pick-badge"
-        texto = "NO PICK"
+def mostrar_partido(fila: pd.Series):
+    """Renderiza el partido con Tarjeta Universal homologada."""
+    res = str(fila.get("resultado_pick") or "").strip().upper()
+    es_resuelta = res in ("GANADA", "PERDIDA", "PUSH")
 
-    st.markdown(
-        f'<span class="{clase}">{texto}</span>',
-        unsafe_allow_html=True,
+    away = str(fila.get("away_team") or "VIS")
+    home = str(fila.get("home_team") or "LOC")
+
+    if es_resuelta:
+        # Tarjeta histórica para partidos finalizados
+        away_sc = int(fila["marcador_visitante"]) if pd.notna(fila.get("marcador_visitante")) else (int(fila["away_score"]) if pd.notna(fila.get("away_score")) else 0)
+        home_sc = int(fila["marcador_local"]) if pd.notna(fila.get("marcador_local")) else (int(fila["home_score"]) if pd.notna(fila.get("home_score")) else 0)
+        tot_real = float(fila["total_real"]) if pd.notna(fila.get("total_real")) else float(away_sc + home_sc)
+        u_val = float(fila.get("beneficio_unidades") or 0.0)
+
+        if res == "GANADA":
+            badge_res = f"<span style='background: rgba(183, 255, 60, 0.2); color: #b7ff3c; border: 1px solid #b7ff3c; padding: 0.25rem 0.65rem; border-radius: 7px; font-weight: 900; font-size: 0.85rem;'>✅ GANADA (+{u_val:.2f}u)</span>"
+        elif res == "PERDIDA":
+            badge_res = "<span style='background: rgba(255, 75, 75, 0.2); color: #ff6b6b; border: 1px solid #ff4b4b; padding: 0.25rem 0.65rem; border-radius: 7px; font-weight: 900; font-size: 0.85rem;'>❌ PERDIDA (-1.00u)</span>"
+        else:
+            badge_res = "<span style='background: rgba(255, 214, 0, 0.2); color: #ffd600; border: 1px solid #ffd600; padding: 0.25rem 0.65rem; border-radius: 7px; font-weight: 900; font-size: 0.85rem;'>🤝 PUSH (0.00u)</span>"
+
+        with st.container(border=True):
+            st.markdown(
+                f"<div style='display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;'>"
+                f"<span style='background: #192e22; color: #8fa899; padding: 0.2rem 0.55rem; border-radius: 6px; font-weight: 700; font-size: 0.75rem;'>FINAL: {away} {away_sc} – {home_sc} {home} · Total Real: {tot_real:.1f} pts</span>"
+                f"{badge_res}"
+                f"</div>"
+                f"<div style='font-size: 1.15rem; font-weight: 800; color: #eef3f8;'>{away} @ {home}</div>"
+                f"<div style='font-size: 0.85rem; color: #8fa899; margin-top:0.25rem;'>Selección recomendada: <b>{fila.get('pick')} {fila.get('total_line')}</b> · Línea Casa: {fila.get('total_line')} · Proy. Modelo: {float(fila.get('pred_total', 0)):.1f}</div>",
+                unsafe_allow_html=True
+            )
+        return
+
+    # Tarjeta Universal Homologada para partidos activos / pendientes
+    from core.ui_tarjeta_universal import render_tarjeta_universal
+    from core.ui_boleta import parsear_cuota_decimal
+
+    fecha_dt = fila.get("gameday")
+    fecha_str = fecha_dt.strftime("%d/%m/%Y") if pd.notna(fecha_dt) and hasattr(fecha_dt, "strftime") else str(fecha_dt or "")
+    subtitulo = f"Semana {int(fila.get('week', 1))} · {fecha_str} · Bovada / ESPN"
+
+    lin_total = float(fila["total_line"]) if pd.notna(fila.get("total_line")) else None
+    proy_total = float(fila["pred_total"]) if pd.notna(fila.get("pred_total")) else None
+    pick_sel = str(fila.get("pick") or "NO PICK").upper()
+    seleccion_str = f"{pick_sel} {lin_total:g}" if (pick_sel in ("OVER", "UNDER") and lin_total is not None) else pick_sel
+
+    odds_raw = fila.get("odds_pick")
+    cuota_dec = float(parsear_cuota_decimal(odds_raw) or 1.909)
+    ev_num = float(fila.get("ev", 0.0) or 0.0) * 100.0
+    edge_num = float(fila.get("edge_absoluto", 0.0) or fila.get("edge", 0.0) or 0.0)
+    es_pick = (fila.get("estado") == "PICK")
+
+    if es_pick:
+        if ev_num >= 10.0 or edge_num >= 4.0:
+            estrellas = "⭐⭐⭐"
+        elif ev_num >= 5.0 or edge_num >= 2.5:
+            estrellas = "⭐⭐"
+        elif ev_num > 0:
+            estrellas = "⭐"
+        else:
+            estrellas = "⚪"
+    else:
+        estrellas = "⚪"
+
+    tendencia = f"Proyección IA: {proy_total:.1f} pts · Ventaja: {edge_num:+.1f} pts vs línea {lin_total} · P({pick_sel}): {float(fila.get('prob_pick', 0.5))*100:.1f}%"
+
+    alerta_contexto = None
+    if pd.notna(fila.get("wind")) and float(fila.get("wind")) >= 15:
+        alerta_contexto = f"💨 Alerta Meteorológica: Viento sostenido de {float(fila['wind']):.0f} mph (tiende a recortar juego aéreo)"
+
+    # Menú Unificado: Pestaña 2 (Desglose de Mercados)
+    def _render_totales_desglose():
+        c1, c2 = st.columns(2)
+        with c1:
+            st.markdown("**Desglose de Proyección del Modelo:**")
+            st.markdown(f"- Proyección Ajustada: **{formatear_numero(fila.get('pred_total'), 1)} pts**")
+            st.markdown(f"- Proyección Base: **{formatear_numero(fila.get('pred_total_base'), 1)} pts**")
+            st.markdown(f"- Ventaja vs Línea (Edge): **{float(fila.get('edge', 0.0)):+.2f} pts**")
+            if pd.notna(fila.get("wind")):
+                st.markdown(f"- Viento pronosticado: **{float(fila['wind']):.0f} mph**")
+        with c2:
+            st.markdown("**Probabilidades Calibradas:**")
+            st.markdown(f"- P(OVER {lin_total}): **{formatear_porcentaje(fila.get('prob_over'))}**")
+            st.markdown(f"- P(UNDER {lin_total}): **{formatear_porcentaje(fila.get('prob_under'))}**")
+            st.markdown(f"- Valor Esperado (+EV): **{ev_num:+.1f}%**")
+            st.markdown(f"- Estatus del Sistema: **{fila.get('estado', 'PENDIENTE')}**")
+
+    # Menú Unificado: Pestaña 3 (Reporte de Lesiones)
+    fn_lesiones = crear_callback_lesiones_nfl(away, home)
+
+    # Botón flotante de boleta
+    tot_id = f"{fila.get('id_juego')}_total"
+    slip_item = None
+    if es_pick and pick_sel in ("OVER", "UNDER") and lin_total is not None:
+        slip_item = {
+            "id": f"NFL_TOT_{tot_id}_{pick_sel}",
+            "deporte": "NFL",
+            "icono": "🏈",
+            "partido": f"{away} @ {home}",
+            "mercado": "Totales",
+            "seleccion": seleccion_str,
+            "momio": str(odds_raw or "-110"),
+            "prob": fila.get("prob_pick"),
+        }
+
+    render_tarjeta_universal(
+        deporte="NFL",
+        titulo=f"{away} @ {home}",
+        subtitulo=subtitulo,
+        mercado="🏈 Total del Partido",
+        linea_casa=lin_total,
+        proyeccion_modelo=proy_total,
+        seleccion=seleccion_str,
+        momio_americano=odds_raw,
+        cuota_decimal=cuota_dec,
+        ev_pct=ev_num,
+        estrellas=estrellas,
+        tendencia=tendencia,
+        alerta_contexto=alerta_contexto,
+        equipo=home,
+        rival=away,
+        desplegar_grafica_directa=False,
+        key_suffix=f"nfl_tot_{tot_id}",
+        etiqueta_linea="Línea Total",
+        etiqueta_proyeccion="Proy. Total",
+        boton_boleta=slip_item,
+        contenido_desglose=_render_totales_desglose,
+        contenido_lesiones=fn_lesiones,
+        mostrar_grafica=True,
     )
 
 
-def mostrar_partido(fila):
-    pick = nfl_pick(fila)
-    res = str(fila.get('resultado_pick') or '').strip().upper()
-    es_resuelta = res in ('GANADA', 'PERDIDA', 'PUSH')
-    state = res if es_resuelta else str(fila['estado'])
-
-    details = [
-        ('Proyección', formatear_numero(fila['pred_total'], 1)),
-        ('Edge', formatear_numero(fila['edge'], 2)),
-        ('EV estimado', formatear_porcentaje(fila['ev'])),
-        ('P(Over) / P(Under)', formatear_porcentaje(fila['prob_over'])+' / '+formatear_porcentaje(fila['prob_under'])),
-        ('Proyección base', formatear_numero(fila['pred_total_base'], 1))
-    ]
-    if pd.notna(fila.get('wind')):
-        details.append(('Viento', f"{float(fila['wind']):.0f} mph"))
-
-    if es_resuelta:
-        if pd.notna(fila.get('total_real')):
-            details.insert(0, ('Total real', formatear_numero(fila.get('total_real'), 1)))
-        if pd.notna(fila.get('marcador_visitante')) and pd.notna(fila.get('marcador_local')):
-            details.insert(1, ('Marcador final', f"{int(fila['marcador_visitante'])} – {int(fila['marcador_local'])}"))
-            pick['away_score'] = int(fila['marcador_visitante'])
-            pick['home_score'] = int(fila['marcador_local'])
-        if pd.notna(fila.get('beneficio_unidades')):
-            pick['unidades'] = float(fila['beneficio_unidades'])
-            details.insert(2, ('Unidades', f"{float(fila['beneficio_unidades']):+.2f} u"))
-
-    render_pick(pick, market='Total del partido', state=state, details=details,
-        allow_register=not es_resuelta and fila['pick'] in ('OVER', 'UNDER') and pd.notna(fila['total_line']))
-    if not es_resuelta and fila.get('pick') in ('OVER', 'UNDER'):
-        from core.ui_boleta import render_boton_boleta
-        tot_id = f"{fila.get('id_juego')}_total"
-        slip_item = {
-            "id": f"NFL_TOT_{tot_id}_{fila.get('pick')}",
-            "deporte": "NFL",
-            "icono": "🏈",
-            "partido": f"{fila.get('away_team')} @ {fila.get('home_team')}",
-            "mercado": "Totales",
-            "seleccion": f"{fila.get('pick')} {fila.get('total_line')}",
-            "momio": str(fila.get('odds_pick') or "-110"),
-            "prob": fila.get('prob_pick'),
-        }
-        render_boton_boleta(slip_item, key=f"btn_nfl_tot_{tot_id}")
-
-
-
-def mostrar_resultado_total(fila):
-    result = str(fila.get('resultado_pick', 'PENDIENTE')).strip().upper()
-    pick = nfl_pick(fila)
-    if pd.notna(fila.get('marcador_visitante')) and pd.notna(fila.get('marcador_local')):
-        pick['away_score'] = int(fila['marcador_visitante'])
-        pick['home_score'] = int(fila['marcador_local'])
-    if pd.notna(fila.get('beneficio_unidades')):
-        pick['unidades'] = float(fila['beneficio_unidades'])
-    details = [('Total real', formatear_numero(fila.get('total_real'), 1))]
-    if pd.notna(fila.get('marcador_visitante')) and pd.notna(fila.get('marcador_local')):
-        details.append(('Marcador final', f"{int(fila['marcador_visitante'])} – {int(fila['marcador_local'])}"))
-    if pd.notna(fila.get('beneficio_unidades')):
-        details.append(('Unidades', f"{float(fila['beneficio_unidades']):+.2f} u"))
-    render_pick(pick, market='Total del partido · Simulación 1 u', state=result, details=details, allow_register=False)
-
+def mostrar_resultado_total(fila: pd.Series):
+    """Muestra el resultado histórico de una apuesta de Totales ya concluida."""
+    mostrar_partido(fila)
 
 
 # ==========================================================
-# CARGA DESDE MYSQL
+# RENDER PRINCIPAL DE TOTALES NFL
 # ==========================================================
-
 
 def render():
     try:
         with st.spinner("Consultando predicciones guardadas…"):
             historico = cargar_predicciones_mysql()
-    except Exception as error:
-        state_message("No fue posible consultar las predicciones NFL. Reintenta cuando vuelva la conexión.",kind="offline")
+    except Exception:
+        state_message("No fue posible consultar las predicciones NFL. Reintenta cuando vuelva la conexión.", kind="offline")
         st.stop()
 
     if historico.empty:
-        state_message('La base de datos todavía no contiene predicciones NFL.',kind='empty')
+        state_message("La base de datos todavía no contiene predicciones NFL.", kind="empty")
         st.stop()
+
     temporada = int(historico["season"].max())
     semana = int(
         historico.loc[
@@ -208,56 +260,8 @@ def render():
         & (historico["week"] == semana)
     ].copy()
 
-    # ==========================================================
-    # FILTROS Y RESUMEN
-    # ==========================================================
-    filtrado = df.sort_values(
-        ["ev", "edge_absoluto"],
-        ascending=[False, False],
-        na_position="last",
-    ).copy()
-
-    # La tarjeta de oportunidades solo muestra encuentros que aún no se juegan.
-    # Los picks anteriores permanecen disponibles en Rendimiento.
     pendientes = filtrar_partidos_pendientes(df)
     picks = pendientes[pendientes["estado"] == "PICK"].copy()
-    probabilidad_media = (
-        picks["prob_pick"].mean()
-        if not picks.empty
-        else np.nan
-    )
-    mayor_edge = (
-        picks["edge_absoluto"].max()
-        if not picks.empty
-        else np.nan
-    )
-
-    liquidados_resumen = historico[
-        (historico["estado"] == "PICK")
-        & historico["resultado_pick"].isin(["GANADA", "PERDIDA", "PUSH"])
-    ].copy()
-    ganadas_resumen = int(
-        (liquidados_resumen["resultado_pick"] == "GANADA").sum()
-    )
-    perdidas_resumen = int(
-        (liquidados_resumen["resultado_pick"] == "PERDIDA").sum()
-    )
-    pushes_resumen = int(
-        (liquidados_resumen["resultado_pick"] == "PUSH").sum()
-    )
-    apuestas_roi_resumen = int(
-        liquidados_resumen["beneficio_unidades"].notna().sum()
-    )
-    unidades_resumen = float(
-        pd.to_numeric(
-            liquidados_resumen["beneficio_unidades"], errors="coerce"
-        ).fillna(0.0).sum()
-    )
-    roi_resumen = (
-        unidades_resumen / apuestas_roi_resumen
-        if apuestas_roi_resumen
-        else np.nan
-    )
 
     seccion_totales = st.radio(
         "Sección de totales",
@@ -268,7 +272,7 @@ def render():
         key="nfl_totales_seccion",
     )
 
-    # Barra de botones idéntica a Moneyline (2 columnas)
+    # Barra superior de botones
     from core.ui_actualizacion import render_update_button
 
     st.markdown("<div style='margin-bottom: 0.8rem;'></div>", unsafe_allow_html=True)
@@ -301,10 +305,11 @@ def render():
         with c3:
             st.metric("Finalizados", num_finalizados)
         with c4:
-            st.metric("Picks Calificados (+EV)", len(picks))
+            st.metric("Picks de Alto Valor", len(picks))
         st.markdown("<div style='margin-bottom: 1.25rem;'></div>", unsafe_allow_html=True)
 
-        f_col1, f_col2 = st.columns([2, 1], gap="medium")
+        # Filtros ejecutivos homologados con NBA y Fútbol
+        f_col1, f_col2, f_col3 = st.columns([1.6, 1.2, 1.2], gap="medium")
         with f_col1:
             busqueda_tot = st.text_input(
                 "Buscar equipo NFL",
@@ -318,64 +323,57 @@ def render():
                 key="nfl_tot_ev_filter",
                 value=(seccion_totales == "🔥 Picks filtrados"),
             )
+        with f_col3:
+            filtro_estado = st.selectbox(
+                "Estado:",
+                ["Solo Próximos (Por Jugar)", "Solo Finalizados", "Todos los partidos"],
+                index=0 if seccion_totales != "📋 Todos los partidos" else 2,
+                key="nfl_tot_filtro_estado",
+            )
 
-        if solo_ev_tot or seccion_totales == "🔥 Picks filtrados":
-            base_mostrar = picks.copy()
-            if not base_mostrar.empty and "ev" in base_mostrar.columns:
-                base_mostrar = base_mostrar.sort_values(by="ev", ascending=False).reset_index(drop=True)
-            st.caption("🔥 Mostrando picks calificados ordenados de **Mayor a Menor Valor Esperado (+EV)**.")
-        else:
-            base_mostrar = filtrado.copy()
+        base_mostrar = df.copy()
 
+        # Filtrar por equipo
         if busqueda_tot:
             base_mostrar = base_mostrar[
                 base_mostrar["home_team"].astype(str).str.lower().str.contains(busqueda_tot, na=False) |
                 base_mostrar["away_team"].astype(str).str.lower().str.contains(busqueda_tot, na=False)
             ]
 
+        # Filtro de Estado
+        es_fin = base_mostrar["resultado_pick"].isin(["GANADA", "PERDIDA", "PUSH"]) | base_mostrar.get("away_score", pd.Series(dtype=float)).notna()
+        if filtro_estado == "Solo Próximos (Por Jugar)":
+            base_mostrar = base_mostrar[~es_fin]
+        elif filtro_estado == "Solo Finalizados":
+            base_mostrar = base_mostrar[es_fin]
+
+        # Filtro "Solo Picks Calificados ordenados de Mayor a Menor EV%"
+        if solo_ev_tot or seccion_totales == "🔥 Picks filtrados":
+            base_mostrar = base_mostrar[
+                (base_mostrar["estado"] == "PICK") |
+                ((pd.to_numeric(base_mostrar.get("ev", 0.0), errors="coerce") > 0) &
+                 (pd.to_numeric(base_mostrar.get("edge_absoluto", 0.0), errors="coerce") >= 2.0))
+            ]
+            if not base_mostrar.empty and "ev" in base_mostrar.columns:
+                base_mostrar = base_mostrar.sort_values(by="ev", ascending=False).reset_index(drop=True)
+            st.caption("🔥 Mostrando picks calificados ordenados de **Mayor a Menor Valor Esperado (+EV)**.")
+        else:
+            base_mostrar = base_mostrar.sort_values(
+                ["ev", "edge_absoluto"],
+                ascending=[False, False],
+                na_position="last",
+            ).reset_index(drop=True)
+
         if base_mostrar.empty:
             st.warning("No hay partidos o picks que coincidan con los filtros de búsqueda seleccionados.")
         else:
-            if solo_ev_tot or seccion_totales == "🔥 Picks filtrados":
-                filas_picks = list(base_mostrar.iterrows())
-            else:
-                filas_picks = list(
-                    render_order(base_mostrar, 'nfl_total_picks', date_col='gameday', confidence_col='prob_pick', ev_col='ev', upcoming=True).iterrows()
-                )
-            for inicio in range(0, len(filas_picks), 2):
-                columnas = st.columns(2, gap="medium")
-                for columna, (_, fila) in zip(
-                    columnas, filas_picks[inicio:inicio + 2]
-                ):
-                    with columna:
-                        mostrar_partido(fila)
+            for _, fila in base_mostrar.iterrows():
+                mostrar_partido(fila)
 
     if seccion_totales == "📈 Rendimiento":
         from core.ui_historial_publicado import render_history
-        render_history("NFL", 'Totales', key='nfl_totales_perf')
+        render_history("NFL", "Totales", key="nfl_totales_perf")
 
     if seccion_totales != "📈 Rendimiento":
         from core.ui_boleta import render_widget_boleta
         render_widget_boleta()
-        st.divider()
-
-        columnas_descarga = [
-            "id_juego",
-            "season",
-            "week",
-            "gameday",
-            "away_team",
-            "home_team",
-            "total_line",
-            "pred_total",
-            "pred_total_base",
-            "edge",
-            "pick",
-            "prob_pick",
-            "prob_over",
-            "prob_under",
-            "odds_pick",
-            "ev",
-            "estado",
-            "actualizado_en",
-        ]

@@ -223,7 +223,7 @@ def render_tarjeta_universal(
         # 6. Botón opcional de agregar a la boleta
         if boton_boleta:
             try:
-                from core.ui_boleta_flotante import render_boton_boleta
+                from core.ui_boleta import render_boton_boleta
                 render_boton_boleta(boton_boleta, key=f"btn_slip_{key_graf}")
             except Exception:
                 pass

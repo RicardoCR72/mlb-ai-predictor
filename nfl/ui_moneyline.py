@@ -105,14 +105,17 @@ def render():
 
 
 def render_cartelera(predicciones: list[dict]):
-    """Muestra las tarjetas interactivas de pronósticos Moneyline."""
+    """Muestra las tarjetas interactivas homologadas de pronósticos Moneyline."""
     if not predicciones:
         st.info("🏈 No hay partidos programados para la NFL en este momento.")
         return
 
+    from core.ui_tarjeta_universal import render_tarjeta_universal
+    from core.ui_boleta import parsear_cuota_decimal, render_widget_boleta
+    from nfl.ui_lesiones_helper import crear_callback_lesiones_nfl
+
     pendientes = [p for p in predicciones if p.get("resultado_pick") not in ["GANADA", "PERDIDA", "PUSH"]]
     liquidados = [p for p in predicciones if p.get("resultado_pick") in ["GANADA", "PERDIDA", "PUSH"]]
-
     picks_calificados = sum(1 for p in predicciones if p.get("confianza") in ["ALTA", "MEDIA"])
 
     # Métricas clave superiores
@@ -128,7 +131,8 @@ def render_cartelera(predicciones: list[dict]):
 
     st.markdown("<div style='margin-bottom: 1.25rem;'></div>", unsafe_allow_html=True)
 
-    f_col1, f_col2 = st.columns([2, 1], gap="medium")
+    # Filtros ejecutivos homologados con NBA y Fútbol
+    f_col1, f_col2, f_col3 = st.columns([1.6, 1.2, 1.2], gap="medium")
     with f_col1:
         busqueda_nfl = st.text_input(
             "Buscar equipo NFL",
@@ -138,8 +142,16 @@ def render_cartelera(predicciones: list[dict]):
     with f_col2:
         st.markdown("<div style='margin-top: 1.8rem;'></div>", unsafe_allow_html=True)
         solo_ev = st.checkbox("🔥 Solo picks Calificados (+EV)", key="nfl_ml_ev_filter")
+    with f_col3:
+        filtro_estado = st.selectbox(
+            "Estado:",
+            ["Solo Próximos (Por Jugar)", "Solo Finalizados", "Todos los partidos"],
+            key="nfl_ml_filtro_estado",
+        )
 
-    lista_mostrar = predicciones
+    lista_mostrar = list(predicciones)
+
+    # 1. Búsqueda por texto
     if busqueda_nfl:
         lista_mostrar = [
             p for p in lista_mostrar
@@ -147,145 +159,141 @@ def render_cartelera(predicciones: list[dict]):
                 busqueda_nfl in str(p.get("equipo_visita", "")).lower() or
                 busqueda_nfl in str(p.get("partido", "")).lower())
         ]
+
+    # Helper para determinar si el partido está concluido
+    def _es_partido_final_ml(p: dict) -> bool:
+        res = str(p.get("resultado_pick") or "").upper()
+        st_raw = str(p.get("estado") or "").upper()
+        return res in ["GANADA", "PERDIDA", "PUSH"] or "FINAL" in st_raw
+
+    # 2. Filtro por estado
+    if filtro_estado == "Solo Próximos (Por Jugar)":
+        lista_mostrar = [p for p in lista_mostrar if not _es_partido_final_ml(p)]
+    elif filtro_estado == "Solo Finalizados":
+        lista_mostrar = [p for p in lista_mostrar if _es_partido_final_ml(p)]
+
+    # Helper de cálculo/extracción de EV%
+    def _get_ev_nfl_ml(p: dict) -> float:
+        ev = p.get("ev_estimado")
+        if ev is not None:
+            try:
+                return float(ev)
+            except (ValueError, TypeError):
+                pass
+        c = parsear_cuota_decimal(p.get("pick_cuota"))
+        prob = float(p.get("pick_probabilidad") or p.get("pick_prob") or 0.5)
+        if c > 1.0 and prob > 0:
+            return (prob * c - 1.0) * 100.0
+        return float(p.get("pick_edge", 0.0) or 0.0) * 100.0
+
+    # 3. Filtro "Solo Picks Calificados ordenados de Mayor a Menor EV%"
     if solo_ev:
         lista_mostrar = [
             p for p in lista_mostrar
-            if p.get("confianza") in ["ALTA", "MEDIA"]
+            if p.get("confianza") in ["ALTA", "MEDIA"] or _get_ev_nfl_ml(p) > 0
         ]
         if lista_mostrar:
-            from core.ui_boleta import parsear_cuota_decimal
-            def _get_ev_nfl_ml(p):
-                ev = p.get("ev_estimado")
-                if ev is not None:
-                    try:
-                        return float(ev)
-                    except (ValueError, TypeError):
-                        pass
-                c = parsear_cuota_decimal(p.get("pick_cuota"))
-                prob = float(p.get("pick_prob", 0.5) or 0.5)
-                if c > 1.0 and prob > 0:
-                    return (prob * c - 1.0) * 100.0
-                return float(p.get("pick_edge", 0.0) or 0.0) * 100.0
-
             lista_mostrar.sort(key=_get_ev_nfl_ml, reverse=True)
             st.caption("🔥 Mostrando picks calificados ordenados de **Mayor a Menor Valor Esperado (+EV)**.")
+    else:
+        # Orden natural por EV descendente
+        lista_mostrar.sort(key=_get_ev_nfl_ml, reverse=True)
 
     if not lista_mostrar:
         st.warning("No hay partidos o picks que coincidan con los filtros de búsqueda seleccionados.")
         return
 
-    # Renderizar tarjetas individuales
+    # Renderizar tarjetas individuales homologadas
     for idx, p in enumerate(lista_mostrar):
-        home = p["equipo_local"]
-        away = p["equipo_visita"]
-        prob_h = p.get("prob_local", 0.5) * 100
-        prob_a = p.get("prob_visita", 0.5) * 100
+        home = str(p.get("equipo_local") or "LOC")
+        away = str(p.get("equipo_visita") or "VIS")
+        prob_h = float(p.get("prob_local", 0.5) or 0.5) * 100
+        prob_a = float(p.get("prob_visita", 0.5) or 0.5) * 100
         ml_h = p.get("ml_local") or "N/D"
         ml_a = p.get("ml_visita") or "N/D"
         spread = p.get("spread_line")
-        spread_str = f"Spread: {spread:+g}" if spread is not None else "Spread: N/D"
+        spread_str = f"{spread:+g}" if spread is not None else "N/D"
 
         estado = str(p.get("estado", "")).upper()
-        desc_estado = p.get("descripcion_estado", "")
-        resultado_pick = p.get("resultado_pick", "PENDIENTE")
+        resultado_pick = str(p.get("resultado_pick") or "PENDIENTE").upper()
+        es_resuelta = resultado_pick in ["GANADA", "PERDIDA", "PUSH"] or "FINAL" in estado
 
-        # Badge de estado de juego
-        if "FINAL" in estado:
-            badge_estado = f"<span style='background: #192e22; color: #8fa899; padding: 0.2rem 0.55rem; border-radius: 6px; font-weight: 700; font-size: 0.75rem;'>FINAL: {away} {p.get('marcador_visita', 0)} - {p.get('marcador_local', 0)} {home}</span>"
-        elif "PROGRESS" in estado:
-            badge_estado = f"<span style='background: rgba(255, 75, 75, 0.2); color: #ff6b6b; padding: 0.2rem 0.55rem; border-radius: 6px; font-weight: 800; font-size: 0.75rem; border: 1px solid #ff4b4b;'>EN VIVO: {away} {p.get('marcador_visita', 0)} - {p.get('marcador_local', 0)} {home}</span>"
-        else:
-            badge_estado = f"<span style='background: #112a1f; color: #b7ff3c; border: 1px solid #1a382a; padding: 0.2rem 0.55rem; border-radius: 6px; font-weight: 700; font-size: 0.75rem;'>🕒 {p.get('fecha_cdmx')} {p.get('hora_cdmx')} CDMX</span>"
+        # Si ya finalizó, mostrar contenedor histórico limpio
+        if es_resuelta:
+            m_vis = p.get("marcador_visita", 0)
+            m_loc = p.get("marcador_local", 0)
+            u_gan = float(p.get("beneficio_unidades") or 0.0)
 
-        # Badge de resultado de pick
-        if resultado_pick == "GANADA":
-            u_gan = p.get("beneficio_unidades", 0.0)
-            badge_res = f"<span style='background: rgba(183, 255, 60, 0.2); color: #b7ff3c; border: 1px solid #b7ff3c; padding: 0.25rem 0.65rem; border-radius: 7px; font-weight: 900; font-size: 0.85rem;'>✅ GANADA (+{u_gan:.2f}u)</span>"
-        elif resultado_pick == "PERDIDA":
-            badge_res = "<span style='background: rgba(255, 75, 75, 0.2); color: #ff6b6b; border: 1px solid #ff4b4b; padding: 0.25rem 0.65rem; border-radius: 7px; font-weight: 900; font-size: 0.85rem;'>❌ PERDIDA (-1.00u)</span>"
-        elif resultado_pick == "PUSH":
-            badge_res = "<span style='background: rgba(255, 214, 0, 0.2); color: #ffd600; border: 1px solid #ffd600; padding: 0.25rem 0.65rem; border-radius: 7px; font-weight: 900; font-size: 0.85rem;'>🤝 PUSH (0.00u)</span>"
-        else:
-            badge_res = "<span style='background: #112a1f; color: #8fa899; padding: 0.25rem 0.6rem; border-radius: 7px; font-weight: 750; font-size: 0.8rem;'>PENDIENTE</span>"
+            if resultado_pick == "GANADA":
+                badge_res = f"<span style='background: rgba(183, 255, 60, 0.2); color: #b7ff3c; border: 1px solid #b7ff3c; padding: 0.25rem 0.65rem; border-radius: 7px; font-weight: 900; font-size: 0.85rem;'>✅ GANADA (+{u_gan:.2f}u)</span>"
+            elif resultado_pick == "PERDIDA":
+                badge_res = "<span style='background: rgba(255, 75, 75, 0.2); color: #ff6b6b; border: 1px solid #ff4b4b; padding: 0.25rem 0.65rem; border-radius: 7px; font-weight: 900; font-size: 0.85rem;'>❌ PERDIDA (-1.00u)</span>"
+            elif resultado_pick == "PUSH":
+                badge_res = "<span style='background: rgba(255, 214, 0, 0.2); color: #ffd600; border: 1px solid #ffd600; padding: 0.25rem 0.65rem; border-radius: 7px; font-weight: 900; font-size: 0.85rem;'>🤝 PUSH (0.00u)</span>"
+            else:
+                badge_res = f"<span style='background: #192e22; color: #8fa899; padding: 0.2rem 0.55rem; border-radius: 6px; font-weight: 700; font-size: 0.75rem;'>FINAL: {away} {m_vis} - {m_loc} {home}</span>"
 
-        # Badge de confianza
+            with st.container(border=True):
+                st.markdown(
+                    f"<div style='display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;'>"
+                    f"<span style='background: #192e22; color: #8fa899; padding: 0.2rem 0.55rem; border-radius: 6px; font-weight: 700; font-size: 0.75rem;'>FINAL: {away} {m_vis} – {m_loc} {home}</span>"
+                    f"{badge_res}"
+                    f"</div>"
+                    f"<div style='font-size: 1.15rem; font-weight: 800; color: #eef3f8;'>{away} @ {home}</div>"
+                    f"<div style='font-size: 0.85rem; color: #8fa899; margin-top:0.25rem;'>Selección recomendada: <b>{p.get('pick_seleccion')}</b> ({p.get('pick_cuota')}) · {p.get('pick_detalle', '')}</div>",
+                    unsafe_allow_html=True
+                )
+            continue
+
+        # Partido activo / pendiente: TARJETA UNIVERSAL
         conf = p.get("confianza", "NEUTRAL")
-        if conf == "ALTA":
-            badge_conf = "<span class='badge-conf-alta'>CONFIANZA ALTA</span>"
-        elif conf == "MEDIA":
-            badge_conf = "<span style='background: rgba(255, 214, 0, 0.15); color: #ffd600; border: 1px solid rgba(255, 214, 0, 0.5); padding: 0.2rem 0.6rem; border-radius: 6px; font-weight: 800; font-size: 0.72rem;'>CONFIANZA MEDIA</span>"
+        ev_val = _get_ev_nfl_ml(p)
+        pick_sel = str(p.get("pick_seleccion") or f"{home} ML")
+        pick_cuota = str(p.get("pick_cuota") or "-110")
+        cuota_dec = float(p.get("pick_cuota_dec") or parsear_cuota_decimal(pick_cuota) or 1.909)
+        prob_modelo_pick = float(p.get("pick_probabilidad") or (prob_h / 100 if home in pick_sel else prob_a / 100))
+
+        if conf == "ALTA" or ev_val >= 10.0:
+            estrellas = "⭐⭐⭐"
+        elif conf == "MEDIA" or ev_val >= 5.0:
+            estrellas = "⭐⭐"
+        elif ev_val > 0:
+            estrellas = "⭐"
         else:
-            badge_conf = "<span style='background: rgba(143, 168, 153, 0.15); color: #8fa899; border: 1px solid #1a382a; padding: 0.2rem 0.6rem; border-radius: 6px; font-weight: 800; font-size: 0.72rem;'>CONFIANZA NEUTRAL</span>"
+            estrellas = "⚪"
 
-        # Badge de motor IA
-        badge_motor = "<span style='background: rgba(183, 255, 60, 0.12); color: #b7ff3c; border: 1px solid rgba(183, 255, 60, 0.35); padding: 0.18rem 0.55rem; border-radius: 6px; font-weight: 800; font-size: 0.70rem;'>MOTOR V2 · EPA + LGB</span>"
+        diff_epa = float(p.get("diff_total_epa", 0.0) or 0.0)
+        diff_ol = float(p.get("diff_injury_ol", 0.0) or 0.0)
+        diff_pass = float(p.get("diff_pass_epa", 0.0) or 0.0)
 
-        diff_epa = p.get("diff_total_epa", 0.0)
-        diff_ol = p.get("diff_injury_ol", 0.0)
-        epa_color = "#b7ff3c" if diff_epa > 0 else ("#ff6b6b" if diff_epa < 0 else "#8fa899")
-        pills_analitica = f"""<div style="display: flex; gap: 0.5rem; margin-bottom: 0.75rem; flex-wrap: wrap;">
-<span style="background: #0d1e16; color: {epa_color}; border: 1px solid #1a382a; padding: 0.2rem 0.55rem; border-radius: 6px; font-size: 0.73rem; font-weight: 700;">📊 Diff EPA: {diff_epa:+.2f}</span>
-<span style="background: #0d1e16; color: #8fa899; border: 1px solid #1a382a; padding: 0.2rem 0.55rem; border-radius: 6px; font-size: 0.73rem; font-weight: 700;">🛡️ Salud Línea Ofensiva: {diff_ol:+.1f}</span>
-</div>"""
+        alerta_contexto = None
+        if abs(diff_ol) >= 1.0:
+            alerta_contexto = f"🛡️ Desbalance en Línea Ofensiva: Diff OL {diff_ol:+.1f} (favorece presión al QB)"
+        elif abs(diff_pass) >= 6.0:
+            alerta_contexto = f"🎯 Brecha Aérea: Ventaja neta en eficiencia de pase de {diff_pass:+.1f} EPA"
 
-        pick_sel = p.get("pick_seleccion", "")
-        pick_cuota = p.get("pick_cuota", "")
-        pick_edge = p.get("pick_edge", 0.0) * 100
-        pick_ev = p.get("ev_estimado", 0.0)
+        # Pestaña 1 del menú: Desglose de Mercados
+        def _render_ml_desglose(p_curr=p, home_curr=home, away_curr=away, prob_h_curr=prob_h, prob_a_curr=prob_a, ml_h_curr=ml_h, ml_a_curr=ml_a, sp_str=spread_str, d_epa=diff_epa, d_pass=diff_pass, d_ol=diff_ol):
+            col1, col2 = st.columns(2)
+            with col1:
+                st.markdown("**Cuotas DraftKings Moneyline & Spread:**")
+                st.markdown(f"- **{home_curr}** (Local): ML `{ml_h_curr}`")
+                st.markdown(f"- **{away_curr}** (Visita): ML `{ml_a_curr}`")
+                st.markdown(f"- Spread Oficial: `{sp_str}`")
+            with col2:
+                st.markdown("**Métricas Ensamble EPA + LightGBM:**")
+                st.markdown(f"- Prob. Modelo: **{away_curr} {prob_a_curr:.1f}%** @ **{home_curr} {prob_h_curr:.1f}%**")
+                st.markdown(f"- Diff Total EPA: **{d_epa:+.2f}**")
+                st.markdown(f"- Diff Pass EPA: **{d_pass:+.2f}**")
+                st.markdown(f"- Salud Línea Ofensiva (OL): **{d_ol:+.1f}**")
 
-        card_html = f"""<div class="oracle-pick nfl-card">
-<div class="card-top">
-{badge_estado}
-<div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
-{badge_motor}
-<span style="color: #8fa899; font-size: 0.76rem; font-weight: 700;">{spread_str}</span>
-{badge_conf}
-{badge_res}
-</div>
-</div>
-<div style="display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 1rem; margin: 1rem 0;">
-<div style="text-align: left;">
-<div style="font-size: 1.35rem; font-weight: 900; color: #f5f8fb;">{away}</div>
-<div style="font-size: 0.82rem; color: #8fa899;">DraftKings ML: <b style="color: #b7ff3c;">{ml_a}</b></div>
-<div style="font-size: 1.1rem; font-weight: 800; color: #eef3f8; margin-top: 0.25rem;">{prob_a:.1f}%</div>
-<div style="font-size: 0.72rem; color: #8fa899;">Probabilidad Modelo</div>
-</div>
-<div style="text-align: center; color: #4f6859; font-weight: 900; font-size: 1.1rem;">@</div>
-<div style="text-align: right;">
-<div style="font-size: 1.35rem; font-weight: 900; color: #f5f8fb;">{home}</div>
-<div style="font-size: 0.82rem; color: #8fa899;">DraftKings ML: <b style="color: #b7ff3c;">{ml_h}</b></div>
-<div style="font-size: 1.1rem; font-weight: 800; color: #eef3f8; margin-top: 0.25rem;">{prob_h:.1f}%</div>
-<div style="font-size: 0.72rem; color: #8fa899;">Probabilidad Modelo</div>
-</div>
-</div>
-<div style="width: 100%; height: 8px; background: #07140e; border-radius: 4px; overflow: hidden; display: flex; margin-bottom: 0.75rem;">
-<div style="width: {prob_a}%; background: #4f6859; transition: width 0.3s ease;"></div>
-<div style="width: {prob_h}%; background: #b7ff3c; transition: width 0.3s ease;"></div>
-</div>
-{pills_analitica}
-<div class="pick-box" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
-<div>
-<span class="pick-lbl">🎯 PICK RECOMENDADO MONEYLINE</span>
-<div class="pick-sel">{pick_sel} <span style="color: #b7ff3c; font-size: 1.1rem; margin-left: 0.35rem;">({pick_cuota})</span></div>
-<div style="font-size: 0.78rem; color: #8fa899; margin-top: 0.2rem;">{p.get('pick_detalle', '')}</div>
-</div>
-<div style="display: flex; gap: 0.6rem;">
-<div class="stat-pill">
-<div style="font-size: 0.68rem; color: #8fa899; text-transform: uppercase;">Ventaja (Edge)</div>
-<div style="font-weight: 800; color: #b7ff3c; font-size: 0.95rem;">+{pick_edge:.1f}%</div>
-</div>
-<div class="stat-pill">
-<div style="font-size: 0.68rem; color: #8fa899; text-transform: uppercase;">Valor Esp. (EV)</div>
-<div style="font-weight: 800; color: {'#b7ff3c' if pick_ev >= 0 else '#ff6b6b'}; font-size: 0.95rem;">{pick_ev:+.1f}%</div>
-</div>
-</div>
-</div>
-</div>"""
-        st.markdown(card_html, unsafe_allow_html=True)
+        # Pestaña 2 del menú: Reporte de Lesiones
+        extra_inj = f"Impacto analítico en trincheras: Salud Línea Ofensiva Diff **{diff_ol:+.1f}**"
+        fn_lesiones = crear_callback_lesiones_nfl(away, home, extra_context=extra_inj)
 
-        if resultado_pick not in ["GANADA", "PERDIDA", "PUSH"]:
-            from core.ui_boleta import render_boton_boleta
-            partido_id = str(p.get("id_evento") or p.get("id_juego") or f"{away}_{home}_{idx}")
+        partido_id = str(p.get("id_evento") or p.get("id_juego") or f"{away}_{home}_{idx}")
+        slip_item = None
+        if conf in ["ALTA", "MEDIA"] or ev_val > 0:
             slip_item = {
                 "id": f"NFL_ML_{partido_id}_{pick_sel}",
                 "deporte": "NFL",
@@ -294,11 +302,38 @@ def render_cartelera(predicciones: list[dict]):
                 "mercado": "Moneyline",
                 "seleccion": pick_sel,
                 "momio": pick_cuota,
-                "prob": p.get("pick_probabilidad", p.get("prob_local", 0.5)),
+                "prob": prob_modelo_pick,
             }
-            render_boton_boleta(slip_item, key=f"btn_nfl_ml_slip_{partido_id}_{idx}")
 
-    from core.ui_boleta import render_widget_boleta
+        render_tarjeta_universal(
+            deporte="NFL",
+            titulo=f"{away} @ {home}",
+            subtitulo=f"⏰ {p.get('fecha_cdmx', '')} {p.get('hora_cdmx', '')} CDMX · DraftKings / ESPN",
+            mercado="🏈 Moneyline",
+            linea_casa=f"Spread {spread_str}" if spread is not None else "Moneyline",
+            proyeccion_modelo=f"{prob_modelo_pick * 100:.1f}%",
+            seleccion=pick_sel,
+            momio_americano=pick_cuota,
+            cuota_decimal=cuota_dec,
+            ev_pct=ev_val,
+            estrellas=estrellas,
+            tendencia=str(p.get("pick_detalle") or f"Probabilidad Modelo: {prob_modelo_pick*100:.1f}%"),
+            alerta_contexto=alerta_contexto,
+            equipo=home,
+            rival=away,
+            desplegar_grafica_directa=False,
+            key_suffix=f"nfl_ml_{partido_id}_{idx}",
+            etiqueta_linea="Línea Spread",
+            etiqueta_proyeccion="Prob. Modelo",
+            boton_boleta=slip_item,
+            contenido_desglose=_render_ml_desglose,
+            contenido_lesiones=fn_lesiones,
+            mostrar_grafica=False,
+        )
+
+        if conf == "NEUTRAL":
+            st.caption("🛡️ *Filtro de Disciplina Activo: Este partido está en la Zona Muerta (edge < +4.0%). Descartado para apuestas directas.*")
+
     render_widget_boleta()
 
 
