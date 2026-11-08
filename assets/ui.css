@@ -812,7 +812,8 @@ h1{letter-spacing:-.035em}h2,h3{letter-spacing:-.02em}
 
 /* Tus deportes card highlights */
 .st-key-home_sport_mlb [data-testid="stVerticalBlockBorderWrapper"] {
-    border-top: 3px solid #00e5ff !important;
+    border-top: 3px solid #475569 !important;
+    opacity: 0.88;
     border-radius: 14px !important;
     transition: box-shadow 0.2s ease;
 }

@@ -18,10 +18,10 @@ hero_html = '''<div class="home-hero-card">
       <div class="home-hero-sub">Panel unificado de inteligencia probabilística y ventaja matemática (+EV) contra la casa.</div>
     </div>
     <div style="display:flex; gap:0.45rem; flex-wrap:wrap; align-items:center;">
-      <span class="home-sport-pill" style="color:#00e5ff; border-color:rgba(0,229,255,0.3); background:rgba(0,229,255,0.08);">⚾ MLB</span>
+      <span class="home-sport-pill" style="color:#ff6b35; border-color:rgba(255,107,53,0.3); background:rgba(255,107,53,0.08);">🏀 NBA</span>
       <span class="home-sport-pill" style="color:#b7ff3c; border-color:rgba(183,255,60,0.3); background:rgba(183,255,60,0.08);">🏈 NFL</span>
       <span class="home-sport-pill" style="color:#00e676; border-color:rgba(0,230,118,0.3); background:rgba(0,230,118,0.08);">⚽ Fútbol</span>
-      <span class="home-sport-pill" style="color:#ff6b35; border-color:rgba(255,107,53,0.3); background:rgba(255,107,53,0.08);">🏀 NBA</span>
+      <span class="home-sport-pill" style="color:#64748b; border-color:rgba(100,116,139,0.3); background:rgba(100,116,139,0.08); opacity:0.85;">⚾ MLB (Offseason)</span>
     </div>
   </div>
 </div>'''

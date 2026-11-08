@@ -39,11 +39,15 @@ def render_home():
     render_top_picks_section()
     st.subheader('Tu agenda · hoy primero')
     games=[]
-    for source,sport in [('mlb','MLB'),('nfl_totales','NFL'),('liga_mx','Fútbol'),('nba','NBA')]:
+    for source,sport in [('nba','NBA'),('nfl_totales','NFL'),('liga_mx','Fútbol'),('mlb','MLB')]:
         if source in services:
             games.extend(dict(Deporte=sport,**g) for g in services[source].get('games', []))
     if games:
-        calendar=pd.DataFrame(games).sort_values(['Fecha','Deporte','Partido'])
+        calendar=pd.DataFrame(games)
+        # Prioridad a deportes en temporada activa (NBA, NFL, Fútbol primero; MLB al final)
+        sport_prio = {'NBA': 0, 'NFL': 1, 'Fútbol': 2, 'Liga MX': 2, 'MLB': 3}
+        calendar['prio'] = calendar['Deporte'].map(lambda s: sport_prio.get(s, 99))
+        calendar = calendar.sort_values(['Fecha', 'prio', 'Partido']).drop(columns=['prio'])
         dates=pd.to_datetime(calendar.Fecha,errors='coerce').dt.date
         n_today=int(dates.eq(pd.Timestamp(data['today']).date()).sum())
         st.caption(f'{n_today} partidos pendientes hoy · {len(calendar)} en la agenda disponible.')
@@ -51,33 +55,50 @@ def render_home():
         render_agenda(calendar)
     else:state_message('No hay próximos partidos disponibles en los calendarios consultados.')
     st.subheader('Tus deportes')
-    all_groups=[('MLB','⚾','mlb',['mlb','mlb_total'],'pages/1_⚾_MLB.py'),
-                ('NFL','🏈','nfl_totales',['nfl_totales','nfl_props'],'pages/2_🏈_NFL.py'),
-                ('Fútbol','⚽','liga_mx',['liga_mx'],'pages/3_⚽_Futbol.py'),
-                ('NBA','🏀','nba',['nba'],'pages/4_🏀_NBA.py')]
+    # Priorización: Los 3 deportes en temporada activa al frente; MLB en segundo plano (Offseason)
+    all_groups=[('NBA','🏀','nba',['nba'],'pages/4_🏀_NBA.py',True,'🔥 TEMPORADA 2026-27'),
+                ('NFL','🏈','nfl_totales',['nfl_totales','nfl_props'],'pages/2_🏈_NFL.py',True,'🔥 SEMANA 10'),
+                ('Fútbol','⚽','liga_mx',['liga_mx'],'pages/3_⚽_Futbol.py',True,'🔥 8 LIGAS MUNDIALES'),
+                ('MLB','⚾','mlb',['mlb','mlb_total'],'pages/1_⚾_MLB.py',False,'❄️ OFFSEASON 2026')]
     groups=[g for g in all_groups if g[2] in services]
     with st.container(key='home_sports'):
-        for col,(name,icon,calendar,keys,page) in zip(st.columns(len(groups) or 1),groups):
-            with col,st.container(border=True,height='stretch',key='home_sport_'+calendar):
-                st.markdown(f'### {icon} {name}')
-                st.metric('Partidos pendientes hoy',count(services[calendar]['games_today']))
-                for key in keys:
-                    item=services[key]
-                    label=item['label'].split(' · ')[-1]
-                    p_today = count(item['picks_today'])
-                    t_last = timestamp(item['last_data'],key=='mlb',key in ('mlb_total','liga_mx','nba'))
+        for col,(name,icon,calendar_key,keys,page,activo,badge_temporada) in zip(st.columns(len(groups) or 1),groups):
+            with col,st.container(border=True,height='stretch',key='home_sport_'+calendar_key):
+                if activo:
+                    st.markdown(f'### {icon} {name}')
+                    st.caption(f'<span style="background:rgba(0,230,118,0.12); color:#00e676; border:1px solid rgba(0,230,118,0.3); padding:0.18rem 0.5rem; border-radius:10px; font-weight:800; font-size:0.68rem;">{badge_temporada}</span>', unsafe_allow_html=True)
+                    st.metric('Partidos pendientes hoy',count(services[calendar_key]['games_today']))
+                    for key in keys:
+                        item=services[key]
+                        label=item['label'].split(' · ')[-1]
+                        p_today = count(item['picks_today'])
+                        t_last = timestamp(item['last_data'],key=='mlb',key in ('mlb_total','liga_mx','nba'))
+                        st.markdown(
+                            f'<div class="sport-market-chip">'
+                            f'<div style="display:flex; justify-content:space-between; align-items:center;">'
+                            f'<b style="color:#f1f5f9; font-size:0.82rem;">{label}</b>'
+                            f'<span class="sport-chip-badge">{p_today} picks</span>'
+                            f'</div>'
+                            f'<div style="font-size:0.68rem; color:#8fa0b5; margin-top:0.25rem;">Último registro · {t_last}</div>'
+                            f'</div>',
+                            unsafe_allow_html=True
+                        )
+                    if any(services[key]['errors'] for key in keys):st.caption('Información parcial · vuelve a consultar o actualiza este deporte.')
+                    st.page_link(page,label='Abrir '+name,use_container_width=True)
+                else:
+                    # Modo Offseason para MLB en segundo plano
+                    st.markdown(f'### {icon} {name}')
+                    st.caption(f'<span style="background:rgba(100,116,139,0.15); color:#94a3b8; border:1px solid rgba(100,116,139,0.3); padding:0.18rem 0.5rem; border-radius:10px; font-weight:800; font-size:0.68rem;">{badge_temporada}</span>', unsafe_allow_html=True)
+                    st.metric('Estado Temporada', 'Concluida')
                     st.markdown(
-                        f'<div class="sport-market-chip">'
-                        f'<div style="display:flex; justify-content:space-between; align-items:center;">'
-                        f'<b style="color:#f1f5f9; font-size:0.82rem;">{label}</b>'
-                        f'<span class="sport-chip-badge">{p_today} picks</span>'
-                        f'</div>'
-                        f'<div style="font-size:0.68rem; color:#8fa0b5; margin-top:0.25rem;">Último registro · {t_last}</div>'
-                        f'</div>',
+                        '<div class="sport-market-chip" style="opacity:0.85; border-color:#202e40;">'
+                        '<div style="color:#cbd5e1; font-size:0.75rem; font-weight:700;">Temporada 2026 Auditada</div>'
+                        '<div style="color:#10b981; font-size:0.82rem; font-weight:800; margin-top:0.15rem;">+7.53u · 57.8% WR (+EV)</div>'
+                        '<div style="font-size:0.68rem; color:#64748b; margin-top:0.25rem;">Regreso en Spring Training 2027</div>'
+                        '</div>',
                         unsafe_allow_html=True
                     )
-                if any(services[key]['errors'] for key in keys):st.caption('Información parcial · vuelve a consultar o actualiza este deporte.')
-                st.page_link(page,label='Abrir '+name,use_container_width=True)
+                    st.page_link(page,label='Auditoría MLB (Offseason)',use_container_width=True)
     st.caption('Fútbol cubre 8 ligas principales con cuotas oficiales DraftKings. NBA y Fútbol operan sin consumo de créditos.')
     with st.container(key='home_tools'):
         with st.container(border=True,key='home_performance_card'):
