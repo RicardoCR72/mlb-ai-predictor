@@ -126,15 +126,21 @@ def generar_predicciones_props_hoy(
         for _, row in df_perfiles.iterrows()
     }
 
-    # 2. Cargar reporte de lesiones para detectar bajas estelares
+    # 2. Cargar reporte de lesiones para detectar bajas estelares y descartar jugadores inactivos
     bajas_por_equipo: Dict[str, float] = {}
+    jugadores_inactivos: set[str] = set()
     try:
         reporte_les = obtener_reporte_lesiones_nba()
         for t_abbr, lista_les in reporte_les.items():
             for les in lista_les:
-                if les.get("estado") in ["OUT", "DOUBTFUL"]:
+                estado_les = str(les.get("estado", "")).upper()
+                if estado_les in ["OUT", "DOUBTFUL"]:
                     imp = les.get("impacto_spread", 1.0)
                     bajas_por_equipo[t_abbr] = bajas_por_equipo.get(t_abbr, 0.0) + imp
+                    nom = les.get("jugador", "").strip().lower()
+                    if nom:
+                        jugadores_inactivos.add(nom)
+                        jugadores_inactivos.add(_limpiar_nombre_jugador(nom).lower())
     except Exception as e:
         logger.warning(f"No se pudo consultar el servicio de lesiones: {e}")
 
@@ -152,6 +158,10 @@ def generar_predicciones_props_hoy(
         mercado = row["market"]
         linea = float(row["line"])
         equipo = row["team"]
+
+        # Si el jugador está confirmado como baja (OUT / DOUBTFUL), no sugerir sus props
+        if p_norm in jugadores_inactivos or p_clean.lower() in jugadores_inactivos:
+            continue
 
         # Buscar perfil de estadísticas
         perfil = perfiles_dict.get(p_norm)

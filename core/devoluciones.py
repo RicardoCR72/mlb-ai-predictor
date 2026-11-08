@@ -8,7 +8,7 @@ from core.infrastructure.migrations import ensure_schema
 
 def save_refund(conn, *, sport, game_id, reason, source, evidence,
                 player_id='', market='', official_id=None, legacy_key=None, prepare=True):
-    if sport not in ('MLB','NFL') or not game_id or not reason or not source or not evidence:
+    if sport not in ('MLB','NFL','NBA') or not game_id or not reason or not source or not evidence:
         raise ValueError('La devolución requiere identidad, motivo y evidencia.')
     if prepare:
         ensure_schema(conn, 'refunds')
@@ -55,8 +55,8 @@ def apply_refunds(frame, refunds, *, sport=None, game_col='identidad'):
                 index[(record['deporte'],str(alias),str(record['id_jugador'] or ''),str(record['mercado'] or ''))]=record['motivo']
     for i,row in result.iterrows():
         identity=str(row.get(game_col,''));parts=identity.split('|')
-        player=str(row.get('id_jugador',parts[1] if len(parts)>1 and (sport or row.get('deporte'))=='NFL' else ''))
-        market=str(row.get('tipo_prop',parts[2] if len(parts)>2 and (sport or row.get('deporte'))=='NFL' else ''))
+        player=str(row.get('id_jugador',parts[1] if len(parts)>1 and (sport or row.get('deporte')) in ('NFL','NBA') else ''))
+        market=str(row.get('tipo_prop',parts[2] if len(parts)>2 and (sport or row.get('deporte')) in ('NFL','NBA') else ''))
         current_sport=sport or row.get('deporte')
         keys=[(current_sport,identity,player,market),(current_sport,parts[0],player,market),
               (current_sport,identity,'',''),(current_sport,parts[0],'','')]
@@ -103,8 +103,8 @@ def record_manual_refund(conn, row, reason):
     reasons = ('Jugador no participó', 'Partido no disputado en la fecha del pick',
                'Apuesta anulada por la casa')
     sport = str(row.get('deporte', ''))
-    if sport not in ('MLB', 'NFL') or str(row.get('resultado', '')).upper() != 'PENDIENTE':
-        raise ValueError('Solo se pueden devolver picks pendientes de MLB o NFL.')
+    if sport not in ('MLB', 'NFL', 'NBA') or str(row.get('resultado', '')).upper() != 'PENDIENTE':
+        raise ValueError('Solo se pueden devolver picks pendientes de MLB, NFL o NBA.')
     if reason not in reasons:
         raise ValueError('Selecciona un motivo de devolución válido.')
     identity = str(row.get('identidad', ''))
@@ -112,7 +112,7 @@ def record_manual_refund(conn, row, reason):
         raise ValueError('El pick no tiene una identidad verificable.')
     parts = identity.split('|')
     kwargs = {}
-    if sport == 'NFL' and row.get('mercado') != 'Totales':
+    if sport in ('NFL', 'NBA') and row.get('mercado') not in ('Totales', 'Moneyline', 'Spread'):
         if len(parts) != 3 or not all(parts):
             raise ValueError('No se pudo identificar el jugador y el mercado.')
         game, player, market = parts
