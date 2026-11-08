@@ -55,12 +55,23 @@ MAPA_MERCADOS_COLUMNAS = {
 
 
 def _calcular_hit_rate(serie: pd.Series, linea: float) -> Tuple[float, int, int]:
-    """Calcula el porcentaje de partidos en que el jugador superó la línea."""
+    """Calcula el porcentaje de partidos en que el jugador superó la línea con suavizado bayesiano."""
     if serie.empty:
         return 0.5, 0, 0
     total = len(serie)
     overs = int((serie > linea).sum())
-    return round(overs / total, 3), overs, total
+    # Suavizado bayesiano Beta(4, 4) para evitar extremos 0% o 100% en muestras cortas de inicio de temporada
+    hit_rate_suavizado = round((overs + 4) / (total + 8), 3)
+    return hit_rate_suavizado, overs, total
+
+
+def _comprimir_ev_suave(ev_raw: float) -> float:
+    """Aplica compresión suave hiperbólica (tanh) para evitar mesetas artificiales o que varios picks empaten."""
+    if ev_raw <= 15.0:
+        return round(ev_raw, 1)
+    # Curva asintótica continua: diferencia naturalmente entre picks muy fuertes sin clavar a todos en 35.0
+    comprimido = 15.0 + 20.0 * math.tanh((ev_raw - 15.0) / 25.0)
+    return round(comprimido, 1)
 
 
 def _calcular_probabilidad_poisson(linea: float, lam: float) -> float:
@@ -201,11 +212,11 @@ def generar_predicciones_props_hoy(
         prob_over_blended = round(float(np.clip(prob_over_shrunk, 0.24, 0.76)), 4)
         prob_under_blended = round(1.0 - prob_over_blended, 4)
 
-        # 4. Cálculo de EV% con tope cuantitativo realista de +35.0%
+        # 4. Cálculo de EV% con compresión hiperbólica suave (evita cortes planos o empates artificiales)
         raw_ev_over = (prob_over_blended * over_dec - 1.0) * 100.0 if over_dec else -100.0
         raw_ev_under = (prob_under_blended * under_dec - 1.0) * 100.0 if under_dec else -100.0
-        ev_over = round(min(raw_ev_over, 35.0), 1) if over_dec else -100.0
-        ev_under = round(min(raw_ev_under, 35.0), 1) if under_dec else -100.0
+        ev_over = _comprimir_ev_suave(raw_ev_over) if over_dec else -100.0
+        ev_under = _comprimir_ev_suave(raw_ev_under) if under_dec else -100.0
 
         # Selección del Pick recomendado
         is_milestone = int(row.get("is_milestone", 0))
