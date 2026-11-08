@@ -289,22 +289,19 @@ def predecir_jornada_nfl_moneyline(force_refresh: bool = False) -> List[Dict[str
             ev = round(((prob_away * (ml_a_dec - 1.0)) - ((1.0 - prob_away) * 1.0)) * 100, 2)
             epa_resumen = f"Diff EPA: {-diff_total_epa:+.2f} ({away_team})"
 
-        # Filtro de Convicción y Zona Muerta (Validado con +7.59% ROI out-of-sample)
-        # 1. Alta Convicción: Prob >= 60% con Edge >= +1.0%
-        # 2. Media Convicción: Prob >= 55% con Edge >= +1.5%
-        # 3. Zona Muerta / Neutral: Moneda al aire (<55%) o margen insuficiente frente a la casa
-        if pick_prob >= 0.60 and pick_edge >= 0.010:
+        # Filtro de Convicción y Zona Muerta (+EV Estricto)
+        # 1. Alta Convicción: Prob >= 60% con Edge >= +1.0% y EV > 0%
+        # 2. Media Convicción: Prob >= 55% con Edge >= +1.5% y EV > 0%
+        # 3. Zona Muerta / Neutral: Moneda al aire (<55%) o margen insuficiente / EV <= 0 frente a la casa
+        if ev > 0 and pick_prob >= 0.60 and pick_edge >= 0.010:
             confianza = "ALTA"
-            detalle = f"🔥 Alta Convicción: Prob {pick_prob*100:.1f}% vs Book {((1.0/pick_cuota_dec)/suma_p)*100:.1f}% (Edge: +{pick_edge*100:.1f}%) | {epa_resumen}"
-        elif pick_prob >= 0.55 and pick_edge >= 0.015:
+            detalle = f"🔥 Alta Convicción (+EV): Prob {pick_prob*100:.1f}% vs Book {((1.0/pick_cuota_dec)/suma_p)*100:.1f}% (Edge: +{pick_edge*100:.1f}%) | {epa_resumen}"
+        elif ev > 0 and pick_edge >= 0.015:
             confianza = "MEDIA"
-            detalle = f"⚡ Valor Moderado: Prob {pick_prob*100:.1f}% vs Book (Edge: +{pick_edge*100:.1f}%) | {epa_resumen}"
-        elif pick_prob >= 0.65:
-            confianza = "ALTA"
-            detalle = f"Dominio proyectado de {pick_prob*100:.1f}% de victoria | {epa_resumen}"
+            detalle = f"⚡ Valor Moderado (+EV): Prob {pick_prob*100:.1f}% vs Book (Edge: +{pick_edge*100:.1f}%) | {epa_resumen}"
         else:
             confianza = "NEUTRAL"
-            detalle = f"Zona Muerta / Riesgo de Rake: Prob {pick_prob*100:.1f}%, Edge insuficiente (+{pick_edge*100:.1f}%)."
+            detalle = f"Zona Muerta / Riesgo de Rake: Prob {pick_prob*100:.1f}%, EV negativo ({ev:+.1f}%), cuota castigada sin valor esperado."
 
         pred = {
             "id_evento": j["id_evento"],

@@ -181,7 +181,9 @@ def render_tarjeta_universal(
                 tabs_config.append(("🏥 Reporte de Lesiones", "lesiones"))
 
             if len(tabs_config) > 1:
-                with st.expander("🔍 Analítica Completa (Gráfica, Mercados y Bajas)", expanded=False):
+                tiene_graf = any(t[1] == "grafica" for t in tabs_config)
+                sub_txt = "Gráfica, Mercados y Bajas" if tiene_graf else "Mercados y Bajas"
+                with st.expander(f"🔍 Analítica Completa ({sub_txt})", expanded=False):
                     creadas = st.tabs([t[0] for t in tabs_config])
                     for tab_ui, (_, tipo) in zip(creadas, tabs_config):
                         with tab_ui:

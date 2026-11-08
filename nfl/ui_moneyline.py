@@ -190,7 +190,7 @@ def render_cartelera(predicciones: list[dict]):
     if solo_ev:
         lista_mostrar = [
             p for p in lista_mostrar
-            if p.get("confianza") in ["ALTA", "MEDIA"] or _get_ev_nfl_ml(p) > 0
+            if p.get("confianza") in ["ALTA", "MEDIA"] and _get_ev_nfl_ml(p) > 0
         ]
         if lista_mostrar:
             lista_mostrar.sort(key=_get_ev_nfl_ml, reverse=True)
@@ -246,19 +246,21 @@ def render_cartelera(predicciones: list[dict]):
             continue
 
         # Partido activo / pendiente: TARJETA UNIVERSAL
-        conf = p.get("confianza", "NEUTRAL")
         ev_val = _get_ev_nfl_ml(p)
+        conf = p.get("confianza", "NEUTRAL") if ev_val > 0 else "NEUTRAL"
         pick_sel = str(p.get("pick_seleccion") or f"{home} ML")
         pick_cuota = str(p.get("pick_cuota") or "-110")
         cuota_dec = float(p.get("pick_cuota_dec") or parsear_cuota_decimal(pick_cuota) or 1.909)
         prob_modelo_pick = float(p.get("pick_probabilidad") or (prob_h / 100 if home in pick_sel else prob_a / 100))
 
-        if conf == "ALTA" or ev_val >= 10.0:
-            estrellas = "⭐⭐⭐"
-        elif conf == "MEDIA" or ev_val >= 5.0:
-            estrellas = "⭐⭐"
-        elif ev_val > 0:
-            estrellas = "⭐"
+        # Asignación estricta de estrellas por Valor Esperado Positivo (+EV)
+        if ev_val > 0:
+            if conf == "ALTA" or ev_val >= 10.0:
+                estrellas = "⭐⭐⭐"
+            elif conf == "MEDIA" or ev_val >= 5.0:
+                estrellas = "⭐⭐"
+            else:
+                estrellas = "⭐"
         else:
             estrellas = "⚪"
 
@@ -292,8 +294,9 @@ def render_cartelera(predicciones: list[dict]):
         fn_lesiones = crear_callback_lesiones_nfl(away, home, extra_context=extra_inj)
 
         partido_id = str(p.get("id_evento") or p.get("id_juego") or f"{away}_{home}_{idx}")
+        # Solo permitir agregar a la boleta picks con EV positivo
         slip_item = None
-        if conf in ["ALTA", "MEDIA"] or ev_val > 0:
+        if conf in ["ALTA", "MEDIA"] and ev_val > 0:
             slip_item = {
                 "id": f"NFL_ML_{partido_id}_{pick_sel}",
                 "deporte": "NFL",
@@ -331,8 +334,8 @@ def render_cartelera(predicciones: list[dict]):
             mostrar_grafica=False,
         )
 
-        if conf == "NEUTRAL":
-            st.caption("🛡️ *Filtro de Disciplina Activo: Este partido está en la Zona Muerta (edge < +4.0%). Descartado para apuestas directas.*")
+        if conf == "NEUTRAL" or ev_val <= 0:
+            st.caption("🛡️ *Filtro de Disciplina Activo: Este partido está en la Zona Muerta (EV negativo o cuota castigada). Descartado para apuestas directas.*")
 
     render_widget_boleta()
 
