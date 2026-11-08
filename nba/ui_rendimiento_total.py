@@ -235,6 +235,13 @@ def render():
     fechas_disponibles = sorted([f for f in df["fecha_dt"].dropna().unique()], reverse=True)
 
     # 3. Controles de Filtrado
+    tipo_auditoria = st.radio(
+        "🎯 Modo de Auditoría Bankroll:",
+        ["🏀 Cartelera Completa (Partidos + Props)", "👑 Solo Partidos Principales (Moneyline + Totales + Spread)", "🌟 Solo Props de Jugadores"],
+        horizontal=True,
+        key="nba_tot_modo_bankroll",
+    )
+
     with st.expander("🔍 Filtros de Auditoría: Periodo, Mercados y Confianza", expanded=True):
         col_f1, col_f2, col_f3 = st.columns([1.4, 1.4, 1.2], gap="medium")
 
@@ -319,17 +326,23 @@ def render():
                 key="nba_tot_dia_especifico",
             )
 
-    # Aplicar filtros a una copia
-    df_f = df.copy()
-
+    # 1. Dataset base para comparativa de estrellas (SIN filtro de EV ni de confianza, para mostrar siempre los 4 niveles completos)
+    df_comp = df.copy()
     if start_date and end_date:
-        df_f = df_f[(df_f["fecha_dt"] >= start_date) & (df_f["fecha_dt"] <= end_date)]
-
+        df_comp = df_comp[(df_comp["fecha_dt"] >= start_date) & (df_comp["fecha_dt"] <= end_date)]
     if filtro_dia_especifico != "Todas las jornadas":
-        df_f = df_f[df_f["fecha_str"] == filtro_dia_especifico]
-
+        df_comp = df_comp[df_comp["fecha_str"] == filtro_dia_especifico]
     if mercados_sel:
-        df_f = df_f[df_f["pilar"].isin(mercados_sel)]
+        df_comp = df_comp[df_comp["pilar"].isin(mercados_sel)]
+    if tipo_auditoria == "👑 Solo Partidos Principales (Moneyline + Totales + Spread)":
+        df_comp = df_comp[df_comp["pilar"].isin(["Moneyline", "Totales", "Spread"])]
+    elif tipo_auditoria == "🌟 Solo Props de Jugadores":
+        df_comp = df_comp[df_comp["pilar"] == "Props de Jugadores"]
+
+    liquidados_comp = df_comp[df_comp["resultado"].isin(["GANADA", "PERDIDA", "PUSH"])].copy()
+
+    # 2. Dataset con todos los filtros aplicados (incluyendo EV y confianza)
+    df_f = df_comp.copy()
 
     # Filtro EV / Nivel de Estrellas
     modo_ev, val_ev = opciones_ev.get(ev_sel_label, ("min", 0.0))
@@ -397,10 +410,10 @@ def render():
 
     col_t1, col_t2, col_t3, col_t4 = st.columns(4)
     tiers_info = [
-        ("⭐⭐⭐ Top Picks", "EV ≥ 10%", liquidados[liquidados["ev_pct"] >= 10.0], col_t1),
-        ("⭐⭐ Alta Confianza", "5% ≤ EV < 10%", liquidados[(liquidados["ev_pct"] >= 5.0) & (liquidados["ev_pct"] < 10.0)], col_t2),
-        ("⭐ Picks de Valor", "0% < EV < 5%", liquidados[(liquidados["ev_pct"] > 0.0) & (liquidados["ev_pct"] < 5.0)], col_t3),
-        ("⚪ Sin Valor", "EV ≤ 0%", liquidados[liquidados["ev_pct"] <= 0.0], col_t4),
+        ("⭐⭐⭐ Top Picks", "EV ≥ 10%", liquidados_comp[liquidados_comp["ev_pct"] >= 10.0], col_t1),
+        ("⭐⭐ Alta Confianza", "5% ≤ EV < 10%", liquidados_comp[(liquidados_comp["ev_pct"] >= 5.0) & (liquidados_comp["ev_pct"] < 10.0)], col_t2),
+        ("⭐ Picks de Valor", "0% < EV < 5%", liquidados_comp[(liquidados_comp["ev_pct"] > 0.0) & (liquidados_comp["ev_pct"] < 5.0)], col_t3),
+        ("⚪ Sin Valor", "EV ≤ 0%", liquidados_comp[liquidados_comp["ev_pct"] <= 0.0], col_t4),
     ]
     for nombre_tier, rango_desc, sub_df_tier, col_dest in tiers_info:
         tot_t = len(sub_df_tier)

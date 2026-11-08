@@ -219,11 +219,13 @@ def generar_predicciones_props_hoy(
         implied_over = (1.0 / over_dec) if (over_dec and over_dec > 1.0) else 0.5238
 
         # 2. Calibración Bayesiana / Shrinkage hacia la probabilidad implícita de mercado
-        # Evita que muestras cortas (8 juegos) colapsen a certezas falsas de 98%
-        prob_over_shrunk = 0.75 * prob_over_raw + 0.25 * implied_over
+        # Ponderación calibrada para evitar sobreestimaciones irreales de EV% en props.
+        # En cuotas plus-money (> 2.15) o milestones, se castiga el sesgo de cola larga (longshot bias).
+        peso_mercado = 0.65 if (over_dec and over_dec >= 2.15) else 0.50
+        prob_over_shrunk = (1.0 - peso_mercado) * prob_over_raw + peso_mercado * implied_over
 
-        # 3. Techo y piso de seguridad estadística: la varianza NBA limita la probabilidad a máx 76%
-        prob_over_blended = round(float(np.clip(prob_over_shrunk, 0.24, 0.76)), 4)
+        # 3. Techo y piso de seguridad estadística: la varianza NBA limita la probabilidad a máx 72%
+        prob_over_blended = round(float(np.clip(prob_over_shrunk, 0.28, 0.72)), 4)
         prob_under_blended = round(1.0 - prob_over_blended, 4)
 
         # 4. Cálculo de EV% con compresión hiperbólica suave (evita cortes planos o empates artificiales)
@@ -255,19 +257,46 @@ def generar_predicciones_props_hoy(
                 pick_cuota_am = row.get("under_american")
                 pick_cuota_dec = under_dec
 
-        # Clasificación por estrellas
-        if pick_ev >= 10.0 and (hit_rate_season >= 0.55 if pick_tipo == "OVER" else hit_rate_season <= 0.45):
+        # Criterios Rigurosos de Candados / Convicción por Estrellas
+        colchon_linea = abs(proyeccion - linea)
+        games_p = int(perfil.get("games_played", 0) or 0)
+        min_colchon = 0.8 if mercado in ["Total Triples", "Total Assists"] else 1.5
+
+        es_top_pick = (
+            pick_ev >= 7.0
+            and colchon_linea >= min_colchon
+            and (hit_rate_l5 >= 0.60 if pick_tipo == "OVER" else hit_rate_l5 <= 0.40)
+            and (hit_rate_season >= 0.52 if pick_tipo == "OVER" else hit_rate_season <= 0.48)
+            and games_p >= 4
+            and (pick_cuota_dec <= 2.30)
+        )
+
+        es_alta_confianza = (
+            pick_ev >= 3.5
+            and colchon_linea >= (min_colchon * 0.6)
+            and games_p >= 3
+        )
+
+        if es_top_pick:
             estrellas = "⭐⭐⭐"
             confianza = "ALTA"
-        elif pick_ev >= 5.0:
+        elif es_alta_confianza:
             estrellas = "⭐⭐"
             confianza = "MEDIA"
-        elif pick_ev >= 1.5:
+        elif pick_ev >= 1.0:
             estrellas = "⭐"
             confianza = "MODERADA"
         else:
             estrellas = "⚪"
             confianza = "NEUTRAL"
+
+        # Candado de Ultra Convicción (Top Picks de élite para operar con máximo control de riesgo)
+        es_candado = bool(
+            es_top_pick
+            and (hit_rate_l5 >= 0.80 if pick_tipo == "OVER" else hit_rate_l5 <= 0.20)
+            and colchon_linea >= (min_colchon * 1.25)
+            and (1.68 <= pick_cuota_dec <= 2.15)
+        )
 
         # Resumen de tendencia empírica reciente (L5) vs línea
         prom_l5_val = stat_l5 if n_l5 > 0 else stat_avg
@@ -305,6 +334,7 @@ def generar_predicciones_props_hoy(
             "trend": tendencia,
             "boost_lesion_pct": round((boost_lesion - 1.0) * 100.0, 1),
             "is_milestone": is_milestone,
+            "es_candado": es_candado,
         })
 
     df_res = pd.DataFrame(predicciones)

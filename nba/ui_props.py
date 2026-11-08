@@ -97,9 +97,10 @@ def renderizar_ui_props_nba():
 
     # 3. Filtro por Confianza / EV
     opciones_conf = {
+        "🔒 Candados de Oro (Ultra Convicción)": "candado",
+        "⭐⭐⭐ Top Picks (EV ≥ 8% + Filtros)": 7.0,
+        "⭐⭐ Alta Confianza (EV ≥ 3.5%)": 3.5,
         "⭐ Solo Picks de Valor (EV > 0%)": 0.0,
-        "⭐⭐ Alta Confianza (EV ≥ 5%)": 5.0,
-        "⭐⭐⭐ Top Picks (EV ≥ 10%)": 10.0,
         "Todos los props (Incluye EV negativo)": -999.0,
     }
     conf_sel_label = c_conf.selectbox("🔥 Nivel de Valor / EV:", list(opciones_conf.keys()))
@@ -119,7 +120,12 @@ def renderizar_ui_props_nba():
     if mercado_sel:
         df_filtrado = df_filtrado[df_filtrado["market"] == mercado_sel]
 
-    if ev_minimo > -500:
+    if conf_sel_label == "🔒 Candados de Oro (Ultra Convicción)":
+        if "es_candado" in df_filtrado.columns:
+            df_filtrado = df_filtrado[df_filtrado["es_candado"] == True]
+        else:
+            df_filtrado = df_filtrado[df_filtrado["stars"] == "⭐⭐⭐"]
+    elif isinstance(ev_minimo, (int, float)) and ev_minimo > -500:
         df_filtrado = df_filtrado[df_filtrado["ev_pct"] >= ev_minimo]
 
     if tipo_sel == "Solo OVER":
@@ -236,6 +242,8 @@ def _renderizar_tarjeta_prop(p: Dict[str, Any], desplegar_grafica_directa: bool 
     cuota_dec = p.get("pick_odds_decimal", 1.909)
     ev = p["ev_pct"]
     estrellas = p.get("stars", "⭐")
+    if p.get("es_candado"):
+        estrellas = f"🔒 {estrellas}"
     tendencia = p.get("trend", "")
     boost_lesion = p.get("boost_lesion_pct", 0.0)
 
