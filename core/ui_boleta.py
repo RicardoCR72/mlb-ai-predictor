@@ -1,6 +1,7 @@
 """Módulo unificado de 'Boleta del Día' (Bet Slip / Mi Selección) para deportes múltiples."""
 from __future__ import annotations
 import math
+import urllib.parse
 import streamlit as st
 
 
@@ -153,16 +154,43 @@ def render_widget_boleta(sidebar: bool = False) -> None:
             unsafe_allow_html=True,
         )
 
+        # Resumen formateado para copiar y compartir
+        resumen_lineas = [
+            f"• [{p.get('deporte', '')}] {p.get('partido', '')}: {p.get('seleccion', '')} ({p.get('momio', '')})"
+            for p in boleta
+        ]
+        resumen_texto = "\n".join(resumen_lineas)
+        resumen_completo = (
+            f"🎟️ MI SELECCIÓN OVERDOG AI ({parlay_amer}):\n"
+            f"{resumen_texto}\n"
+            f"💰 Cuota Total: {parlay_dec:.2f}x ({parlay_amer})\n"
+            f"👉 Generado en overdog.ai"
+        )
+
+        st.caption("📋 Copia rápida con 1 clic (toca el icono en la esquina derecha):")
+        st.code(resumen_completo, language=None)
+
+        # Botones de compartir directo a mensajería
+        encoded_share = urllib.parse.quote(resumen_completo)
+        wa_url = f"https://api.whatsapp.com/send?text={encoded_share}"
+        tg_url = f"https://t.me/share/url?url=https://overdog.ai&text={encoded_share}"
+
+        col_sh1, col_sh2 = st.columns(2)
+        with col_sh1:
+            st.link_button("💬 Enviar por WhatsApp", wa_url, use_container_width=True)
+        with col_sh2:
+            st.link_button("✈️ Enviar por Telegram", tg_url, use_container_width=True)
+
+        st.markdown("<div style='margin-top: 0.3rem;'></div>", unsafe_allow_html=True)
+
         b_act1, b_act2 = st.columns(2)
         with b_act1:
             if st.button("🗑️ Vaciar Boleta", key=f"clear_slip_{sidebar}", use_container_width=True):
                 limpiar_boleta()
                 st.rerun()
         with b_act2:
-            resumen_texto = "\\n".join([f"• [{p.get('deporte')}] {p.get('partido')}: {p.get('seleccion')} ({p.get('momio')})" for p in boleta])
-            resumen_completo = f"🎟️ MI SELECCIÓN OVERDOG AI ({parlay_amer}):\\n{resumen_texto}\\nCuota Total: {parlay_dec:.2f}x"
             st.download_button(
-                "📋 Descargar Boleta",
+                "💾 Guardar (.txt)",
                 resumen_completo,
                 file_name="boleta_overdog.txt",
                 mime="text/plain",

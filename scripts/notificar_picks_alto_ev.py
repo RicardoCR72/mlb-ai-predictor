@@ -133,6 +133,62 @@ def obtener_picks_alto_ev_nba(min_edge: float = 0.040, max_picks: int = 5) -> Li
     return picks_validos[:max_picks]
 
 
+def obtener_picks_alto_ev_nba_props(min_ev: float = 12.0, max_picks: int = 4) -> List[Dict[str, Any]]:
+    """Extrae las mejores oportunidades de Player Props NBA (puntos, rebotes, asistencias, triples)."""
+    ruta_json = RAIZ / "data" / "nba" / "predictions" / "predicciones_props_nba_hoy.json"
+    if not ruta_json.exists():
+        return []
+
+    try:
+        with open(ruta_json, "r", encoding="utf-8") as f:
+            props = json.load(f)
+    except Exception as exc:
+        logger.warning(f"No se pudo leer predicciones de NBA props: {exc}")
+        return []
+
+    if not isinstance(props, list):
+        return []
+
+    candidatos = []
+    for p in props:
+        ev_val = float(p.get("ev_pct") or 0.0)
+        if ev_val < min_ev:
+            continue
+        candidatos.append(p)
+
+    candidatos.sort(key=lambda x: float(x.get("ev_pct") or 0.0), reverse=True)
+
+    picks_validos = []
+    jugadores_vistos = set()
+    for p in candidatos:
+        jugador = p.get("player_name", "")
+        if jugador in jugadores_vistos:
+            continue
+        jugadores_vistos.add(jugador)
+
+        picks_validos.append({
+            "deporte": "NBA Props",
+            "liga": "NBA Player Props",
+            "partido": p.get("game", ""),
+            "fecha": p.get("fecha", ""),
+            "hora": p.get("hora", "TBD"),
+            "mercado": p.get("market", "Player Prop"),
+            "seleccion": f"{jugador} - {p.get('pick_type', '')} {p.get('line', '')}",
+            "cuota": str(p.get("pick_odds_american", "-110")),
+            "cuota_dec": float(p.get("pick_odds_decimal") or 1.91),
+            "probabilidad": float(p.get("model_prob") or 0.5),
+            "edge": round(float(p.get("ev_pct") or 0.0) / 100.0, 4),
+            "ev": float(p.get("ev_pct") or 0.0),
+            "confianza": p.get("confidence", "MEDIA"),
+            "detalle": f"Proy: {p.get('projection', '')} (Línea: {p.get('line', '')}) · {p.get('trend', '')}",
+            "jugador": jugador,
+        })
+        if len(picks_validos) >= max_picks:
+            break
+
+    return picks_validos
+
+
 def obtener_picks_alto_ev_nfl(min_edge: float = 0.050, max_picks: int = 5) -> List[Dict[str, Any]]:
     """Extrae las mejores oportunidades activas de NFL (Marcadores y Props)."""
     picks_validos = []
@@ -208,14 +264,29 @@ def obtener_picks_alto_ev_nfl(min_edge: float = 0.050, max_picks: int = 5) -> Li
     return picks_validos[:max_picks]
 
 
+def consolidar_picks_alto_ev(
+    min_edge: float = 0.045,
+    max_picks: int = 5,
+) -> Dict[str, List[Dict[str, Any]]]:
+    """Extrae y consolida en un diccionario todos los picks de alto valor de cada deporte."""
+    return {
+        "futbol": obtener_picks_alto_ev_futbol(min_edge=min_edge, max_picks=max_picks),
+        "nba": obtener_picks_alto_ev_nba(min_edge=0.040, max_picks=max_picks),
+        "nba_props": obtener_picks_alto_ev_nba_props(min_ev=12.0, max_picks=min(max_picks, 4)),
+        "nfl": obtener_picks_alto_ev_nfl(min_edge=min_edge, max_picks=max_picks),
+    }
+
+
 def formatear_mensaje_reporte(
     picks_futbol: List[Dict[str, Any]],
     picks_nba: List[Dict[str, Any]],
     picks_nfl: List[Dict[str, Any]],
+    picks_nba_props: Optional[List[Dict[str, Any]]] = None,
 ) -> str:
     """Construye un mensaje enriquecido en HTML para Telegram y Discord."""
+    picks_nba_props = picks_nba_props or []
     ahora_cdmx = datetime.now(ZONA_CDMX).strftime("%d/%m/%Y %H:%M")
-    total_picks = len(picks_futbol) + len(picks_nba) + len(picks_nfl)
+    total_picks = len(picks_futbol) + len(picks_nba) + len(picks_nfl) + len(picks_nba_props)
 
     if total_picks == 0:
         return (
@@ -246,9 +317,9 @@ def formatear_mensaje_reporte(
                 f"💡 Confianza: {badge} {p['confianza']} · <i>Recomendación: 1.0 u</i>"
             )
 
-    # --- SECCIÓN NBA ---
+    # --- SECCIÓN NBA (LÍNEAS DE PARTIDO) ---
     if picks_nba:
-        lineas.append(f"\n🏀 <b>NBA ({len(picks_nba)})</b>")
+        lineas.append(f"\n🏀 <b>NBA - MONEYLINE &amp; SPREADS ({len(picks_nba)})</b>")
         for p in picks_nba:
             badge = "🔥" if p["confianza"] == "ALTA" else "⚡"
             cuota_str = f"<b>{p['cuota']}</b>" if p['cuota'] else f"<b>{p['cuota_dec']:.2f}</b>"
@@ -258,6 +329,21 @@ def formatear_mensaje_reporte(
                 f"👉 <b>Selección:</b> <code>{p['seleccion']}</code> ({cuota_str})\n"
                 f"📊 Prob IA: <b>{p['probabilidad']*100:.1f}%</b> | Edge: <b>+{p['edge']*100:.1f}%</b>\n"
                 f"💡 Confianza: {badge} {p['confianza']} · <i>Recomendación: 1.0 u</i>"
+            )
+
+    # --- SECCIÓN NBA PLAYER PROPS ---
+    if picks_nba_props:
+        lineas.append(f"\n🌟 <b>NBA - PLAYER PROPS (+EV) ({len(picks_nba_props)})</b>")
+        for p in picks_nba_props:
+            badge = "🔥" if p["confianza"] == "ALTA" else "⚡"
+            cuota_str = f"<b>{p['cuota']}</b>" if p['cuota'] else f"<b>{p['cuota_dec']:.2f}</b>"
+            hora_str = f" · ⏰ {p['hora']}" if p.get('hora') and p['hora'] != 'TBD' else ""
+            lineas.append(
+                f"\n👤 <b>{p.get('jugador', '')}</b> ({p['mercado']}){hora_str}\n"
+                f"⚔️ {p['partido']}\n"
+                f"👉 <b>Prop:</b> <code>{p['seleccion']}</code> ({cuota_str})\n"
+                f"📊 Prob IA: <b>{p['probabilidad']*100:.1f}%</b> | +EV: <b>+{p['ev']:.1f}%</b>\n"
+                f"💡 <i>{p.get('detalle', '')}</i>"
             )
 
     # --- SECCIÓN NFL ---
@@ -280,20 +366,26 @@ def formatear_mensaje_reporte(
 
 def ejecutar_notificador(min_edge: float = 0.045, max_picks: int = 5, dry_run: bool = False):
     """Recolecta picks de alto valor y envía el mensaje a Telegram y Discord."""
-    logger.info("🔍 Recolectando picks de alto valor en Fútbol, NBA y NFL...")
-    picks_fut = obtener_picks_alto_ev_futbol(min_edge=min_edge, max_picks=max_picks)
-    picks_nba = obtener_picks_alto_ev_nba(min_edge=0.040, max_picks=max_picks)
-    picks_nfl = obtener_picks_alto_ev_nfl(min_edge=min_edge, max_picks=max_picks)
+    logger.info("🔍 Recolectando picks de alto valor en Fútbol, NBA, NBA Props y NFL...")
+    consolidado = consolidar_picks_alto_ev(min_edge=min_edge, max_picks=max_picks)
+    picks_fut = consolidado["futbol"]
+    picks_nba = consolidado["nba"]
+    picks_nba_props = consolidado["nba_props"]
+    picks_nfl = consolidado["nfl"]
+    total = sum(len(v) for v in consolidado.values())
 
-    logger.info(f"Picks detectados: Fútbol ({len(picks_fut)}), NBA ({len(picks_nba)}), NFL ({len(picks_nfl)})")
+    logger.info(
+        f"Picks detectados: Fútbol ({len(picks_fut)}), NBA ({len(picks_nba)}), "
+        f"NBA Props ({len(picks_nba_props)}), NFL ({len(picks_nfl)})"
+    )
 
-    mensaje = formatear_mensaje_reporte(picks_fut, picks_nba, picks_nfl)
+    mensaje = formatear_mensaje_reporte(picks_fut, picks_nba, picks_nfl, picks_nba_props)
 
     if dry_run:
         print("\n=== VISTA PREVIA DEL MENSAJE (DRY RUN) ===")
         print(mensaje)
         print("==========================================\n")
-        return {"ok": True, "dry_run": True, "total_picks": len(picks_fut) + len(picks_nba) + len(picks_nfl)}
+        return {"ok": True, "dry_run": True, "total_picks": total}
 
     tg_token, tg_chat = get_telegram_config()
     dc_url = get_discord_config()
@@ -310,12 +402,12 @@ def ejecutar_notificador(min_edge: float = 0.045, max_picks: int = 5, dry_run: b
             "ok": False,
             "error": "Credenciales no configuradas",
             "mensaje_generado": True,
-            "total_picks": len(picks_fut) + len(picks_nba) + len(picks_nfl)
+            "total_picks": total
         }
 
     resultados = enviar_alerta_multicanal(mensaje)
     logger.info(f"Envío completado: {resultados}")
-    return {"ok": True, "resultados": resultados, "total_picks": len(picks_fut) + len(picks_nba) + len(picks_nfl)}
+    return {"ok": True, "resultados": resultados, "total_picks": total}
 
 
 if __name__ == "__main__":
