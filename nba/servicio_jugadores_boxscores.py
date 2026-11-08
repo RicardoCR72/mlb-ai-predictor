@@ -291,11 +291,16 @@ def calcular_perfil_jugador(df_boxscores: pd.DataFrame, min_minutos: float = 10.
             
             # Combos
             "pra_avg": round(p_df["pra"].mean(), 1),
-            "pra_std": round(p_df["pra"].std(ddof=1) or 2.0, 1),
+            "pra_std": round(p_df["pra"].std(ddof=1) or 4.5, 1),
             "pra_l5": round(l5["pra"].mean(), 1),
 
             "pr_avg": round(p_df["pr"].mean(), 1),
+            "pr_std": round(p_df["pr"].std(ddof=1) or 3.5, 1),
+            "pr_l5": round(l5["pr"].mean(), 1),
+
             "pa_avg": round(p_df["pa"].mean(), 1),
+            "pa_std": round(p_df["pa"].std(ddof=1) or 3.5, 1),
+            "pa_l5": round(l5["pa"].mean(), 1),
             
             # Robos y Bloqueos
             "stl_avg": round(p_df["stl"].mean(), 1),

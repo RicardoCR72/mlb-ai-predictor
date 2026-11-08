@@ -81,11 +81,9 @@ def render_overview():
         ]
     cols=st.columns(2)
     with cols[0]:
-        sport_options = ['Todos', 'Todos (excepto NBA)'] + sorted(frame.deporte.unique())
+        sport_options = ['Todos'] + sorted(frame.deporte.unique())
         sport = safe_select('Deporte', sport_options, key='center_sport')
-    if sport == 'Todos (excepto NBA)':
-        frame = frame[frame.deporte.ne('NBA')]
-    elif sport != 'Todos':
+    if sport != 'Todos':
         frame = frame[frame.deporte.eq(sport)]
     with cols[1]:model=safe_select('Modelo',['Todos']+sorted(frame.modelo_visible.unique()),key='center_model')
     if model!='Todos':frame=frame[frame.modelo_visible.eq(model)]
@@ -94,6 +92,22 @@ def render_overview():
     frame=performance_filters(frame,'fecha','center',season_col='Temporada',probability_col='probabilidad',
         probability_scale=100,market_col='mercado',result_col='resultado',provenance_col='procedencia')
     if frame.empty:state_message('No hay registros para estos filtros.',kind='filters');return
+
+    # Filtro opcional de picks calificados con Valor Esperado positivo (+EV)
+    solo_ev = st.checkbox("🔥 Solo picks Calificados (+EV)", key="center_solo_ev")
+    if solo_ev:
+        from core.ui_boleta import parsear_cuota_decimal
+        def _calc_ev_centro(row):
+            p = float(row.get('probabilidad', 0.5) or 0.5)
+            if p > 1.0:
+                p = p / 100.0
+            c = parsear_cuota_decimal(row.get('cuota'))
+            return (p * c - 1.0) * 100.0 if (c > 1.0 and p > 0) else -100.0
+
+        ev_vals = frame.apply(_calc_ev_centro, axis=1)
+        frame = frame[ev_vals > 0.0].copy()
+        st.caption("🔥 Mostrando únicamente picks auditados con **Valor Esperado positivo (+EV)**. Se descartan apuestas en la Zona Muerta o sin margen probabilístico.")
+        if frame.empty:state_message('No hay registros con Valor Esperado positivo (+EV) para estos filtros.',kind='filters');return
     settled=frame
     decided=settled[settled.resultado.isin(['GANADA','PERDIDA'])]
     known=settled[np.isfinite(pd.to_numeric(settled.unidades,errors='coerce'))]
@@ -260,8 +274,7 @@ def render_center():
     st.caption('Evolución, comparación de mercados y diagnóstico de modelos guardados.')
     if st.button('Actualizar rendimiento',key='center_refresh',type='primary'):
         load_comparison.clear();nfl_games.clear();audit_history.clear()
-    view=st.radio('Análisis',['Panorama','Comparación','Auditoría NFL','Validación Liga MX'],horizontal=True,key='center_view',label_visibility='collapsed')
+    view=st.radio('Análisis',['Panorama','Comparación de Mercados','Auditoría NFL'],horizontal=True,key='center_view',label_visibility='collapsed')
     if view=='Panorama':render_overview()
-    elif view=='Comparación':render_comparison(show_title=False)
-    elif view=='Auditoría NFL':render_audit()
-    else:render_liga_validation()
+    elif view=='Comparación de Mercados':render_comparison(show_title=False)
+    else:render_audit()

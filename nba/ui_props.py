@@ -230,7 +230,13 @@ def _renderizar_tarjeta_prop(p: Dict[str, Any], desplegar_grafica_directa: bool 
     tendencia = p.get("trend", "")
     boost_lesion = p.get("boost_lesion_pct", 0.0)
 
-    alerta = f"🚨 +{boost_lesion:.0f}% Uso por bajas en el equipo" if boost_lesion > 0 else None
+    if boost_lesion > 0:
+        if pick == "UNDER":
+            alerta = f"⚠️ +{boost_lesion:.0f}% Uso por bajas (Proyección aún muy bajo línea)"
+        else:
+            alerta = f"🚨 +{boost_lesion:.0f}% Uso por bajas en el equipo"
+    else:
+        alerta = None
     rival_calc = p.get("away_team") if p.get("home_team") == equipo else p.get("home_team")
 
     render_tarjeta_universal(

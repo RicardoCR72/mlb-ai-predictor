@@ -607,12 +607,17 @@ def render_historial_futbol(mercado_activo: str):
                 key="hist_sel_res",
             )
 
-        # Fila de buscador por texto
-        busqueda_equipo = st.text_input(
-            "Buscar equipo de Fútbol:",
-            placeholder="🔍 Ej: Real Madrid, Barcelona, Arsenal, América, Chivas, Chelsea...",
-            key="hist_busqueda_equipo",
-        ).strip().lower()
+        # Fila de buscador por texto y filtro +EV
+        col_b1, col_b2 = st.columns([2, 1])
+        with col_b1:
+            busqueda_equipo = st.text_input(
+                "Buscar equipo de Fútbol:",
+                placeholder="🔍 Ej: Real Madrid, Barcelona, Arsenal, América, Chivas, Chelsea...",
+                key="hist_busqueda_equipo",
+            ).strip().lower()
+        with col_b2:
+            st.markdown("<div style='margin-top: 1.8rem;'></div>", unsafe_allow_html=True)
+            solo_ev_hist = st.checkbox("🔥 Solo picks Calificados (+EV)", key="hist_futbol_solo_ev")
 
     # Aplicación de filtros
     if sel_liga != "todas":
@@ -638,6 +643,18 @@ def render_historial_futbol(mercado_activo: str):
             f_liq["equipo_local"].astype(str).str.lower().str.contains(busqueda_equipo, na=False) |
             f_liq["equipo_visitante"].astype(str).str.lower().str.contains(busqueda_equipo, na=False)
         ]
+
+    if solo_ev_hist:
+        from core.ui_boleta import parsear_cuota_decimal
+        def _es_ev_pos_fut(row):
+            p = float(row.get('probabilidad', 0.5) or 0.5)
+            if p > 1.0:
+                p = p / 100.0
+            c = parsear_cuota_decimal(row.get('cuota'))
+            return (p * c - 1.0) > 0.0 if (c > 1.0 and p > 0) else False
+
+        f_liq = f_liq[f_liq.apply(_es_ev_pos_fut, axis=1)].copy()
+        st.caption("🔥 Mostrando únicamente picks auditados con **Valor Esperado positivo (+EV)**.")
 
     if f_liq.empty:
         st.warning("⚠️ No se encontraron picks ni partidos liquidados para la combinación de filtros seleccionada.")

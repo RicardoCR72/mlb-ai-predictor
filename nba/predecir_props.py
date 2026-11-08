@@ -44,13 +44,13 @@ RUTA_PRED_PARQUET = DIR_PRED / "predicciones_props_nba_hoy.parquet"
 RUTA_PRED_JSON = DIR_PRED / "predicciones_props_nba_hoy.json"
 
 MAPA_MERCADOS_COLUMNAS = {
-    "Total Points": ("pts", "pts_avg", "pts_std", "pts_l5"),
-    "Total Rebounds": ("reb", "reb_avg", "reb_std", "reb_l5"),
-    "Total Assists": ("ast", "ast_avg", "ast_std", "ast_l5"),
-    "Total Triples": ("t3_made", "t3_avg", "t3_std", "t3_l5"),
-    "Total PRA": ("pra", "pra_avg", "pra_std", "pra_l5"),
-    "Total PR": ("pr", "pr_avg", None, None),
-    "Total PA": ("pa", "pa_avg", None, None),
+    "Total Points": ("pts", "pts_avg", "pts_std", "pts_l5", 3.0),
+    "Total Rebounds": ("reb", "reb_avg", "reb_std", "reb_l5", 1.8),
+    "Total Assists": ("ast", "ast_avg", "ast_std", "ast_l5", 1.5),
+    "Total Triples": ("t3_made", "t3_avg", "t3_std", "t3_l5", 0.8),
+    "Total PRA": ("pra", "pra_avg", "pra_std", "pra_l5", 4.5),
+    "Total PR": ("pr", "pr_avg", "pr_std", "pr_l5", 3.5),
+    "Total PA": ("pa", "pa_avg", "pa_std", "pa_l5", 3.5),
 }
 
 
@@ -148,11 +148,12 @@ def generar_predicciones_props_hoy(
         if not cols_stat:
             continue
 
-        raw_col, avg_col, std_col, l5_col = cols_stat
+        raw_col, avg_col, std_col, l5_col, sigma_floor = cols_stat
         
         stat_avg = float(perfil.get(avg_col, 0.0) or 0.0)
         stat_l5 = float(perfil.get(l5_col, stat_avg) or stat_avg) if l5_col else stat_avg
-        stat_std = float(perfil.get(std_col, 1.5) or 1.5) if std_col else 1.5
+        stat_std_raw = float(perfil.get(std_col, sigma_floor) or sigma_floor) if std_col else sigma_floor
+        stat_std = max(stat_std_raw, sigma_floor)
 
         if stat_avg <= 0:
             continue
@@ -184,18 +185,27 @@ def generar_predicciones_props_hoy(
             # Puntos, PRA, PR, PA
             prob_over = _calcular_probabilidad_normal(linea, mu=proyeccion, sigma=stat_std)
 
-        # Combinar probabilidad del modelo (70%) con hit rate empírico de temporada (30%)
-        prob_over_blended = round(0.70 * prob_over + 0.30 * hit_rate_season, 4)
-        prob_under_blended = round(1.0 - prob_over_blended, 4)
+        # 1. Probabilidad cruda del modelo + tendencia empírica reciente
+        prob_over_raw = 0.70 * prob_over + 0.30 * hit_rate_season
 
         # Cuotas decimales de Bovada
         over_dec = row.get("over_decimal")
         under_dec = row.get("under_decimal")
+        implied_over = (1.0 / over_dec) if (over_dec and over_dec > 1.0) else 0.5238
 
-        # Cálculo de EV%
-        # EV = (Prob * Dec - 1) * 100
-        ev_over = round((prob_over_blended * over_dec - 1.0) * 100.0, 1) if over_dec else -100.0
-        ev_under = round((prob_under_blended * under_dec - 1.0) * 100.0, 1) if under_dec else -100.0
+        # 2. Calibración Bayesiana / Shrinkage hacia la probabilidad implícita de mercado
+        # Evita que muestras cortas (8 juegos) colapsen a certezas falsas de 98%
+        prob_over_shrunk = 0.75 * prob_over_raw + 0.25 * implied_over
+
+        # 3. Techo y piso de seguridad estadística: la varianza NBA limita la probabilidad a máx 76%
+        prob_over_blended = round(float(np.clip(prob_over_shrunk, 0.24, 0.76)), 4)
+        prob_under_blended = round(1.0 - prob_over_blended, 4)
+
+        # 4. Cálculo de EV% con tope cuantitativo realista de +35.0%
+        raw_ev_over = (prob_over_blended * over_dec - 1.0) * 100.0 if over_dec else -100.0
+        raw_ev_under = (prob_under_blended * under_dec - 1.0) * 100.0 if under_dec else -100.0
+        ev_over = round(min(raw_ev_over, 35.0), 1) if over_dec else -100.0
+        ev_under = round(min(raw_ev_under, 35.0), 1) if under_dec else -100.0
 
         # Selección del Pick recomendado
         is_milestone = int(row.get("is_milestone", 0))
