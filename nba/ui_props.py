@@ -161,22 +161,29 @@ def renderizar_ui_props_nba():
     tab_cards, tab_tabla = st.tabs(["🎴 Tarjetas de Oportunidades", "📋 Tabla Cuantitativa Completa"])
 
     with tab_cards:
-        c_h1, c_h2 = st.columns([2, 1])
+        c_h1, c_h2, c_h3 = st.columns([2, 1, 1])
         with c_h1:
             st.markdown("##### 🎴 Oportunidades de Valor Seleccionadas")
         with c_h2:
-            desplegar_todas_graficas = st.toggle("📊 Desplegar todas las gráficas", value=False, key="nba_props_toggle_graficas")
+            limite_tarjetas = st.selectbox(
+                "Cantidad de tarjetas:",
+                [50, 80, 120, "Todas"],
+                index=1,
+                key="nba_props_limite_cards",
+            )
+        with c_h3:
+            desplegar_todas_graficas = st.toggle("📊 Desplegar gráficas", value=False, key="nba_props_toggle_graficas")
 
-        # Renderizar en cuadrícula de 2 columnas
-        props_a_mostrar = df_filtrado.head(40).to_dict(orient="records")
+        n_cards = len(df_filtrado) if limite_tarjetas == "Todas" else int(limite_tarjetas)
+        props_a_mostrar = df_filtrado.head(n_cards).to_dict(orient="records")
         cols = st.columns(2)
 
         for i, p in enumerate(props_a_mostrar):
             with cols[i % 2]:
                 _renderizar_tarjeta_prop(p, desplegar_grafica_directa=desplegar_todas_graficas)
 
-        if total_filtrado > 40:
-            st.caption(f"Mostrando los mejores 40 picks de {total_filtrado} disponibles. Consulta la pestaña 'Tabla Cuantitativa' para ver la lista completa.")
+        if total_filtrado > n_cards:
+            st.caption(f"Mostrando los mejores {n_cards} picks de {total_filtrado} disponibles. Aumenta el selector o consulta la pestaña 'Tabla Cuantitativa' para ver la lista completa.")
 
     with tab_tabla:
         columnas_tabla = [
