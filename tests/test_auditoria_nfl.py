@@ -126,7 +126,7 @@ class AuditTests(TestCase):
         root=__import__('pathlib').Path(__file__).resolve().parents[1]
         nodes=[n for n in ast.parse((root/'nfl/predecir_props_semana_actual.py').read_text()).body
                if isinstance(n,ast.FunctionDef) and n.name in ['predecir_modelo','base_proyeccion',
-                   'american_a_decimal','agregar_lineas_y_probabilidades','evaluar_dependencia_recepcion']]
+                   'american_a_decimal','agregar_lineas_y_probabilidades','seleccionar_candidatos','evaluar_dependencia_recepcion']]
         class FrozenModel:
             feature_names_in_=['teammate_skill_injury_score']
             def predict(self,frame):return 60+80*frame.teammate_skill_injury_score

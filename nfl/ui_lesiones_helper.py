@@ -108,3 +108,4 @@ def crear_callback_lesiones_nfl(
             st.caption(extra_context)
 
     return _render
+

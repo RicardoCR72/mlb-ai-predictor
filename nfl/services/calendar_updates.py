@@ -2,7 +2,7 @@
 from pathlib import Path
 import pandas as pd
 import nflreadpy as nfl
-from nfl.settings import TEMPORADA_ACTUAL, RUTA_CALENDARIO
+from nfl.settings import TEMPORADA_ACTUAL, RUTA_CALENDARIO, RUTA_DEPTH_CHARTS
 from nfl.features_lesiones import RUTA_LESIONES
 
 def actualizar_calendario():
@@ -242,3 +242,56 @@ def obtener_proxima_semana(calendario):
     )
 
     return proxima_semana
+
+
+def actualizar_depth_charts():
+    """Descarga o actualiza el depth chart oficial de la temporada actual usando nflreadpy."""
+    print(f"Actualizando depth charts de {TEMPORADA_ACTUAL}...")
+    RUTA_DEPTH_CHARTS.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        df = nfl.load_depth_charts([TEMPORADA_ACTUAL]).to_pandas()
+        df.to_parquet(RUTA_DEPTH_CHARTS, index=False)
+        print(f"Depth charts actualizados: {len(df):,} registros.")
+        return df
+    except Exception as error:
+        if RUTA_DEPTH_CHARTS.exists():
+            print(
+                f"ADVERTENCIA: no se pudo descargar depth charts ({error}); "
+                "se usará la copia local."
+            )
+            return pd.read_parquet(RUTA_DEPTH_CHARTS)
+        raise RuntimeError(
+            f"No fue posible descargar depth charts de {TEMPORADA_ACTUAL} y no hay copia local: {error}"
+        ) from error
+
+
+def cargar_mapeo_depth_chart():
+    """Retorna un DataFrame con el orden jerárquico (depth_rank) oficial más reciente por jugador y equipo.
+    
+    Incluye mapeo por player_id (gsis_id) y nombres normalizados para resolver jerarquías
+    de RB, QB, WR y TE.
+    """
+    if not RUTA_DEPTH_CHARTS.exists():
+        actualizar_depth_charts()
+
+    df = pd.read_parquet(RUTA_DEPTH_CHARTS)
+    if "dt" in df.columns:
+        df["dt"] = pd.to_datetime(df["dt"], errors="coerce")
+        df = df.sort_values("dt")
+    
+    posiciones = ["RB", "QB", "WR", "TE"]
+    if "pos_abb" in df.columns:
+        df = df[df["pos_abb"].isin(posiciones)].copy()
+
+    # Conserva la entrada más reciente por (equipo, jugador)
+    if "gsis_id" in df.columns:
+        latest = df.dropna(subset=["gsis_id"]).drop_duplicates(subset=["team", "gsis_id"], keep="last").copy()
+    else:
+        latest = df.drop_duplicates(subset=["team", "player_name"], keep="last").copy()
+
+    latest["depth_rank"] = pd.to_numeric(latest["pos_rank"], errors="coerce").fillna(99).astype(int)
+    
+    mapeo = latest[["team", "player_name", "gsis_id", "pos_abb", "depth_rank"]].rename(
+        columns={"gsis_id": "player_id", "pos_abb": "position"}
+    )
+    return mapeo

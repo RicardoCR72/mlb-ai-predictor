@@ -59,3 +59,4 @@ En una pantalla de teléfono de 6 pulgadas, cualquier texto por debajo de 30pt e
 ## 5. Cierre y Call to Action (CTA)
 - No colocar falsos botones interactivos en video (los usuarios no pueden tocar una imagen).
 - Indicar verbal y visualmente con flecha sutil o animación: *"Picks completos en el link del perfil / comentarios fijados"*.
+

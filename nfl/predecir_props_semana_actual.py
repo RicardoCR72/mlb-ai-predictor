@@ -47,7 +47,13 @@ from construir_dataset_prop_touchdown import (
     preparar_base as preparar_base_td,
 )
 from nfl.settings import TEMPORADA_ACTUAL
-from nfl.services.calendar_updates import actualizar_calendario, actualizar_lesiones, obtener_proxima_semana
+from nfl.services.calendar_updates import (
+    actualizar_calendario,
+    actualizar_lesiones,
+    actualizar_depth_charts,
+    cargar_mapeo_depth_chart,
+    obtener_proxima_semana,
+)
 from core.db import get_db_credentials as obtener_configuracion_mysql
 from nfl.persistence.totals import valor_mysql
 
@@ -350,7 +356,7 @@ def preparar_features_adicionales(calendario, semana, game_ids=None):
         pase.loc[titulares, "is_starting_qb"] = 1
         pase = pase.loc[titulares].copy()
 
-    print("Calculando features de carrera...")
+    print("Calculando features de carrera con Depth Chart oficial...")
     carrera = construir_dataset_carrera(combinadas, lesiones)
     carrera = carrera[carrera["game_id"].isin(ids_futuros)].copy()
     carrera = carrera[
@@ -359,18 +365,57 @@ def preparar_features_adicionales(calendario, semana, game_ids=None):
         & ~carrera["player_injury_status"].isin(["out", "doubtful"])
     ].copy()
 
-    # Identifica al corredor principal activo de cada equipo. Conservamos las
-    # proyecciones de todos los jugadores para análisis, pero únicamente un RB
-    # con volumen estable podrá convertirse posteriormente en candidato.
+    # Cargar y fusionar el depth chart oficial para determinar la jerarquía real
+    try:
+        dc_df = cargar_mapeo_depth_chart()
+        # Mapear por (team, player_id)
+        dc_id_map = (
+            dc_df.dropna(subset=["player_id"])
+            .drop_duplicates(subset=["team", "player_id"])
+            .set_index(["team", "player_id"])["depth_rank"]
+        )
+        carrera["depth_rank"] = (
+            carrera.set_index(["team", "player_id"]).index.map(dc_id_map)
+        )
+
+        # Fallback por (team, player_name)
+        faltantes = carrera["depth_rank"].isna()
+        if faltantes.any():
+            dc_name_map = (
+                dc_df.dropna(subset=["player_name"])
+                .drop_duplicates(subset=["team", "player_name"])
+                .set_index(["team", "player_name"])["depth_rank"]
+            )
+            carrera.loc[faltantes, "depth_rank"] = (
+                carrera.loc[faltantes]
+                .set_index(["team", "player_name"])
+                .index.map(dc_name_map)
+            )
+
+        carrera["depth_rank"] = (
+            pd.to_numeric(carrera["depth_rank"], errors="coerce")
+            .fillna(99)
+            .astype(int)
+        )
+    except Exception as e_dc:
+        print(f"Aviso: No se pudo cargar depth chart oficial ({e_dc}). Se usará fallback.")
+        carrera["depth_rank"] = 99
+
+    # Identifica al corredor principal activo de cada equipo respetando el depth chart oficial.
+    # El RB activo (no lesionado) con menor depth_rank (1 = titular) es el único is_primary_rusher = 1.
+    # Si el titular está inactivo/descartado, el suplente #2 asciende a titular activo.
     carrera["is_primary_rusher"] = 0
-    principales_elegibles = carrera[
-        carrera["position"].eq("RB")
-        & (carrera["player_carries_avg_5"] >= 10.0)
-    ]
-    if not principales_elegibles.empty:
-        indices_principales = principales_elegibles.groupby(
-            ["game_id", "team"]
-        )["player_carries_avg_5"].idxmax()
+    rbs_activos = carrera[carrera["position"].eq("RB")].copy()
+    if not rbs_activos.empty:
+        indices_principales = (
+            rbs_activos.sort_values(
+                ["game_id", "team", "depth_rank", "player_carries_avg_5"],
+                ascending=[True, True, True, False],
+            )
+            .groupby(["game_id", "team"], sort=False)
+            .head(1)
+            .index
+        )
         carrera.loc[indices_principales, "is_primary_rusher"] = 1
 
     print("Calculando features de anota touchdown...")
@@ -406,13 +451,15 @@ def base_proyeccion(features):
         "game_id", "season", "week", "gameday", "player_id",
         "player_name", "position", "team", "opponent_team",
         "player_injury_status", "contexto_lesiones",
-        "player_carries_avg_5", "is_primary_rusher",
+        "player_carries_avg_5", "is_primary_rusher", "depth_rank",
         "player_targets_avg_5", "player_receiving_yards_avg_5",
         "player_target_share_avg_5", "player_receptions_avg_5",
         "player_passing_attempts_avg_5", "player_passing_yards_avg_5",
         "player_passing_tds_avg_5", "player_rushing_yards_avg_5",
     ]
     base = features[[c for c in columnas if c in features.columns]].copy()
+    if "depth_rank" not in base:
+        base["depth_rank"] = 99
     if "player_injury_status" not in base:
         base["player_injury_status"] = "healthy_or_unlisted"
     if "contexto_lesiones" not in base:
@@ -454,9 +501,11 @@ def aplicar_inercia_volumen_elite(proyeccion, df, tipo_prop):
         ajuste = np.where(mask & (rec_avg > proj), (1.0 - peso) * proj + peso * rec_avg, proj)
         return ajuste
     elif tipo_prop == "rushing_yards":
+        is_primary = pd.to_numeric(df.get("is_primary_rusher", pd.Series(0, index=df.index)), errors="coerce").fillna(0).to_numpy()
         carries = pd.to_numeric(df.get("player_carries_avg_5", pd.Series(0.0, index=df.index)), errors="coerce").fillna(0.0).to_numpy()
         rush_avg = pd.to_numeric(df.get("player_rushing_yards_avg_5", pd.Series(0.0, index=df.index)), errors="coerce").fillna(0.0).to_numpy()
-        mask = (carries >= 15.0) | (rush_avg >= 70.0)
+        # La inercia de volumen SOLO aplica a corredores titulares confirmados
+        mask = (is_primary == 1) & ((carries >= 15.0) | (rush_avg >= 70.0))
         peso = np.clip((carries - 13.0) / 12.0, 0.0, 0.35)
         ajuste = np.where(mask & (rush_avg > proj), (1.0 - peso) * proj + peso * rush_avg, proj)
         return ajuste
@@ -474,6 +523,67 @@ def aplicar_inercia_volumen_elite(proyeccion, df, tipo_prop):
         ajuste = np.where(mask & (td_avg > proj), (1.0 - peso) * proj + peso * td_avg, proj)
         return ajuste
     return proj
+
+
+def calibrar_team_share_rushing(bloque_rushing):
+    """Aplica restricción de suma cero (Team Share) a las proyecciones terrestres del backfield.
+    
+    1. Si el corredor titular (#1) está activo:
+       - Los corredores suplentes (#2) se ajustan a su rol real (máximo 35% del titular o 32 yardas).
+       - Los corredores de tercer orden (#3+) se ajustan a un rol marginal (máximo 15% o 12 yardas).
+    2. Restricción de capacidad máxima del backfield (Team Zero-Sum):
+       - Ningún backfield colectivo de RBs puede sumar yardas irreales (> 120-130 yds).
+       - Si la suma total excede el techo razonable, se calibra proporcionalmente asegurando
+         que el titular mantenga su jerarquía principal (~70% del volumen).
+    """
+    res = bloque_rushing.copy()
+    if res.empty or "game_id" not in res.columns:
+        return res
+
+    for (gid, tm), indices in res.groupby(["game_id", "team"]).groups.items():
+        sub = res.loc[indices]
+        mask_rb = sub["position"].eq("RB")
+        if not mask_rb.any():
+            continue
+
+        idx_rbs = sub[mask_rb].index
+        rbs = res.loc[idx_rbs]
+
+        has_primary = (rbs["is_primary_rusher"] == 1).any()
+        if not has_primary:
+            continue
+
+        prim_row = rbs[rbs["is_primary_rusher"] == 1].iloc[0]
+        prim_proj = float(prim_row["proyeccion"])
+
+        # 1. Calibrar suplentes cuando el titular está activo
+        for idx in idx_rbs:
+            if res.loc[idx, "is_primary_rusher"] == 0:
+                dr = res.loc[idx].get("depth_rank", 99)
+                try:
+                    dr = int(dr)
+                except (ValueError, TypeError):
+                    dr = 99
+
+                p_orig = float(res.loc[idx, "proyeccion"])
+                if dr == 2:
+                    # Suplente inmediato (#2): rol típico de 4-8 acarreos (~20-30 yardas)
+                    techo_rb2 = min(32.0, max(12.0, prim_proj * 0.35))
+                    res.loc[idx, "proyeccion"] = min(p_orig, techo_rb2)
+                elif dr >= 3:
+                    # Tercer corredor o profundidad: toques esporádicos
+                    techo_rb3 = min(12.0, max(4.0, prim_proj * 0.15))
+                    res.loc[idx, "proyeccion"] = min(p_orig, techo_rb3)
+
+        # 2. Control de suma cero / capacidad total de carrera terrestre
+        rbs_ajustados = res.loc[idx_rbs]
+        suma_total = float(rbs_ajustados["proyeccion"].sum())
+        TECHO_BACKFIELD = 120.0
+        if suma_total > TECHO_BACKFIELD:
+            factor = TECHO_BACKFIELD / suma_total
+            res.loc[idx_rbs, "proyeccion"] = res.loc[idx_rbs, "proyeccion"] * factor
+
+    return res
 
 
 def construir_proyecciones(features, pase, carrera, touchdown):
@@ -521,6 +631,8 @@ def construir_proyecciones(features, pase, carrera, touchdown):
                 0.0,
             )
         bloque["proyeccion"] = aplicar_inercia_volumen_elite(prediccion, conjunto, objetivo)
+        if objetivo == "rushing_yards":
+            bloque = calibrar_team_share_rushing(bloque)
         adicionales.append(bloque)
 
     modelo_td = joblib.load(RUTA_MODELO_ANYTIME_TD)
@@ -707,8 +819,12 @@ def seleccionar_candidatos(resultado):
         & (resultado["cuota_pick"].abs() <= cuota_maxima)
     )
 
-    # Candado 1: Yardas terrestres: solamente el RB principal con volumen probado (mínimo 13 acarreos avg).
-    # Bloquea OVERs en corredores suplentes y bloquea UNDERs suicidas en corredores élite (línea >= 75 yardas).
+    # Candado 1: Yardas terrestres: solamente el RB titular (#1) con volumen probado (mínimo 12 acarreos avg).
+    # REGLA ESTRICTA DE JERARQUÍA / SUPLENTES:
+    # 1. Un suplente (is_primary_rusher == 0 o depth_rank > 1 cuando el titular está activo)
+    #    NUNCA puede ser candidato a un OVER en yardas terrestres (+EV trap).
+    # 2. Bloquea UNDERs suicidas en corredores titulares élite (línea >= 75 yardas).
+    # 3. Solo un RB con is_primary_rusher == 1 y carries_promedio >= 12.0 califica para OVER.
     linea_val = pd.to_numeric(resultado["linea"], errors="coerce").fillna(0.0)
     es_under_rush = es_rushing & resultado["seleccion"].eq("UNDER")
     es_over_rush = es_rushing & resultado["seleccion"].eq("OVER")
@@ -719,12 +835,15 @@ def seleccionar_candidatos(resultado):
     principal = pd.to_numeric(
         resultado.get("is_primary_rusher", pd.Series(0, index=resultado.index)), errors="coerce"
     ).fillna(0).eq(1)
+    depth_rank = pd.to_numeric(
+        resultado.get("depth_rank", pd.Series(99, index=resultado.index)), errors="coerce"
+    ).fillna(99)
+
     rushing_valido = (
         resultado["position"].eq("RB")
-        & (carries_promedio >= 13.0)
         & principal
         & ~(es_under_rush & (linea_val >= 75.0))
-        & ~(es_over_rush & (carries_promedio < 13.0))
+        & ~(es_over_rush & (~principal | (carries_promedio < 12.0) | (depth_rank > 1)))
     )
     candidato &= ~es_rushing | rushing_valido
 
@@ -923,6 +1042,7 @@ def main():
     else:
         semana = obtener_proxima_semana(calendario)
     actualizar_lesiones()
+    actualizar_depth_charts()
     actualizar_estadisticas_jugadores()
     print(f"Semana detectada: {semana}")
 
@@ -976,8 +1096,9 @@ def main():
     columnas = [
         "player_name", "position", "team", "opponent_team", "tipo_prop",
         "proyeccion", "linea", "edge", "seleccion", "probabilidad_pick",
-        "ev_estimado", "estado_pick", "player_injury_status",
+        "ev_estimado", "estado_pick", "is_primary_rusher", "depth_rank", "player_injury_status",
     ]
+    columnas = [c for c in columnas if c in resultado.columns]
     print("\n" + "=" * 120)
     print(f"PROYECCIONES PROPS NFL {TEMPORADA_ACTUAL} - SEMANA {semana}")
     print("=" * 120)
