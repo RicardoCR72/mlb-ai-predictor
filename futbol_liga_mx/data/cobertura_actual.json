@@ -1,11 +1,13 @@
 {
   "scan_from": "2026-07-01",
-  "scan_until": "2026-11-07",
-  "verified_utc": "2026-11-08T17:43:32.854759+00:00",
+  "scan_until": "2026-11-08",
+  "verified_utc": "2026-11-09T22:00:37.582026+00:00",
   "failed_days": [],
   "partial_day": null,
   "unresolved_events": [],
   "final_events": [
+    "401876902",
+    "401876903",
     "401876904",
     "401876905",
     "401876906",
@@ -148,7 +150,7 @@
     "401877044",
     "401877045"
   ],
-  "final_count": 141,
-  "results_sha256": "acbebf424c21b755fb903cc0d732f46c3b2696a0ca2b8025d772f14b0613852c",
+  "final_count": 143,
+  "results_sha256": "03ba6475b51b79e68229de600dd25029fb05270b21253e887eef3b68bc59c103",
   "audited": true
 }
