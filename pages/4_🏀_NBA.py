@@ -1089,10 +1089,16 @@ else:
 
     with col1:
         lbl_btn_res = "Liquidar / Sincronizar Resultados"
-        help_btn_res = "Consulta marcadores finales de ESPN, liquida las apuestas concluidas y las registra en Rendimiento e Historial."
+        help_btn_res = "Consulta marcadores finales de ESPN, liquida las apuestas concluidas (partidos y props) y las registra en Rendimiento e Historial."
         if st.button(lbl_btn_res, key="btn_act_res_nba", type="primary", use_container_width=True, help=help_btn_res):
-            with st.spinner("Consultando marcadores ESPN y liquidando partidos NBA..."):
+            with st.spinner("Consultando marcadores ESPN y liquidando partidos y props de NBA..."):
                 res = liquidar_partidos_pendientes_nba()
+                try:
+                    from nba.evaluar_props import sincronizar_y_liquidar_props_nba
+                    res_p = sincronizar_y_liquidar_props_nba()
+                except Exception as e_p:
+                    logger.warning(f"Error sincronizando props: {e_p}")
+                st.cache_data.clear()
                 if res.get("evaluados", 0) > 0:
                     st.success(f"✅ {res['mensaje']}")
                 else:

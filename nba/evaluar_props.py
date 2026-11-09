@@ -275,20 +275,18 @@ def sincronizar_y_liquidar_props_nba(conn=None) -> Dict[str, Any]:
         df_preds = df_preds.sort_values(by="ev_pct", ascending=False)
     df_preds = df_preds.drop_duplicates(subset=["player_name", "market"], keep="first").copy()
 
-    # 2. Cargar Boxscores de Jugadores oficiales
+    # 2. Cargar y sincronizar Boxscores de Jugadores oficiales con ESPN
     df_box = pd.DataFrame()
-    if RUTA_PARQUET_JUGADORES.exists():
-        try:
-            df_box = pd.read_parquet(RUTA_PARQUET_JUGADORES)
-        except Exception as e:
-            logger.warning(f"Error leyendo boxscores de jugadores: {e}")
-
-    if df_box.empty:
-        try:
-            from nba.servicio_jugadores_boxscores import sincronizar_boxscores_jugadores
-            df_box = sincronizar_boxscores_jugadores()
-        except Exception as e:
-            logger.warning(f"No se pudieron sincronizar boxscores: {e}")
+    try:
+        from nba.servicio_jugadores_boxscores import sincronizar_boxscores_jugadores
+        df_box = sincronizar_boxscores_jugadores()
+    except Exception as e:
+        logger.warning(f"No se pudieron sincronizar boxscores con ESPN ({e}). Usando copia local si existe.")
+        if RUTA_PARQUET_JUGADORES.exists():
+            try:
+                df_box = pd.read_parquet(RUTA_PARQUET_JUGADORES)
+            except Exception as e_pq:
+                logger.warning(f"Error leyendo copia local de boxscores: {e_pq}")
 
     if not df_box.empty:
         if "minutos" not in df_box.columns and "min" in df_box.columns:

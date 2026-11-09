@@ -10,6 +10,7 @@ Permite explorar los props de jugadores del día con:
 from __future__ import annotations
 
 import json
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -20,6 +21,7 @@ RAIZ = Path(__file__).resolve().parents[1]
 RUTA_PRED_PARQUET = RAIZ / "data" / "nba" / "predictions" / "predicciones_props_nba_hoy.parquet"
 RUTA_PRED_JSON = RAIZ / "data" / "nba" / "predictions" / "predicciones_props_nba_hoy.json"
 
+from core.constants import ZONA_CDMX
 from nba.predecir_props import generar_predicciones_props_hoy
 from nba.servicio_bovada_props import extraer_props_nba
 from core.ui_tarjeta_universal import render_tarjeta_universal
@@ -35,21 +37,40 @@ NOMBRES_MERCADOS_ES = {
 }
 
 
-@st.cache_data(ttl=600, show_spinner=False)
+@st.cache_data(ttl=300, show_spinner=False)
 def cargar_predicciones_props() -> pd.DataFrame:
-    """Carga las predicciones guardadas en disco o las genera si no existen."""
+    """Carga las predicciones guardadas en disco o las genera si no existen o son de una fecha previa."""
+    hoy_cdmx = datetime.now(ZONA_CDMX).strftime("%Y-%m-%d")
+    df = pd.DataFrame()
     if RUTA_PRED_PARQUET.exists():
         try:
-            return pd.read_parquet(RUTA_PRED_PARQUET)
+            df = pd.read_parquet(RUTA_PRED_PARQUET)
         except Exception:
             pass
-    if RUTA_PRED_JSON.exists():
+    elif RUTA_PRED_JSON.exists():
         try:
             with open(RUTA_PRED_JSON, "r", encoding="utf-8") as f:
-                return pd.DataFrame(json.load(f))
+                df = pd.DataFrame(json.load(f))
         except Exception:
             pass
-    return pd.DataFrame()
+
+    # Si hay archivo pero pertenece a una jornada anterior, refrescar automáticamente para hoy
+    if not df.empty and "fecha" in df.columns:
+        fecha_props = str(df["fecha"].iloc[0])[:10]
+        if fecha_props < hoy_cdmx:
+            try:
+                extraer_props_nba(usar_cache=False)
+                df = generar_predicciones_props_hoy(usar_cache_bovada=True)
+            except Exception:
+                pass
+    elif df.empty:
+        try:
+            extraer_props_nba(usar_cache=False)
+            df = generar_predicciones_props_hoy(usar_cache_bovada=True)
+        except Exception:
+            pass
+
+    return df
 
 
 def renderizar_ui_props_nba():

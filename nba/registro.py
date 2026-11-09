@@ -548,7 +548,7 @@ def liquidar_partidos_pendientes_nba() -> dict[str, Any]:
                     df_db["fecha"] = df_db["fecha"].astype(str)
                 if "actualizado_en" in df_db.columns:
                     df_db["actualizado_en"] = pd.to_datetime(df_db["actualizado_en"], errors="coerce")
-                df = pd.concat([df, df_db], ignore_index=True).drop_duplicates(subset=["id_juego", "mercado"], keep="last")
+                df = pd.concat([df, df_db], ignore_index=True).drop_duplicates(subset=["id_juego", "mercado", "seleccion"], keep="last")
     except Exception:
         pass
 
@@ -599,19 +599,6 @@ def liquidar_partidos_pendientes_nba() -> dict[str, Any]:
                 except (ValueError, TypeError):
                     pass
 
-    # Backfill automático de partidos finalizados de ESPN que falten en el historial
-    ids_existentes = set(df["id_juego"].astype(str).apply(lambda x: x.split("_")[0]))
-    partidos_faltantes = [ev for ev_id, ev in partidos_finales_map.items() if ev_id not in ids_existentes]
-    if partidos_faltantes:
-        try:
-            from nba.predecir_hoy import predecir_partidos_hoy
-            nuevas_preds = predecir_partidos_hoy(force_refresh=True)
-            if nuevas_preds:
-                guardar_predicciones_nba(nuevas_preds)
-                df = pd.read_parquet(RUTA_HISTORIAL_PARQUET)
-        except Exception as e_gen:
-            logger.warning(f"Error generando predicciones para partidos faltantes: {e_gen}")
-
     liquidados_count = 0
     liquidados_indices = []
     ahora_dt = pd.Timestamp.now()
@@ -653,7 +640,7 @@ def liquidar_partidos_pendientes_nba() -> dict[str, Any]:
                 liquidados_indices.append(idx)
 
     if liquidados_count > 0:
-        df = df.drop_duplicates(subset=["id_juego", "mercado"], keep="last")
+        df = df.drop_duplicates(subset=["id_juego", "mercado", "seleccion"], keep="last")
         if "fecha" in df.columns:
             df["fecha"] = df["fecha"].astype(str)
         if "actualizado_en" in df.columns:
