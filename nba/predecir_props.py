@@ -100,10 +100,16 @@ def _calcular_probabilidad_normal(linea: float, mu: float, sigma: float) -> floa
 
 def generar_predicciones_props_hoy(
     usar_cache_bovada: bool = True,
-    min_juegos_muestra: int = 3
+    min_juegos_muestra: int = 3,
+    fecha_referencia: Optional[str] = None,
 ) -> pd.DataFrame:
-    """Genera predicciones con Valor Esperado (EV%) para todos los props de hoy."""
+    """Genera predicciones con Valor Esperado (EV%) para todos los props de hoy.
+    Incluye filtro estricto anti-leakage (solo considera boxscores anteriores a la fecha objetivo).
+    """
     DIR_PRED.mkdir(parents=True, exist_ok=True)
+
+    hoy_cdmx = datetime.now(ZONA_CDMX).strftime("%Y-%m-%d")
+    fecha_corte = str(fecha_referencia or hoy_cdmx)[:10]
 
     # 1. Cargar o sincronizar boxscores de jugadores
     if not RUTA_PARQUET_JUGADORES.exists():
@@ -114,6 +120,14 @@ def generar_predicciones_props_hoy(
 
     if df_boxscores.empty:
         logger.error("No hay boxscores disponibles para generar predicciones.")
+        return pd.DataFrame()
+
+    # Filtro estricto anti-leakage: solo estadísticas de partidos jugados ANTES de la fecha objetivo
+    if "fecha" in df_boxscores.columns:
+        df_boxscores = df_boxscores[df_boxscores["fecha"].astype(str) < fecha_corte].copy()
+
+    if df_boxscores.empty:
+        logger.error(f"No hay boxscores disponibles previos a {fecha_corte} para generar predicciones.")
         return pd.DataFrame()
 
     df_perfiles = calcular_perfil_jugador(df_boxscores)

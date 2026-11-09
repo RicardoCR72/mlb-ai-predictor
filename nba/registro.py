@@ -548,7 +548,7 @@ def liquidar_partidos_pendientes_nba() -> dict[str, Any]:
                     df_db["fecha"] = df_db["fecha"].astype(str)
                 if "actualizado_en" in df_db.columns:
                     df_db["actualizado_en"] = pd.to_datetime(df_db["actualizado_en"], errors="coerce")
-                df = pd.concat([df, df_db], ignore_index=True).drop_duplicates(subset=["id_juego", "mercado", "seleccion"], keep="last")
+                df = pd.concat([df, df_db], ignore_index=True).drop_duplicates(subset=["id_juego", "mercado"], keep="last")
     except Exception:
         pass
 
@@ -640,7 +640,7 @@ def liquidar_partidos_pendientes_nba() -> dict[str, Any]:
                 liquidados_indices.append(idx)
 
     if liquidados_count > 0:
-        df = df.drop_duplicates(subset=["id_juego", "mercado", "seleccion"], keep="last")
+        df = df.drop_duplicates(subset=["id_juego", "mercado"], keep="last")
         if "fecha" in df.columns:
             df["fecha"] = df["fecha"].astype(str)
         if "actualizado_en" in df.columns:
