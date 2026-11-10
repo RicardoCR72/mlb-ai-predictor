@@ -72,12 +72,17 @@ def cargar_predicciones(forzar: bool = False):
         if preds and isinstance(preds, list):
             fecha_archivo = preds[0].get("fecha_cdmx")
             if fecha_archivo and fecha_archivo != hoy_cdmx:
-                with st.spinner(f"Actualizando cartelera de hoy ({hoy_cdmx})..."):
+                with st.spinner(f"Actualizando cartelera y props de hoy ({hoy_cdmx})..."):
                     try:
-                        return predecir_partidos_hoy(force_refresh=True)
+                        preds = predecir_partidos_hoy(force_refresh=True)
                     except Exception as e_rf:
                         logger.warning(f"Error refrescando cartelera: {e_rf}")
-                        return preds
+                    try:
+                        from nba.predecir_props import generar_predicciones_props_hoy
+                        generar_predicciones_props_hoy(usar_cache_bovada=False)
+                    except Exception as e_pr:
+                        logger.warning(f"Error generando props al cambiar jornada: {e_pr}")
+                    return preds
 
         pendientes = [
             p for p in preds
@@ -1092,6 +1097,11 @@ else:
         help_btn_res = "Consulta marcadores finales de ESPN, liquida las apuestas concluidas (partidos y props) y las registra en Rendimiento e Historial."
         if st.button(lbl_btn_res, key="btn_act_res_nba", type="primary", use_container_width=True, help=help_btn_res):
             with st.spinner("Consultando marcadores ESPN y liquidando partidos y props de NBA..."):
+                try:
+                    from nba.servicio_jugadores_boxscores import sincronizar_boxscores_jugadores
+                    sincronizar_boxscores_jugadores()
+                except Exception as e_b:
+                    logger.warning(f"Error sincronizando boxscores: {e_b}")
                 res = liquidar_partidos_pendientes_nba()
                 try:
                     from nba.evaluar_props import sincronizar_y_liquidar_props_nba
@@ -1109,6 +1119,11 @@ else:
         if st.button("Actualizar Cuotas DraftKings", key="btn_act_cuotas_nba", type="primary", use_container_width=True, help="Consulta las últimas líneas de DraftKings y actualiza las predicciones de hoy."):
             with st.spinner("Consultando DraftKings y ejecutando modelos NBA..."):
                 cargar_predicciones(forzar=True)
+                try:
+                    from nba.predecir_props import generar_predicciones_props_hoy
+                    generar_predicciones_props_hoy(usar_cache_bovada=True)
+                except Exception as e_pr:
+                    logger.warning(f"No se pudieron generar props en actualización de cuotas: {e_pr}")
                 st.success("✅ Cuotas y predicciones actualizadas desde DraftKings.")
                 st.rerun()
 

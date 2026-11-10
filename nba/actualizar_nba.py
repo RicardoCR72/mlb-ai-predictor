@@ -18,24 +18,41 @@ logging.basicConfig(
 )
 logger = logging.getLogger("nba_pipeline_auto")
 
-def ejecutar_pipeline_nba(force_refresh: bool = True, sincronizar_boxscores: bool = False):
+def ejecutar_pipeline_nba(force_refresh: bool = True, sincronizar_boxscores: bool = True):
     from nba.registro import liquidar_partidos_pendientes_nba
     from nba.predecir_hoy import predecir_partidos_hoy
+    from nba.servicio_jugadores_boxscores import sincronizar_boxscores_jugadores
+    from nba.evaluar_props import sincronizar_y_liquidar_props_nba
 
     if sincronizar_boxscores:
+        logger.info("🏀 [1/4] Sincronizando boxscores oficiales de jugadores (ESPN)...")
         try:
-            from nba.actualizar_boxscores_temporada_actual import actualizar_dataset_temporada_actual
-            actualizar_dataset_temporada_actual()
+            sincronizar_boxscores_jugadores()
         except Exception as e_box:
-            logger.warning(f"Error sincronizando boxscores recientes: {e_box}")
+            logger.warning(f"Error sincronizando boxscores de jugadores: {e_box}")
 
-    logger.info("🏀 [1/2] Liquidando partidos concluidos y actualizando marcadores finales...")
+    logger.info("🏀 [2/4] Liquidando partidos concluidos y sincronizando marcadores finales...")
     res_liq = liquidar_partidos_pendientes_nba()
-    logger.info(f"Liquidación: {res_liq.get('mensaje')}")
+    logger.info(f"Liquidación partidos: {res_liq.get('mensaje')}")
 
-    logger.info("🏀 [2/2] Generando predicciones actualizadas de la jornada...")
+    logger.info("🏀 [3/4] Liquidando Props de Jugadores concluidos...")
+    try:
+        res_props = sincronizar_y_liquidar_props_nba()
+        logger.info(f"Liquidación props: {res_props.get('mensaje')}")
+    except Exception as e_props:
+        logger.warning(f"Error liquidando props: {e_props}")
+
+    logger.info("🏀 [4/4] Generando predicciones actualizadas de la jornada...")
     preds = predecir_partidos_hoy(force_refresh=force_refresh)
     logger.info(f"✅ Se generaron {len(preds)} predicciones para la cartelera activa.")
+
+    # Generar / actualizar props de hoy si hay líneas disponibles
+    try:
+        from nba.predecir_props import generar_predicciones_props_hoy
+        df_p = generar_predicciones_props_hoy(usar_cache_bovada=False)
+        logger.info(f"✅ Se generaron {len(df_p)} props de jugadores para la jornada.")
+    except Exception as e_p_gen:
+        logger.warning(f"No se pudieron generar props automáticamente: {e_p_gen}")
 
     return {
         "ok": True,

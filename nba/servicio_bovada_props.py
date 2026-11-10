@@ -73,18 +73,27 @@ def _american_a_decimal(american: Any) -> float:
 
 
 def descargar_mercados_bovada() -> List[Dict[str, Any]]:
-    """Descarga los eventos y mercados de baloncesto desde Bovada."""
-    req = urllib.request.Request(
-        URL_BOVADA_BASKETBALL,
-        headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
-    )
+    """Descarga los eventos y mercados de baloncesto desde Bovada con soporte SSL resiliente."""
+    import ssl
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "application/json, text/plain, */*",
+        "Accept-Language": "en-US,en;q=0.9,es;q=0.8",
+    }
+    req = urllib.request.Request(URL_BOVADA_BASKETBALL, headers=headers)
     try:
         with urllib.request.urlopen(req, timeout=12) as resp:
             data = json.loads(resp.read().decode("utf-8"))
         return data
     except Exception as err:
-        logger.error(f"Error descargando datos de Bovada: {err}")
-        return []
+        try:
+            ctx = ssl._create_unverified_context()
+            with urllib.request.urlopen(req, timeout=12, context=ctx) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+            return data
+        except Exception as err2:
+            logger.error(f"Error descargando datos de Bovada: {err2}")
+            return []
 
 
 def extraer_props_nba(usar_cache: bool = False, max_horas_cache: float = 4.0) -> pd.DataFrame:
@@ -95,19 +104,23 @@ def extraer_props_nba(usar_cache: bool = False, max_horas_cache: float = 4.0) ->
         try:
             mtime = RUTA_CACHE_PROPS.stat().st_mtime
             edad_horas = (time.time() - mtime) / 3600.0
+            hoy_cdmx = datetime.now(ZONA_CDMX).strftime("%Y-%m-%d")
             if edad_horas <= max_horas_cache:
                 with open(RUTA_CACHE_PROPS, "r", encoding="utf-8") as f:
                     cached_data = json.load(f)
                 df_cache = pd.DataFrame(cached_data)
                 if not df_cache.empty:
-                    logger.info(f"⚡ Cargados {len(df_cache)} props de Bovada desde caché local ({edad_horas:.1f}h de antigüedad).")
-                    return df_cache
+                    fecha_cache = str(df_cache.get("fecha", pd.Series([""])).iloc[0])[:10]
+                    if fecha_cache >= hoy_cdmx:
+                        logger.info(f"⚡ Cargados {len(df_cache)} props de Bovada desde caché local ({edad_horas:.1f}h de antigüedad).")
+                        return df_cache
         except Exception as e:
             logger.warning(f"Error leyendo caché de props: {e}")
 
     raw_data = descargar_mercados_bovada()
     if not raw_data:
         if RUTA_CACHE_PROPS.exists():
+            logger.warning("No se pudo conectar a Bovada en tiempo real; utilizando caché local de respaldo si existe.")
             with open(RUTA_CACHE_PROPS, "r", encoding="utf-8") as f:
                 return pd.DataFrame(json.load(f))
         return pd.DataFrame()

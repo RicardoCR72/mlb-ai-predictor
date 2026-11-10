@@ -365,6 +365,13 @@ def generar_predicciones_props_hoy(
         with open(RUTA_PRED_JSON, "w", encoding="utf-8") as f:
             json.dump(df_res.to_dict(orient="records"), f, indent=2, ensure_ascii=False)
         
+        # Persistir de inmediato en el historial de props como PENDIENTE para asegurar auditoría
+        try:
+            from nba.evaluar_props import registrar_props_pendientes
+            registrar_props_pendientes(df_res)
+        except Exception as e_reg:
+            logger.warning(f"No se pudieron registrar props pendientes en el historial: {e_reg}")
+
         logger.info(f"🎯 Generadas exitosamente {len(df_res)} predicciones de props. Top EV: +{df_res['ev_pct'].max()}%")
 
     return df_res

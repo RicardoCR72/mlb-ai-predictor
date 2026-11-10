@@ -210,6 +210,11 @@ def render():
     with c_btn1:
         if st.button("🏀 Liquidar / Sincronizar con ESPN", key="btn_sync_espn_nba_tot", type="primary", use_container_width=True):
             with st.spinner("Consultando marcadores oficiales en ESPN y liquidando partidos y props de NBA..."):
+                try:
+                    from nba.servicio_jugadores_boxscores import sincronizar_boxscores_jugadores
+                    sincronizar_boxscores_jugadores()
+                except Exception as e_b:
+                    logger.warning(f"Error sincronizando boxscores de jugadores: {e_b}")
                 res = liquidar_partidos_pendientes_nba()
                 try:
                     from nba.evaluar_props import sincronizar_y_liquidar_props_nba

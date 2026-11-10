@@ -60,13 +60,13 @@ def cargar_predicciones_props() -> pd.DataFrame:
         if fecha_props < hoy_cdmx:
             try:
                 extraer_props_nba(usar_cache=False)
-                df = generar_predicciones_props_hoy(usar_cache_bovada=True)
+                df = generar_predicciones_props_hoy(usar_cache_bovada=False)
             except Exception:
                 pass
     elif df.empty:
         try:
             extraer_props_nba(usar_cache=False)
-            df = generar_predicciones_props_hoy(usar_cache_bovada=True)
+            df = generar_predicciones_props_hoy(usar_cache_bovada=False)
         except Exception:
             pass
 

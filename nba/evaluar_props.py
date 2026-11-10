@@ -463,6 +463,90 @@ def sincronizar_y_liquidar_props_nba(conn=None) -> Dict[str, Any]:
     }
 
 
+def registrar_props_pendientes(df_preds: pd.DataFrame) -> None:
+    """Registra predicciones de props como PENDIENTE en el historial persistente de props."""
+    if df_preds is None or df_preds.empty:
+        return
+
+    RUTA_PROCESSED.mkdir(parents=True, exist_ok=True)
+    ahora_dt = datetime.now(ZONA_CDMX)
+    filas = []
+
+    for _, p in df_preds.iterrows():
+        f_str = str(p.get("fecha", ahora_dt.strftime("%Y-%m-%d")))[:10]
+        eq_vis = str(p.get("away_team", "Visita"))
+        eq_loc = str(p.get("home_team", "Local"))
+        id_juego = f"{eq_vis}_{eq_loc}_{f_str}".replace(" ", "_")
+        jugador_nom = str(p.get("player_name", ""))
+        mercado_nom = str(p.get("market", ""))
+        pick_tipo = str(p.get("pick_type", "OVER")).upper()
+        linea_val = float(p.get("line", 0.0) or 0.0)
+        cuota_val = float(p.get("pick_odds_decimal", 1.91) or 1.91)
+        prob_val = float(p.get("model_prob", 0.5) or 0.5)
+        ev_val = float(p.get("ev_pct", 0.0) or 0.0)
+        stars_val = str(p.get("stars", "⭐"))
+        conf_val = str(p.get("confidence", "MEDIA"))
+
+        fila = {
+            "id_juego": id_juego,
+            "fecha": f_str,
+            "fecha_str": f_str,
+            "hora_cdmx": str(p.get("hora", "TBD")),
+            "equipo_local": eq_loc,
+            "equipo_visitante": eq_vis,
+            "partido": f"{eq_vis} @ {eq_loc}",
+            "jugador": jugador_nom,
+            "pilar": "Props de Jugadores",
+            "mercado": mercado_nom,
+            "mercado_display": f"{mercado_nom} (Prop)",
+            "seleccion": f"{jugador_nom} · {pick_tipo} {linea_val:g}",
+            "linea": linea_val,
+            "cuota": round(cuota_val, 3),
+            "probabilidad": round(prob_val, 3),
+            "edge": round(ev_val / 100.0, 3),
+            "ev_pct": round(ev_val, 1),
+            "stars": stars_val,
+            "confianza": conf_val,
+            "valor_real": None,
+            "resultado": "PENDIENTE",
+            "unidades_ganadas": None,
+            "unidades": None,
+            "marcador_final": "En juego",
+            "motivo": "Registrado para auditoría",
+            "actualizado_en": ahora_dt,
+        }
+        filas.append(fila)
+
+    if not filas:
+        return
+
+    df_nuevas = pd.DataFrame(filas)
+    df_existente = pd.DataFrame()
+    if RUTA_HISTORIAL_PROPS_PARQUET.exists():
+        try:
+            df_existente = pd.read_parquet(RUTA_HISTORIAL_PROPS_PARQUET)
+        except Exception:
+            pass
+
+    if not df_existente.empty:
+        # Combinar respetando registros ya concluidos
+        df_total = pd.concat([df_existente, df_nuevas], ignore_index=True)
+        # Mantener primero los que ya tienen resultado GANADA/PERDIDA/PUSH
+        df_total.sort_values(
+            by=["fecha_str", "resultado"],
+            ascending=[False, True],
+            inplace=True
+        )
+        df_total.drop_duplicates(subset=["fecha_str", "jugador", "mercado"], keep="first", inplace=True)
+    else:
+        df_total = df_nuevas
+
+    df_total.sort_values(by=["fecha_str", "ev_pct"], ascending=[False, False], inplace=True)
+    df_total.to_parquet(RUTA_HISTORIAL_PROPS_PARQUET, index=False)
+    df_total.to_csv(RUTA_HISTORIAL_PROPS_CSV, index=False)
+    logger.info(f"💾 {len(df_nuevas)} props registrados como PENDIENTE en {RUTA_HISTORIAL_PROPS_PARQUET}")
+
+
 def cargar_historial_props_nba() -> pd.DataFrame:
     """Carga el historial completo de props de NBA desde Parquet o MySQL."""
     # 1. Intentar desde Parquet persistente local
@@ -470,6 +554,18 @@ def cargar_historial_props_nba() -> pd.DataFrame:
         try:
             df = pd.read_parquet(RUTA_HISTORIAL_PROPS_PARQUET)
             if not df.empty:
+                # Si hay registros pendientes de días previos, intentar liquidar en segundo plano
+                hoy_cdmx = datetime.now(ZONA_CDMX).strftime("%Y-%m-%d")
+                hay_pendientes_pasados = any(
+                    (str(r.get("resultado")).strip().upper() == "PENDIENTE") and (str(r.get("fecha_str", ""))[:10] < hoy_cdmx)
+                    for _, r in df.iterrows()
+                )
+                if hay_pendientes_pasados:
+                    try:
+                        sincronizar_y_liquidar_props_nba()
+                        df = pd.read_parquet(RUTA_HISTORIAL_PROPS_PARQUET)
+                    except Exception as e_liq:
+                        logger.warning(f"Error liquidando props pendientes pasados: {e_liq}")
                 return df
         except Exception as e:
             logger.warning(f"Error leyendo historial_props_nba.parquet: {e}")
