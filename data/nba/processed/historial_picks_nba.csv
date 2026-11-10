@@ -256,10 +256,10 @@ id,id_juego,fecha,hora_cdmx,equipo_local,equipo_visitante,mercado,seleccion,line
 10508.0,401909957_tot,2026-11-09,19:30,Houston Rockets,Denver Nuggets,Totales (UNDER),UNDER 223.5,223.5,1.909,0.565,0.042,MEDIA,110.0,100.0,GANADA,0.909,2026-11-09 22:00:15.000000
 10510.0,401909959_tot,2026-11-09,21:00,Golden State Warriors,New Orleans Pelicans,Totales (UNDER),UNDER 229.5,229.5,1.909,0.578,0.054,MEDIA,138.0,87.0,GANADA,0.909,2026-11-10 13:39:51.513041
 10511.0,401909959_spread,2026-11-09,21:00,Golden State Warriors,New Orleans Pelicans,Spread,New Orleans Pelicans +11.5,11.5,1.909,0.561,0.037,MEDIA,138.0,87.0,PERDIDA,-1.0,2026-11-10 13:39:51.513041
-,401909960_spread,2026-11-10,18:30,New York Knicks,Milwaukee Bucks,Spread,Milwaukee Bucks +15.5,15.5,1.909,0.578,0.054,MEDIA,,,PENDIENTE,,2026-11-10 13:39:52.993747
-,401909961_ml,2026-11-10,19:00,Philadelphia 76ers,Boston Celtics,Moneyline,Boston Celtics ML,0.0,1.855,0.607,0.068,ALTA,,,PENDIENTE,,2026-11-10 13:39:52.993747
-,401909962_ml,2026-11-10,20:00,Phoenix Suns,Los Angeles Clippers,Moneyline,Los Angeles Clippers ML,0.0,2.4,0.557,0.141,ALTA,,,PENDIENTE,,2026-11-10 13:39:52.993747
-,401909962_spread,2026-11-10,20:00,Phoenix Suns,Los Angeles Clippers,Spread,Los Angeles Clippers +3.5,3.5,1.909,0.576,0.052,MEDIA,,,PENDIENTE,,2026-11-10 13:39:52.993747
-,401909964_tot,2026-11-10,21:00,Sacramento Kings,Orlando Magic,Totales (UNDER),UNDER 222.5,222.5,1.909,0.582,0.058,ALTA,,,PENDIENTE,,2026-11-10 13:39:52.993747
-,401909964_spread,2026-11-10,21:00,Sacramento Kings,Orlando Magic,Spread,Sacramento Kings +6.5,6.5,1.909,0.57,0.047,MEDIA,,,PENDIENTE,,2026-11-10 13:39:52.993747
-,401909965_tot,2026-11-10,22:00,Portland Trail Blazers,Oklahoma City Thunder,Totales (UNDER),UNDER 226.5,226.5,1.909,0.614,0.09,ALTA,,,PENDIENTE,,2026-11-10 13:39:52.993747
+,401909960_spread,2026-11-10,18:30,New York Knicks,Milwaukee Bucks,Spread,Milwaukee Bucks +15.5,15.5,1.909,0.579,0.055,MEDIA,,,PENDIENTE,,2026-11-10 20:18:25.964809
+,401909961_ml,2026-11-10,19:00,Philadelphia 76ers,Boston Celtics,Moneyline,Boston Celtics ML,0.0,1.855,0.607,0.068,ALTA,,,PENDIENTE,,2026-11-10 20:18:25.964809
+,401909962_ml,2026-11-10,20:00,Phoenix Suns,Los Angeles Clippers,Moneyline,Los Angeles Clippers ML,0.0,2.4,0.557,0.141,ALTA,,,PENDIENTE,,2026-11-10 20:18:25.964809
+,401909962_spread,2026-11-10,20:00,Phoenix Suns,Los Angeles Clippers,Spread,Los Angeles Clippers +3.5,3.5,1.909,0.576,0.052,MEDIA,,,PENDIENTE,,2026-11-10 20:18:25.964809
+,401909964_tot,2026-11-10,21:00,Sacramento Kings,Orlando Magic,Totales (UNDER),UNDER 222.5,222.5,1.909,0.584,0.06,ALTA,,,PENDIENTE,,2026-11-10 20:18:25.964809
+,401909964_spread,2026-11-10,21:00,Sacramento Kings,Orlando Magic,Spread,Sacramento Kings +6.5,6.5,1.909,0.572,0.048,MEDIA,,,PENDIENTE,,2026-11-10 20:18:25.964809
+,401909965_tot,2026-11-10,22:00,Portland Trail Blazers,Oklahoma City Thunder,Totales (UNDER),UNDER 226.5,226.5,1.909,0.614,0.09,ALTA,,,PENDIENTE,,2026-11-10 20:18:25.964809
