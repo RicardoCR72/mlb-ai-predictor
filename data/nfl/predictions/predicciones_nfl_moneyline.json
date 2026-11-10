@@ -552,10 +552,10 @@
     "equipo_visita": "BUF",
     "fecha_cdmx": "2026-11-09",
     "hora_cdmx": "19:15",
-    "estado": "STATUS_SCHEDULED",
-    "descripcion_estado": "Mon, November 9th at 8:15 PM EST",
-    "marcador_local": 0,
-    "marcador_visita": 0,
+    "estado": "STATUS_FINAL",
+    "descripcion_estado": "Final",
+    "marcador_local": 6,
+    "marcador_visita": 23,
     "provider": "DraftKings",
     "spread_line": 3.0,
     "ml_local": "+142",
@@ -578,9 +578,10 @@
     "diff_total_epa": -13.292,
     "diff_pass_epa": -11.439,
     "diff_injury_ol": 0.35,
-    "resultado_pick": "PENDIENTE",
-    "beneficio_unidades": null,
-    "ganador_real": null,
-    "timestamp": "2026-11-07T18:53:40.329148-06:00"
+    "resultado_pick": "GANADA",
+    "beneficio_unidades": 0.588,
+    "ganador_real": "BUF",
+    "timestamp": "2026-11-07T18:53:40.329148-06:00",
+    "evaluado_en": "2026-11-10 07:42:27"
   }
 ]
