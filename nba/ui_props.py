@@ -37,9 +37,9 @@ NOMBRES_MERCADOS_ES = {
 }
 
 
-@st.cache_data(ttl=300, show_spinner=False)
+@st.cache_data(ttl=60, show_spinner=False)
 def cargar_predicciones_props() -> pd.DataFrame:
-    """Carga las predicciones guardadas en disco o las genera si no existen o son de una fecha previa."""
+    """Carga las predicciones guardadas en disco asegurando que pertenezcan a la jornada activa de hoy."""
     hoy_cdmx = datetime.now(ZONA_CDMX).strftime("%Y-%m-%d")
     df = pd.DataFrame()
     if RUTA_PRED_PARQUET.exists():
@@ -54,21 +54,25 @@ def cargar_predicciones_props() -> pd.DataFrame:
         except Exception:
             pass
 
-    # Si hay archivo pero pertenece a una jornada anterior, refrescar automáticamente para hoy
+    # Si hay archivo pero pertenece a una jornada anterior, intentar refrescar para hoy
     if not df.empty and "fecha" in df.columns:
         fecha_props = str(df["fecha"].iloc[0])[:10]
         if fecha_props < hoy_cdmx:
             try:
                 extraer_props_nba(usar_cache=False)
-                df = generar_predicciones_props_hoy(usar_cache_bovada=False)
+                df_nuevo = generar_predicciones_props_hoy(usar_cache_bovada=False)
+                if not df_nuevo.empty:
+                    df = df_nuevo
+                else:
+                    df = pd.DataFrame()
             except Exception:
-                pass
+                df = pd.DataFrame()
     elif df.empty:
         try:
             extraer_props_nba(usar_cache=False)
             df = generar_predicciones_props_hoy(usar_cache_bovada=False)
         except Exception:
-            pass
+            df = pd.DataFrame()
 
     return df
 
@@ -91,9 +95,10 @@ def renderizar_ui_props_nba():
     df_props = cargar_predicciones_props()
 
     if df_props.empty:
-        st.info("ℹ️ No hay predicciones de props en caché todavía. Haz clic en **Actualizar Líneas en Vivo** para procesar la cartelera de hoy.")
-        if st.button("🚀 Generar Props Ahora"):
-            with st.spinner("Procesando cartelera completa de NBA..."):
+        hoy_str = datetime.now(ZONA_CDMX).strftime("%d-%b-%Y")
+        st.info(f"ℹ️ **Líneas de Props en Espera ({hoy_str})**: Las casas de apuestas (Bovada) aún no abren la totalidad de líneas de props individuales para los partidos de hoy (suelen estar disponibles entre las 10:30 y 11:30 AM tras los shootarounds matutinos). Pulsa **Actualizar Líneas en Vivo** más tarde para sincronizarlas, o consulta las proyecciones activas de **Totales, Moneyline y Spread** de hoy en el menú superior.")
+        if st.button("🚀 Intentar Generar Props Ahora"):
+            with st.spinner("Consultando cartelera de NBA..."):
                 generar_predicciones_props_hoy(usar_cache_bovada=False)
                 st.cache_data.clear()
                 st.rerun()
