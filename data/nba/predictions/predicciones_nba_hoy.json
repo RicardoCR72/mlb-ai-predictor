@@ -8,7 +8,7 @@
     "abbr_visita": "WAS",
     "fecha_cdmx": "2026-11-11",
     "hora_cdmx": "18:00",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_FINAL",
     "provider": "DraftKings",
     "linea_spread": -2.5,
     "spread_detalles": "IND -2.5",
@@ -157,7 +157,12 @@
         "detalle": "Proyección Calibrada: 222.3 pts vs línea 228.5 (Edge: +7.4%, EV: +14.1%)"
       }
     ],
-    "timestamp": "2026-11-11T14:02:35.613997-06:00"
+    "timestamp": "2026-11-11T14:02:35.613997-06:00",
+    "marcador_local": 114,
+    "marcador_visita": 101,
+    "resultado": "GANADA",
+    "unidades_ganadas": 0.909,
+    "descripcion_estado": "Final"
   },
   {
     "id_evento": "401909967",
@@ -168,7 +173,7 @@
     "abbr_visita": "CLE",
     "fecha_cdmx": "2026-11-11",
     "hora_cdmx": "18:00",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_FINAL",
     "provider": "DraftKings",
     "linea_spread": -3.5,
     "spread_detalles": "NY -3.5",
@@ -256,7 +261,12 @@
     "pick_detalle": "Líneas de mercado eficientes (Sin ventaja clara. Margen: +1.3 pts)",
     "confianza": "NEUTRAL",
     "candidatos": [],
-    "timestamp": "2026-11-11T14:02:35.618551-06:00"
+    "timestamp": "2026-11-11T14:02:35.618551-06:00",
+    "marcador_local": 107,
+    "marcador_visita": 115,
+    "descripcion_estado": "Final",
+    "resultado": "PERDIDA",
+    "unidades_ganadas": -1.0
   },
   {
     "id_evento": "401909968",
@@ -267,7 +277,7 @@
     "abbr_visita": "BOS",
     "fecha_cdmx": "2026-11-11",
     "hora_cdmx": "18:00",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_FINAL",
     "provider": "DraftKings",
     "linea_spread": 5.5,
     "spread_detalles": "BOS -5.5",
@@ -393,7 +403,12 @@
     "pick_detalle": "Líneas de mercado eficientes (Sin ventaja clara. Margen: -5.7 pts)",
     "confianza": "NEUTRAL",
     "candidatos": [],
-    "timestamp": "2026-11-11T14:02:35.622952-06:00"
+    "timestamp": "2026-11-11T14:02:35.622952-06:00",
+    "marcador_local": 93,
+    "marcador_visita": 98,
+    "descripcion_estado": "Final",
+    "resultado": "GANADA",
+    "unidades_ganadas": 0.45
   },
   {
     "id_evento": "401909969",
@@ -404,7 +419,7 @@
     "abbr_visita": "SAS",
     "fecha_cdmx": "2026-11-11",
     "hora_cdmx": "19:00",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_END_PERIOD",
     "provider": "DraftKings",
     "linea_spread": 15.5,
     "spread_detalles": "SA -15.5",
@@ -551,7 +566,10 @@
         "detalle": "Proyección Calibrada: 232.9 pts vs línea 237.5 (Edge: +5.7%, EV: +10.9%)"
       }
     ],
-    "timestamp": "2026-11-11T14:02:35.627385-06:00"
+    "timestamp": "2026-11-11T14:02:35.627385-06:00",
+    "descripcion_estado": "End of Period",
+    "marcador_local": 89,
+    "marcador_visita": 90
   },
   {
     "id_evento": "401909970",
@@ -562,7 +580,7 @@
     "abbr_visita": "DEN",
     "fecha_cdmx": "2026-11-11",
     "hora_cdmx": "19:00",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_IN_PROGRESS",
     "provider": "DraftKings",
     "linea_spread": 3.5,
     "spread_detalles": "DEN -3.5",
@@ -697,7 +715,10 @@
         "detalle": "Proyección Calibrada: 227.3 pts vs línea 229.5 (Edge: +3.3%, EV: +6.3%)"
       }
     ],
-    "timestamp": "2026-11-11T14:02:35.631834-06:00"
+    "timestamp": "2026-11-11T14:02:35.631834-06:00",
+    "descripcion_estado": "In Progress",
+    "marcador_local": 81,
+    "marcador_visita": 83
   },
   {
     "id_evento": "401909971",
@@ -708,7 +729,7 @@
     "abbr_visita": "LAL",
     "fecha_cdmx": "2026-11-11",
     "hora_cdmx": "19:00",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_IN_PROGRESS",
     "provider": "DraftKings",
     "linea_spread": 14.5,
     "spread_detalles": "LAL -14.5",
@@ -795,7 +816,10 @@
         "detalle": "Margen Proyectado: -10.9 pts (Spread: +14.5)"
       }
     ],
-    "timestamp": "2026-11-11T14:02:35.636136-06:00"
+    "timestamp": "2026-11-11T14:02:35.636136-06:00",
+    "descripcion_estado": "In Progress",
+    "marcador_local": 72,
+    "marcador_visita": 92
   },
   {
     "id_evento": "401909972",
@@ -806,7 +830,7 @@
     "abbr_visita": "BKN",
     "fecha_cdmx": "2026-11-11",
     "hora_cdmx": "19:00",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_IN_PROGRESS",
     "provider": "DraftKings",
     "linea_spread": -3.5,
     "spread_detalles": "NO -3.5",
@@ -916,7 +940,10 @@
     "pick_detalle": "Líneas de mercado eficientes (Sin ventaja clara. Margen: +2.4 pts)",
     "confianza": "NEUTRAL",
     "candidatos": [],
-    "timestamp": "2026-11-11T14:02:35.640475-06:00"
+    "timestamp": "2026-11-11T14:02:35.640475-06:00",
+    "descripcion_estado": "In Progress",
+    "marcador_local": 76,
+    "marcador_visita": 102
   },
   {
     "id_evento": "401909973",
@@ -927,7 +954,7 @@
     "abbr_visita": "ORL",
     "fecha_cdmx": "2026-11-11",
     "hora_cdmx": "20:00",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_IN_PROGRESS",
     "provider": "DraftKings",
     "linea_spread": 3.5,
     "spread_detalles": "ORL -3.5",
@@ -1113,7 +1140,10 @@
         "detalle": "Proyección Calibrada: 210.6 pts vs línea 214.5 (Edge: +5.0%, EV: +9.5%)"
       }
     ],
-    "timestamp": "2026-11-11T14:02:35.644740-06:00"
+    "timestamp": "2026-11-11T14:02:35.644740-06:00",
+    "descripcion_estado": "In Progress",
+    "marcador_local": 37,
+    "marcador_visita": 33
   },
   {
     "id_evento": "401909974",
@@ -1124,7 +1154,7 @@
     "abbr_visita": "GSW",
     "fecha_cdmx": "2026-11-11",
     "hora_cdmx": "20:30",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_IN_PROGRESS",
     "provider": "DraftKings",
     "linea_spread": -6.5,
     "spread_detalles": "HOU -6.5",
@@ -1285,7 +1315,10 @@
         "detalle": "Proyección Calibrada: 217.8 pts vs línea 220.5 (Edge: +3.8%, EV: +7.3%)"
       }
     ],
-    "timestamp": "2026-11-11T14:02:35.649007-06:00"
+    "timestamp": "2026-11-11T14:02:35.649007-06:00",
+    "descripcion_estado": "In Progress",
+    "marcador_local": 12,
+    "marcador_visita": 7
   },
   {
     "id_evento": "401909975",
@@ -1298,24 +1331,24 @@
     "hora_cdmx": "21:00",
     "estado": "STATUS_SCHEDULED",
     "provider": "DraftKings",
-    "linea_spread": 1.5,
-    "spread_detalles": "OKC -1.5",
-    "linea_total": 225.5,
-    "ml_local": "-105",
-    "ml_visita": "-113",
-    "ml_local_dec": 1.952,
-    "ml_visita_dec": 1.885,
-    "margen_local_esperado": 0.08,
-    "prob_local_win": 0.5027,
-    "prob_visita_win": 0.4973,
-    "prob_local_win_cruda": 0.5028,
-    "prob_visita_win_cruda": 0.4972,
-    "prob_cover_home": 0.5463,
-    "prob_cover_away": 0.4567,
-    "total_proyectado": 218.2,
-    "prob_over": 0.2637,
-    "prob_under": 0.7363,
-    "edge_puntos_total": -7.3,
+    "linea_spread": -2.5,
+    "spread_detalles": "POR -2.5",
+    "linea_total": 224.5,
+    "ml_local": "-147",
+    "ml_visita": "+124",
+    "ml_local_dec": 1.68,
+    "ml_visita_dec": 2.24,
+    "margen_local_esperado": 2.08,
+    "prob_local_win": 0.5726,
+    "prob_visita_win": 0.4274,
+    "prob_local_win_cruda": 0.5762,
+    "prob_visita_win_cruda": 0.4238,
+    "prob_cover_home": 0.4883,
+    "prob_cover_away": 0.5117,
+    "total_proyectado": 216.9,
+    "prob_over": 0.2547,
+    "prob_under": 0.7453,
+    "edge_puntos_total": -7.6,
     "candado_lesion": false,
     "alertas_lesiones": [
       "🚨 Chet Holmgren (OKC) CONFIRMADO OUT (-3.5 pts)",
@@ -1323,7 +1356,7 @@
       "🚨 Ja Morant (POR) CONFIRMADO OUT (-4.0 pts)"
     ],
     "ajuste_spread_lesiones": 2.3,
-    "ajuste_totales_lesiones": -16.2,
+    "ajuste_totales_lesiones": -18.0,
     "lesiones_visita": [
       {
         "jugador": "Jaylin Williams",
@@ -1331,7 +1364,19 @@
         "estado_raw": "Out",
         "estado": "OUT",
         "tipo_lesion": "Back",
-        "comentario": "Williams (back) has been ruled out for Tuesday's game against the Trail Blazers.",
+        "comentario": "Williams (back) has been ruled out for Wednesday's game against Portland and remains out indefinitely.",
+        "impacto_spread": 0.8,
+        "impacto_total": 0.9,
+        "tier": 4,
+        "es_estrella": false
+      },
+      {
+        "jugador": "Ajay Mitchell",
+        "posicion": "G",
+        "estado_raw": "Out",
+        "estado": "OUT",
+        "tipo_lesion": "Ankle",
+        "comentario": "Mitchell has been ruled out for Wednesday's game against the Trail Blazers due to a left ankle sprain.",
         "impacto_spread": 0.8,
         "impacto_total": 0.9,
         "tier": 4,
@@ -1388,6 +1433,18 @@
     ],
     "lesiones_local": [
       {
+        "jugador": "Chris Youngblood",
+        "posicion": "G",
+        "estado_raw": "Out",
+        "estado": "OUT",
+        "tipo_lesion": "Foot",
+        "comentario": "Youngblood has been ruled out for Wednesday's game against the Thunder.",
+        "impacto_spread": 0.8,
+        "impacto_total": 0.9,
+        "tier": 4,
+        "es_estrella": false
+      },
+      {
         "jugador": "Vit Krejci",
         "posicion": "G",
         "estado_raw": "Out",
@@ -1425,28 +1482,28 @@
       }
     ],
     "pick_mercado": "Totales (UNDER)",
-    "pick_seleccion": "UNDER 225.5",
-    "pick_probabilidad": 0.6094,
-    "pick_edge": 0.0856,
-    "pick_ev": 0.1633,
+    "pick_seleccion": "UNDER 224.5",
+    "pick_probabilidad": 0.6127,
+    "pick_edge": 0.0889,
+    "pick_ev": 0.1697,
     "pick_cuota": "-110",
     "pick_cuota_dec": 1.909,
-    "pick_detalle": "Proyección Calibrada: 218.2 pts vs línea 225.5 (Edge: +8.6%, EV: +16.3%)",
+    "pick_detalle": "Proyección Calibrada: 216.9 pts vs línea 224.5 (Edge: +8.9%, EV: +17.0%)",
     "confianza": "ALTA",
     "candidatos": [
       {
         "mercado": "Totales (UNDER)",
-        "seleccion": "UNDER 225.5",
-        "probabilidad": 0.6094,
-        "probabilidad_cruda": 0.7363,
-        "edge": 0.0856,
-        "ev": 0.1633,
+        "seleccion": "UNDER 224.5",
+        "probabilidad": 0.6127,
+        "probabilidad_cruda": 0.7453,
+        "edge": 0.0889,
+        "ev": 0.1697,
         "cuota": "-110",
         "cuota_dec": 1.909,
         "confianza": "ALTA",
-        "detalle": "Proyección Calibrada: 218.2 pts vs línea 225.5 (Edge: +8.6%, EV: +16.3%)"
+        "detalle": "Proyección Calibrada: 216.9 pts vs línea 224.5 (Edge: +8.9%, EV: +17.0%)"
       }
     ],
-    "timestamp": "2026-11-11T14:02:35.653251-06:00"
+    "timestamp": "2026-11-11T20:47:15.540523-06:00"
   }
 ]
