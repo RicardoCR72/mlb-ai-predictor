@@ -5,11 +5,17 @@ Combina:
 2. Estadísticas de temporada 2026-27 y tendencia reciente (L5) de ESPN.
 3. Impacto de lesiones en tiempo real de compañeros de equipo (Usage Boost).
 4. Modelado probabilístico:
-   - Binomial Negativa / Poisson para Triples y Asistencias de conteo bajo (sin colas negativas).
-   - Gaussiana con corrección de continuidad para Puntos, Rebotes y Combos.
+   - Triples y Asistencias (conteo): Binomial Negativa si la varianza supera a la media,
+     Poisson en caso contrario. Un solo modelo para todas las asistencias (sin saltos de distribución).
+   - Puntos, Rebotes y Combos (PRA, PR, PA): Gaussiana con corrección de continuidad.
    - Modelado exacto de push (empates) en líneas enteras con devolución del stake.
-   - Distribución predictiva con ensanchamiento de dispersión por incertidumbre de media muestral.
+   - Distribución predictiva con ensanchamiento por incertidumbre de la media muestral.
 5. Cálculo de Valor Esperado (EV%) con remoción de vig y asignación de estrellas de confianza.
+
+Notas:
+- fecha_referencia solo filtra boxscores; líneas y lesiones son las de la ejecución.
+- Milestones ("N+"): se modelan como línea N - 0.5 (X >= N), sin push. El campo "line" conserva
+  el valor original de Bovada y "line_modelo" el valor usado en el cálculo.
 """
 
 from __future__ import annotations
@@ -46,6 +52,10 @@ logger = logging.getLogger("nba_predecir_props")
 DIR_PRED = RAIZ / "data" / "nba" / "predictions"
 RUTA_PRED_PARQUET = DIR_PRED / "predicciones_props_nba_hoy.parquet"
 RUTA_PRED_JSON = DIR_PRED / "predicciones_props_nba_hoy.json"
+
+# Milestones (one-sided, plus-money, vig estimado): se les exige más para evitar winner's curse.
+FACTOR_UMBRAL_MILESTONE = 1.5       # multiplica los umbrales de EV de estrellas
+PENALIZACION_EV_MILESTONE = 3.0     # puntos de EV que debe superar un milestone a una línea regular al deduplicar
 
 MAPA_SIGLAS_CANONICAS = {
     "GS": "GSW", "GSW": "GSW", "GOLDEN STATE WARRIORS": "GSW",
@@ -90,6 +100,19 @@ MAPA_FAMILIAS_MERCADOS = {
     "Total Triples": "triples",
 }
 
+MAPA_MERCADOS_COLUMNAS = {
+    # formato: (col_raw, col_avg, col_std, col_l5, sigma_floor, sigma_prior)
+    "Total Points": ("pts", "pts_avg", "pts_std", "pts_l5", 3.0, 5.5),
+    "Total Rebounds": ("reb", "reb_avg", "reb_std", "reb_l5", 1.8, 2.8),
+    "Total Assists": ("ast", "ast_avg", "ast_std", "ast_l5", 1.5, 2.2),
+    "Total Triples": ("t3_made", "t3_avg", "t3_std", "t3_l5", 0.8, 1.2),
+    "Total PRA": ("pra", "pra_avg", "pra_std", "pra_l5", 4.5, 7.5),
+    "Total PR": ("pr", "pr_avg", "pr_std", "pr_l5", 3.5, 6.0),
+    "Total PA": ("pa", "pa_avg", "pa_std", "pa_l5", 3.5, 5.8),
+}
+
+MERCADOS_CONTEO = {"Total Triples", "Total Assists"}
+
 _SIGLAS_AVISADAS: set[str] = set()
 
 
@@ -106,62 +129,42 @@ def normalizar_sigla_equipo(equipo_raw: Any) -> str:
         return s
     return canon
 
-MAPA_MERCADOS_COLUMNAS = {
-    # formato: (col_raw, col_avg, col_std, col_l5, sigma_floor, sigma_prior)
-    "Total Points": ("pts", "pts_avg", "pts_std", "pts_l5", 3.0, 5.5),
-    "Total Rebounds": ("reb", "reb_avg", "reb_std", "reb_l5", 1.8, 2.8),
-    "Total Assists": ("ast", "ast_avg", "ast_std", "ast_l5", 1.5, 2.2),
-    "Total Triples": ("t3_made", "t3_avg", "t3_std", "t3_l5", 0.8, 1.2),
-    "Total PRA": ("pra", "pra_avg", "pra_std", "pra_l5", 4.5, 7.5),
-    "Total PR": ("pr", "pr_avg", "pr_std", "pr_l5", 3.5, 6.0),
-    "Total PA": ("pa", "pa_avg", "pa_std", "pa_l5", 3.5, 5.8),
-}
 
-
-def _calcular_hit_rate(serie: pd.Series, linea: float, suavizado: bool = False) -> Tuple[float, int, int]:
-    """Calcula el porcentaje de partidos en que el jugador superó la línea, excluyendo empates (push)."""
+def _calcular_hit_rate(serie: pd.Series, linea: float) -> Tuple[float, int, int]:
+    """Porcentaje de partidos en que el jugador superó la línea, excluyendo empates (push)."""
     if serie.empty:
         return 0.5, 0, 0
-    # En líneas enteras, excluir empates exactos para no distorsionar el hit rate (evitar contar push como Under)
     serie_decisiva = serie[serie != linea]
     total = len(serie_decisiva)
     if total == 0:
         return 0.5, 0, 0
     overs = int((serie_decisiva > linea).sum())
-    if suavizado:
-        # Suavizado bayesiano Beta(4, 4) para evitar extremos 0% o 100% en muestras cortas
-        rate = round((overs + 4) / (total + 8), 3)
-    else:
-        rate = round(overs / total, 3)
-    return rate, overs, total
+    return round(overs / total, 3), overs, total
 
 
 def _comprimir_ev_suave(ev_raw: float) -> float:
-    """Aplica compresión suave hiperbólica (tanh) para visualización y evitar mesetas."""
+    """Compresión suave (tanh) del EV para visualización. No se usa para decidir picks."""
     if ev_raw <= 15.0:
         return round(ev_raw, 1)
-    # Curva asintótica continua
-    comprimido = 15.0 + 20.0 * math.tanh((ev_raw - 15.0) / 25.0)
-    return round(comprimido, 1)
+    return round(15.0 + 20.0 * math.tanh((ev_raw - 15.0) / 25.0), 1)
 
 
 def _calcular_probabilidades_mercado(mercado: str, linea: float, mu: float, sigma: float) -> Tuple[float, float, float]:
-    """Calcula P(Over), P(Under) y P(Push) con continuidad exacta y manejo riguroso de líneas enteras."""
+    """Calcula P(Over), P(Under) y P(Push).
+
+    Conteos (triples, asistencias): Binomial Negativa si sigma^2 > mu, Poisson si no.
+    Resto: Normal con corrección de continuidad. El push solo existe en líneas enteras.
+    """
     if sigma <= 0.1:
         sigma = 1.5
 
     es_entera = (linea % 1 == 0)
 
-    # Mercados de conteo discreto bajo (Triples y Asistencias <= 6.5):
-    # En conteos bajos la Normal predice valores negativos y asume simetría ficticia.
-    # Usamos Binomial Negativa si sigma^2 > mu (captura sobredispersión y colas pesadas) o Poisson si sigma^2 <= mu.
-    es_mercado_conteo = (mercado == "Total Triples") or (mercado == "Total Assists" and mu <= 6.5)
-
-    if es_mercado_conteo:
+    if mercado in MERCADOS_CONTEO:
         if mu <= 0.05:
             return 0.02, 0.98, 0.0
         k = math.floor(linea)
-        
+
         var = sigma ** 2
         if var > (mu + 0.05):
             p_nb = float(np.clip(mu / var, 0.01, 0.99))
@@ -179,11 +182,7 @@ def _calcular_probabilidades_mercado(mercado: str, linea: float, mu: float, sigm
             p_push = 0.0
             p_under = 1.0 - p_over
     else:
-        # Distribución Normal para puntos, rebotes, asistencias altas y combos
         if es_entera:
-            # P(X > linea) = 1 - Phi((linea + 0.5 - mu) / sigma)
-            # P(X < linea) = Phi((linea - 0.5 - mu) / sigma)
-            # P(X == linea) = 1 - p_over - p_under
             z_over = (linea + 0.5 - mu) / sigma
             z_under = (linea - 0.5 - mu) / sigma
             p_over = float(1.0 - stats.norm.cdf(z_over))
@@ -195,8 +194,11 @@ def _calcular_probabilidades_mercado(mercado: str, linea: float, mu: float, sigm
             p_push = 0.0
             p_under = 1.0 - p_over
 
-    p_over = float(np.clip(p_over, 0.02, 0.98))
-    p_under = float(np.clip(p_under, 0.02, 0.98))
+    # Clip mínimo solo para evitar ceros numéricos; el clip real de seguridad se aplica
+    # una única vez después de condicionar a no-push.
+    eps = 1e-6
+    p_over = float(np.clip(p_over, eps, 1.0 - eps))
+    p_under = float(np.clip(p_under, 0.0, 1.0 - eps))
     return p_over, p_under, p_push
 
 
@@ -205,11 +207,7 @@ def generar_predicciones_props_hoy(
     min_juegos_muestra: int = 3,
     fecha_referencia: Optional[str] = None,
 ) -> pd.DataFrame:
-    """Genera predicciones con Valor Esperado (EV%) para todos los props de hoy.
-    Nota sobre anti-leakage: El parámetro fecha_referencia aplica filtrado temporal estricto
-    únicamente sobre el histórico de boxscores. Las líneas de Bovada y el reporte de lesiones
-    corresponden a las cotizaciones y estado en vivo al momento de la ejecución.
-    """
+    """Genera predicciones con Valor Esperado (EV%) para todos los props de hoy."""
     DIR_PRED.mkdir(parents=True, exist_ok=True)
 
     hoy_cdmx = datetime.now(ZONA_CDMX).strftime("%Y-%m-%d")
@@ -226,7 +224,7 @@ def generar_predicciones_props_hoy(
         logger.error("No hay boxscores disponibles para generar predicciones.")
         return pd.DataFrame()
 
-    # Filtro estricto anti-leakage: solo estadísticas de partidos jugados ANTES de la fecha objetivo
+    # Anti-leakage (solo boxscores): partidos jugados ANTES de la fecha objetivo
     if "fecha" in df_boxscores.columns:
         df_boxscores = df_boxscores[df_boxscores["fecha"].astype(str) < fecha_corte].copy()
 
@@ -234,17 +232,32 @@ def generar_predicciones_props_hoy(
         logger.error(f"No hay boxscores disponibles previos a {fecha_corte} para generar predicciones.")
         return pd.DataFrame()
 
-    # Unificación estricta de muestra (minutos >= 8.0):
-    # Filtramos df_boxscores ANTES de calcular el perfil de jugador para que stat_avg, stat_l5,
-    # stat_std y las series de hit rate se deriven con exactitud sobre la misma muestra limpia.
+    # Verificación de columnas requeridas: los mercados sin columna se omiten con aviso
+    columnas_faltantes = {
+        info[0] for info in MAPA_MERCADOS_COLUMNAS.values() if info[0] not in df_boxscores.columns
+    }
+    if columnas_faltantes:
+        logger.warning(
+            f"Faltan columnas en boxscores: {sorted(columnas_faltantes)}. "
+            f"Los mercados que las usan serán omitidos."
+        )
+
+    # Misma muestra (minutos >= 8) para perfil e hit rates
     col_min = "min" if "min" in df_boxscores.columns else ("minutos" if "minutos" in df_boxscores.columns else None)
     if col_min:
         df_boxscores = df_boxscores[df_boxscores[col_min] >= 8.0].copy()
     else:
-        logger.warning("No se encontró columna de minutos ('min' o 'minutos') en boxscores; no se pudo filtrar partidos cortos.")
+        logger.warning("No se encontró columna de minutos ('min' o 'minutos'); no se pudo filtrar partidos cortos.")
 
-    df_perfiles = calcular_perfil_jugador(df_boxscores, min_minutos=8.0)
-    # Crear diccionario de acceso rápido por nombre normalizado
+    try:
+        df_perfiles = calcular_perfil_jugador(df_boxscores, min_minutos=8.0)
+    except TypeError:
+        logger.warning(
+            "calcular_perfil_jugador no acepta 'min_minutos'. Se llama sin el argumento "
+            "(el filtro de minutos ya se aplicó sobre df_boxscores)."
+        )
+        df_perfiles = calcular_perfil_jugador(df_boxscores)
+
     df_boxscores["player_norm"] = df_boxscores["player_name"].apply(_limpiar_nombre_jugador).str.lower()
     df_perfiles["player_norm"] = df_perfiles["player_name"].apply(_limpiar_nombre_jugador).str.lower()
 
@@ -253,7 +266,7 @@ def generar_predicciones_props_hoy(
         for _, row in df_perfiles.iterrows()
     }
 
-    # 2. Cargar reporte de lesiones para detectar bajas estelares y descartar jugadores inactivos
+    # 2. Reporte de lesiones
     bajas_por_equipo: Dict[str, float] = {}
     jugadores_inactivos: set[str] = set()
     try:
@@ -264,7 +277,6 @@ def generar_predicciones_props_hoy(
                 estado_les = str(les.get("estado", "")).upper()
                 if estado_les in ["OUT", "DOUBTFUL"]:
                     factor_estado = 1.0 if estado_les == "OUT" else 0.75
-                    # Default en 0.0 para que suplentes sin spread estimado no sumen 1.0 falso
                     imp = float(les.get("impacto_spread", 0.0) or 0.0) * factor_estado
                     bajas_por_equipo[t_canon] = bajas_por_equipo.get(t_canon, 0.0) + imp
                     nom = les.get("jugador", "").strip().lower()
@@ -274,13 +286,12 @@ def generar_predicciones_props_hoy(
     except Exception as e:
         logger.warning(f"No se pudo consultar el servicio de lesiones: {e}")
 
-    # Pre-agrupamiento de boxscores por jugador para acelerar el cálculo
     hist_por_jugador = {
         p_name: grp.sort_values("fecha")
         for p_name, grp in df_boxscores.groupby("player_norm")
     }
 
-    # 3. Descargar o leer líneas de Bovada
+    # 3. Líneas de Bovada
     df_bovada = extraer_props_nba(usar_cache=usar_cache_bovada)
     if df_bovada.empty:
         logger.warning("No se obtuvieron props de Bovada.")
@@ -294,12 +305,11 @@ def generar_predicciones_props_hoy(
         mercado = row["market"]
         linea = float(row["line"])
         equipo = row["team"]
+        is_milestone = int(row.get("is_milestone", 0) or 0)
 
-        # Si el jugador está confirmado como baja (OUT / DOUBTFUL), no sugerir sus props
-        if p_norm in jugadores_inactivos or p_clean.lower() in jugadores_inactivos:
+        if p_norm in jugadores_inactivos:
             continue
 
-        # Buscar perfil de estadísticas
         perfil = perfiles_dict.get(p_norm)
         if not perfil or perfil.get("games_played", 0) < min_juegos_muestra:
             continue
@@ -309,7 +319,26 @@ def generar_predicciones_props_hoy(
             continue
 
         raw_col, avg_col, std_col, l5_col, sigma_floor, sigma_prior = cols_stat
-        
+        if raw_col in columnas_faltantes:
+            continue
+
+        # Cuotas: se necesita al menos un lado válido
+        over_dec = row.get("over_decimal")
+        under_dec = row.get("under_decimal")
+        over_ok = bool(over_dec) and over_dec > 1.0
+        under_ok = bool(under_dec) and under_dec > 1.0
+        if not over_ok and not under_ok:
+            continue
+        if not over_ok:
+            over_dec = None
+        if not under_ok:
+            under_dec = None
+
+        # Línea efectiva para el modelo: "N+" equivale a X >= N, es decir línea N - 0.5 sin push.
+        linea_modelo = linea
+        if is_milestone and linea % 1 == 0:
+            linea_modelo = linea - 0.5
+
         stat_avg = float(perfil.get(avg_col, 0.0) or 0.0)
         stat_l5 = float(perfil.get(l5_col, stat_avg) or stat_avg) if l5_col else stat_avg
         stat_std_raw = float(perfil.get(std_col, sigma_prior) or sigma_prior) if std_col else sigma_prior
@@ -317,181 +346,158 @@ def generar_predicciones_props_hoy(
         if stat_avg <= 0:
             continue
 
-        # Filtrar historial de este jugador para calcular hit rate exacto (excluyendo empates en líneas enteras)
         hist_player = hist_por_jugador.get(p_norm, pd.DataFrame())
         serie_stat = hist_player[raw_col].dropna() if not hist_player.empty else pd.Series(dtype=float)
 
-        hit_rate_season, ov_season, n_season = _calcular_hit_rate(serie_stat, linea)
-        hit_rate_l5, ov_l5, n_l5 = _calcular_hit_rate(serie_stat.tail(5), linea)
+        hit_rate_season, ov_season, n_season = _calcular_hit_rate(serie_stat, linea_modelo)
+        hit_rate_l5, ov_l5, n_l5 = _calcular_hit_rate(serie_stat.tail(5), linea_modelo)
 
-        # Proyección ponderada: 60% forma reciente (L5), 40% temporada
+        # Proyección ponderada: 60% forma reciente, 40% temporada
         proj_base = 0.60 * stat_l5 + 0.40 * stat_avg
 
-        # Boost de volumen si un compañero estrella está lesionado (OUT / DOUBTFUL)
+        # Boost por lesiones de compañeros
         equipo_canon = normalizar_sigla_equipo(equipo)
         impacto_bajas = bajas_por_equipo.get(equipo_canon, 0.0)
         boost_lesion = 1.0
         if impacto_bajas >= 3.0:
-            boost_lesion = 1.14  # +14% si hay bajas severas acumuladas
+            boost_lesion = 1.14
         elif impacto_bajas >= 2.0:
-            boost_lesion = 1.08  # +8% de volumen / tiros
+            boost_lesion = 1.08
 
-        # El boost por lesiones impacta principalmente en uso ofensivo y tiros (puntos, triples, PRA, PA);
-        # en rebotes y asistencias defensivas el impacto es moderado (50% del boost)
         factor_mercado = 1.0 if mercado in ["Total Points", "Total Triples", "Total PRA", "Total PA"] else 0.5
         boost_mercado = round(1.0 + (boost_lesion - 1.0) * factor_mercado, 3)
 
-        # Detección de titular basada estrictamente en minutaje real en cancha
+        # Titular según minutaje
         minutos_prom = float(perfil.get("min_avg", 0.0) or 0.0)
         minutos_l5 = float(perfil.get("min_l5", minutos_prom) or minutos_prom)
         es_titular = (minutos_prom >= 24.0) or (minutos_l5 >= 25.0)
 
-        # Descuento de minutos por riesgo de blowout:
-        # En partidos desbalanceados (spread >= 8.5 pts), si el juego se abre por 20+ pts,
-        # los titulares descansan casi todo el 4Q (perdiendo de 6 a 10 minutos de producción).
+        # Descuento por riesgo de blowout
         game_spread = abs(float(row.get("game_spread") or 0.0))
         descuento_blowout = 1.0
         if game_spread >= 8.5 and es_titular:
-            if game_spread >= 11.5:
-                descuento_blowout = 0.86  # -14% de expectativa en partidos con spread >= 11.5
-            else:
-                descuento_blowout = 0.92  # -8% de expectativa en partidos con spread 8.5 - 11.0
+            descuento_blowout = 0.86 if game_spread >= 11.5 else 0.92
 
         proy_continua = proj_base * boost_mercado * descuento_blowout
         proyeccion = round(proy_continua, 1)
 
-        # Shrinkage empírico bayesiano para sigma en muestras cortas (3-10 partidos)
-        # Combina la sigma muestral con la desviación previa del mercado en la NBA,
-        # y escala con la raíz del cambio de expectativa (minutos y uso ofensivo).
+        # Sigma: shrinkage hacia prior de liga, escalado por cambio de expectativa
+        # y ensanchamiento predictivo por incertidumbre de la media.
         n_partidos = float(perfil.get("games_played", 5) or 5)
-        peso_prior_sigma = 5.0 / (n_partidos + 5.0)  # 5 juegos de peso al prior de liga
+        peso_prior_sigma = 5.0 / (n_partidos + 5.0)
         stat_std_blended = (1.0 - peso_prior_sigma) * max(stat_std_raw, sigma_floor) + peso_prior_sigma * sigma_prior
         factor_escala = max(0.1, boost_mercado * descuento_blowout)
         sigma_floor_adj = sigma_floor * math.sqrt(factor_escala)
         stat_std = max(sigma_floor_adj, stat_std_blended * math.sqrt(factor_escala))
-        # Incertidumbre de la media muestral en la distribución predictiva:
-        # Con muestras cortas (ej. n = 4 partidos), la media estimada tiene un error estándar de sigma/sqrt(n).
-        # La distribución predictiva rigurosa ensancha la dispersión por sqrt(1 + 1/n).
         stat_std *= math.sqrt(1.0 + 1.0 / max(n_partidos, 1.0))
 
-        # Cálculo de probabilidades según tipo de estadística usando el valor continuo sin redondear
-        # Retorna p_over, p_under y p_push para modelar exactamente el push en líneas enteras
         prob_over_raw, prob_under_raw, prob_push_raw = _calcular_probabilidades_mercado(
             mercado=mercado,
-            linea=linea,
+            linea=linea_modelo,
             mu=proy_continua,
-            sigma=stat_std
+            sigma=stat_std,
         )
 
-        # Cuotas decimales de Bovada
-        over_dec = row.get("over_decimal")
-        under_dec = row.get("under_decimal")
-
-        # Quitar el vigorish (margen del sportsbook) para obtener la probabilidad justa de mercado (Fair Implied Probability)
-        if over_dec and under_dec and over_dec > 1.0 and under_dec > 1.0:
+        # Probabilidad justa de mercado (sin vig)
+        if over_dec and under_dec:
             io = 1.0 / over_dec
             iu = 1.0 / under_dec
             implied_over = io / (io + iu)
             implied_under = iu / (io + iu)
-        elif over_dec and over_dec > 1.0:
+        elif over_dec:
             io = 1.0 / over_dec
-            # En milestones one-sided de plus-money el vig real del casino suele ser 8-10%
+            # One-sided plus-money: vig típico 8-10% (estimado, no medido)
             implied_over = float(np.clip(io / 1.095, 0.05, 0.95))
             implied_under = None
         else:
-            implied_over = 0.50
-            implied_under = 0.50
+            iu = 1.0 / under_dec
+            implied_under = float(np.clip(iu / 1.095, 0.05, 0.95))
+            implied_over = 1.0 - implied_under
 
-        # 1. Normalizar el modelo condicionado a NO-PUSH (donde Over + Under = 1.0)
-        # Esto alinea el espacio probabilístico del modelo con las cuotas del mercado
+        # 1. Modelo condicionado a no-push (Over + Under = 1)
         p_no_push = prob_over_raw + prob_under_raw
         p_over_cond_raw = (prob_over_raw / p_no_push) if p_no_push > 0 else 0.50
 
-        # 2. Shrinkage bayesiano sobre la probabilidad condicionada
+        # 2. Shrinkage hacia el mercado
         peso_mercado = 0.65 if (over_dec and over_dec >= 2.15) else 0.50
         p_over_cond_shrunk = (1.0 - peso_mercado) * p_over_cond_raw + peso_mercado * implied_over
 
-        # 3. Techo y piso de seguridad estadística: UN SOLO CLIP sobre la probabilidad condicionada
+        # 3. Un solo clip
         p_over_cond_clipped = float(np.clip(p_over_cond_shrunk, 0.28, 0.72))
         p_under_cond_clipped = 1.0 - p_over_cond_clipped
 
-        # 4. Reescalar por (1 - prob_push_raw) para obtener probabilidades finales coherentes
-        prob_push_blended = round(prob_push_raw, 4) if (linea % 1 == 0) else 0.0
+        # 4. Reescalar por (1 - push)
+        prob_push_blended = round(prob_push_raw, 4) if (linea_modelo % 1 == 0) else 0.0
         prob_over_blended = round(p_over_cond_clipped * (1.0 - prob_push_blended), 4)
         prob_under_blended = round(p_under_cond_clipped * (1.0 - prob_push_blended), 4)
 
-        # 5. Cálculo de EV% real considerando empates (push devuelve stake a ganancia 0)
-        raw_ev_over = (prob_over_blended * (over_dec - 1.0) - prob_under_blended * 1.0) * 100.0 if over_dec else -100.0
-        raw_ev_under = (prob_under_blended * (under_dec - 1.0) - prob_over_blended * 1.0) * 100.0 if under_dec else -100.0
+        # 5. EV real (push devuelve el stake)
+        raw_ev_over = (prob_over_blended * (over_dec - 1.0) - prob_under_blended) * 100.0 if over_dec else -100.0
+        raw_ev_under = (prob_under_blended * (under_dec - 1.0) - prob_over_blended) * 100.0 if under_dec else -100.0
         ev_over = _comprimir_ev_suave(raw_ev_over) if over_dec else -100.0
         ev_under = _comprimir_ev_suave(raw_ev_under) if under_dec else -100.0
 
-        # Selección del Pick recomendado
-        is_milestone = int(row.get("is_milestone", 0))
+        # Selección del pick
         if is_milestone:
-            # En milestones solo existe la opción Over (+X triples). El Under no existe en la casa.
+            if not over_dec:
+                continue
             pick_tipo = "OVER"
-            pick_ev = ev_over
-            pick_ev_raw = raw_ev_over
+            pick_ev, pick_ev_raw = ev_over, raw_ev_over
             pick_prob = prob_over_blended
             pick_cuota_am = row.get("over_american")
             pick_cuota_dec = over_dec
             pick_implied_fair = implied_over
-            raw_ev_under = -100.0
-            ev_under = -100.0
         else:
             if raw_ev_over >= raw_ev_under:
                 pick_tipo = "OVER"
-                pick_ev = ev_over
-                pick_ev_raw = raw_ev_over
+                pick_ev, pick_ev_raw = ev_over, raw_ev_over
                 pick_prob = prob_over_blended
                 pick_cuota_am = row.get("over_american")
                 pick_cuota_dec = over_dec
                 pick_implied_fair = implied_over
             else:
                 pick_tipo = "UNDER"
-                pick_ev = ev_under
-                pick_ev_raw = raw_ev_under
+                pick_ev, pick_ev_raw = ev_under, raw_ev_under
                 pick_prob = prob_under_blended
                 pick_cuota_am = row.get("under_american")
                 pick_cuota_dec = under_dec
                 pick_implied_fair = implied_under
 
-        # Criterios Rigurosos de Candados / Convicción por Estrellas
-        colchon_linea = abs(proyeccion - linea)
+        if not pick_cuota_dec:
+            continue
+
+        # Umbrales de estrellas (más exigentes para milestones)
+        umbral_factor = FACTOR_UMBRAL_MILESTONE if is_milestone else 1.0
+
+        colchon_linea = abs(proyeccion - linea_modelo)
         games_p = int(perfil.get("games_played", 0) or 0)
-        min_colchon = 0.8 if mercado in ["Total Triples", "Total Assists"] else 1.5
+        min_colchon = 0.8 if mercado in MERCADOS_CONTEO else 1.5
 
         es_top_pick = (
-            pick_ev >= 7.0
+            pick_ev >= 7.0 * umbral_factor
             and colchon_linea >= min_colchon
             and (hit_rate_l5 >= 0.60 if pick_tipo == "OVER" else hit_rate_l5 <= 0.40)
-            and n_l5 >= 4  # Exigir mínimo 4 juegos decisivos en L5 para no premiar muestras de 2/3 o 1/2 por empates
+            and n_l5 >= 4
             and (hit_rate_season >= 0.52 if pick_tipo == "OVER" else hit_rate_season <= 0.48)
             and games_p >= 4
-            and (pick_cuota_dec <= 2.30)
+            and pick_cuota_dec <= 2.30
         )
 
         es_alta_confianza = (
-            pick_ev >= 3.5
+            pick_ev >= 3.5 * umbral_factor
             and colchon_linea >= (min_colchon * 0.6)
             and games_p >= 3
         )
 
         if es_top_pick:
-            estrellas = "⭐⭐⭐"
-            confianza = "ALTA"
+            estrellas, confianza = "⭐⭐⭐", "ALTA"
         elif es_alta_confianza:
-            estrellas = "⭐⭐"
-            confianza = "MEDIA"
-        elif pick_ev >= 1.0:
-            estrellas = "⭐"
-            confianza = "MODERADA"
+            estrellas, confianza = "⭐⭐", "MEDIA"
+        elif pick_ev >= 1.0 * umbral_factor:
+            estrellas, confianza = "⭐", "MODERADA"
         else:
-            estrellas = "⚪"
-            confianza = "NEUTRAL"
+            estrellas, confianza = "⚪", "NEUTRAL"
 
-        # Candado de Ultra Convicción (Top Picks de élite para operar con máximo control de riesgo)
         es_candado = bool(
             es_top_pick
             and (hit_rate_l5 >= 0.80 if pick_tipo == "OVER" else hit_rate_l5 <= 0.20)
@@ -499,33 +505,25 @@ def generar_predicciones_props_hoy(
             and (1.68 <= pick_cuota_dec <= 2.15)
         )
 
-        # Reglas defensivas contra Blowouts y Milestones para Candados y Estrellas:
-        # 1. Candado de Oro estrictamente prohibido para titulares en OVER si el spread es >= 8.5 pts
-        # 2. Si el spread es muy abierto (>= 11.5 pts), ningún titular puede ser Top Pick (⭐⭐⭐) en OVER (máximo ⭐⭐)
-        # 3. Milestones (mercados one-sided con alto vig) no pueden ser Candados ni Top Picks (máximo ⭐⭐)
+        # Reglas defensivas: blowouts y milestones
         if es_titular and pick_tipo == "OVER":
             if game_spread >= 8.5:
                 es_candado = False
             if game_spread >= 11.5 and es_top_pick:
                 es_top_pick = False
-                es_alta_confianza = True
-                estrellas = "⭐⭐"
-                confianza = "MEDIA"
+                estrellas, confianza = "⭐⭐", "MEDIA"
 
         if is_milestone:
             es_candado = False
             if es_top_pick:
                 es_top_pick = False
-                es_alta_confianza = True
-                estrellas = "⭐⭐"
-                confianza = "MEDIA"
+                estrellas, confianza = "⭐⭐", "MEDIA"
 
-        # Resumen de tendencia empírica reciente (L5) vs línea
         prom_l5_val = stat_l5 if n_l5 > 0 else stat_avg
         if pick_tipo == "OVER":
-            tendencia = f"Over en {ov_l5}/{n_l5} últimos (promedia {prom_l5_val:.1f} en L5 vs línea {linea})"
+            tendencia = f"Over en {ov_l5}/{n_l5} últimos (promedia {prom_l5_val:.1f} en L5 vs línea {linea_modelo})"
         else:
-            tendencia = f"Under en {n_l5 - ov_l5}/{n_l5} últimos (promedia {prom_l5_val:.1f} en L5 vs línea {linea})"
+            tendencia = f"Under en {n_l5 - ov_l5}/{n_l5} últimos (promedia {prom_l5_val:.1f} en L5 vs línea {linea_modelo})"
 
         predicciones.append({
             "game": row["game"],
@@ -539,6 +537,7 @@ def generar_predicciones_props_hoy(
             "position": perfil.get("position", ""),
             "market": mercado,
             "line": linea,
+            "line_modelo": linea_modelo,
             "projection": proyeccion,
             "stat_avg": stat_avg,
             "stat_l5": stat_l5,
@@ -549,9 +548,9 @@ def generar_predicciones_props_hoy(
             "pick_odds_american": pick_cuota_am,
             "pick_odds_decimal": pick_cuota_dec,
             "model_prob": pick_prob,
-            "implied_prob_vig": round(1.0 / pick_cuota_dec, 4) if pick_cuota_dec else 0.5,
-            "fair_implied_prob": round(pick_implied_fair, 4),
-            "implied_prob": round(pick_implied_fair, 4),
+            "implied_prob_vig": round(1.0 / pick_cuota_dec, 4),
+            "fair_implied_prob": round(pick_implied_fair, 4) if pick_implied_fair is not None else None,
+            "implied_prob": round(pick_implied_fair, 4) if pick_implied_fair is not None else None,
             "market_family": MAPA_FAMILIAS_MERCADOS.get(mercado, mercado),
             "ev_pct": pick_ev,
             "ev_raw": round(pick_ev_raw, 1),
@@ -568,64 +567,56 @@ def generar_predicciones_props_hoy(
     df_res = pd.DataFrame(predicciones)
 
     if not df_res.empty:
-        # 1. Priorizar mercados regulares de 2 vías (is_milestone=0) sobre milestones alternos (is_milestone=1)
-        # para evitar que un milestone plus-money con vig estimado canibalice la línea principal líquida.
-        # Dentro de cada tipo, ordenar por EV matemático real (ev_raw) descendente.
-        df_res.sort_values(by=["is_milestone", "ev_raw"], ascending=[True, False], inplace=True)
-        # Deduplicar por familia de mercado para el mismo jugador:
-        # Conserva la mejor línea estándar dentro de la misma familia correlacionada (Puntos, PRA, PR, PA),
-        # pero permite picks independientes si el jugador tiene ventaja en Rebounds, Assists o Triples.
+        # Deduplicar por jugador + familia de mercado.
+        # Un milestone debe superar en PENALIZACION_EV_MILESTONE puntos a la línea regular para
+        # desplazarla; una línea regular con EV inválido (-100) pierde de forma natural.
+        df_res["_ev_ajustado"] = df_res["ev_raw"] - df_res["is_milestone"] * PENALIZACION_EV_MILESTONE
+        df_res.sort_values(by="_ev_ajustado", ascending=False, inplace=True)
         df_res.drop_duplicates(subset=["player_name", "market_family"], keep="first", inplace=True)
-        # 2. Reordenar estrictamente por ev_raw descendente para el cap por partido y presentación
+        df_res.drop(columns=["_ev_ajustado"], inplace=True)
+
+        # Presentación y cap por partido en orden de EV real
         df_res.sort_values(by="ev_raw", ascending=False, inplace=True)
         df_res.reset_index(drop=True, inplace=True)
 
-        # Cap de exposición por partido:
-        # Máximo 3 picks de 3 estrellas (⭐⭐⭐ Top Picks) por juego.
-        # Si un partido genera más de 3 picks Top, los excedentes se degradan a ⭐⭐ (Alta Confianza)
-        # para evitar sobre-concentración y blindar el bankroll contra blowouts o ritmos anómalos.
-        # Además, si se degrada un pick, se limpia rigurosamente su condición de Candado (es_candado = False).
+        # Cap: máximo 3 picks ⭐⭐⭐ por partido; los excedentes bajan a ⭐⭐ y pierden el candado.
         conteo_por_juego: Dict[str, int] = {}
-        estrellas_ajustadas = []
-        confianzas_ajustadas = []
-        candados_ajustados = []
+        estrellas_ajustadas, confianzas_ajustadas, candados_ajustados = [], [], []
         for _, r in df_res.iterrows():
-            juego = r["game"]
             estrellas_act = r["stars"]
             conf_act = r["confidence"]
             candado_act = bool(r.get("es_candado", False))
             if estrellas_act == "⭐⭐⭐":
-                c = conteo_por_juego.get(juego, 0)
+                c = conteo_por_juego.get(r["game"], 0)
                 if c >= 3:
                     estrellas_ajustadas.append("⭐⭐")
                     confianzas_ajustadas.append("MEDIA")
-                    candados_ajustados.append(False)  # Un pick degradado a 2 estrellas jamás puede ser Candado
+                    candados_ajustados.append(False)
                 else:
-                    conteo_por_juego[juego] = c + 1
+                    conteo_por_juego[r["game"]] = c + 1
                     estrellas_ajustadas.append("⭐⭐⭐")
                     confianzas_ajustadas.append(conf_act)
                     candados_ajustados.append(candado_act)
             else:
                 estrellas_ajustadas.append(estrellas_act)
                 confianzas_ajustadas.append(conf_act)
-                candados_ajustados.append(candado_act if estrellas_act == "⭐⭐⭐" else False)
+                candados_ajustados.append(False)
 
         df_res["stars"] = estrellas_ajustadas
         df_res["confidence"] = confianzas_ajustadas
         df_res["es_candado"] = candados_ajustados
-        
+
         df_res.to_parquet(RUTA_PRED_PARQUET, index=False)
         with open(RUTA_PRED_JSON, "w", encoding="utf-8") as f:
-            json.dump(df_res.to_dict(orient="records"), f, indent=2, ensure_ascii=False)
-        
-        # Persistir de inmediato en el historial de props como PENDIENTE para asegurar auditoría
+            json.dump(df_res.to_dict(orient="records"), f, indent=2, ensure_ascii=False, default=str)
+
         try:
             from nba.evaluar_props import registrar_props_pendientes
             registrar_props_pendientes(df_res)
         except Exception as e_reg:
             logger.warning(f"No se pudieron registrar props pendientes en el historial: {e_reg}")
 
-        logger.info(f"🎯 Generadas exitosamente {len(df_res)} predicciones de props. Top EV: +{df_res['ev_pct'].max()}%")
+        logger.info(f"🎯 Generadas {len(df_res)} predicciones de props. Top EV: +{df_res['ev_pct'].max()}%")
 
     return df_res
 
@@ -635,6 +626,12 @@ if __name__ == "__main__":
     df_preds = generar_predicciones_props_hoy(usar_cache_bovada=True)
     print(f"Predicciones listas en {time.time() - t0:.2f}s. Total: {len(df_preds)}")
     if not df_preds.empty:
+        # Revisión rápida de milestones para validar el ajuste de línea
+        ms = df_preds[df_preds["is_milestone"] == 1]
+        if not ms.empty:
+            print("\nMuestra de milestones (line original vs line_modelo):")
+            print(ms.head(5)[["player_name", "market", "line", "line_modelo", "pick_odds_american", "ev_raw"]].to_string())
+
         top = df_preds[df_preds["ev_pct"] >= 5.0]
         print(f"\nPicks con EV >= 5%: {len(top)}")
         cols = ["player_name", "team", "market", "line", "projection", "pick_type", "pick_odds_american", "ev_pct", "stars", "trend"]
