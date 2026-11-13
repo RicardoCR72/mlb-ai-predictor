@@ -103,27 +103,32 @@ def normalizar_sigla_equipo(equipo_raw: Any) -> str:
     return canon
 
 MAPA_MERCADOS_COLUMNAS = {
-    "Total Points": ("pts", "pts_avg", "pts_std", "pts_l5", 3.0),
-    "Total Rebounds": ("reb", "reb_avg", "reb_std", "reb_l5", 1.8),
-    "Total Assists": ("ast", "ast_avg", "ast_std", "ast_l5", 1.5),
-    "Total Triples": ("t3_made", "t3_avg", "t3_std", "t3_l5", 0.8),
-    "Total PRA": ("pra", "pra_avg", "pra_std", "pra_l5", 4.5),
-    "Total PR": ("pr", "pr_avg", "pr_std", "pr_l5", 3.5),
-    "Total PA": ("pa", "pa_avg", "pa_std", "pa_l5", 3.5),
+    # formato: (col_raw, col_avg, col_std, col_l5, sigma_floor, sigma_prior)
+    "Total Points": ("pts", "pts_avg", "pts_std", "pts_l5", 3.0, 5.5),
+    "Total Rebounds": ("reb", "reb_avg", "reb_std", "reb_l5", 1.8, 2.8),
+    "Total Assists": ("ast", "ast_avg", "ast_std", "ast_l5", 1.5, 2.2),
+    "Total Triples": ("t3_made", "t3_avg", "t3_std", "t3_l5", 0.8, 1.2),
+    "Total PRA": ("pra", "pra_avg", "pra_std", "pra_l5", 4.5, 7.5),
+    "Total PR": ("pr", "pr_avg", "pr_std", "pr_l5", 3.5, 6.0),
+    "Total PA": ("pa", "pa_avg", "pa_std", "pa_l5", 3.5, 5.8),
 }
 
 
 def _calcular_hit_rate(serie: pd.Series, linea: float, suavizado: bool = False) -> Tuple[float, int, int]:
-    """Calcula el porcentaje de partidos en que el jugador superó la línea."""
+    """Calcula el porcentaje de partidos en que el jugador superó la línea, excluyendo empates (push)."""
     if serie.empty:
         return 0.5, 0, 0
-    total = len(serie)
-    overs = int((serie > linea).sum())
+    # En líneas enteras, excluir empates exactos para no distorsionar el hit rate (evitar contar push como Under)
+    serie_decisiva = serie[serie != linea]
+    total = len(serie_decisiva)
+    if total == 0:
+        return 0.5, 0, 0
+    overs = int((serie_decisiva > linea).sum())
     if suavizado:
         # Suavizado bayesiano Beta(4, 4) para evitar extremos 0% o 100% en muestras cortas
         rate = round((overs + 4) / (total + 8), 3)
     else:
-        rate = round(overs / total, 3) if total > 0 else 0.5
+        rate = round(overs / total, 3)
     return rate, overs, total
 
 
@@ -301,17 +306,16 @@ def generar_predicciones_props_hoy(
         if not cols_stat:
             continue
 
-        raw_col, avg_col, std_col, l5_col, sigma_floor = cols_stat
+        raw_col, avg_col, std_col, l5_col, sigma_floor, sigma_prior = cols_stat
         
         stat_avg = float(perfil.get(avg_col, 0.0) or 0.0)
         stat_l5 = float(perfil.get(l5_col, stat_avg) or stat_avg) if l5_col else stat_avg
-        stat_std_raw = float(perfil.get(std_col, sigma_floor) or sigma_floor) if std_col else sigma_floor
-        stat_std = max(stat_std_raw, sigma_floor)
+        stat_std_raw = float(perfil.get(std_col, sigma_prior) or sigma_prior) if std_col else sigma_prior
 
         if stat_avg <= 0:
             continue
 
-        # Filtrar historial de este jugador para calcular hit rate exacto
+        # Filtrar historial de este jugador para calcular hit rate exacto (excluyendo empates en líneas enteras)
         hist_player = hist_por_jugador.get(p_norm, pd.DataFrame())
         serie_stat = hist_player[raw_col].dropna() if not hist_player.empty else pd.Series(dtype=float)
 
@@ -354,6 +358,15 @@ def generar_predicciones_props_hoy(
         proy_continua = proj_base * boost_mercado * descuento_blowout
         proyeccion = round(proy_continua, 1)
 
+        # Shrinkage empírico bayesiano para sigma en muestras cortas (3-10 partidos)
+        # Combina la sigma muestral con la desviación previa del mercado en la NBA,
+        # y escala con la raíz del cambio de expectativa (minutos y uso ofensivo).
+        n_partidos = float(perfil.get("games_played", 5) or 5)
+        peso_prior_sigma = 5.0 / (n_partidos + 5.0)  # 5 juegos de peso al prior de liga
+        stat_std_blended = (1.0 - peso_prior_sigma) * max(stat_std_raw, sigma_floor) + peso_prior_sigma * sigma_prior
+        factor_escala = max(0.1, boost_mercado * descuento_blowout)
+        stat_std = max(sigma_floor, stat_std_blended * math.sqrt(factor_escala))
+
         # Cálculo de probabilidades según tipo de estadística usando el valor continuo sin redondear
         # Retorna p_over, p_under y p_push para modelar exactamente el push en líneas enteras
         prob_over_raw, prob_under_raw, prob_push_raw = _calcular_probabilidades_mercado(
@@ -382,18 +395,25 @@ def generar_predicciones_props_hoy(
             implied_over = 0.50
             implied_under = 0.50
 
-        # 2. Calibración Bayesiana / Shrinkage hacia la probabilidad justa de mercado
-        # Ponderación calibrada para evitar sobreestimaciones irreales de EV% en props.
+        # 1. Normalizar el modelo condicionado a NO-PUSH (donde Over + Under = 1.0)
+        # Esto alinea el espacio probabilístico del modelo con las cuotas del mercado
+        p_no_push = prob_over_raw + prob_under_raw
+        p_over_cond_raw = (prob_over_raw / p_no_push) if p_no_push > 0 else 0.50
+
+        # 2. Shrinkage bayesiano sobre la probabilidad condicionada
         peso_mercado = 0.65 if (over_dec and over_dec >= 2.15) else 0.50
-        prob_over_shrunk = (1.0 - peso_mercado) * prob_over_raw + peso_mercado * implied_over
-        prob_under_shrunk = (1.0 - peso_mercado) * prob_under_raw + peso_mercado * implied_under
+        p_over_cond_shrunk = (1.0 - peso_mercado) * p_over_cond_raw + peso_mercado * implied_over
 
-        # 3. Techo y piso de seguridad estadística
-        prob_over_blended = round(float(np.clip(prob_over_shrunk, 0.28, 0.72)), 4)
-        prob_under_blended = round(float(np.clip(prob_under_shrunk, 0.28, 0.72)), 4)
-        prob_push_blended = round(max(0.0, 1.0 - prob_over_blended - prob_under_blended), 4) if (linea % 1 == 0) else 0.0
+        # 3. Techo y piso de seguridad estadística: UN SOLO CLIP sobre la probabilidad condicionada
+        p_over_cond_clipped = float(np.clip(p_over_cond_shrunk, 0.28, 0.72))
+        p_under_cond_clipped = 1.0 - p_over_cond_clipped
 
-        # 4. Cálculo de EV% real considerando empates (push devuelve stake a ganancia 0)
+        # 4. Reescalar por (1 - prob_push_raw) para obtener probabilidades finales coherentes
+        prob_push_blended = round(prob_push_raw, 4) if (linea % 1 == 0) else 0.0
+        prob_over_blended = round(p_over_cond_clipped * (1.0 - prob_push_blended), 4)
+        prob_under_blended = round(p_under_cond_clipped * (1.0 - prob_push_blended), 4)
+
+        # 5. Cálculo de EV% real considerando empates (push devuelve stake a ganancia 0)
         raw_ev_over = (prob_over_blended * (over_dec - 1.0) - prob_under_blended * 1.0) * 100.0 if over_dec else -100.0
         raw_ev_under = (prob_under_blended * (under_dec - 1.0) - prob_over_blended * 1.0) * 100.0 if under_dec else -100.0
         ev_over = _comprimir_ev_suave(raw_ev_over) if over_dec else -100.0
@@ -538,8 +558,8 @@ def generar_predicciones_props_hoy(
     df_res = pd.DataFrame(predicciones)
 
     if not df_res.empty:
-        # Ordenar por EV% descendente
-        df_res.sort_values(by="ev_pct", ascending=False, inplace=True)
+        # Ordenar por EV matemático real (ev_raw) descendente antes de deduplicar y aplicar caps
+        df_res.sort_values(by="ev_raw", ascending=False, inplace=True)
         # Deduplicar por familia de mercado para el mismo jugador:
         # Conserva el mejor pick dentro de la misma familia correlacionada (Puntos, PRA, PR, PA),
         # pero permite picks independientes si el jugador tiene ventaja en Rebounds, Assists o Triples.

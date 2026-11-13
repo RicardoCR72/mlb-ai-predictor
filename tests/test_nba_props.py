@@ -77,12 +77,19 @@ def test_probabilidades_y_ev():
     p_pts = _calcular_probabilidad_normal(24.5, mu=25.0, sigma=5.0)
     assert 0.45 <= p_pts <= 0.60
 
-    # Hit rate
+    # Hit rate estándar
     serie = pd.Series([20, 25, 30, 15, 28])
     rate, ov, tot = _calcular_hit_rate(serie, 22.5)
     assert ov == 3
     assert tot == 5
     assert rate == 0.6
+
+    # Hit rate con empate exacto (push): la línea 25.0 debe excluir el 25 del denominador
+    serie_con_push = pd.Series([20, 25, 30, 15, 28])  # 25 es push; válidos: [20, 30, 15, 28] (2 over de 4)
+    rate_p, ov_p, tot_p = _calcular_hit_rate(serie_con_push, 25.0)
+    assert ov_p == 2
+    assert tot_p == 4
+    assert rate_p == 0.50
 
 
 def test_bovada_props_cache():
