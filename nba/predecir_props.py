@@ -67,7 +67,7 @@ MAPA_SIGLAS_CANONICAS = {
     "MIA": "MIA", "MIAMI HEAT": "MIA",
     "MIL": "MIL", "MILWAUKEE BUCKS": "MIL",
     "MIN": "MIN", "MINNESOTA TIMBERWOLVES": "MIN",
-    "OKC": "OKC", "OKLAND": "OKC", "OKLAHOMA CITY THUNDER": "OKC",
+    "OKC": "OKC", "OKLAHOMA CITY THUNDER": "OKC",
     "ORL": "ORL", "ORLANDO MAGIC": "ORL",
     "PHI": "PHI", "PHILADELPHIA 76ERS": "PHI",
     "POR": "POR", "PORTLAND TRAIL BLAZERS": "POR",
@@ -86,6 +86,8 @@ MAPA_FAMILIAS_MERCADOS = {
     "Total Triples": "triples",
 }
 
+_SIGLAS_AVISADAS: set[str] = set()
+
 
 def normalizar_sigla_equipo(equipo_raw: Any) -> str:
     """Normaliza cualquier sigla o nombre de franquicia NBA a sigla canónica estándar."""
@@ -94,7 +96,9 @@ def normalizar_sigla_equipo(equipo_raw: Any) -> str:
     s = str(equipo_raw).strip().upper()
     canon = MAPA_SIGLAS_CANONICAS.get(s)
     if not canon:
-        logger.warning(f"Sigla de equipo NBA no reconocida en mapa canónico: '{s}'. Se usará tal cual.")
+        if s not in _SIGLAS_AVISADAS:
+            _SIGLAS_AVISADAS.add(s)
+            logger.warning(f"Sigla de equipo NBA no reconocida en mapa canónico: '{s}'. Se usará tal cual.")
         return s
     return canon
 
@@ -132,27 +136,61 @@ def _comprimir_ev_suave(ev_raw: float) -> float:
     return round(comprimido, 1)
 
 
+def _calcular_probabilidades_mercado(mercado: str, linea: float, mu: float, sigma: float) -> Tuple[float, float, float]:
+    """Calcula P(Over), P(Under) y P(Push) con continuidad exacta y manejo riguroso de líneas enteras."""
+    if sigma <= 0.1:
+        sigma = 1.5
+
+    es_entera = (linea % 1 == 0)
+
+    if mercado == "Total Triples":
+        if mu <= 0.05:
+            return 0.02, 0.98, 0.0
+        k = math.floor(linea)
+        if es_entera:
+            # P(X > k) = 1 - PoissonCDF(k, mu)
+            # P(X < k) = PoissonCDF(k - 1, mu)
+            # P(X == k) = PoissonPMF(k, mu)
+            p_over = float(1.0 - stats.poisson.cdf(k, mu=mu))
+            p_under = float(stats.poisson.cdf(k - 1, mu=mu)) if k > 0 else 0.0
+            p_push = float(stats.poisson.pmf(k, mu=mu))
+        else:
+            # Línea fraccionaria (ej. 2.5 triples): el push es imposible
+            p_over = float(1.0 - stats.poisson.cdf(k, mu=mu))
+            p_push = 0.0
+            p_under = 1.0 - p_over
+    else:
+        # Distribución Normal para puntos, rebotes, asistencias y combos
+        if es_entera:
+            # P(X > linea) = 1 - Phi((linea + 0.5 - mu) / sigma)
+            # P(X < linea) = Phi((linea - 0.5 - mu) / sigma)
+            # P(X == linea) = 1 - p_over - p_under
+            z_over = (linea + 0.5 - mu) / sigma
+            z_under = (linea - 0.5 - mu) / sigma
+            p_over = float(1.0 - stats.norm.cdf(z_over))
+            p_under = float(stats.norm.cdf(z_under))
+            p_push = max(0.0, 1.0 - p_over - p_under)
+        else:
+            z = (linea - mu) / sigma
+            p_over = float(1.0 - stats.norm.cdf(z))
+            p_push = 0.0
+            p_under = 1.0 - p_over
+
+    p_over = float(np.clip(p_over, 0.02, 0.98))
+    p_under = float(np.clip(p_under, 0.02, 0.98))
+    return p_over, p_under, p_push
+
+
 def _calcular_probabilidad_poisson(linea: float, lam: float) -> float:
-    """Probabilidad P(X > linea) usando distribución Poisson (ideal para triples)."""
-    if lam <= 0.05:
-        return 0.05
-    k = math.floor(linea)
-    # P(X > k) = 1 - PoissonCDF(k, lam)
-    cdf = stats.poisson.cdf(k, mu=lam)
-    prob_over = 1.0 - cdf
-    return float(np.clip(prob_over, 0.02, 0.98))
+    """Función de compatibilidad: P(X > linea) con Poisson para triples."""
+    p_over, _, _ = _calcular_probabilidades_mercado("Total Triples", linea, lam, 1.0)
+    return p_over
 
 
 def _calcular_probabilidad_normal(linea: float, mu: float, sigma: float) -> float:
-    """Probabilidad P(X > linea) usando distribución Normal con corrección de continuidad exacta."""
-    if sigma <= 0.1:
-        sigma = 1.5
-    # Si la línea es entera (ej. 24.0), P(X > 24) = P(X >= 25) -> umbral continuo = 24.5
-    # Si la línea ya tiene medio punto (ej. 24.5), el umbral continuo de continuidad es 24.5
-    umbral = (linea + 0.5) if (linea % 1 == 0) else linea
-    z = (umbral - mu) / sigma
-    prob_over = 1.0 - stats.norm.cdf(z)
-    return float(np.clip(prob_over, 0.02, 0.98))
+    """Función de compatibilidad: P(X > linea) con Normal para puntos/reb/ast."""
+    p_over, _, _ = _calcular_probabilidades_mercado("Total Points", linea, mu, sigma)
+    return p_over
 
 
 def generar_predicciones_props_hoy(
@@ -195,6 +233,8 @@ def generar_predicciones_props_hoy(
     col_min = "min" if "min" in df_boxscores.columns else ("minutos" if "minutos" in df_boxscores.columns else None)
     if col_min:
         df_boxscores = df_boxscores[df_boxscores[col_min] >= 8.0].copy()
+    else:
+        logger.warning("No se encontró columna de minutos ('min' o 'minutos') en boxscores; no se pudo filtrar partidos cortos.")
 
     df_perfiles = calcular_perfil_jugador(df_boxscores, min_minutos=8.0)
     # Crear diccionario de acceso rápido por nombre normalizado
@@ -217,7 +257,8 @@ def generar_predicciones_props_hoy(
                 estado_les = str(les.get("estado", "")).upper()
                 if estado_les in ["OUT", "DOUBTFUL"]:
                     factor_estado = 1.0 if estado_les == "OUT" else 0.75
-                    imp = float(les.get("impacto_spread", 1.0)) * factor_estado
+                    # Default en 0.0 para que suplentes sin spread estimado no sumen 1.0 falso
+                    imp = float(les.get("impacto_spread", 0.0) or 0.0) * factor_estado
                     bajas_por_equipo[t_canon] = bajas_por_equipo.get(t_canon, 0.0) + imp
                     nom = les.get("jugador", "").strip().lower()
                     if nom:
@@ -310,17 +351,17 @@ def generar_predicciones_props_hoy(
             else:
                 descuento_blowout = 0.92  # -8% de expectativa en partidos con spread 8.5 - 11.0
 
-        proyeccion = round(proj_base * boost_mercado * descuento_blowout, 1)
+        proy_continua = proj_base * boost_mercado * descuento_blowout
+        proyeccion = round(proy_continua, 1)
 
-        # Cálculo de probabilidades según tipo de estadística
-        if mercado == "Total Triples":
-            prob_over = _calcular_probabilidad_poisson(linea, lam=proyeccion)
-        else:
-            # Puntos, Rebotes, Asistencias, PRA, PR, PA con desviación estándar empírica real y corrección de continuidad
-            prob_over = _calcular_probabilidad_normal(linea, mu=proyeccion, sigma=stat_std)
-
-        # 1. Probabilidad cruda del modelo (sin duplicar artificialmente el hit rate, el cual actúa como filtro de calidad)
-        prob_over_raw = prob_over
+        # Cálculo de probabilidades según tipo de estadística usando el valor continuo sin redondear
+        # Retorna p_over, p_under y p_push para modelar exactamente el push en líneas enteras
+        prob_over_raw, prob_under_raw, prob_push_raw = _calcular_probabilidades_mercado(
+            mercado=mercado,
+            linea=linea,
+            mu=proy_continua,
+            sigma=stat_std
+        )
 
         # Cuotas decimales de Bovada
         over_dec = row.get("over_decimal")
@@ -334,7 +375,8 @@ def generar_predicciones_props_hoy(
             implied_under = iu / (io + iu)
         elif over_dec and over_dec > 1.0:
             io = 1.0 / over_dec
-            implied_over = float(np.clip(io / 1.048, 0.05, 0.95))
+            # En milestones one-sided de plus-money el vig real del casino suele ser 8-10%
+            implied_over = float(np.clip(io / 1.095, 0.05, 0.95))
             implied_under = 1.0 - implied_over
         else:
             implied_over = 0.50
@@ -344,14 +386,16 @@ def generar_predicciones_props_hoy(
         # Ponderación calibrada para evitar sobreestimaciones irreales de EV% en props.
         peso_mercado = 0.65 if (over_dec and over_dec >= 2.15) else 0.50
         prob_over_shrunk = (1.0 - peso_mercado) * prob_over_raw + peso_mercado * implied_over
+        prob_under_shrunk = (1.0 - peso_mercado) * prob_under_raw + peso_mercado * implied_under
 
-        # 3. Techo y piso de seguridad estadística: la varianza NBA limita la probabilidad a máx 72%
+        # 3. Techo y piso de seguridad estadística
         prob_over_blended = round(float(np.clip(prob_over_shrunk, 0.28, 0.72)), 4)
-        prob_under_blended = round(1.0 - prob_over_blended, 4)
+        prob_under_blended = round(float(np.clip(prob_under_shrunk, 0.28, 0.72)), 4)
+        prob_push_blended = round(max(0.0, 1.0 - prob_over_blended - prob_under_blended), 4) if (linea % 1 == 0) else 0.0
 
-        # 4. Cálculo de EV% real y EV comprimido para visualización
-        raw_ev_over = (prob_over_blended * over_dec - 1.0) * 100.0 if over_dec else -100.0
-        raw_ev_under = (prob_under_blended * under_dec - 1.0) * 100.0 if under_dec else -100.0
+        # 4. Cálculo de EV% real considerando empates (push devuelve stake a ganancia 0)
+        raw_ev_over = (prob_over_blended * (over_dec - 1.0) - prob_under_blended * 1.0) * 100.0 if over_dec else -100.0
+        raw_ev_under = (prob_under_blended * (under_dec - 1.0) - prob_over_blended * 1.0) * 100.0 if under_dec else -100.0
         ev_over = _comprimir_ev_suave(raw_ev_over) if over_dec else -100.0
         ev_under = _comprimir_ev_suave(raw_ev_under) if under_dec else -100.0
 
@@ -425,13 +469,22 @@ def generar_predicciones_props_hoy(
             and (1.68 <= pick_cuota_dec <= 2.15)
         )
 
-        # Reglas defensivas contra Blowouts para Candados y Estrellas:
+        # Reglas defensivas contra Blowouts y Milestones para Candados y Estrellas:
         # 1. Candado de Oro estrictamente prohibido para titulares en OVER si el spread es >= 8.5 pts
         # 2. Si el spread es muy abierto (>= 11.5 pts), ningún titular puede ser Top Pick (⭐⭐⭐) en OVER (máximo ⭐⭐)
+        # 3. Milestones (mercados one-sided con alto vig) no pueden ser Candados ni Top Picks (máximo ⭐⭐)
         if es_titular and pick_tipo == "OVER":
             if game_spread >= 8.5:
                 es_candado = False
             if game_spread >= 11.5 and es_top_pick:
+                es_top_pick = False
+                es_alta_confianza = True
+                estrellas = "⭐⭐"
+                confianza = "MEDIA"
+
+        if is_milestone:
+            es_candado = False
+            if es_top_pick:
                 es_top_pick = False
                 es_alta_confianza = True
                 estrellas = "⭐⭐"
@@ -497,28 +550,35 @@ def generar_predicciones_props_hoy(
         # Máximo 3 picks de 3 estrellas (⭐⭐⭐ Top Picks) por juego.
         # Si un partido genera más de 3 picks Top, los excedentes se degradan a ⭐⭐ (Alta Confianza)
         # para evitar sobre-concentración y blindar el bankroll contra blowouts o ritmos anómalos.
+        # Además, si se degrada un pick, se limpia rigurosamente su condición de Candado (es_candado = False).
         conteo_por_juego: Dict[str, int] = {}
         estrellas_ajustadas = []
         confianzas_ajustadas = []
+        candados_ajustados = []
         for _, r in df_res.iterrows():
             juego = r["game"]
             estrellas_act = r["stars"]
             conf_act = r["confidence"]
+            candado_act = bool(r.get("es_candado", False))
             if estrellas_act == "⭐⭐⭐":
                 c = conteo_por_juego.get(juego, 0)
                 if c >= 3:
                     estrellas_ajustadas.append("⭐⭐")
                     confianzas_ajustadas.append("MEDIA")
+                    candados_ajustados.append(False)  # Un pick degradado a 2 estrellas jamás puede ser Candado
                 else:
                     conteo_por_juego[juego] = c + 1
                     estrellas_ajustadas.append("⭐⭐⭐")
                     confianzas_ajustadas.append(conf_act)
+                    candados_ajustados.append(candado_act)
             else:
                 estrellas_ajustadas.append(estrellas_act)
                 confianzas_ajustadas.append(conf_act)
+                candados_ajustados.append(candado_act if estrellas_act == "⭐⭐⭐" else False)
 
         df_res["stars"] = estrellas_ajustadas
         df_res["confidence"] = confianzas_ajustadas
+        df_res["es_candado"] = candados_ajustados
         
         df_res.to_parquet(RUTA_PRED_PARQUET, index=False)
         with open(RUTA_PRED_JSON, "w", encoding="utf-8") as f:
