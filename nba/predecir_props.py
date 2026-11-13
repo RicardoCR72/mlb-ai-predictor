@@ -44,15 +44,59 @@ RUTA_PRED_PARQUET = DIR_PRED / "predicciones_props_nba_hoy.parquet"
 RUTA_PRED_JSON = DIR_PRED / "predicciones_props_nba_hoy.json"
 
 MAPA_SIGLAS_CANONICAS = {
-    "GS": "GSW", "GSW": "GSW",
-    "SA": "SAS", "SAS": "SAS",
-    "NO": "NOP", "NOP": "NOP",
-    "NY": "NYK", "NYK": "NYK",
-    "PHO": "PHX", "PHX": "PHX",
-    "WSH": "WAS", "WAS": "WAS",
-    "LAC": "LAC", "LA CLIPPERS": "LAC",
-    "LAL": "LAL", "LA LAKERS": "LAL",
+    "GS": "GSW", "GSW": "GSW", "GOLDEN STATE WARRIORS": "GSW",
+    "SA": "SAS", "SAS": "SAS", "SAN ANTONIO SPURS": "SAS",
+    "NO": "NOP", "NOP": "NOP", "NEW ORLEANS PELICANS": "NOP",
+    "NY": "NYK", "NYK": "NYK", "NEW YORK KNICKS": "NYK",
+    "PHO": "PHX", "PHX": "PHX", "PHOENIX SUNS": "PHX",
+    "WSH": "WAS", "WAS": "WAS", "WASHINGTON WIZARDS": "WAS",
+    "LAC": "LAC", "LA CLIPPERS": "LAC", "LOS ANGELES CLIPPERS": "LAC", "CLIPPERS": "LAC",
+    "LAL": "LAL", "LA LAKERS": "LAL", "LOS ANGELES LAKERS": "LAL", "LAKERS": "LAL",
+    "BKN": "BKN", "BRK": "BKN", "BROOKLYN NETS": "BKN",
+    "CHA": "CHA", "CHO": "CHA", "CHARLOTTE HORNETS": "CHA",
+    "UTA": "UTA", "UTAH": "UTA", "UTAH JAZZ": "UTA",
+    "BOS": "BOS", "BOSTON CELTICS": "BOS",
+    "CHI": "CHI", "CHICAGO BULLS": "CHI",
+    "CLE": "CLE", "CLEVELAND CAVALIERS": "CLE",
+    "DAL": "DAL", "DALLAS MAVERICKS": "DAL",
+    "DEN": "DEN", "DENVER NUGGETS": "DEN",
+    "DET": "DET", "DETROIT PISTONS": "DET",
+    "HOU": "HOU", "HOUSTON ROCKETS": "HOU",
+    "IND": "IND", "INDIANA PACERS": "IND",
+    "MEM": "MEM", "MEMPHIS GRIZZLIES": "MEM",
+    "MIA": "MIA", "MIAMI HEAT": "MIA",
+    "MIL": "MIL", "MILWAUKEE BUCKS": "MIL",
+    "MIN": "MIN", "MINNESOTA TIMBERWOLVES": "MIN",
+    "OKC": "OKC", "OKLAND": "OKC", "OKLAHOMA CITY THUNDER": "OKC",
+    "ORL": "ORL", "ORLANDO MAGIC": "ORL",
+    "PHI": "PHI", "PHILADELPHIA 76ERS": "PHI",
+    "POR": "POR", "PORTLAND TRAIL BLAZERS": "POR",
+    "SAC": "SAC", "SACRAMENTO KINGS": "SAC",
+    "TOR": "TOR", "TORONTO RAPTORS": "TOR",
+    "ATL": "ATL", "ATLANTA HAWKS": "ATL",
 }
+
+MAPA_FAMILIAS_MERCADOS = {
+    "Total Points": "pts_combos",
+    "Total PRA": "pts_combos",
+    "Total PR": "pts_combos",
+    "Total PA": "pts_combos",
+    "Total Rebounds": "rebotes",
+    "Total Assists": "asistencias",
+    "Total Triples": "triples",
+}
+
+
+def normalizar_sigla_equipo(equipo_raw: Any) -> str:
+    """Normaliza cualquier sigla o nombre de franquicia NBA a sigla canónica estándar."""
+    if not equipo_raw:
+        return ""
+    s = str(equipo_raw).strip().upper()
+    canon = MAPA_SIGLAS_CANONICAS.get(s)
+    if not canon:
+        logger.warning(f"Sigla de equipo NBA no reconocida en mapa canónico: '{s}'. Se usará tal cual.")
+        return s
+    return canon
 
 MAPA_MERCADOS_COLUMNAS = {
     "Total Points": ("pts", "pts_avg", "pts_std", "pts_l5", 3.0),
@@ -117,7 +161,9 @@ def generar_predicciones_props_hoy(
     fecha_referencia: Optional[str] = None,
 ) -> pd.DataFrame:
     """Genera predicciones con Valor Esperado (EV%) para todos los props de hoy.
-    Incluye filtro estricto anti-leakage (solo considera boxscores anteriores a la fecha objetivo).
+    Nota sobre anti-leakage: El parámetro fecha_referencia aplica filtrado temporal estricto
+    únicamente sobre el histórico de boxscores. Las líneas de Bovada y el reporte de lesiones
+    corresponden a las cotizaciones y estado en vivo al momento de la ejecución.
     """
     DIR_PRED.mkdir(parents=True, exist_ok=True)
 
@@ -143,7 +189,14 @@ def generar_predicciones_props_hoy(
         logger.error(f"No hay boxscores disponibles previos a {fecha_corte} para generar predicciones.")
         return pd.DataFrame()
 
-    df_perfiles = calcular_perfil_jugador(df_boxscores)
+    # Unificación estricta de muestra (minutos >= 8.0):
+    # Filtramos df_boxscores ANTES de calcular el perfil de jugador para que stat_avg, stat_l5,
+    # stat_std y las series de hit rate se deriven con exactitud sobre la misma muestra limpia.
+    col_min = "min" if "min" in df_boxscores.columns else ("minutos" if "minutos" in df_boxscores.columns else None)
+    if col_min:
+        df_boxscores = df_boxscores[df_boxscores[col_min] >= 8.0].copy()
+
+    df_perfiles = calcular_perfil_jugador(df_boxscores, min_minutos=8.0)
     # Crear diccionario de acceso rápido por nombre normalizado
     df_boxscores["player_norm"] = df_boxscores["player_name"].apply(_limpiar_nombre_jugador).str.lower()
     df_perfiles["player_norm"] = df_perfiles["player_name"].apply(_limpiar_nombre_jugador).str.lower()
@@ -159,7 +212,7 @@ def generar_predicciones_props_hoy(
     try:
         reporte_les = obtener_reporte_lesiones_nba()
         for t_abbr, lista_les in reporte_les.items():
-            t_canon = MAPA_SIGLAS_CANONICAS.get(t_abbr.upper(), t_abbr.upper())
+            t_canon = normalizar_sigla_equipo(t_abbr)
             for les in lista_les:
                 estado_les = str(les.get("estado", "")).upper()
                 if estado_les in ["OUT", "DOUBTFUL"]:
@@ -219,14 +272,7 @@ def generar_predicciones_props_hoy(
 
         # Filtrar historial de este jugador para calcular hit rate exacto
         hist_player = hist_por_jugador.get(p_norm, pd.DataFrame())
-        if not hist_player.empty:
-            if "minutos" in hist_player.columns:
-                hist_valido = hist_player[hist_player["minutos"] >= 8.0]
-                serie_stat = (hist_valido[raw_col] if not hist_valido.empty else hist_player[raw_col]).dropna()
-            else:
-                serie_stat = hist_player[raw_col].dropna()
-        else:
-            serie_stat = pd.Series(dtype=float)
+        serie_stat = hist_player[raw_col].dropna() if not hist_player.empty else pd.Series(dtype=float)
 
         hit_rate_season, ov_season, n_season = _calcular_hit_rate(serie_stat, linea)
         hit_rate_l5, ov_l5, n_l5 = _calcular_hit_rate(serie_stat.tail(5), linea)
@@ -235,13 +281,18 @@ def generar_predicciones_props_hoy(
         proj_base = 0.60 * stat_l5 + 0.40 * stat_avg
 
         # Boost de volumen si un compañero estrella está lesionado (OUT / DOUBTFUL)
-        equipo_canon = MAPA_SIGLAS_CANONICAS.get(equipo, equipo)
+        equipo_canon = normalizar_sigla_equipo(equipo)
         impacto_bajas = bajas_por_equipo.get(equipo_canon, 0.0)
         boost_lesion = 1.0
         if impacto_bajas >= 3.0:
             boost_lesion = 1.14  # +14% si hay bajas severas acumuladas
         elif impacto_bajas >= 2.0:
             boost_lesion = 1.08  # +8% de volumen / tiros
+
+        # El boost por lesiones impacta principalmente en uso ofensivo y tiros (puntos, triples, PRA, PA);
+        # en rebotes y asistencias defensivas el impacto es moderado (50% del boost)
+        factor_mercado = 1.0 if mercado in ["Total Points", "Total Triples", "Total PRA", "Total PA"] else 0.5
+        boost_mercado = round(1.0 + (boost_lesion - 1.0) * factor_mercado, 3)
 
         # Detección de titular basada estrictamente en minutaje real en cancha
         minutos_prom = float(perfil.get("min_avg", 0.0) or 0.0)
@@ -259,7 +310,7 @@ def generar_predicciones_props_hoy(
             else:
                 descuento_blowout = 0.92  # -8% de expectativa en partidos con spread 8.5 - 11.0
 
-        proyeccion = round(proj_base * boost_lesion * descuento_blowout, 1)
+        proyeccion = round(proj_base * boost_mercado * descuento_blowout, 1)
 
         # Cálculo de probabilidades según tipo de estadística
         if mercado == "Total Triples":
@@ -415,8 +466,10 @@ def generar_predicciones_props_hoy(
             "pick_odds_american": pick_cuota_am,
             "pick_odds_decimal": pick_cuota_dec,
             "model_prob": pick_prob,
-            "implied_prob": round(1.0 / pick_cuota_dec, 4) if pick_cuota_dec else 0.5,
+            "implied_prob_vig": round(1.0 / pick_cuota_dec, 4) if pick_cuota_dec else 0.5,
             "fair_implied_prob": round(pick_implied_fair, 4),
+            "implied_prob": round(pick_implied_fair, 4),
+            "market_family": MAPA_FAMILIAS_MERCADOS.get(mercado, mercado),
             "ev_pct": pick_ev,
             "ev_raw": round(pick_ev_raw, 1),
             "stars": estrellas,
@@ -434,9 +487,10 @@ def generar_predicciones_props_hoy(
     if not df_res.empty:
         # Ordenar por EV% descendente
         df_res.sort_values(by="ev_pct", ascending=False, inplace=True)
-        # Deduplicar por jugador: conserva únicamente la selección con mayor EV% y convicción por atleta,
-        # eliminando la auto-correlación (ej. apostar Puntos, PRA, PR y PA del mismo jugador en la misma noche)
-        df_res.drop_duplicates(subset=["player_name"], keep="first", inplace=True)
+        # Deduplicar por familia de mercado para el mismo jugador:
+        # Conserva el mejor pick dentro de la misma familia correlacionada (Puntos, PRA, PR, PA),
+        # pero permite picks independientes si el jugador tiene ventaja en Rebounds, Assists o Triples.
+        df_res.drop_duplicates(subset=["player_name", "market_family"], keep="first", inplace=True)
         df_res.reset_index(drop=True, inplace=True)
 
         # Cap de exposición por partido:
