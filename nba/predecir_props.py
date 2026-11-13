@@ -43,6 +43,17 @@ DIR_PRED = RAIZ / "data" / "nba" / "predictions"
 RUTA_PRED_PARQUET = DIR_PRED / "predicciones_props_nba_hoy.parquet"
 RUTA_PRED_JSON = DIR_PRED / "predicciones_props_nba_hoy.json"
 
+MAPA_SIGLAS_CANONICAS = {
+    "GS": "GSW", "GSW": "GSW",
+    "SA": "SAS", "SAS": "SAS",
+    "NO": "NOP", "NOP": "NOP",
+    "NY": "NYK", "NYK": "NYK",
+    "PHO": "PHX", "PHX": "PHX",
+    "WSH": "WAS", "WAS": "WAS",
+    "LAC": "LAC", "LA CLIPPERS": "LAC",
+    "LAL": "LAL", "LA LAKERS": "LAL",
+}
+
 MAPA_MERCADOS_COLUMNAS = {
     "Total Points": ("pts", "pts_avg", "pts_std", "pts_l5", 3.0),
     "Total Rebounds": ("reb", "reb_avg", "reb_std", "reb_l5", 1.8),
@@ -69,16 +80,16 @@ def _calcular_hit_rate(serie: pd.Series, linea: float, suavizado: bool = False) 
 
 
 def _comprimir_ev_suave(ev_raw: float) -> float:
-    """Aplica compresión suave hiperbólica (tanh) para evitar mesetas artificiales o que varios picks empaten."""
+    """Aplica compresión suave hiperbólica (tanh) para visualización y evitar mesetas."""
     if ev_raw <= 15.0:
         return round(ev_raw, 1)
-    # Curva asintótica continua: diferencia naturalmente entre picks muy fuertes sin clavar a todos en 35.0
+    # Curva asintótica continua
     comprimido = 15.0 + 20.0 * math.tanh((ev_raw - 15.0) / 25.0)
     return round(comprimido, 1)
 
 
 def _calcular_probabilidad_poisson(linea: float, lam: float) -> float:
-    """Probabilidad P(X > linea) usando distribución Poisson."""
+    """Probabilidad P(X > linea) usando distribución Poisson (ideal para triples)."""
     if lam <= 0.05:
         return 0.05
     k = math.floor(linea)
@@ -89,11 +100,13 @@ def _calcular_probabilidad_poisson(linea: float, lam: float) -> float:
 
 
 def _calcular_probabilidad_normal(linea: float, mu: float, sigma: float) -> float:
-    """Probabilidad P(X > linea) usando distribución Normal con corrección continua."""
+    """Probabilidad P(X > linea) usando distribución Normal con corrección de continuidad exacta."""
     if sigma <= 0.1:
         sigma = 1.5
-    # P(X > linea) = 1 - Phi((linea - mu) / sigma)
-    z = (linea - mu) / sigma
+    # Si la línea es entera (ej. 24.0), P(X > 24) = P(X >= 25) -> umbral continuo = 24.5
+    # Si la línea ya tiene medio punto (ej. 24.5), el umbral continuo de continuidad es 24.5
+    umbral = (linea + 0.5) if (linea % 1 == 0) else linea
+    z = (umbral - mu) / sigma
     prob_over = 1.0 - stats.norm.cdf(z)
     return float(np.clip(prob_over, 0.02, 0.98))
 
@@ -146,17 +159,25 @@ def generar_predicciones_props_hoy(
     try:
         reporte_les = obtener_reporte_lesiones_nba()
         for t_abbr, lista_les in reporte_les.items():
+            t_canon = MAPA_SIGLAS_CANONICAS.get(t_abbr.upper(), t_abbr.upper())
             for les in lista_les:
                 estado_les = str(les.get("estado", "")).upper()
                 if estado_les in ["OUT", "DOUBTFUL"]:
-                    imp = les.get("impacto_spread", 1.0)
-                    bajas_por_equipo[t_abbr] = bajas_por_equipo.get(t_abbr, 0.0) + imp
+                    factor_estado = 1.0 if estado_les == "OUT" else 0.75
+                    imp = float(les.get("impacto_spread", 1.0)) * factor_estado
+                    bajas_por_equipo[t_canon] = bajas_por_equipo.get(t_canon, 0.0) + imp
                     nom = les.get("jugador", "").strip().lower()
                     if nom:
                         jugadores_inactivos.add(nom)
                         jugadores_inactivos.add(_limpiar_nombre_jugador(nom).lower())
     except Exception as e:
         logger.warning(f"No se pudo consultar el servicio de lesiones: {e}")
+
+    # Pre-agrupamiento de boxscores por jugador para acelerar el cálculo
+    hist_por_jugador = {
+        p_name: grp.sort_values("fecha")
+        for p_name, grp in df_boxscores.groupby("player_norm")
+    }
 
     # 3. Descargar o leer líneas de Bovada
     df_bovada = extraer_props_nba(usar_cache=usar_cache_bovada)
@@ -197,8 +218,15 @@ def generar_predicciones_props_hoy(
             continue
 
         # Filtrar historial de este jugador para calcular hit rate exacto
-        hist_player = df_boxscores[df_boxscores["player_norm"] == p_norm].sort_values("fecha")
-        serie_stat = hist_player[raw_col].dropna()
+        hist_player = hist_por_jugador.get(p_norm, pd.DataFrame())
+        if not hist_player.empty:
+            if "minutos" in hist_player.columns:
+                hist_valido = hist_player[hist_player["minutos"] >= 8.0]
+                serie_stat = (hist_valido[raw_col] if not hist_valido.empty else hist_player[raw_col]).dropna()
+            else:
+                serie_stat = hist_player[raw_col].dropna()
+        else:
+            serie_stat = pd.Series(dtype=float)
 
         hit_rate_season, ov_season, n_season = _calcular_hit_rate(serie_stat, linea)
         hit_rate_l5, ov_l5, n_l5 = _calcular_hit_rate(serie_stat.tail(5), linea)
@@ -206,22 +234,24 @@ def generar_predicciones_props_hoy(
         # Proyección ponderada: 60% forma reciente (L5), 40% temporada
         proj_base = 0.60 * stat_l5 + 0.40 * stat_avg
 
-        # Boost de volumen si un compañero estrella está lesionado (OUT)
-        impacto_bajas = bajas_por_equipo.get(equipo, 0.0)
+        # Boost de volumen si un compañero estrella está lesionado (OUT / DOUBTFUL)
+        equipo_canon = MAPA_SIGLAS_CANONICAS.get(equipo, equipo)
+        impacto_bajas = bajas_por_equipo.get(equipo_canon, 0.0)
         boost_lesion = 1.0
-        if impacto_bajas >= 2.0:
+        if impacto_bajas >= 3.0:
+            boost_lesion = 1.14  # +14% si hay bajas severas acumuladas
+        elif impacto_bajas >= 2.0:
             boost_lesion = 1.08  # +8% de volumen / tiros
-        elif impacto_bajas >= 3.0:
-            boost_lesion = 1.14  # +14%
 
-        # Detección de titular / alto minutaje
+        # Detección de titular basada estrictamente en minutaje real en cancha
         minutos_prom = float(perfil.get("min_avg", 0.0) or 0.0)
-        es_titular = (minutos_prom >= 25.0) or (stat_avg >= linea * 0.85)
+        minutos_l5 = float(perfil.get("min_l5", minutos_prom) or minutos_prom)
+        es_titular = (minutos_prom >= 24.0) or (minutos_l5 >= 25.0)
 
         # Descuento de minutos por riesgo de blowout:
         # En partidos desbalanceados (spread >= 8.5 pts), si el juego se abre por 20+ pts,
         # los titulares descansan casi todo el 4Q (perdiendo de 6 a 10 minutos de producción).
-        game_spread = float(row.get("game_spread") or 0.0)
+        game_spread = abs(float(row.get("game_spread") or 0.0))
         descuento_blowout = 1.0
         if game_spread >= 8.5 and es_titular:
             if game_spread >= 11.5:
@@ -232,24 +262,35 @@ def generar_predicciones_props_hoy(
         proyeccion = round(proj_base * boost_lesion * descuento_blowout, 1)
 
         # Cálculo de probabilidades según tipo de estadística
-        if mercado in ["Total Triples", "Total Assists", "Total Rebounds"]:
+        if mercado == "Total Triples":
             prob_over = _calcular_probabilidad_poisson(linea, lam=proyeccion)
         else:
-            # Puntos, PRA, PR, PA
+            # Puntos, Rebotes, Asistencias, PRA, PR, PA con desviación estándar empírica real y corrección de continuidad
             prob_over = _calcular_probabilidad_normal(linea, mu=proyeccion, sigma=stat_std)
 
-        # 1. Probabilidad cruda del modelo + tendencia empírica reciente (con suavizado bayesiano)
-        hit_rate_bayesiano = round((ov_season + 4) / (n_season + 8), 3) if n_season > 0 else 0.5
-        prob_over_raw = 0.70 * prob_over + 0.30 * hit_rate_bayesiano
+        # 1. Probabilidad cruda del modelo (sin duplicar artificialmente el hit rate, el cual actúa como filtro de calidad)
+        prob_over_raw = prob_over
 
         # Cuotas decimales de Bovada
         over_dec = row.get("over_decimal")
         under_dec = row.get("under_decimal")
-        implied_over = (1.0 / over_dec) if (over_dec and over_dec > 1.0) else 0.5238
 
-        # 2. Calibración Bayesiana / Shrinkage hacia la probabilidad implícita de mercado
+        # Quitar el vigorish (margen del sportsbook) para obtener la probabilidad justa de mercado (Fair Implied Probability)
+        if over_dec and under_dec and over_dec > 1.0 and under_dec > 1.0:
+            io = 1.0 / over_dec
+            iu = 1.0 / under_dec
+            implied_over = io / (io + iu)
+            implied_under = iu / (io + iu)
+        elif over_dec and over_dec > 1.0:
+            io = 1.0 / over_dec
+            implied_over = float(np.clip(io / 1.048, 0.05, 0.95))
+            implied_under = 1.0 - implied_over
+        else:
+            implied_over = 0.50
+            implied_under = 0.50
+
+        # 2. Calibración Bayesiana / Shrinkage hacia la probabilidad justa de mercado
         # Ponderación calibrada para evitar sobreestimaciones irreales de EV% en props.
-        # En cuotas plus-money (> 2.15) o milestones, se castiga el sesgo de cola larga (longshot bias).
         peso_mercado = 0.65 if (over_dec and over_dec >= 2.15) else 0.50
         prob_over_shrunk = (1.0 - peso_mercado) * prob_over_raw + peso_mercado * implied_over
 
@@ -257,7 +298,7 @@ def generar_predicciones_props_hoy(
         prob_over_blended = round(float(np.clip(prob_over_shrunk, 0.28, 0.72)), 4)
         prob_under_blended = round(1.0 - prob_over_blended, 4)
 
-        # 4. Cálculo de EV% con compresión hiperbólica suave (evita cortes planos o empates artificiales)
+        # 4. Cálculo de EV% real y EV comprimido para visualización
         raw_ev_over = (prob_over_blended * over_dec - 1.0) * 100.0 if over_dec else -100.0
         raw_ev_under = (prob_under_blended * under_dec - 1.0) * 100.0 if under_dec else -100.0
         ev_over = _comprimir_ev_suave(raw_ev_over) if over_dec else -100.0
@@ -269,22 +310,28 @@ def generar_predicciones_props_hoy(
             # En milestones solo existe la opción Over (+X triples)
             pick_tipo = "OVER"
             pick_ev = ev_over
+            pick_ev_raw = raw_ev_over
             pick_prob = prob_over_blended
             pick_cuota_am = row.get("over_american")
             pick_cuota_dec = over_dec
+            pick_implied_fair = implied_over
         else:
-            if ev_over >= ev_under:
+            if raw_ev_over >= raw_ev_under:
                 pick_tipo = "OVER"
                 pick_ev = ev_over
+                pick_ev_raw = raw_ev_over
                 pick_prob = prob_over_blended
                 pick_cuota_am = row.get("over_american")
                 pick_cuota_dec = over_dec
+                pick_implied_fair = implied_over
             else:
                 pick_tipo = "UNDER"
                 pick_ev = ev_under
+                pick_ev_raw = raw_ev_under
                 pick_prob = prob_under_blended
                 pick_cuota_am = row.get("under_american")
                 pick_cuota_dec = under_dec
+                pick_implied_fair = implied_under
 
         # Criterios Rigurosos de Candados / Convicción por Estrellas
         colchon_linea = abs(proyeccion - linea)
@@ -369,7 +416,9 @@ def generar_predicciones_props_hoy(
             "pick_odds_decimal": pick_cuota_dec,
             "model_prob": pick_prob,
             "implied_prob": round(1.0 / pick_cuota_dec, 4) if pick_cuota_dec else 0.5,
+            "fair_implied_prob": round(pick_implied_fair, 4),
             "ev_pct": pick_ev,
+            "ev_raw": round(pick_ev_raw, 1),
             "stars": estrellas,
             "confidence": confianza,
             "trend": tendencia,
@@ -385,9 +434,9 @@ def generar_predicciones_props_hoy(
     if not df_res.empty:
         # Ordenar por EV% descendente
         df_res.sort_values(by="ev_pct", ascending=False, inplace=True)
-        # Deduplicar por jugador y mercado: conserva únicamente la línea óptima con mayor EV%
-        # para evitar tarjetas repetidas del mismo atleta en el mismo mercado
-        df_res.drop_duplicates(subset=["player_name", "market"], keep="first", inplace=True)
+        # Deduplicar por jugador: conserva únicamente la selección con mayor EV% y convicción por atleta,
+        # eliminando la auto-correlación (ej. apostar Puntos, PRA, PR y PA del mismo jugador en la misma noche)
+        df_res.drop_duplicates(subset=["player_name"], keep="first", inplace=True)
         df_res.reset_index(drop=True, inplace=True)
 
         # Cap de exposición por partido:
