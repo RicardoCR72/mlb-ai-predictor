@@ -489,6 +489,9 @@ def registrar_props_pendientes(df_preds: pd.DataFrame) -> None:
         cuota_val = float(p.get("pick_odds_decimal", 1.91) or 1.91)
         prob_val = float(p.get("model_prob", 0.5) or 0.5)
         ev_val = float(p.get("ev_pct", 0.0) or 0.0)
+        ev_raw_val = float(p.get("ev_raw", ev_val) or ev_val)
+        proj_val = float(p.get("projection", 0.0) or 0.0)
+        fair_imp_val = float(p.get("fair_implied_prob", p.get("implied_prob", 0.5)) or 0.5)
         stars_val = str(p.get("stars", "⭐"))
         conf_val = str(p.get("confidence", "MEDIA"))
 
@@ -507,6 +510,10 @@ def registrar_props_pendientes(df_preds: pd.DataFrame) -> None:
             "seleccion": f"{jugador_nom} · {pick_tipo} {linea_val:g}",
             "linea": linea_val,
             "cuota": round(cuota_val, 3),
+            "projection": round(proj_val, 1),
+            "model_prob": round(prob_val, 4),
+            "fair_implied_prob": round(fair_imp_val, 4),
+            "ev_raw": round(ev_raw_val, 1),
             "linea_apertura": linea_val,
             "cuota_apertura": round(cuota_val, 3),
             "linea_cierre": None,
@@ -539,8 +546,23 @@ def registrar_props_pendientes(df_preds: pd.DataFrame) -> None:
             pass
 
     if not df_existente.empty:
-        # Combinar respetando registros ya concluidos
-        df_total = pd.concat([df_existente, df_nuevas], ignore_index=True)
+        # Combinar respetando registros ya concluidos sin duplicar filas
+        # Alinear esquemas de columnas y tipos para evitar warnings de concatenación
+        cols_nuevas_faltantes = [c for c in df_nuevas.columns if c not in df_existente.columns]
+        for c in cols_nuevas_faltantes:
+            df_existente[c] = None
+        cols_existentes_faltantes = [c for c in df_existente.columns if c not in df_nuevas.columns]
+        for c in cols_existentes_faltantes:
+            df_nuevas[c] = None
+
+        cols_float = ["linea_apertura", "cuota_apertura", "linea_cierre", "cuota_cierre", "clv_pct", "projection", "model_prob", "fair_implied_prob", "ev_raw"]
+        for c in cols_float:
+            if c in df_existente.columns:
+                df_existente[c] = pd.to_numeric(df_existente[c], errors="coerce")
+            if c in df_nuevas.columns:
+                df_nuevas[c] = pd.to_numeric(df_nuevas[c], errors="coerce")
+
+        df_total = pd.concat([df_existente, df_nuevas[df_existente.columns]], ignore_index=True)
         # Mantener primero los que ya tienen resultado GANADA/PERDIDA/PUSH
         df_total.sort_values(
             by=["fecha_str", "resultado"],

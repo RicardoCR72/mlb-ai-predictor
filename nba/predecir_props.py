@@ -152,16 +152,24 @@ def _calcular_probabilidades_mercado(mercado: str, linea: float, mu: float, sigm
         if mu <= 0.05:
             return 0.02, 0.98, 0.0
         k = math.floor(linea)
-        if es_entera:
-            # P(X > k) = 1 - PoissonCDF(k, mu)
-            # P(X < k) = PoissonCDF(k - 1, mu)
-            # P(X == k) = PoissonPMF(k, mu)
-            p_over = float(1.0 - stats.poisson.cdf(k, mu=mu))
-            p_under = float(stats.poisson.cdf(k - 1, mu=mu)) if k > 0 else 0.0
-            p_push = float(stats.poisson.pmf(k, mu=mu))
+        
+        # En la NBA, los triples presentan con frecuencia sobredispersión (varianza > media).
+        # Si sigma^2 > mu, usamos Binomial Negativa (NB) para ajustar media y varianza empírica
+        # capturando colas pesadas. Si sigma^2 <= mu, Poisson es matemáticamente óptimo.
+        var = sigma ** 2
+        if var > (mu + 0.05):
+            p_nb = float(np.clip(mu / var, 0.01, 0.99))
+            r_nb = float(max(0.1, (mu ** 2) / (var - mu)))
+            dist = stats.nbinom(n=r_nb, p=p_nb)
         else:
-            # Línea fraccionaria (ej. 2.5 triples): el push es imposible
-            p_over = float(1.0 - stats.poisson.cdf(k, mu=mu))
+            dist = stats.poisson(mu=mu)
+
+        if es_entera:
+            p_over = float(1.0 - dist.cdf(k))
+            p_under = float(dist.cdf(k - 1)) if k > 0 else 0.0
+            p_push = float(dist.pmf(k))
+        else:
+            p_over = float(1.0 - dist.cdf(k))
             p_push = 0.0
             p_under = 1.0 - p_over
     else:
@@ -365,7 +373,8 @@ def generar_predicciones_props_hoy(
         peso_prior_sigma = 5.0 / (n_partidos + 5.0)  # 5 juegos de peso al prior de liga
         stat_std_blended = (1.0 - peso_prior_sigma) * max(stat_std_raw, sigma_floor) + peso_prior_sigma * sigma_prior
         factor_escala = max(0.1, boost_mercado * descuento_blowout)
-        stat_std = max(sigma_floor, stat_std_blended * math.sqrt(factor_escala))
+        sigma_floor_adj = sigma_floor * math.sqrt(factor_escala)
+        stat_std = max(sigma_floor_adj, stat_std_blended * math.sqrt(factor_escala))
 
         # Cálculo de probabilidades según tipo de estadística usando el valor continuo sin redondear
         # Retorna p_over, p_under y p_push para modelar exactamente el push en líneas enteras
@@ -390,7 +399,7 @@ def generar_predicciones_props_hoy(
             io = 1.0 / over_dec
             # En milestones one-sided de plus-money el vig real del casino suele ser 8-10%
             implied_over = float(np.clip(io / 1.095, 0.05, 0.95))
-            implied_under = 1.0 - implied_over
+            implied_under = None
         else:
             implied_over = 0.50
             implied_under = 0.50
@@ -422,7 +431,7 @@ def generar_predicciones_props_hoy(
         # Selección del Pick recomendado
         is_milestone = int(row.get("is_milestone", 0))
         if is_milestone:
-            # En milestones solo existe la opción Over (+X triples)
+            # En milestones solo existe la opción Over (+X triples). El Under no existe en la casa.
             pick_tipo = "OVER"
             pick_ev = ev_over
             pick_ev_raw = raw_ev_over
@@ -430,6 +439,8 @@ def generar_predicciones_props_hoy(
             pick_cuota_am = row.get("over_american")
             pick_cuota_dec = over_dec
             pick_implied_fair = implied_over
+            raw_ev_under = -100.0
+            ev_under = -100.0
         else:
             if raw_ev_over >= raw_ev_under:
                 pick_tipo = "OVER"
@@ -457,6 +468,7 @@ def generar_predicciones_props_hoy(
             pick_ev >= 7.0
             and colchon_linea >= min_colchon
             and (hit_rate_l5 >= 0.60 if pick_tipo == "OVER" else hit_rate_l5 <= 0.40)
+            and n_l5 >= 4  # Exigir mínimo 4 juegos decisivos en L5 para no premiar muestras de 2/3 o 1/2 por empates
             and (hit_rate_season >= 0.52 if pick_tipo == "OVER" else hit_rate_season <= 0.48)
             and games_p >= 4
             and (pick_cuota_dec <= 2.30)

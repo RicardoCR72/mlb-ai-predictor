@@ -51,13 +51,14 @@ def test_parse_stats_boxscore():
 
 
 def test_perfil_jugador_calculo():
-    """Verifica el cálculo de perfiles de jugador y PRA."""
+    """Verifica el cálculo de perfiles de jugador con min_minutos=8.0."""
     mock_data = pd.DataFrame([
         {"player_name": "Test Player", "team": "DEN", "position": "C", "fecha": "2026-10-25", "min": 32, "pts": 20, "reb": 10, "ast": 5, "t3_made": 1, "pra": 35, "pr": 30, "pa": 25, "stl": 1, "blk": 1},
         {"player_name": "Test Player", "team": "DEN", "position": "C", "fecha": "2026-10-27", "min": 34, "pts": 30, "reb": 12, "ast": 7, "t3_made": 2, "pra": 49, "pr": 42, "pa": 37, "stl": 2, "blk": 1},
         {"player_name": "Test Player", "team": "DEN", "position": "C", "fecha": "2026-10-30", "min": 30, "pts": 25, "reb": 8, "ast": 6, "t3_made": 0, "pra": 39, "pr": 33, "pa": 31, "stl": 0, "blk": 0},
     ])
-    perfil = calcular_perfil_jugador(mock_data, min_minutos=10.0)
+    # Se pasa explícitamente min_minutos=8.0 para certificar que el parámetro es válido y nativo
+    perfil = calcular_perfil_jugador(mock_data, min_minutos=8.0)
     assert len(perfil) == 1
     p0 = perfil.iloc[0]
     assert p0["player_name"] == "Test Player"
