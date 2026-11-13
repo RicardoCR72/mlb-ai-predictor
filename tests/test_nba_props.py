@@ -18,8 +18,7 @@ from nba.servicio_jugadores_boxscores import (
     RUTA_PARQUET_JUGADORES,
 )
 from nba.predecir_props import (
-    _calcular_probabilidad_poisson,
-    _calcular_probabilidad_normal,
+    _calcular_probabilidades_mercado,
     _calcular_hit_rate,
     generar_predicciones_props_hoy,
     RUTA_PRED_PARQUET,
@@ -69,14 +68,21 @@ def test_perfil_jugador_calculo():
 
 
 def test_probabilidades_y_ev():
-    """Verifica límites y coherencia matemática de Poisson y Gaussiana."""
+    """Verifica límites y coherencia matemática de distribuciones (Binomial Negativa, Poisson, Gaussiana y Pushes)."""
     # Si promedia 3.5 triples y la línea es 1.5, prob over debe ser alta (> 80%)
-    p_t3 = _calcular_probabilidad_poisson(1.5, lam=3.5)
-    assert 0.80 <= p_t3 <= 0.99
+    p_over_t3, p_under_t3, p_push_t3 = _calcular_probabilidades_mercado("Total Triples", 1.5, mu=3.5, sigma=1.2)
+    assert 0.80 <= p_over_t3 <= 0.99
+    assert p_push_t3 == 0.0
+
+    # Línea entera de triples (ej. 2.0 triples) debe tener push > 0 y sumar 1.0
+    po_int, pu_int, push_int = _calcular_probabilidades_mercado("Total Triples", 2.0, mu=2.2, sigma=1.2)
+    assert push_int > 0.10
+    assert (po_int + pu_int + push_int) == pytest.approx(1.0, rel=1e-3)
 
     # Si promedia 25 pts con sigma 5 y línea es 24.5, prob over debe rondar ~50%
-    p_pts = _calcular_probabilidad_normal(24.5, mu=25.0, sigma=5.0)
-    assert 0.45 <= p_pts <= 0.60
+    p_pts_o, p_pts_u, p_pts_push = _calcular_probabilidades_mercado("Total Points", 24.5, mu=25.0, sigma=5.0)
+    assert 0.45 <= p_pts_o <= 0.60
+    assert p_pts_push == 0.0
 
     # Hit rate estándar
     serie = pd.Series([20, 25, 30, 15, 28])

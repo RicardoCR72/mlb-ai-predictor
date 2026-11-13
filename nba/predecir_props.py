@@ -4,8 +4,12 @@ Combina:
 1. Líneas y cuotas en tiempo real de Bovada (0 créditos).
 2. Estadísticas de temporada 2026-27 y tendencia reciente (L5) de ESPN.
 3. Impacto de lesiones en tiempo real de compañeros de equipo (Usage Boost).
-4. Modelado probabilístico (Poisson para Triples/Asistencias/Rebotes, Gaussiano/Empírico para Puntos/PRA).
-5. Cálculo de Valor Esperado (EV%) y asignación de estrellas de confianza.
+4. Modelado probabilístico:
+   - Binomial Negativa / Poisson para Triples y Asistencias de conteo bajo (sin colas negativas).
+   - Gaussiana con corrección de continuidad para Puntos, Rebotes y Combos.
+   - Modelado exacto de push (empates) en líneas enteras con devolución del stake.
+   - Distribución predictiva con ensanchamiento de dispersión por incertidumbre de media muestral.
+5. Cálculo de Valor Esperado (EV%) con remoción de vig y asignación de estrellas de confianza.
 """
 
 from __future__ import annotations
@@ -148,14 +152,16 @@ def _calcular_probabilidades_mercado(mercado: str, linea: float, mu: float, sigm
 
     es_entera = (linea % 1 == 0)
 
-    if mercado == "Total Triples":
+    # Mercados de conteo discreto bajo (Triples y Asistencias <= 6.5):
+    # En conteos bajos la Normal predice valores negativos y asume simetría ficticia.
+    # Usamos Binomial Negativa si sigma^2 > mu (captura sobredispersión y colas pesadas) o Poisson si sigma^2 <= mu.
+    es_mercado_conteo = (mercado == "Total Triples") or (mercado == "Total Assists" and mu <= 6.5)
+
+    if es_mercado_conteo:
         if mu <= 0.05:
             return 0.02, 0.98, 0.0
         k = math.floor(linea)
         
-        # En la NBA, los triples presentan con frecuencia sobredispersión (varianza > media).
-        # Si sigma^2 > mu, usamos Binomial Negativa (NB) para ajustar media y varianza empírica
-        # capturando colas pesadas. Si sigma^2 <= mu, Poisson es matemáticamente óptimo.
         var = sigma ** 2
         if var > (mu + 0.05):
             p_nb = float(np.clip(mu / var, 0.01, 0.99))
@@ -173,7 +179,7 @@ def _calcular_probabilidades_mercado(mercado: str, linea: float, mu: float, sigm
             p_push = 0.0
             p_under = 1.0 - p_over
     else:
-        # Distribución Normal para puntos, rebotes, asistencias y combos
+        # Distribución Normal para puntos, rebotes, asistencias altas y combos
         if es_entera:
             # P(X > linea) = 1 - Phi((linea + 0.5 - mu) / sigma)
             # P(X < linea) = Phi((linea - 0.5 - mu) / sigma)
@@ -192,18 +198,6 @@ def _calcular_probabilidades_mercado(mercado: str, linea: float, mu: float, sigm
     p_over = float(np.clip(p_over, 0.02, 0.98))
     p_under = float(np.clip(p_under, 0.02, 0.98))
     return p_over, p_under, p_push
-
-
-def _calcular_probabilidad_poisson(linea: float, lam: float) -> float:
-    """Función de compatibilidad: P(X > linea) con Poisson para triples."""
-    p_over, _, _ = _calcular_probabilidades_mercado("Total Triples", linea, lam, 1.0)
-    return p_over
-
-
-def _calcular_probabilidad_normal(linea: float, mu: float, sigma: float) -> float:
-    """Función de compatibilidad: P(X > linea) con Normal para puntos/reb/ast."""
-    p_over, _, _ = _calcular_probabilidades_mercado("Total Points", linea, mu, sigma)
-    return p_over
 
 
 def generar_predicciones_props_hoy(
@@ -375,6 +369,10 @@ def generar_predicciones_props_hoy(
         factor_escala = max(0.1, boost_mercado * descuento_blowout)
         sigma_floor_adj = sigma_floor * math.sqrt(factor_escala)
         stat_std = max(sigma_floor_adj, stat_std_blended * math.sqrt(factor_escala))
+        # Incertidumbre de la media muestral en la distribución predictiva:
+        # Con muestras cortas (ej. n = 4 partidos), la media estimada tiene un error estándar de sigma/sqrt(n).
+        # La distribución predictiva rigurosa ensancha la dispersión por sqrt(1 + 1/n).
+        stat_std *= math.sqrt(1.0 + 1.0 / max(n_partidos, 1.0))
 
         # Cálculo de probabilidades según tipo de estadística usando el valor continuo sin redondear
         # Retorna p_over, p_under y p_push para modelar exactamente el push en líneas enteras
@@ -570,12 +568,16 @@ def generar_predicciones_props_hoy(
     df_res = pd.DataFrame(predicciones)
 
     if not df_res.empty:
-        # Ordenar por EV matemático real (ev_raw) descendente antes de deduplicar y aplicar caps
-        df_res.sort_values(by="ev_raw", ascending=False, inplace=True)
+        # 1. Priorizar mercados regulares de 2 vías (is_milestone=0) sobre milestones alternos (is_milestone=1)
+        # para evitar que un milestone plus-money con vig estimado canibalice la línea principal líquida.
+        # Dentro de cada tipo, ordenar por EV matemático real (ev_raw) descendente.
+        df_res.sort_values(by=["is_milestone", "ev_raw"], ascending=[True, False], inplace=True)
         # Deduplicar por familia de mercado para el mismo jugador:
-        # Conserva el mejor pick dentro de la misma familia correlacionada (Puntos, PRA, PR, PA),
+        # Conserva la mejor línea estándar dentro de la misma familia correlacionada (Puntos, PRA, PR, PA),
         # pero permite picks independientes si el jugador tiene ventaja en Rebounds, Assists o Triples.
         df_res.drop_duplicates(subset=["player_name", "market_family"], keep="first", inplace=True)
+        # 2. Reordenar estrictamente por ev_raw descendente para el cap por partido y presentación
+        df_res.sort_values(by="ev_raw", ascending=False, inplace=True)
         df_res.reset_index(drop=True, inplace=True)
 
         # Cap de exposición por partido:
