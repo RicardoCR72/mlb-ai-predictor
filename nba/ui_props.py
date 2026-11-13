@@ -123,14 +123,14 @@ def renderizar_ui_props_nba():
 
     # 3. Filtro por Confianza / EV
     opciones_conf = {
+        "⭐⭐⭐ Top Picks (Solo 3 Estrellas)": "top_picks",
         "🔒 Candados de Oro (Ultra Convicción)": "candado",
-        "⭐⭐⭐ Top Picks (EV ≥ 8% + Filtros)": 7.0,
-        "⭐⭐ Alta Confianza (EV ≥ 3.5%)": 3.5,
-        "⭐ Solo Picks de Valor (EV > 0%)": 0.0,
-        "Todos los props (Incluye EV negativo)": -999.0,
+        "⭐⭐ Alta Confianza (2 y 3 Estrellas)": "alta_confianza",
+        "⭐ Solo Picks de Valor (1, 2 y 3 Estrellas)": "picks_valor",
+        "Todos los props (Incluye Neutrales)": "todos",
     }
-    conf_sel_label = c_conf.selectbox("🔥 Nivel de Valor / EV:", list(opciones_conf.keys()))
-    ev_minimo = opciones_conf[conf_sel_label]
+    conf_sel_label = c_conf.selectbox("🔥 Nivel de Valor / EV:", list(opciones_conf.keys()), index=0)
+    filtro_conf_tipo = opciones_conf.get(conf_sel_label, "top_picks")
 
     # 4. Filtro por Selección
     tipo_sel = c_tipo.selectbox("🎯 Selección:", ["Todos", "Solo OVER", "Solo UNDER"])
@@ -146,13 +146,17 @@ def renderizar_ui_props_nba():
     if mercado_sel:
         df_filtrado = df_filtrado[df_filtrado["market"] == mercado_sel]
 
-    if conf_sel_label == "🔒 Candados de Oro (Ultra Convicción)":
+    if filtro_conf_tipo == "candado" or "Candado" in conf_sel_label:
         if "es_candado" in df_filtrado.columns:
             df_filtrado = df_filtrado[df_filtrado["es_candado"] == True]
         else:
             df_filtrado = df_filtrado[df_filtrado["stars"] == "⭐⭐⭐"]
-    elif isinstance(ev_minimo, (int, float)) and ev_minimo > -500:
-        df_filtrado = df_filtrado[df_filtrado["ev_pct"] >= ev_minimo]
+    elif filtro_conf_tipo == "top_picks" or "⭐⭐⭐" in conf_sel_label:
+        df_filtrado = df_filtrado[df_filtrado["stars"] == "⭐⭐⭐"]
+    elif filtro_conf_tipo == "alta_confianza" or "⭐⭐" in conf_sel_label:
+        df_filtrado = df_filtrado[df_filtrado["stars"].isin(["⭐⭐⭐", "⭐⭐"])]
+    elif filtro_conf_tipo == "picks_valor" or "⭐" in conf_sel_label:
+        df_filtrado = df_filtrado[df_filtrado["stars"].isin(["⭐⭐⭐", "⭐⭐", "⭐"])]
 
     if tipo_sel == "Solo OVER":
         df_filtrado = df_filtrado[df_filtrado["pick_type"] == "OVER"]
