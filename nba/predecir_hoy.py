@@ -33,7 +33,7 @@ from nba.proveedor_cuotas import (
 from nba.entrenar_spread_ml import proyectar_partido_spread, FEATURES_SPREAD
 from nba.entrenar_totales import proyectar_partido_totales, FEATURES_TOTALES
 from core.constants import NBA_TEAMS, ZONA_CDMX
-from core.calibracion_probabilidades import calibrar_probabilidad
+from core.calibracion_probabilidades import calibrar_probabilidades_2way
 
 RUTA_DATASET = RAIZ / "data" / "nba" / "processed" / "dataset_partidos_nba.parquet"
 RUTA_MODELO_SPREAD = RAIZ / "modelos_nba" / "modelo_spread_ml.joblib"
@@ -311,11 +311,10 @@ def predecir_partidos_hoy(force_refresh: bool = False, fecha: Optional[str] = No
         cuota_dec_std = 1.909  # -110
 
         # Calibración Logística conjunta en el símplex 2-way (Moneyline)
-        from core.calibracion_probabilidades import calibrar_probabilidades_2way
         prob_ml_home_raw = res_spread["prob_local_win"]
         prob_ml_away_raw = res_spread["prob_visita_win"]
         prob_ml_home_cal, prob_ml_away_cal = calibrar_probabilidades_2way(
-            prob_ml_home_raw, prob_ml_away_raw, temp=1.05
+            prob_ml_home_raw, prob_ml_away_raw, temp=1.04
         )
 
         edge_ml_home = prob_ml_home_cal - prob_ml_home_book
@@ -326,10 +325,10 @@ def predecir_partidos_hoy(force_refresh: bool = False, fecha: Optional[str] = No
         # Selección rigurosa de candidatos con filtro EV > 0 y Dead Zone
         picks_candidatos = []
 
-        # 1. Totales Over / Under (Calibrado con umbral equilibrado)
+        # 1. Totales Over / Under (Calibrado con Temperature Scaling 2-way, sin doble compresión de Platt)
         if linea_tot is not None and linea_tot > 0 and res_tot["recomendacion"] in ["OVER", "UNDER"]:
             prob_tot_raw = res_tot["prob_over"] if res_tot["recomendacion"] == "OVER" else res_tot["prob_under"]
-            prob_tot_cal = float(calibrar_probabilidad(prob_tot_raw, cuota_dec_std))
+            prob_tot_cal, _ = calibrar_probabilidades_2way(prob_tot_raw, 1.0 - prob_tot_raw, temp=1.04)
             edge_tot = prob_tot_cal - 0.5238
             ev_tot = (prob_tot_cal * cuota_dec_std) - 1.0
             if edge_tot >= 0.025 and ev_tot >= 0.020:
@@ -377,11 +376,12 @@ def predecir_partidos_hoy(force_refresh: bool = False, fecha: Optional[str] = No
                 "detalle": f"Prob Calibrada: {prob_ml_away_cal*100:.1f}% vs Book: {prob_ml_away_book*100:.1f}% (Edge: {edge_ml_away*100:+.1f}%, EV: +{ev_ml_away*100:.1f}%)"
             })
 
-        # 3. Spread / Hándicap (Calibrado)
+        # 3. Spread / Hándicap (Calibrado con Temperature Scaling 2-way)
         prob_cov_home_raw = res_spread["prob_cover_home"]
         prob_cov_away_raw = res_spread["prob_cover_away"]
-        prob_cov_home_cal = float(calibrar_probabilidad(prob_cov_home_raw, cuota_dec_std))
-        prob_cov_away_cal = float(calibrar_probabilidad(prob_cov_away_raw, cuota_dec_std))
+        prob_cov_home_cal, prob_cov_away_cal = calibrar_probabilidades_2way(
+            prob_cov_home_raw, prob_cov_away_raw, temp=1.04
+        )
 
         edge_cov_home = prob_cov_home_cal - 0.5238
         edge_cov_away = prob_cov_away_cal - 0.5238

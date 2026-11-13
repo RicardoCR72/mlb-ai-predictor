@@ -203,9 +203,9 @@ def proyectar_partido_totales(
     # Aplicar ajuste por reporte oficial de lesiones y ausencias
     modelo_combinado += float(ajuste_lesiones)
 
-    # Shrinkage Bayesiano hacia la línea consensuada del mercado
+    # Shrinkage Bayesiano equilibrado hacia la línea consensuada del mercado (50% modelo / 50% mercado)
     if linea_total and linea_total > 0:
-        total_pred = 0.40 * modelo_combinado + 0.60 * linea_total
+        total_pred = 0.50 * modelo_combinado + 0.50 * linea_total
         edge_puntos = total_pred - linea_total
 
         # Sigma calibrado para dispersión de totales (~11.5 pts)
