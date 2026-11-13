@@ -8,7 +8,7 @@
     "abbr_visita": "TOR",
     "fecha_cdmx": "2026-11-12",
     "hora_cdmx": "18:00",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_FINAL",
     "provider": "DraftKings",
     "linea_spread": -7.5,
     "spread_detalles": "PHI -7.5",
@@ -184,7 +184,12 @@
         "detalle": "Margen Proyectado Visita: -3.4 pts (Spread: +7.5)"
       }
     ],
-    "timestamp": "2026-11-12T14:41:02.114883-06:00"
+    "timestamp": "2026-11-12T14:41:02.114883-06:00",
+    "marcador_local": 123,
+    "marcador_visita": 112,
+    "resultado": "PERDIDA",
+    "unidades_ganadas": -1.0,
+    "descripcion_estado": "Final"
   },
   {
     "id_evento": "401909977",
@@ -195,7 +200,7 @@
     "abbr_visita": "DET",
     "fecha_cdmx": "2026-11-12",
     "hora_cdmx": "18:00",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_IN_PROGRESS",
     "provider": "DraftKings",
     "linea_spread": 9.5,
     "spread_detalles": "DET -9.5",
@@ -330,7 +335,10 @@
         "detalle": "Proyección Calibrada: 218.2 pts vs línea 221.5 (Edge: +4.4%, EV: +8.4%)"
       }
     ],
-    "timestamp": "2026-11-12T14:41:02.122653-06:00"
+    "timestamp": "2026-11-12T14:41:02.122653-06:00",
+    "descripcion_estado": "In Progress",
+    "marcador_local": 118,
+    "marcador_visita": 117
   },
   {
     "id_evento": "401909978",
@@ -341,7 +349,7 @@
     "abbr_visita": "DAL",
     "fecha_cdmx": "2026-11-12",
     "hora_cdmx": "19:00",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_IN_PROGRESS",
     "provider": "DraftKings",
     "linea_spread": -5.5,
     "spread_detalles": "MIN -5.5",
@@ -466,7 +474,10 @@
         "detalle": "Proyección Calibrada: 222.6 pts vs línea 225.5 (Edge: +3.9%, EV: +7.5%)"
       }
     ],
-    "timestamp": "2026-11-12T14:41:02.130312-06:00"
+    "timestamp": "2026-11-12T14:41:02.130312-06:00",
+    "descripcion_estado": "In Progress",
+    "marcador_local": 84,
+    "marcador_visita": 56
   },
   {
     "id_evento": "401909979",
@@ -477,7 +488,7 @@
     "abbr_visita": "CHA",
     "fecha_cdmx": "2026-11-12",
     "hora_cdmx": "20:00",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_IN_PROGRESS",
     "provider": "DraftKings",
     "linea_spread": -6.5,
     "spread_detalles": "PHX -6.5",
@@ -563,6 +574,9 @@
     "pick_detalle": "Líneas de mercado eficientes (Sin ventaja clara. Margen: +7.1 pts)",
     "confianza": "NEUTRAL",
     "candidatos": [],
-    "timestamp": "2026-11-12T14:41:02.137804-06:00"
+    "timestamp": "2026-11-12T14:41:02.137804-06:00",
+    "descripcion_estado": "In Progress",
+    "marcador_local": 20,
+    "marcador_visita": 18
   }
 ]
