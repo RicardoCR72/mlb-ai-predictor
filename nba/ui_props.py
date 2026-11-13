@@ -272,14 +272,23 @@ def _renderizar_tarjeta_prop(p: Dict[str, Any], desplegar_grafica_directa: bool 
         estrellas = f"🔒 {estrellas}"
     tendencia = p.get("trend", "")
     boost_lesion = p.get("boost_lesion_pct", 0.0)
+    desc_blowout = p.get("descuento_blowout_pct", 0.0)
+    game_spr = float(p.get("game_spread", 0.0) or 0.0)
 
+    alertas_list = []
     if boost_lesion > 0:
         if pick == "UNDER":
-            alerta = f"⚠️ +{boost_lesion:.0f}% Uso por bajas (Proyección aún muy bajo línea)"
+            alertas_list.append(f"⚠️ +{boost_lesion:.0f}% Uso por bajas")
         else:
-            alerta = f"🚨 +{boost_lesion:.0f}% Uso por bajas en el equipo"
-    else:
-        alerta = None
+            alertas_list.append(f"🚨 +{boost_lesion:.0f}% Uso por bajas en el equipo")
+
+    if desc_blowout > 0:
+        if pick == "OVER":
+            alertas_list.append(f"🛡️ -{desc_blowout:.0f}% Minutos (Spread {game_spr:.1f} pts: riesgo de blowout)")
+        else:
+            alertas_list.append(f"🛡️ Minutos limitados por blowout (Spread {game_spr:.1f} pts)")
+
+    alerta = " · ".join(alertas_list) if alertas_list else None
     rival_calc = p.get("away_team") if p.get("home_team") == equipo else p.get("home_team")
 
     render_tarjeta_universal(

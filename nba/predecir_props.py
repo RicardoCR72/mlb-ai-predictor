@@ -214,7 +214,22 @@ def generar_predicciones_props_hoy(
         elif impacto_bajas >= 3.0:
             boost_lesion = 1.14  # +14%
 
-        proyeccion = round(proj_base * boost_lesion, 1)
+        # Detección de titular / alto minutaje
+        minutos_prom = float(perfil.get("min_avg", 0.0) or 0.0)
+        es_titular = (minutos_prom >= 25.0) or (stat_avg >= linea * 0.85)
+
+        # Descuento de minutos por riesgo de blowout:
+        # En partidos desbalanceados (spread >= 8.5 pts), si el juego se abre por 20+ pts,
+        # los titulares descansan casi todo el 4Q (perdiendo de 6 a 10 minutos de producción).
+        game_spread = float(row.get("game_spread") or 0.0)
+        descuento_blowout = 1.0
+        if game_spread >= 8.5 and es_titular:
+            if game_spread >= 11.5:
+                descuento_blowout = 0.86  # -14% de expectativa en partidos con spread >= 11.5
+            else:
+                descuento_blowout = 0.92  # -8% de expectativa en partidos con spread 8.5 - 11.0
+
+        proyeccion = round(proj_base * boost_lesion * descuento_blowout, 1)
 
         # Cálculo de probabilidades según tipo de estadística
         if mercado in ["Total Triples", "Total Assists", "Total Rebounds"]:
@@ -312,6 +327,18 @@ def generar_predicciones_props_hoy(
             and (1.68 <= pick_cuota_dec <= 2.15)
         )
 
+        # Reglas defensivas contra Blowouts para Candados y Estrellas:
+        # 1. Candado de Oro estrictamente prohibido para titulares en OVER si el spread es >= 8.5 pts
+        # 2. Si el spread es muy abierto (>= 11.5 pts), ningún titular puede ser Top Pick (⭐⭐⭐) en OVER (máximo ⭐⭐)
+        if es_titular and pick_tipo == "OVER":
+            if game_spread >= 8.5:
+                es_candado = False
+            if game_spread >= 11.5 and es_top_pick:
+                es_top_pick = False
+                es_alta_confianza = True
+                estrellas = "⭐⭐"
+                confianza = "MEDIA"
+
         # Resumen de tendencia empírica reciente (L5) vs línea
         prom_l5_val = stat_l5 if n_l5 > 0 else stat_avg
         if pick_tipo == "OVER":
@@ -347,6 +374,8 @@ def generar_predicciones_props_hoy(
             "confidence": confianza,
             "trend": tendencia,
             "boost_lesion_pct": round((boost_lesion - 1.0) * 100.0, 1),
+            "game_spread": game_spread,
+            "descuento_blowout_pct": round((1.0 - descuento_blowout) * 100.0, 1),
             "is_milestone": is_milestone,
             "es_candado": es_candado,
         })
@@ -360,6 +389,33 @@ def generar_predicciones_props_hoy(
         # para evitar tarjetas repetidas del mismo atleta en el mismo mercado
         df_res.drop_duplicates(subset=["player_name", "market"], keep="first", inplace=True)
         df_res.reset_index(drop=True, inplace=True)
+
+        # Cap de exposición por partido:
+        # Máximo 3 picks de 3 estrellas (⭐⭐⭐ Top Picks) por juego.
+        # Si un partido genera más de 3 picks Top, los excedentes se degradan a ⭐⭐ (Alta Confianza)
+        # para evitar sobre-concentración y blindar el bankroll contra blowouts o ritmos anómalos.
+        conteo_por_juego: Dict[str, int] = {}
+        estrellas_ajustadas = []
+        confianzas_ajustadas = []
+        for _, r in df_res.iterrows():
+            juego = r["game"]
+            estrellas_act = r["stars"]
+            conf_act = r["confidence"]
+            if estrellas_act == "⭐⭐⭐":
+                c = conteo_por_juego.get(juego, 0)
+                if c >= 3:
+                    estrellas_ajustadas.append("⭐⭐")
+                    confianzas_ajustadas.append("MEDIA")
+                else:
+                    conteo_por_juego[juego] = c + 1
+                    estrellas_ajustadas.append("⭐⭐⭐")
+                    confianzas_ajustadas.append(conf_act)
+            else:
+                estrellas_ajustadas.append(estrellas_act)
+                confianzas_ajustadas.append(conf_act)
+
+        df_res["stars"] = estrellas_ajustadas
+        df_res["confidence"] = confianzas_ajustadas
         
         df_res.to_parquet(RUTA_PRED_PARQUET, index=False)
         with open(RUTA_PRED_JSON, "w", encoding="utf-8") as f:

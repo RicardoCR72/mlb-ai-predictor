@@ -148,6 +148,27 @@ def extraer_props_nba(usar_cache: bool = False, max_horas_cache: float = 4.0) ->
         away_name = partes_juego[0] if len(partes_juego) > 0 else ""
         home_name = partes_juego[1] if len(partes_juego) > 1 else ""
 
+        # Extraer spread del partido para control de riesgo por blowout
+        game_spread = 0.0
+        for dg_s in ev.get("displayGroups", []):
+            for mk_s in dg_s.get("markets", []):
+                if mk_s.get("description") == "Point Spread":
+                    outs_s = mk_s.get("outcomes", [])
+                    desc_outs = [o.get("description", "") for o in outs_s]
+                    if not any(period in " ".join(desc_outs) for period in ["- 1H", "- 1Q", "- 2Q", "- 3Q", "- 4Q"]):
+                        for o_s in outs_s:
+                            hd = o_s.get("price", {}).get("handicap")
+                            if hd is not None:
+                                try:
+                                    game_spread = abs(float(hd))
+                                    break
+                                except Exception:
+                                    pass
+                    if game_spread > 0:
+                        break
+            if game_spread > 0:
+                break
+
         for dg in ev.get("displayGroups", []):
             grupo = dg.get("description", "")
             for m in dg.get("markets", []):
@@ -233,6 +254,7 @@ def extraer_props_nba(usar_cache: bool = False, max_horas_cache: float = 4.0) ->
                                     "implied_prob_over": round(1.0 / dec_odds, 4),
                                     "implied_prob_under": None,
                                     "is_milestone": 1,
+                                    "game_spread": game_spread,
                                 })
                     continue
 
@@ -290,6 +312,7 @@ def extraer_props_nba(usar_cache: bool = False, max_horas_cache: float = 4.0) ->
                     "implied_prob_over": round(1.0 / over_dec, 4) if over_dec else None,
                     "implied_prob_under": round(1.0 / under_dec, 4) if under_dec else None,
                     "is_milestone": 0,
+                    "game_spread": game_spread,
                 })
 
     df_props = pd.DataFrame(props_extraidos)
