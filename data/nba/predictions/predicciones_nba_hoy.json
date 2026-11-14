@@ -8,7 +8,7 @@
     "abbr_visita": "NYK",
     "fecha_cdmx": "2026-11-13",
     "hora_cdmx": "18:00",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_END_PERIOD",
     "provider": "DraftKings",
     "linea_spread": 8.5,
     "spread_detalles": "NY -8.5",
@@ -120,7 +120,10 @@
         "detalle": "Proyección Calibrada: 215.8 pts vs línea 219.5 (Edge: +9.8%, EV: +18.7%)"
       }
     ],
-    "timestamp": "2026-11-13T16:03:26.802323-06:00"
+    "timestamp": "2026-11-13T16:03:26.802323-06:00",
+    "descripcion_estado": "End of Period",
+    "marcador_local": 85,
+    "marcador_visita": 84
   },
   {
     "id_evento": "401909297",
@@ -131,7 +134,7 @@
     "abbr_visita": "MIL",
     "fecha_cdmx": "2026-11-13",
     "hora_cdmx": "18:00",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_IN_PROGRESS",
     "provider": "DraftKings",
     "linea_spread": -9.5,
     "spread_detalles": "ORL -9.5",
@@ -291,7 +294,10 @@
         "detalle": "Proyección Calibrada: 219.5 pts vs línea 223.5 (Edge: +10.6%, EV: +20.3%)"
       }
     ],
-    "timestamp": "2026-11-13T16:03:26.827324-06:00"
+    "timestamp": "2026-11-13T16:03:26.827324-06:00",
+    "descripcion_estado": "In Progress",
+    "marcador_local": 89,
+    "marcador_visita": 77
   },
   {
     "id_evento": "401909298",
@@ -302,7 +308,7 @@
     "abbr_visita": "CLE",
     "fecha_cdmx": "2026-11-13",
     "hora_cdmx": "19:00",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_IN_PROGRESS",
     "provider": "DraftKings",
     "linea_spread": -2.5,
     "spread_detalles": "MIA -2.5",
@@ -425,7 +431,10 @@
         "detalle": "Prob Calibrada: 51.6% vs Book: 46.7% (Edge: +4.9%, EV: +10.4%)"
       }
     ],
-    "timestamp": "2026-11-13T16:03:26.836324-06:00"
+    "timestamp": "2026-11-13T16:03:26.836324-06:00",
+    "descripcion_estado": "In Progress",
+    "marcador_local": 47,
+    "marcador_visita": 52
   },
   {
     "id_evento": "401909299",
@@ -436,7 +445,7 @@
     "abbr_visita": "ATL",
     "fecha_cdmx": "2026-11-13",
     "hora_cdmx": "19:00",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_IN_PROGRESS",
     "provider": "DraftKings",
     "linea_spread": 7.5,
     "spread_detalles": "ATL -7.5",
@@ -607,7 +616,10 @@
         "detalle": "Margen Proyectado: -2.9 pts (Spread: +7.5)"
       }
     ],
-    "timestamp": "2026-11-13T16:03:26.846324-06:00"
+    "timestamp": "2026-11-13T16:03:26.846324-06:00",
+    "descripcion_estado": "In Progress",
+    "marcador_local": 59,
+    "marcador_visita": 49
   },
   {
     "id_evento": "401909300",
@@ -618,7 +630,7 @@
     "abbr_visita": "MEM",
     "fecha_cdmx": "2026-11-13",
     "hora_cdmx": "19:00",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_IN_PROGRESS",
     "provider": "DraftKings",
     "linea_spread": 3.5,
     "spread_detalles": "MEM -3.5",
@@ -801,7 +813,10 @@
         "detalle": "Prob Calibrada: 67.1% vs Book: 61.8% (Edge: +5.3%, EV: +8.5%)"
       }
     ],
-    "timestamp": "2026-11-13T16:03:26.855327-06:00"
+    "timestamp": "2026-11-13T16:03:26.855327-06:00",
+    "descripcion_estado": "In Progress",
+    "marcador_local": 46,
+    "marcador_visita": 58
   },
   {
     "id_evento": "401909301",
@@ -812,7 +827,7 @@
     "abbr_visita": "UTA",
     "fecha_cdmx": "2026-11-13",
     "hora_cdmx": "19:30",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_IN_PROGRESS",
     "provider": "DraftKings",
     "linea_spread": -15.5,
     "spread_detalles": "HOU -15.5",
@@ -949,7 +964,10 @@
         "detalle": "Proyección Calibrada: 218.3 pts vs línea 220.5 (Edge: +4.9%, EV: +9.4%)"
       }
     ],
-    "timestamp": "2026-11-13T16:03:26.863325-06:00"
+    "timestamp": "2026-11-13T16:03:26.863325-06:00",
+    "descripcion_estado": "In Progress",
+    "marcador_local": 25,
+    "marcador_visita": 22
   },
   {
     "id_evento": "401909302",
@@ -964,43 +982,30 @@
     "provider": "DraftKings",
     "linea_spread": -12.5,
     "spread_detalles": "SA -12.5",
-    "linea_total": 217.5,
-    "ml_local": "-670",
-    "ml_visita": "+487",
-    "ml_local_dec": 1.149,
-    "ml_visita_dec": 5.87,
-    "margen_local_esperado": 10.4,
-    "prob_local_win": 0.8146,
-    "prob_visita_win": 0.1854,
-    "prob_local_win_cruda": 0.8234,
-    "prob_visita_win_cruda": 0.1766,
-    "prob_cover_home": 0.4447,
-    "prob_cover_away": 0.5553,
-    "total_proyectado": 214.2,
-    "prob_over": 0.3861,
-    "prob_under": 0.6139,
-    "edge_puntos_total": -3.3,
+    "linea_total": 216.5,
+    "ml_local": "-700",
+    "ml_visita": "+501",
+    "ml_local_dec": 1.143,
+    "ml_visita_dec": 6.01,
+    "margen_local_esperado": 11.4,
+    "prob_local_win": 0.8351,
+    "prob_visita_win": 0.1649,
+    "prob_local_win_cruda": 0.8438,
+    "prob_visita_win_cruda": 0.1562,
+    "prob_cover_home": 0.4709,
+    "prob_cover_away": 0.5291,
+    "total_proyectado": 214.8,
+    "prob_over": 0.442,
+    "prob_under": 0.558,
+    "edge_puntos_total": -1.7,
     "candado_lesion": false,
     "alertas_lesiones": [
       "🚨 Stephen Curry (GSW) CONFIRMADO OUT (-5.5 pts)",
-      "🚨 Jimmy Butler III (GSW) CONFIRMADO OUT (-3.8 pts)",
-      "⚠️ De'Aaron Fox (SAS) EN DUDA (QUESTIONABLE)"
+      "🚨 Jimmy Butler III (GSW) CONFIRMADO OUT (-3.8 pts)"
     ],
-    "ajuste_spread_lesiones": 10.11,
-    "ajuste_totales_lesiones": -18.2,
+    "ajuste_spread_lesiones": 12.1,
+    "ajuste_totales_lesiones": -15.9,
     "lesiones_visita": [
-      {
-        "jugador": "Charles Bassey",
-        "posicion": "C",
-        "estado_raw": "Day-To-Day",
-        "estado": "PROBABLE",
-        "tipo_lesion": "Toe",
-        "comentario": "Bassey is probable for Friday's game against the Spurs due to left toe soreness.",
-        "impacto_spread": 0.8,
-        "impacto_total": 0.9,
-        "tier": 4,
-        "es_estrella": false
-      },
       {
         "jugador": "Stephen Curry",
         "posicion": "G",
@@ -1064,30 +1069,6 @@
     ],
     "lesiones_local": [
       {
-        "jugador": "Devin Vassell",
-        "posicion": "G",
-        "estado_raw": "Day-To-Day",
-        "estado": "QUESTIONABLE",
-        "tipo_lesion": "Groin",
-        "comentario": "Vassell is questionable for Friday's game against the Warriors due to left adductor tightness.",
-        "impacto_spread": 0.8,
-        "impacto_total": 0.9,
-        "tier": 4,
-        "es_estrella": false
-      },
-      {
-        "jugador": "De'Aaron Fox",
-        "posicion": "G",
-        "estado_raw": "Day-To-Day",
-        "estado": "QUESTIONABLE",
-        "tipo_lesion": "Hip",
-        "comentario": "Fox is questionable for Friday's game against the Warriors due to left hip soreness.",
-        "impacto_spread": 3.8,
-        "impacto_total": 4.0,
-        "tier": 2,
-        "es_estrella": true
-      },
-      {
         "jugador": "Tobias Harris",
         "posicion": "F",
         "estado_raw": "Out",
@@ -1112,30 +1093,17 @@
         "es_estrella": false
       }
     ],
-    "pick_mercado": "Totales (UNDER)",
-    "pick_seleccion": "UNDER 217.5",
-    "pick_probabilidad": 0.6097,
-    "pick_edge": 0.0859,
-    "pick_ev": 0.1639,
-    "pick_cuota": "-110",
-    "pick_cuota_dec": 1.909,
-    "pick_detalle": "Proyección Calibrada: 214.2 pts vs línea 217.5 (Edge: +8.6%, EV: +16.4%)",
-    "confianza": "ALTA",
-    "candidatos": [
-      {
-        "mercado": "Totales (UNDER)",
-        "seleccion": "UNDER 217.5",
-        "probabilidad": 0.6097,
-        "probabilidad_cruda": 0.6139,
-        "edge": 0.0859,
-        "ev": 0.1639,
-        "cuota": "-110",
-        "cuota_dec": 1.909,
-        "confianza": "ALTA",
-        "detalle": "Proyección Calibrada: 214.2 pts vs línea 217.5 (Edge: +8.6%, EV: +16.4%)"
-      }
-    ],
-    "timestamp": "2026-11-13T16:03:26.873326-06:00"
+    "pick_mercado": "Moneyline",
+    "pick_seleccion": "San Antonio Spurs ML",
+    "pick_probabilidad": 0.8351,
+    "pick_edge": -0.0398,
+    "pick_ev": -0.0455,
+    "pick_cuota": "-700",
+    "pick_cuota_dec": 1.143,
+    "pick_detalle": "Líneas de mercado eficientes (Sin ventaja clara. Margen: +11.4 pts)",
+    "confianza": "NEUTRAL",
+    "candidatos": [],
+    "timestamp": "2026-11-13T20:05:04.282290-06:00"
   },
   {
     "id_evento": "401909303",
@@ -1295,7 +1263,7 @@
         "detalle": "Margen Proyectado: -4.8 pts (Spread: +10.5)"
       }
     ],
-    "timestamp": "2026-11-13T16:03:26.882329-06:00"
+    "timestamp": "2026-11-13T20:05:04.287450-06:00"
   },
   {
     "id_evento": "401909304",
@@ -1455,6 +1423,6 @@
         "detalle": "Proyección Calibrada: 217.7 pts vs línea 222.5 (Edge: +13.1%, EV: +24.9%)"
       }
     ],
-    "timestamp": "2026-11-13T16:03:26.892326-06:00"
+    "timestamp": "2026-11-13T20:05:04.292436-06:00"
   }
 ]
