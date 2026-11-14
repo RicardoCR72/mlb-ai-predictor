@@ -123,14 +123,15 @@ def renderizar_ui_props_nba():
 
     # 3. Filtro por Confianza / EV
     opciones_conf = {
-        "⭐⭐⭐ Top Picks (Solo 3 Estrellas)": "top_picks",
+        "🌟 Top 20 Oficiales (Máxima Confianza)": "top_20",
         "🔒 Candados de Oro (Ultra Convicción)": "candado",
+        "⭐⭐⭐ Top Picks (Solo 3 Estrellas)": "top_picks",
         "⭐⭐ Alta Confianza (2 y 3 Estrellas)": "alta_confianza",
         "⭐ Solo Picks de Valor (1, 2 y 3 Estrellas)": "picks_valor",
         "Todos los props (Incluye Neutrales)": "todos",
     }
     conf_sel_label = c_conf.selectbox("🔥 Nivel de Valor / EV:", list(opciones_conf.keys()), index=0)
-    filtro_conf_tipo = opciones_conf.get(conf_sel_label, "top_picks")
+    filtro_conf_tipo = opciones_conf.get(conf_sel_label, "top_20")
 
     # 4. Filtro por Selección
     tipo_sel = c_tipo.selectbox("🎯 Selección:", ["Todos", "Solo OVER", "Solo UNDER"])
@@ -146,7 +147,16 @@ def renderizar_ui_props_nba():
     if mercado_sel:
         df_filtrado = df_filtrado[df_filtrado["market"] == mercado_sel]
 
-    if filtro_conf_tipo == "candado" or "Candado" in conf_sel_label:
+    if filtro_conf_tipo == "top_20" or "Top 20" in conf_sel_label:
+        if "es_top20_oficial" in df_filtrado.columns and df_filtrado["es_top20_oficial"].any():
+            df_filtrado = df_filtrado[df_filtrado["es_top20_oficial"] == True]
+        else:
+            try:
+                from nba.predecir_props import seleccionar_top_props_diarios
+                df_filtrado = seleccionar_top_props_diarios(df_filtrado, limite=20)
+            except Exception:
+                df_filtrado = df_filtrado.head(20)
+    elif filtro_conf_tipo == "candado" or "Candado" in conf_sel_label:
         if "es_candado" in df_filtrado.columns:
             df_filtrado = df_filtrado[df_filtrado["es_candado"] == True]
         else:
@@ -274,6 +284,8 @@ def _renderizar_tarjeta_prop(p: Dict[str, Any], desplegar_grafica_directa: bool 
     estrellas = p.get("stars", "⭐")
     if p.get("es_candado"):
         estrellas = f"🔒 {estrellas}"
+    elif p.get("es_top20_oficial"):
+        estrellas = f"🌟 {estrellas}"
     tendencia = p.get("trend", "")
     boost_lesion = p.get("boost_lesion_pct", 0.0)
     desc_blowout = p.get("descuento_blowout_pct", 0.0)

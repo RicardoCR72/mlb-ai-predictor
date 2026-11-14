@@ -469,15 +469,30 @@ def sincronizar_y_liquidar_props_nba(conn=None) -> Dict[str, Any]:
 
 
 def registrar_props_pendientes(df_preds: pd.DataFrame) -> None:
-    """Registra predicciones de props como PENDIENTE en el historial persistente de props."""
+    """Registra predicciones de props como PENDIENTE en el historial persistente de props.
+    
+    Aplica límite defensivo de máximo 20 picks diarios de mayor confianza para control de banca y auditoría.
+    """
     if df_preds is None or df_preds.empty:
         return
+
+    # Asegurar que solo se auditen los Top 20 oficiales de máxima convicción
+    if "es_top20_oficial" in df_preds.columns and df_preds["es_top20_oficial"].any():
+        df_a_registrar = df_preds[df_preds["es_top20_oficial"] == True].copy()
+    elif len(df_preds) > 20:
+        try:
+            from nba.predecir_props import seleccionar_top_props_diarios
+            df_a_registrar = seleccionar_top_props_diarios(df_preds, limite=20)
+        except Exception:
+            df_a_registrar = df_preds.head(20).copy()
+    else:
+        df_a_registrar = df_preds.copy()
 
     RUTA_PROCESSED.mkdir(parents=True, exist_ok=True)
     ahora_dt = datetime.now(ZONA_CDMX)
     filas = []
 
-    for _, p in df_preds.iterrows():
+    for _, p in df_a_registrar.iterrows():
         f_str = str(p.get("fecha", ahora_dt.strftime("%Y-%m-%d")))[:10]
         eq_vis = str(p.get("away_team", "Visita"))
         eq_loc = str(p.get("home_team", "Local"))
