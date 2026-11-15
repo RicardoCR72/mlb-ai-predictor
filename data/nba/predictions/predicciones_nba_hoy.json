@@ -8,7 +8,7 @@
     "abbr_visita": "DEN",
     "fecha_cdmx": "2026-11-14",
     "hora_cdmx": "18:00",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_IN_PROGRESS",
     "provider": "Draft Kings",
     "linea_spread": 12.5,
     "spread_detalles": "DEN -12.5",
@@ -143,7 +143,10 @@
         "detalle": "Margen Proyectado: -9.0 pts (Spread: +12.5)"
       }
     ],
-    "timestamp": "2026-11-14T12:40:07.949831-06:00"
+    "timestamp": "2026-11-14T12:40:07.949831-06:00",
+    "descripcion_estado": "In Progress",
+    "marcador_local": 64,
+    "marcador_visita": 74
   },
   {
     "id_evento": "401909981",
@@ -154,7 +157,7 @@
     "abbr_visita": "DAL",
     "fecha_cdmx": "2026-11-14",
     "hora_cdmx": "18:30",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_IN_PROGRESS",
     "provider": "DraftKings",
     "linea_spread": 4.5,
     "spread_detalles": "DAL -4.5",
@@ -363,7 +366,10 @@
         "detalle": "Margen Proyectado: -1.0 pts (Spread: +4.5)"
       }
     ],
-    "timestamp": "2026-11-14T12:40:07.955287-06:00"
+    "timestamp": "2026-11-14T12:40:07.955287-06:00",
+    "descripcion_estado": "In Progress",
+    "marcador_local": 68,
+    "marcador_visita": 53
   },
   {
     "id_evento": "401909982",
@@ -374,7 +380,7 @@
     "abbr_visita": "DET",
     "fecha_cdmx": "2026-11-14",
     "hora_cdmx": "19:00",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_IN_PROGRESS",
     "provider": "DraftKings",
     "linea_spread": 3.5,
     "spread_detalles": "DET -3.5",
@@ -521,7 +527,10 @@
         "detalle": "Margen Proyectado Visita: +6.7 pts (Spread: -3.5)"
       }
     ],
-    "timestamp": "2026-11-14T12:40:07.960738-06:00"
+    "timestamp": "2026-11-14T12:40:07.960738-06:00",
+    "descripcion_estado": "In Progress",
+    "marcador_local": 27,
+    "marcador_visita": 28
   },
   {
     "id_evento": "401909983",
@@ -532,7 +541,7 @@
     "abbr_visita": "BKN",
     "fecha_cdmx": "2026-11-14",
     "hora_cdmx": "19:00",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_IN_PROGRESS",
     "provider": "DraftKings",
     "linea_spread": -2.5,
     "spread_detalles": "MEM -2.5",
@@ -679,7 +688,10 @@
         "detalle": "Margen Proyectado: +5.2 pts (Spread: -2.5)"
       }
     ],
-    "timestamp": "2026-11-14T12:40:07.966115-06:00"
+    "timestamp": "2026-11-14T12:40:07.966115-06:00",
+    "descripcion_estado": "In Progress",
+    "marcador_local": 38,
+    "marcador_visita": 22
   },
   {
     "id_evento": "401909984",
@@ -690,7 +702,7 @@
     "abbr_visita": "CHI",
     "fecha_cdmx": "2026-11-14",
     "hora_cdmx": "19:00",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_END_PERIOD",
     "provider": "DraftKings",
     "linea_spread": -15.5,
     "spread_detalles": "MIN -15.5",
@@ -839,6 +851,9 @@
         "detalle": "Margen Proyectado Visita: -9.8 pts (Spread: +15.5)"
       }
     ],
-    "timestamp": "2026-11-14T12:40:07.971403-06:00"
+    "timestamp": "2026-11-14T12:40:07.971403-06:00",
+    "descripcion_estado": "End of Period",
+    "marcador_local": 17,
+    "marcador_visita": 29
   }
 ]
