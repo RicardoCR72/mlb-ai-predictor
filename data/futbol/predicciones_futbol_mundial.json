@@ -1,71 +1,5 @@
 [
   {
-    "id_evento": "401876988",
-    "liga_codigo": "mex.1",
-    "liga_nombre": "Liga MX",
-    "liga_bandera": "🇲🇽",
-    "liga_pais": "México",
-    "partido": "Monterrey @ Querétaro",
-    "equipo_local": "Querétaro",
-    "equipo_visita": "Monterrey",
-    "abbr_local": "QRO",
-    "abbr_visita": "MTY",
-    "logo_local": "https://a.espncdn.com/i/teamlogos/soccer/500/222.png",
-    "logo_visita": "https://a.espncdn.com/i/teamlogos/soccer/500/220.png",
-    "fecha_cdmx": "2026-11-14",
-    "hora_cdmx": "17:00",
-    "estado": "STATUS_SCHEDULED",
-    "descripcion_estado": "Scheduled",
-    "marcador_local": 0,
-    "marcador_visita": 0,
-    "provider": "DraftKings",
-    "linea_total": 2.5,
-    "over_momio": "-130",
-    "under_momio": "+100",
-    "over_momio_dec": 1.769,
-    "under_momio_dec": 2.0,
-    "moneyline_local": "+255",
-    "moneyline_empate": "+255",
-    "moneyline_visita": "+100",
-    "ml_local_dec": 3.55,
-    "ml_empate_dec": 3.55,
-    "ml_visita_dec": 2.0,
-    "xg_local": 0.93,
-    "xg_visita": 1.4,
-    "total_proyectado": 2.33,
-    "marcador_mas_probable": "1 - 1",
-    "prob_marcador_mas_probable": 0.142,
-    "prob_local": 0.2537,
-    "prob_empate": 0.2862,
-    "prob_visita": 0.4601,
-    "prob_over": 0.4712,
-    "prob_under": 0.5288,
-    "prob_btts_si": 0.4859,
-    "prob_btts_no": 0.5141,
-    "prob_1x": 0.5399,
-    "prob_x2": 0.7463,
-    "prob_dnb_local": 0.3554,
-    "prob_dnb_visita": 0.6446,
-    "edge_local": -0.028,
-    "edge_visita": -0.0399,
-    "edge_empate": 0.0045,
-    "edge_over": -0.0941,
-    "edge_under": 0.0419,
-    "pick_mercado": "Totales (Over/Under)",
-    "pick_seleccion": "UNDER 2.5 Goles",
-    "pick_probabilidad": 0.5419,
-    "pick_edge": 0.0419,
-    "pick_ev": 0.0839,
-    "pick_cuota": "+100",
-    "pick_cuota_dec": 2.0,
-    "pick_detalle": "Línea de mercado eficiente (xG Total: 2.33 vs línea 2.5). Descartado para proteger bankroll.",
-    "confianza": "NEUTRAL",
-    "resultado_pick": "PENDIENTE",
-    "beneficio_unidades": null,
-    "candidatos": [],
-    "timestamp": "2026-11-14T11:22:34.824721-06:00"
-  },
-  {
     "id_evento": "401933535",
     "liga_codigo": "usa.1",
     "liga_nombre": "MLS",
@@ -141,7 +75,7 @@
         "detalle": "Flujo ofensivo mutuo alto (xG 1.69 y 1.54, BTTS SÍ Calibrado: 57.1%, EV: +5.7%)"
       }
     ],
-    "timestamp": "2026-11-14T11:22:34.828488-06:00"
+    "timestamp": "2026-11-14T18:05:19.088538-06:00"
   },
   {
     "id_evento": "401933555",
@@ -207,7 +141,7 @@
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-14T11:22:34.832150-06:00"
+    "timestamp": "2026-11-14T18:05:19.091561-06:00"
   },
   {
     "id_evento": "401884736",
@@ -235,30 +169,30 @@
     "over_momio_dec": 2.05,
     "under_momio_dec": 1.714,
     "moneyline_local": "-1400",
-    "moneyline_empate": "+900",
+    "moneyline_empate": "+950",
     "moneyline_visita": "+1500",
     "ml_local_dec": 1.071,
-    "ml_empate_dec": 10.0,
+    "ml_empate_dec": 10.5,
     "ml_visita_dec": 16.0,
     "xg_local": 3.22,
     "xg_visita": 0.81,
     "total_proyectado": 4.03,
     "marcador_mas_probable": "3 - 0",
     "prob_marcador_mas_probable": 0.099,
-    "prob_local": 0.826,
-    "prob_empate": 0.1112,
-    "prob_visita": 0.0628,
+    "prob_local": 0.8278,
+    "prob_empate": 0.1092,
+    "prob_visita": 0.063,
     "prob_over": 0.4156,
     "prob_under": 0.5844,
     "prob_btts_si": 0.5501,
     "prob_btts_no": 0.4499,
-    "prob_1x": 0.9372,
-    "prob_x2": 0.174,
+    "prob_1x": 0.937,
+    "prob_x2": 0.1722,
     "prob_dnb_local": 0.9293,
     "prob_dnb_visita": 0.0707,
-    "edge_local": -0.1077,
-    "edge_visita": 0.0003,
-    "edge_empate": 0.0112,
+    "edge_local": -0.1059,
+    "edge_visita": 0.0005,
+    "edge_empate": 0.014,
     "edge_over": -0.0722,
     "edge_under": -0.0246,
     "pick_mercado": "Totales (Over/Under)",
@@ -273,7 +207,7 @@
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-14T11:22:34.835814-06:00"
+    "timestamp": "2026-11-14T18:05:19.094537-06:00"
   },
   {
     "id_evento": "401876395",
@@ -339,7 +273,7 @@
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-14T11:22:34.839476-06:00"
+    "timestamp": "2026-11-14T18:05:19.097516-06:00"
   },
   {
     "id_evento": "401882805",
@@ -417,6 +351,6 @@
         "detalle": "Solidez defensiva proyectada (xG 1.85 y 0.63, BTTS NO Calibrado: 55.4%, EV: +8.0%)"
       }
     ],
-    "timestamp": "2026-11-14T11:22:34.843118-06:00"
+    "timestamp": "2026-11-14T18:05:19.100495-06:00"
   }
 ]
