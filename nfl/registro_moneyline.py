@@ -150,9 +150,9 @@ def guardar_predicciones_moneyline_mysql(predicciones: List[Dict[str, Any]]):
         estado_juego = VALUES(estado_juego),
         marcador_local = VALUES(marcador_local),
         marcador_visita = VALUES(marcador_visita),
-        resultado_pick = IF(resultado_pick IN ('GANADA', 'PERDIDA', 'PUSH'), resultado_pick, VALUES(resultado_pick)),
-        beneficio_unidades = IF(beneficio_unidades IS NOT NULL, beneficio_unidades, VALUES(beneficio_unidades)),
-        ganador_real = IF(ganador_real IS NOT NULL, ganador_real, VALUES(ganador_real)),
+        resultado_pick = IF(VALUES(resultado_pick) IN ('GANADA', 'PERDIDA', 'PUSH'), VALUES(resultado_pick), resultado_pick),
+        beneficio_unidades = IF(VALUES(resultado_pick) IN ('GANADA', 'PERDIDA', 'PUSH'), VALUES(beneficio_unidades), beneficio_unidades),
+        ganador_real = IF(VALUES(resultado_pick) IN ('GANADA', 'PERDIDA', 'PUSH'), VALUES(ganador_real), ganador_real),
         actualizado_en = VALUES(actualizado_en)
     """
 
@@ -206,19 +206,9 @@ def guardar_predicciones_moneyline_mysql(predicciones: List[Dict[str, Any]]):
 
 
 def liquidar_partidos_pendientes_moneyline() -> Dict[str, Any]:
-    """Consulta ESPN para obtener marcadores de partidos concluidos y liquidar los picks pendientes."""
+    """Consulta ESPN para obtener marcadores de partidos concluidos y liquidar los picks pendientes en MySQL y JSON."""
     import json
     from nfl.proveedor_cuotas import obtener_jornada_nfl_espn
-
-    RUTA_JSON = RAIZ / "data" / "nfl" / "predictions" / "predicciones_nfl_moneyline.json"
-    if not RUTA_JSON.exists():
-        return {"evaluados": 0, "mensaje": "No hay archivo de predicciones de Moneyline para evaluar."}
-
-    try:
-        with open(RUTA_JSON, "r", encoding="utf-8") as f:
-            predicciones = json.load(f)
-    except Exception as exc:
-        return {"evaluados": 0, "mensaje": f"Error leyendo archivo de predicciones: {exc}"}
 
     partidos_espn = obtener_jornada_nfl_espn()
     dict_espn = {str(p["id_evento"]): p for p in partidos_espn}
@@ -226,40 +216,92 @@ def liquidar_partidos_pendientes_moneyline() -> Dict[str, Any]:
     evaluados = 0
     ahora_str = datetime.now(ZONA_CDMX).strftime("%Y-%m-%d %H:%M:%S")
 
-    for p in predicciones:
-        id_ev = str(p.get("id_evento", ""))
-        live = dict_espn.get(id_ev)
-        if live:
-            p["estado"] = live.get("estado", p.get("estado"))
-            p["descripcion_estado"] = live.get("descripcion_estado", p.get("descripcion_estado"))
-            if live.get("marcador_local") is not None:
-                p["marcador_local"] = live["marcador_local"]
-            if live.get("marcador_visita") is not None:
-                p["marcador_visita"] = live["marcador_visita"]
+    # 1. Liquidar directamente en la base de datos MySQL
+    conn = None
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT id_prediccion, id_juego, partido, equipo_local, equipo_visita,
+                   marcador_local, marcador_visita, seleccion, cuota_dec, estado_juego, resultado_pick
+            FROM nfl_predicciones_moneyline
+            WHERE resultado_pick = 'PENDIENTE' OR estado_juego NOT LIKE '%FINAL%';
+        """)
+        db_pends = cursor.fetchall()
+        for dp in db_pends:
+            id_juego = str(dp["id_juego"])
+            live = dict_espn.get(id_juego)
+            ml = dp["marcador_local"]
+            mv = dp["marcador_visita"]
+            est = dp["estado_juego"]
+            if live:
+                est = live.get("estado", est)
+                if live.get("marcador_local") is not None:
+                    ml = live["marcador_local"]
+                if live.get("marcador_visita") is not None:
+                    mv = live["marcador_visita"]
 
-        # Si ya terminó y estaba pendiente, liquidar
-        if ("FINAL" in str(p.get("estado", "")).upper()) and p.get("resultado_pick") not in ["GANADA", "PERDIDA", "PUSH"]:
-            res, u_gan, ganador = liquidar_partido_moneyline(
-                seleccion=p.get("pick_seleccion", ""),
-                equipo_local=p.get("equipo_local", ""),
-                equipo_visita=p.get("equipo_visita", ""),
-                marcador_local=p.get("marcador_local"),
-                marcador_visita=p.get("marcador_visita"),
-                cuota_dec=p.get("pick_cuota_dec", 1.91),
-            )
-            if res != "PENDIENTE":
-                p["resultado_pick"] = res
-                p["beneficio_unidades"] = u_gan
-                p["ganador_real"] = ganador
-                p["evaluado_en"] = ahora_str
-                evaluados += 1
+            if ml is not None and mv is not None and "FINAL" in str(est).upper() and (ml > 0 or mv > 0 or id_juego != "401873065"):
+                res, u_gan, ganador = liquidar_partido_moneyline(
+                    seleccion=dp.get("seleccion", ""),
+                    equipo_local=dp.get("equipo_local", ""),
+                    equipo_visita=dp.get("equipo_visita", ""),
+                    marcador_local=ml,
+                    marcador_visita=mv,
+                    cuota_dec=float(dp["cuota_dec"]) if dp.get("cuota_dec") else 1.91,
+                )
+                if res != "PENDIENTE":
+                    cursor.execute("""
+                        UPDATE nfl_predicciones_moneyline
+                        SET marcador_local = %s, marcador_visita = %s, estado_juego = %s,
+                            resultado_pick = %s, beneficio_unidades = %s, ganador_real = %s, evaluado_en = %s
+                        WHERE id_prediccion = %s;
+                    """, (ml, mv, est, res, u_gan, ganador, ahora_str, dp["id_prediccion"]))
+                    evaluados += 1
+        conn.commit()
+        cursor.close()
+    except Exception as exc:
+        logger.warning(f"Error liquidando Moneyline en MySQL: {exc}")
+    finally:
+        if conn and conn.is_connected():
+            conn.close()
 
-    # Guardar en JSON
-    with open(RUTA_JSON, "w", encoding="utf-8") as f:
-        json.dump(predicciones, f, indent=2, ensure_ascii=False)
+    # 2. Sincronizar archivo local JSON si existe
+    RUTA_JSON = RAIZ / "data" / "nfl" / "predictions" / "predicciones_nfl_moneyline.json"
+    if RUTA_JSON.exists():
+        try:
+            with open(RUTA_JSON, "r", encoding="utf-8") as f:
+                predicciones = json.load(f)
+            for p in predicciones:
+                id_ev = str(p.get("id_evento", ""))
+                live = dict_espn.get(id_ev)
+                if live:
+                    p["estado"] = live.get("estado", p.get("estado"))
+                    p["descripcion_estado"] = live.get("descripcion_estado", p.get("descripcion_estado"))
+                    if live.get("marcador_local") is not None:
+                        p["marcador_local"] = live["marcador_local"]
+                    if live.get("marcador_visita") is not None:
+                        p["marcador_visita"] = live["marcador_visita"]
 
-    # Actualizar en MySQL
-    guardar_predicciones_moneyline_mysql(predicciones)
+                if ("FINAL" in str(p.get("estado", "")).upper()) and p.get("resultado_pick") not in ["GANADA", "PERDIDA", "PUSH"]:
+                    res, u_gan, ganador = liquidar_partido_moneyline(
+                        seleccion=p.get("pick_seleccion", ""),
+                        equipo_local=p.get("equipo_local", ""),
+                        equipo_visita=p.get("equipo_visita", ""),
+                        marcador_local=p.get("marcador_local"),
+                        marcador_visita=p.get("marcador_visita"),
+                        cuota_dec=p.get("pick_cuota_dec", 1.91),
+                    )
+                    if res != "PENDIENTE":
+                        p["resultado_pick"] = res
+                        p["beneficio_unidades"] = u_gan
+                        p["ganador_real"] = ganador
+                        p["evaluado_en"] = ahora_str
+
+            with open(RUTA_JSON, "w", encoding="utf-8") as f:
+                json.dump(predicciones, f, indent=2, ensure_ascii=False)
+        except Exception as exc:
+            logger.warning(f"Error actualizando JSON de Moneyline: {exc}")
 
     return {
         "evaluados": evaluados,
