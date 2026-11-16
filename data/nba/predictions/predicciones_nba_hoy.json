@@ -8,7 +8,7 @@
     "abbr_visita": "IND",
     "fecha_cdmx": "2026-11-15",
     "hora_cdmx": "12:00",
-    "estado": "STATUS_HALFTIME",
+    "estado": "STATUS_FINAL",
     "provider": "DraftKings",
     "linea_spread": -6.5,
     "spread_detalles": "PHI -6.5",
@@ -183,9 +183,11 @@
       }
     ],
     "timestamp": "2026-11-15T06:53:27.973375-06:00",
-    "descripcion_estado": "Halftime",
-    "marcador_local": 58,
-    "marcador_visita": 57
+    "descripcion_estado": "Final",
+    "marcador_local": 131,
+    "marcador_visita": 124,
+    "resultado": "PERDIDA",
+    "unidades_ganadas": -1.0
   },
   {
     "id_evento": "401909986",
@@ -196,7 +198,7 @@
     "abbr_visita": "LAL",
     "fecha_cdmx": "2026-11-15",
     "hora_cdmx": "15:00",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_FINAL",
     "provider": "DraftKings",
     "linea_spread": 3.5,
     "spread_detalles": "LAL -3.5",
@@ -294,7 +296,12 @@
     "pick_detalle": "Líneas de mercado eficientes (Sin ventaja clara. Margen: -3.9 pts)",
     "confianza": "NEUTRAL",
     "candidatos": [],
-    "timestamp": "2026-11-15T13:17:03.434833-06:00"
+    "timestamp": "2026-11-15T13:17:03.434833-06:00",
+    "marcador_local": 123,
+    "marcador_visita": 131,
+    "descripcion_estado": "Final",
+    "resultado": "GANADA",
+    "unidades_ganadas": 0.621
   },
   {
     "id_evento": "401909987",
@@ -305,7 +312,7 @@
     "abbr_visita": "CHA",
     "fecha_cdmx": "2026-11-15",
     "hora_cdmx": "15:30",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_FINAL",
     "provider": "DraftKings",
     "linea_spread": 1.5,
     "spread_detalles": "CHA -1.5",
@@ -391,7 +398,12 @@
         "detalle": "Margen Proyectado: +4.8 pts (Spread: +1.5)"
       }
     ],
-    "timestamp": "2026-11-15T13:17:03.438757-06:00"
+    "timestamp": "2026-11-15T13:17:03.438757-06:00",
+    "marcador_local": 113,
+    "marcador_visita": 105,
+    "resultado": "GANADA",
+    "unidades_ganadas": 0.943,
+    "descripcion_estado": "Final"
   },
   {
     "id_evento": "401909988",
@@ -402,7 +414,7 @@
     "abbr_visita": "SAS",
     "fecha_cdmx": "2026-11-15",
     "hora_cdmx": "16:00",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_FINAL",
     "provider": "DraftKings",
     "linea_spread": 15.5,
     "spread_detalles": "SA -15.5",
@@ -564,7 +576,12 @@
         "detalle": "Margen Proyectado: -12.0 pts (Spread: +15.5)"
       }
     ],
-    "timestamp": "2026-11-15T13:17:03.442549-06:00"
+    "timestamp": "2026-11-15T13:17:03.442549-06:00",
+    "marcador_local": 102,
+    "marcador_visita": 110,
+    "resultado": "GANADA",
+    "unidades_ganadas": 0.909,
+    "descripcion_estado": "Final"
   },
   {
     "id_evento": "401909989",
@@ -575,7 +592,7 @@
     "abbr_visita": "DAL",
     "fecha_cdmx": "2026-11-15",
     "hora_cdmx": "17:00",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_FINAL",
     "provider": "DraftKings",
     "linea_spread": -14.5,
     "spread_detalles": "BOS -14.5",
@@ -698,7 +715,12 @@
     "pick_detalle": "Líneas de mercado eficientes (Sin ventaja clara. Margen: +13.6 pts)",
     "confianza": "NEUTRAL",
     "candidatos": [],
-    "timestamp": "2026-11-15T13:17:03.446299-06:00"
+    "timestamp": "2026-11-15T13:17:03.446299-06:00",
+    "marcador_local": 131,
+    "marcador_visita": 94,
+    "descripcion_estado": "Final",
+    "resultado": "GANADA",
+    "unidades_ganadas": 0.114
   },
   {
     "id_evento": "401909990",
@@ -709,7 +731,7 @@
     "abbr_visita": "NYK",
     "fecha_cdmx": "2026-11-15",
     "hora_cdmx": "17:00",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_IN_PROGRESS",
     "provider": "DraftKings",
     "linea_spread": 5.5,
     "spread_detalles": "NY -5.5",
@@ -797,7 +819,10 @@
     "pick_detalle": "Líneas de mercado eficientes (Sin ventaja clara. Margen: -6.0 pts)",
     "confianza": "NEUTRAL",
     "candidatos": [],
-    "timestamp": "2026-11-15T13:17:03.450433-06:00"
+    "timestamp": "2026-11-15T13:17:03.450433-06:00",
+    "descripcion_estado": "In Progress",
+    "marcador_local": 99,
+    "marcador_visita": 102
   },
   {
     "id_evento": "401909991",
@@ -808,7 +833,7 @@
     "abbr_visita": "HOU",
     "fecha_cdmx": "2026-11-15",
     "hora_cdmx": "18:00",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_IN_PROGRESS",
     "provider": "DraftKings",
     "linea_spread": 8.5,
     "spread_detalles": "HOU -8.5",
@@ -979,7 +1004,10 @@
         "detalle": "Proyección Calibrada: 219.3 pts vs línea 224.5 (Edge: +14.4%, EV: +27.5%)"
       }
     ],
-    "timestamp": "2026-11-15T13:17:03.454486-06:00"
+    "timestamp": "2026-11-15T13:17:03.454486-06:00",
+    "descripcion_estado": "In Progress",
+    "marcador_local": 75,
+    "marcador_visita": 99
   },
   {
     "id_evento": "401909992",
@@ -990,7 +1018,7 @@
     "abbr_visita": "ATL",
     "fecha_cdmx": "2026-11-15",
     "hora_cdmx": "19:00",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_IN_PROGRESS",
     "provider": "DraftKings",
     "linea_spread": 8.5,
     "spread_detalles": "ATL -8.5",
@@ -1149,7 +1177,10 @@
         "detalle": "Proyección Calibrada: 230.0 pts vs línea 233.5 (Edge: +9.2%, EV: +17.5%)"
       }
     ],
-    "timestamp": "2026-11-15T13:17:03.458213-06:00"
+    "timestamp": "2026-11-15T13:17:03.458213-06:00",
+    "descripcion_estado": "In Progress",
+    "marcador_local": 40,
+    "marcador_visita": 21
   },
   {
     "id_evento": "401909993",
@@ -1161,32 +1192,32 @@
     "fecha_cdmx": "2026-11-15",
     "hora_cdmx": "20:00",
     "estado": "STATUS_SCHEDULED",
-    "provider": "DraftKings",
-    "linea_spread": 10.5,
-    "spread_detalles": "OKC -10.5",
-    "linea_total": 222.5,
-    "ml_local": "+361",
-    "ml_visita": "-468",
-    "ml_local_dec": 4.61,
-    "ml_visita_dec": 1.214,
-    "margen_local_esperado": -3.94,
-    "prob_local_win": 0.3633,
-    "prob_visita_win": 0.6367,
-    "prob_local_win_cruda": 0.3581,
-    "prob_visita_win_cruda": 0.6419,
-    "prob_cover_home": 0.6682,
-    "prob_cover_away": 0.3318,
-    "total_proyectado": 217.4,
-    "prob_over": 0.3292,
-    "prob_under": 0.6708,
-    "edge_puntos_total": -5.1,
+    "provider": "Draft Kings",
+    "linea_spread": 12.5,
+    "spread_detalles": "OKC -12.5",
+    "linea_total": 221.5,
+    "ml_local": "+443",
+    "ml_visita": "-597",
+    "ml_local_dec": 5.43,
+    "ml_visita_dec": 1.168,
+    "margen_local_esperado": -5.96,
+    "prob_local_win": 0.2997,
+    "prob_visita_win": 0.7003,
+    "prob_local_win_cruda": 0.2926,
+    "prob_visita_win_cruda": 0.7074,
+    "prob_cover_home": 0.6677,
+    "prob_cover_away": 0.3323,
+    "total_proyectado": 216.2,
+    "prob_over": 0.3215,
+    "prob_under": 0.6785,
+    "edge_puntos_total": -5.3,
     "candado_lesion": false,
     "alertas_lesiones": [
       "🚨 Chet Holmgren (OKC) CONFIRMADO OUT (-3.5 pts)",
       "🚨 Jalen Williams (OKC) CONFIRMADO OUT (-3.2 pts)"
     ],
-    "ajuste_spread_lesiones": 7.14,
-    "ajuste_totales_lesiones": -11.91,
+    "ajuste_spread_lesiones": 5.1,
+    "ajuste_totales_lesiones": -13.4,
     "lesiones_visita": [
       {
         "jugador": "Jaylin Williams",
@@ -1195,18 +1226,6 @@
         "estado": "OUT",
         "tipo_lesion": "Back",
         "comentario": "Williams (back) has been ruled out for Sunday's game against the Kings.",
-        "impacto_spread": 0.8,
-        "impacto_total": 0.9,
-        "tier": 4,
-        "es_estrella": false
-      },
-      {
-        "jugador": "Ajay Mitchell",
-        "posicion": "G",
-        "estado_raw": "Day-To-Day",
-        "estado": "QUESTIONABLE",
-        "tipo_lesion": "Ankle",
-        "comentario": "Mitchell (ankle) is questionable to suit up for Sunday's game against the Kings.",
         "impacto_spread": 0.8,
         "impacto_total": 0.9,
         "tier": 4,
@@ -1263,24 +1282,24 @@
     ],
     "lesiones_local": [
       {
-        "jugador": "Maxime Raynaud",
-        "posicion": "C",
+        "jugador": "De'Andre Hunter",
+        "posicion": "F",
         "estado_raw": "Out",
         "estado": "OUT",
-        "tipo_lesion": "Knee",
-        "comentario": "Raynaud (knee) has been ruled out for Sunday's game against the Thunder.",
+        "tipo_lesion": "Hip",
+        "comentario": "Hunter (hip) is out for Sunday's game against the Thunder.",
         "impacto_spread": 0.8,
         "impacto_total": 0.9,
         "tier": 4,
         "es_estrella": false
       },
       {
-        "jugador": "Keegan Murray",
-        "posicion": "F",
-        "estado_raw": "Day-To-Day",
-        "estado": "QUESTIONABLE",
+        "jugador": "Zach LaVine",
+        "posicion": "G",
+        "estado_raw": "Out",
+        "estado": "OUT",
         "tipo_lesion": "Illness",
-        "comentario": "Murray (illness) is questionable for Sunday's game against the Thunder.",
+        "comentario": "LaVine is out for Sunday's game against Oklahoma City due to illness, Brandon Rahbar of DailyThunder.com reports.",
         "impacto_spread": 0.8,
         "impacto_total": 0.9,
         "tier": 4,
@@ -1289,10 +1308,22 @@
       {
         "jugador": "Precious Achiuwa",
         "posicion": "F",
-        "estado_raw": "Day-To-Day",
-        "estado": "QUESTIONABLE",
+        "estado_raw": "Out",
+        "estado": "OUT",
         "tipo_lesion": "Ankle",
-        "comentario": "Achiuwa (ankle) is questionable for Sunday's game against the Thunder.",
+        "comentario": "Achiuwa (ankle) has been ruled out for Sunday's game against the Thunder, Brenden Nunes of KHTK Sactown Sports 1140 reports.",
+        "impacto_spread": 0.8,
+        "impacto_total": 0.9,
+        "tier": 4,
+        "es_estrella": false
+      },
+      {
+        "jugador": "Maxime Raynaud",
+        "posicion": "C",
+        "estado_raw": "Out",
+        "estado": "OUT",
+        "tipo_lesion": "Knee",
+        "comentario": "Raynaud (knee) has been ruled out for Sunday's game against the Thunder.",
         "impacto_spread": 0.8,
         "impacto_total": 0.9,
         "tier": 4,
@@ -1311,41 +1342,41 @@
         "es_estrella": false
       }
     ],
-    "pick_mercado": "Spread",
-    "pick_seleccion": "Sacramento Kings +10.5",
-    "pick_probabilidad": 0.6682,
-    "pick_edge": 0.1444,
-    "pick_ev": 0.2756,
+    "pick_mercado": "Totales (UNDER)",
+    "pick_seleccion": "UNDER 221.5",
+    "pick_probabilidad": 0.6722,
+    "pick_edge": 0.1484,
+    "pick_ev": 0.2832,
     "pick_cuota": "-110",
     "pick_cuota_dec": 1.909,
-    "pick_detalle": "Margen Proyectado: -3.9 pts (Spread: +10.5)",
+    "pick_detalle": "Proyección Calibrada: 216.2 pts vs línea 221.5 (Edge: +14.8%, EV: +28.3%)",
     "confianza": "ALTA",
     "candidatos": [
       {
-        "mercado": "Spread",
-        "seleccion": "Sacramento Kings +10.5",
-        "probabilidad": 0.6682,
-        "probabilidad_cruda": 0.6744,
-        "edge": 0.1444,
-        "ev": 0.2756,
+        "mercado": "Totales (UNDER)",
+        "seleccion": "UNDER 221.5",
+        "probabilidad": 0.6722,
+        "probabilidad_cruda": 0.6785,
+        "edge": 0.1484,
+        "ev": 0.2832,
         "cuota": "-110",
         "cuota_dec": 1.909,
         "confianza": "ALTA",
-        "detalle": "Margen Proyectado: -3.9 pts (Spread: +10.5)"
+        "detalle": "Proyección Calibrada: 216.2 pts vs línea 221.5 (Edge: +14.8%, EV: +28.3%)"
       },
       {
-        "mercado": "Totales (UNDER)",
-        "seleccion": "UNDER 222.5",
-        "probabilidad": 0.6647,
-        "probabilidad_cruda": 0.6708,
-        "edge": 0.1409,
-        "ev": 0.2689,
+        "mercado": "Spread",
+        "seleccion": "Sacramento Kings +12.5",
+        "probabilidad": 0.6677,
+        "probabilidad_cruda": 0.6739,
+        "edge": 0.1439,
+        "ev": 0.2746,
         "cuota": "-110",
         "cuota_dec": 1.909,
         "confianza": "ALTA",
-        "detalle": "Proyección Calibrada: 217.4 pts vs línea 222.5 (Edge: +14.1%, EV: +26.9%)"
+        "detalle": "Margen Proyectado: -6.0 pts (Spread: +12.5)"
       }
     ],
-    "timestamp": "2026-11-15T13:17:03.461878-06:00"
+    "timestamp": "2026-11-15T19:40:17.454293-06:00"
   }
 ]
