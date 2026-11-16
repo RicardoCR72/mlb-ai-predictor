@@ -75,7 +75,7 @@
         "detalle": "Flujo ofensivo mutuo alto (xG 1.69 y 1.54, BTTS SÍ Calibrado: 57.1%, EV: +5.7%)"
       }
     ],
-    "timestamp": "2026-11-15T12:02:51.876152-06:00"
+    "timestamp": "2026-11-15T18:11:56.323932-06:00"
   },
   {
     "id_evento": "401933555",
@@ -141,7 +141,7 @@
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-15T12:02:51.879176-06:00"
+    "timestamp": "2026-11-15T18:11:56.326938-06:00"
   },
   {
     "id_evento": "401884736",
@@ -207,7 +207,7 @@
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-15T12:02:51.882170-06:00"
+    "timestamp": "2026-11-15T18:11:56.329962-06:00"
   },
   {
     "id_evento": "401876395",
@@ -230,50 +230,50 @@
     "marcador_visita": 0,
     "provider": "DraftKings",
     "linea_total": 2.5,
-    "over_momio": "-130",
-    "under_momio": "-110",
-    "over_momio_dec": 1.769,
-    "under_momio_dec": 1.909,
-    "moneyline_local": "+100",
-    "moneyline_empate": "+250",
-    "moneyline_visita": "+250",
-    "ml_local_dec": 2.0,
-    "ml_empate_dec": 3.5,
-    "ml_visita_dec": 3.5,
+    "over_momio": "-125",
+    "under_momio": "-105",
+    "over_momio_dec": 1.8,
+    "under_momio_dec": 1.952,
+    "moneyline_local": "+105",
+    "moneyline_empate": "+255",
+    "moneyline_visita": "+255",
+    "ml_local_dec": 2.05,
+    "ml_empate_dec": 3.55,
+    "ml_visita_dec": 3.55,
     "xg_local": 1.58,
     "xg_visita": 0.97,
     "total_proyectado": 2.55,
     "marcador_mas_probable": "1 - 1",
     "prob_marcador_mas_probable": 0.133,
-    "prob_local": 0.4768,
-    "prob_empate": 0.2764,
-    "prob_visita": 0.2468,
-    "prob_over": 0.494,
-    "prob_under": 0.506,
+    "prob_local": 0.4756,
+    "prob_empate": 0.2771,
+    "prob_visita": 0.2473,
+    "prob_over": 0.4946,
+    "prob_under": 0.5054,
     "prob_btts_si": 0.5077,
     "prob_btts_no": 0.4923,
-    "prob_1x": 0.7532,
-    "prob_x2": 0.5232,
-    "prob_dnb_local": 0.6589,
-    "prob_dnb_visita": 0.3411,
-    "edge_local": -0.0232,
-    "edge_visita": -0.0389,
-    "edge_empate": -0.0093,
-    "edge_over": -0.0713,
-    "edge_under": -0.0178,
+    "prob_1x": 0.7527,
+    "prob_x2": 0.5244,
+    "prob_dnb_local": 0.6579,
+    "prob_dnb_visita": 0.3421,
+    "edge_local": -0.0122,
+    "edge_visita": -0.0344,
+    "edge_empate": -0.0046,
+    "edge_over": -0.061,
+    "edge_under": -0.0069,
     "pick_mercado": "Totales (Over/Under)",
     "pick_seleccion": "UNDER 2.5 Goles",
-    "pick_probabilidad": 0.506,
-    "pick_edge": -0.0178,
-    "pick_ev": -0.034,
-    "pick_cuota": "-110",
-    "pick_cuota_dec": 1.909,
+    "pick_probabilidad": 0.5054,
+    "pick_edge": -0.0069,
+    "pick_ev": -0.0135,
+    "pick_cuota": "-105",
+    "pick_cuota_dec": 1.952,
     "pick_detalle": "Línea de mercado eficiente (xG Total: 2.55 vs línea 2.5). Descartado para proteger bankroll.",
     "confianza": "NEUTRAL",
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-15T12:02:51.885145-06:00"
+    "timestamp": "2026-11-15T18:11:56.332929-06:00"
   },
   {
     "id_evento": "401882805",
@@ -351,7 +351,7 @@
         "detalle": "Solidez defensiva proyectada (xG 1.85 y 0.63, BTTS NO Calibrado: 55.4%, EV: +8.0%)"
       }
     ],
-    "timestamp": "2026-11-15T12:02:51.888111-06:00"
+    "timestamp": "2026-11-15T18:11:56.335875-06:00"
   },
   {
     "id_evento": "401879233",
@@ -417,7 +417,7 @@
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-15T12:02:51.891068-06:00"
+    "timestamp": "2026-11-15T18:11:56.338801-06:00"
   },
   {
     "id_evento": "401875056",
@@ -483,7 +483,7 @@
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-15T12:02:51.894026-06:00"
+    "timestamp": "2026-11-15T18:11:56.341725-06:00"
   },
   {
     "id_evento": "401874981",
@@ -561,7 +561,7 @@
         "detalle": "Solidez defensiva proyectada (xG 2.01 y 0.61, BTTS NO Calibrado: 55.3%, EV: +7.8%)"
       }
     ],
-    "timestamp": "2026-11-15T12:02:51.896975-06:00"
+    "timestamp": "2026-11-15T18:11:56.344699-06:00"
   },
   {
     "id_evento": "401879238",
@@ -627,7 +627,7 @@
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-15T12:02:51.899952-06:00"
+    "timestamp": "2026-11-15T18:11:56.347686-06:00"
   },
   {
     "id_evento": "401878756",
@@ -693,7 +693,7 @@
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-15T12:02:51.903040-06:00"
+    "timestamp": "2026-11-15T18:11:56.350677-06:00"
   },
   {
     "id_evento": "401879236",
@@ -759,7 +759,7 @@
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-15T12:02:51.906031-06:00"
+    "timestamp": "2026-11-15T18:11:56.353673-06:00"
   },
   {
     "id_evento": "401879235",
@@ -825,7 +825,7 @@
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-15T12:02:51.908981-06:00"
+    "timestamp": "2026-11-15T18:11:56.356624-06:00"
   },
   {
     "id_evento": "401878754",
@@ -903,7 +903,7 @@
         "detalle": "Solidez defensiva proyectada (xG 1.84 y 0.69, BTTS NO Calibrado: 54.4%, EV: +6.1%)"
       }
     ],
-    "timestamp": "2026-11-15T12:02:51.911945-06:00"
+    "timestamp": "2026-11-15T18:11:56.359613-06:00"
   },
   {
     "id_evento": "401875541",
@@ -981,7 +981,7 @@
         "detalle": "Flujo ofensivo mutuo alto (xG 1.26 y 2.21, BTTS SÍ Calibrado: 57.3%, EV: +6.0%)"
       }
     ],
-    "timestamp": "2026-11-15T12:02:51.914917-06:00"
+    "timestamp": "2026-11-15T18:11:56.362574-06:00"
   },
   {
     "id_evento": "401874967",
@@ -1047,7 +1047,7 @@
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-15T12:02:51.917896-06:00"
+    "timestamp": "2026-11-15T18:11:56.365517-06:00"
   },
   {
     "id_evento": "401879232",
@@ -1113,7 +1113,7 @@
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-15T12:02:51.920836-06:00"
+    "timestamp": "2026-11-15T18:11:56.368483-06:00"
   },
   {
     "id_evento": "401875544",
@@ -1191,7 +1191,7 @@
         "detalle": "Flujo ofensivo mutuo alto (xG 2.04 y 1.35, BTTS SÍ Calibrado: 57.4%, EV: +6.3%)"
       }
     ],
-    "timestamp": "2026-11-15T12:02:51.923837-06:00"
+    "timestamp": "2026-11-15T18:11:56.371490-06:00"
   },
   {
     "id_evento": "401875543",
@@ -1257,7 +1257,7 @@
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-15T12:02:51.926857-06:00"
+    "timestamp": "2026-11-15T18:11:56.374485-06:00"
   },
   {
     "id_evento": "401875067",
@@ -1335,7 +1335,7 @@
         "detalle": "Solidez defensiva proyectada (xG 1.91 y 0.68, BTTS NO Calibrado: 54.8%, EV: +6.8%)"
       }
     ],
-    "timestamp": "2026-11-15T12:02:51.929829-06:00"
+    "timestamp": "2026-11-15T18:11:56.377413-06:00"
   },
   {
     "id_evento": "401875546",
@@ -1413,7 +1413,7 @@
         "detalle": "Flujo ofensivo mutuo alto (xG 1.79 y 1.64, BTTS SÍ Calibrado: 58.1%, EV: +7.4%)"
       }
     ],
-    "timestamp": "2026-11-15T12:02:51.932787-06:00"
+    "timestamp": "2026-11-15T18:11:56.380439-06:00"
   },
   {
     "id_evento": "401875539",
@@ -1479,6 +1479,6 @@
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-15T12:02:51.935770-06:00"
+    "timestamp": "2026-11-15T18:11:56.383417-06:00"
   }
 ]
