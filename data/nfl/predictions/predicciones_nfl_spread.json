@@ -1,0 +1,38 @@
+[
+  {
+    "home_team": "KC",
+    "away_team": "BUF",
+    "spread_line_raw": 2.5,
+    "p_home_cover": 0.4696,
+    "p_away_cover": 0.5304,
+    "recomendar": true,
+    "pick": "BUF",
+    "lado": "AWAY",
+    "rol": "Underdog",
+    "linea_pick": 2.5,
+    "prob_seleccion": 0.5304,
+    "edge_vs_bep": 0.66,
+    "ev_esperado_pct": 1.26,
+    "game_id": "KC_BUF",
+    "fecha": "2026-11-22 15:25",
+    "estado": "PRE"
+  },
+  {
+    "home_team": "PHI",
+    "away_team": "DAL",
+    "spread_line_raw": 7.0,
+    "p_home_cover": 0.4502,
+    "p_away_cover": 0.5498,
+    "recomendar": true,
+    "pick": "DAL",
+    "lado": "AWAY",
+    "rol": "Underdog",
+    "linea_pick": 7.0,
+    "prob_seleccion": 0.5498,
+    "edge_vs_bep": 2.6,
+    "ev_esperado_pct": 4.96,
+    "game_id": "PHI_DAL",
+    "fecha": "2026-11-22 19:20",
+    "estado": "PRE"
+  }
+]

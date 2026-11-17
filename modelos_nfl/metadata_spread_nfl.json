@@ -1,0 +1,45 @@
+{
+  "modelo": "NFL Spread (ATS) V1",
+  "version": "v1_spread_ats_hybrid",
+  "n_features": 22,
+  "features": [
+    "spread_line",
+    "abs_spread",
+    "key_3",
+    "key_7",
+    "is_home_dog",
+    "diff_total_epa_8",
+    "diff_pass_epa_8",
+    "diff_rush_epa_8",
+    "diff_sacks_8",
+    "diff_margin_avg_8",
+    "diff_points_for_avg_8",
+    "diff_points_against_avg_8",
+    "diff_win_pct_8",
+    "diff_win_pct_season",
+    "diff_rest",
+    "diff_injury_severity",
+    "diff_injury_starting_qb_score",
+    "diff_injury_ol_score",
+    "diff_injury_defense_score",
+    "home_qb_change",
+    "away_qb_change",
+    "div_game"
+  ],
+  "peso_lr": 0.8,
+  "peso_hgb": 0.2,
+  "umbral_edge_oficial": 0.52,
+  "entrenamiento": {
+    "seasons": "2012-2023",
+    "n_partidos": 3034
+  },
+  "prueba_out_of_sample": {
+    "seasons": "2024-2026",
+    "n_partidos_totales": 682,
+    "picks_ejecutados": 322,
+    "victorias": 176,
+    "win_rate_pct": 54.66,
+    "unidades_netas": 14.0,
+    "roi_pct": 4.35
+  }
+}

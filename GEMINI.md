@@ -21,7 +21,12 @@ Toda comunicación debe enmarcarse como **análisis deportivo cuantitativo, cien
 * **Transición Dinámica:** Segundo 0.0 a 4.5s tarjeta de choque -> Segundo 4.5s en adelante tarjeta limpia de proyección.
 * **Cierre / Outro Contundente:** Duración máxima de 3.2 a 3.4 segundos. Fondo desenfocado con tarjeta resumen y llamado a la acción rápido: *"¡Guarda el video y síguenos para más datos de la IA!"*.
 * **Voz y Audio:** Voz en español Álvaro (`es-ES-AlvaroNeural`) a velocidad `rate="+7%"` (cierre a `+14%`). Normalización obligatoria a **-14.0 LUFS**.
-* **Diseño de Tarjetas (PIL):** Todo texto debe medir sus píxeles con `draw_text_fitted` para garantizar que nunca desborde los contenedores visuales, manteniendo al menos 35-50 px de margen interno.
+* **Diseño de Tarjetas (PIL):** Todo texto debe medir sus píxeles con `draw_text_fitted` y wrap multilínea para garantizar que NUNCA desborde los contenedores visuales ni se corte fuera de la imagen, manteniendo al menos 40-50 px de margen interno.
+* **Identificación Obligatoria de Fecha y Deporte:** CADA video, tarjeta gráfica o imagen producida DEBE mostrar de forma clara y destacada en el encabezado:
+  - El **Deporte** explícito (ej. `NBA · BASKETBALL`, `NFL · FOOTBALL`, `MLB · BÉISBOL`).
+  - La **Fecha exacta** del día de emisión (ej. `LUNES 16 DE NOVIEMBRE 2026`). Prohibido omitir fecha o deporte en cualquier pieza gráfica o audiovisual.
+* **Nomenclatura Obligatoria de Archivos:** TODO archivo final (video, tarjeta, imagen) generado en `assets/` DEBE nombrarse estrictamente con el deporte y la fecha exacta con el formato: `<deporte>_<YYYY-MM-DD>_<descripcion>.<ext>` (ej. `nba_2026-11-16_tarjeta_telegram.jpg`, `nba_2026-11-16_video_tiktok.mp4`). Queda prohibido usar nombres genéricos o ambiguos como `hoy`, `lunes` o `final`.
+* **Mensajes de Telegram (Límite de Caracteres para Fotos):** Todo texto o copy para acompañar imágenes en Telegram DEBE ser conciso y mantenerse siempre por debajo de **900 caracteres** (para no rebasar el límite técnico estricto de 1,024 caracteres en pies de foto de Telegram). Estilo directo: selección, momio, stake y métrica clave en 1 línea por pick.
 
 ---
 
@@ -35,3 +40,4 @@ Toda comunicación debe enmarcarse como **análisis deportivo cuantitativo, cien
 
 ### NFL Engine:
 * **Candados Defensivos:** Validación obligatoria de los 9 filtros defensivos (EPA/Play permitido, tasa de presiones, targets en zona roja, ritmo de posesión y script de partido).
+

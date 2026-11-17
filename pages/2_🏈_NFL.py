@@ -41,17 +41,20 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-# Selector de navegación interna: Moneyline primero como mercado estrella
+# Selector de navegación interna: Spread y Moneyline como mercados estrella
 vista = st.radio(
     "Sección NFL",
-    ["Moneyline", "Totales de Partido", "📊 Props de jugadores", "🏆 Rendimiento Total NFL"],
+    ["Spread (ATS)", "Moneyline", "Totales de Partido", "📊 Props de jugadores", "🏆 Rendimiento Total NFL"],
     horizontal=True,
     format_func=lambda x: x.lstrip("📊🏆 "),
     label_visibility="collapsed",
     key="nfl_vista_principal",
 )
 
-if "Moneyline" in vista:
+if "Spread" in vista:
+    from nfl.ui_spread import render
+    render()
+elif "Moneyline" in vista:
     from nfl.ui_moneyline import render
     render()
 elif "Totales" in vista:
