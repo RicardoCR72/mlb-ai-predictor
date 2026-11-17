@@ -257,17 +257,25 @@ def seleccionar_top_props_diarios(df_preds: pd.DataFrame, limite: int = 20) -> p
 
     jugadores_vistos = set()
     juegos_conteo: Dict[str, int] = {}
+    mercados_por_juego: Dict[Tuple[str, str], int] = {}
     top_indices = []
 
     for idx, r in df.iterrows():
         p_name = str(r.get("player_name", "")).strip()
         game = str(r.get("game", "")).strip()
+        market = str(r.get("market", "")).strip()
 
         # Máximo 1 pick por jugador
         if p_name in jugadores_vistos:
             continue
-        # Máximo 3 picks por juego
+        # Máximo 3 picks por juego en total
         if juegos_conteo.get(game, 0) >= 3:
+            continue
+        # Control estricto de concentración: Máximo 1 pick de Triples por juego
+        # y máximo 2 de cualquier otro mercado por juego para evitar correlación extrema
+        clave_juego_mercado = (game, market)
+        limite_mercado = 1 if market == "Total Triples" else 2
+        if mercados_por_juego.get(clave_juego_mercado, 0) >= limite_mercado:
             continue
 
         # Debe tener valor positivo o estrella asignada
@@ -277,6 +285,7 @@ def seleccionar_top_props_diarios(df_preds: pd.DataFrame, limite: int = 20) -> p
 
         jugadores_vistos.add(p_name)
         juegos_conteo[game] = juegos_conteo.get(game, 0) + 1
+        mercados_por_juego[clave_juego_mercado] = mercados_por_juego.get(clave_juego_mercado, 0) + 1
         top_indices.append(idx)
 
         if len(top_indices) >= limite:
@@ -515,8 +524,14 @@ def generar_predicciones_props_hoy(
         peso_mercado = 0.65 if (over_dec and over_dec >= 2.15) else 0.50
         p_over_cond_shrunk = (1.0 - peso_mercado) * p_over_cond_raw + peso_mercado * implied_over
 
-        # 3. Un solo clip de seguridad (probabilidades realistas entre 36% y 64%)
-        p_over_cond_clipped = float(np.clip(p_over_cond_shrunk, 0.36, 0.64))
+        # 3. Clip de seguridad proporcional a la probabilidad implícita justa del mercado
+        # En apuestas deportivas, una ventaja analítica real oscila entre +/- 1% y +/- 8% sobre el mercado.
+        # Un clip estático en [0.36, 0.64] inflaba artificialmente cuotas altas (ej. cuota 3.40 con prob justa 27%
+        # se forzaba a 36%, inventando un EV falso de +11.8%).
+        max_edge_prob = 0.08
+        min_p = max(0.04, implied_over - max_edge_prob)
+        max_p = min(0.96, implied_over + max_edge_prob)
+        p_over_cond_clipped = float(np.clip(p_over_cond_shrunk, min_p, max_p))
         p_under_cond_clipped = 1.0 - p_over_cond_clipped
 
         # 4. Reescalar por (1 - push)

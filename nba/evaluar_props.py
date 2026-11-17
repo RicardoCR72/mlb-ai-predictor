@@ -270,6 +270,20 @@ def sincronizar_y_liquidar_props_nba(conn=None) -> Dict[str, Any]:
     if df_preds.empty:
         return {"ok": False, "mensaje": "No hay archivo de predicciones de props de NBA disponible."}
 
+    # Filtrar estrictamente solo picks oficiales calificados (+EV / Top 20)
+    # Evita que se inunden 300+ props no calificados o con EV negativo en el historial
+    if "es_top20_oficial" in df_preds.columns and df_preds["es_top20_oficial"].any():
+        df_preds = df_preds[df_preds["es_top20_oficial"] == True].copy()
+    elif len(df_preds) > 20:
+        try:
+            from nba.predecir_props import seleccionar_top_props_diarios
+            df_preds = seleccionar_top_props_diarios(df_preds, limite=20)
+        except Exception:
+            if "ev_pct" in df_preds.columns:
+                df_preds = df_preds[df_preds["ev_pct"] >= 2.0].head(20).copy()
+            else:
+                df_preds = df_preds.head(20).copy()
+
     # Deduplicar predicciones por jugador y mercado (mayor EV%)
     if "ev_pct" in df_preds.columns:
         df_preds = df_preds.sort_values(by="ev_pct", ascending=False)
