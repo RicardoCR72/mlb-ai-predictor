@@ -43,6 +43,14 @@ DIR_CACHE = RAIZ / "data" / "nba" / "cache"
 RUTA_CACHE_PROPS = DIR_CACHE / "bovada_props_hoy.json"
 RUTA_PARQUET_JUGADORES = RAIZ / "data" / "nba" / "processed" / "player_boxscores_2026_27.parquet"
 
+# Estado de la última extracción para diagnóstico de UI
+ESTADO_EXTRACCION: Dict[str, Any] = {
+    "origen": "desconocido",
+    "bloqueo_firewall": False,
+    "creditos_consumidos": 0,
+    "error": None,
+}
+
 # Mapeo de siglas Bovada a estándar NBA
 MAPA_EQUIPOS_BOVADA = {
     "ATL": "ATL", "BKN": "BKN", "BOS": "BOS", "CHA": "CHA", "CHI": "CHI",
@@ -105,28 +113,73 @@ def _obtener_mapa_jugador_equipo() -> Dict[str, str]:
     return {}
 
 
+def consultar_saldo_odds_api() -> Optional[int]:
+    """Consulta los créditos restantes en The Odds API de forma gratuita (0 créditos)."""
+    api_key = _obtener_odds_api_key()
+    if not api_key:
+        return None
+    try:
+        r = requests.get(
+            f"https://api.the-odds-api.com/v4/sports/basketball_nba/events?apiKey={api_key}",
+            timeout=6,
+        )
+        rem = r.headers.get("x-requests-remaining")
+        if rem is not None:
+            return int(rem)
+    except Exception:
+        pass
+    return None
+
+
 def descargar_mercados_bovada() -> List[Dict[str, Any]]:
-    """Descarga los eventos y mercados de baloncesto desde Bovada con soporte SSL resiliente."""
-    import ssl
+    """Descarga los eventos y mercados de baloncesto desde Bovada con soporte curl_cffi y detección de firewall."""
+    global ESTADO_EXTRACCION
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         "Accept": "application/json, text/plain, */*",
         "Accept-Language": "en-US,en;q=0.9,es;q=0.8",
     }
+
+    # Intento 1: curl_cffi con impersonación de Chrome y SSL permisivo
+    try:
+        from curl_cffi import requests as cffi_requests
+        r = cffi_requests.get(
+            URL_BOVADA_BASKETBALL,
+            headers=headers,
+            impersonate="chrome120",
+            verify=False,
+            timeout=10,
+        )
+        if "fortiguard" in r.text.lower() or "access blocked" in r.text.lower():
+            ESTADO_EXTRACCION["bloqueo_firewall"] = True
+            logger.warning("🛡️ Red local con filtro FortiGuard/Firewall detectada: bloqueando bovada.lv.")
+            return []
+        if r.status_code == 200:
+            data = r.json()
+            ESTADO_EXTRACCION["bloqueo_firewall"] = False
+            return data
+    except Exception as e_cffi:
+        logger.debug(f"curl_cffi intente Bovada: {e_cffi}")
+
+    # Intento 2: urllib estándar con contexto SSL no verificado
+    import ssl
     req = urllib.request.Request(URL_BOVADA_BASKETBALL, headers=headers)
     try:
-        with urllib.request.urlopen(req, timeout=10) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
-        return data
-    except Exception:
-        try:
-            ctx = ssl._create_unverified_context()
-            with urllib.request.urlopen(req, timeout=10, context=ctx) as resp:
-                data = json.loads(resp.read().decode("utf-8"))
+        ctx = ssl._create_unverified_context()
+        with urllib.request.urlopen(req, timeout=10, context=ctx) as resp:
+            raw = resp.read().decode("utf-8")
+            if "fortiguard" in raw.lower() or "access blocked" in raw.lower():
+                ESTADO_EXTRACCION["bloqueo_firewall"] = True
+                return []
+            data = json.loads(raw)
+            ESTADO_EXTRACCION["bloqueo_firewall"] = False
             return data
-        except Exception as err2:
-            logger.warning(f"Bovada no disponible directamente ({err2}). Se usará proveedor institucional alternativo.")
-            return []
+    except Exception as err2:
+        err_str = str(err2).lower()
+        if "certificate" in err_str or "403" in err_str or "fortiguard" in err_str:
+            ESTADO_EXTRACCION["bloqueo_firewall"] = True
+        logger.warning(f"Bovada no disponible directamente ({err2}).")
+        return []
 
 
 def extraer_props_the_odds_api() -> List[Dict[str, Any]]:
@@ -258,14 +311,19 @@ def extraer_props_the_odds_api() -> List[Dict[str, Any]]:
         return []
 
 
-def extraer_props_nba(usar_cache: bool = False, max_horas_cache: float = 4.0) -> pd.DataFrame:
+def extraer_props_nba(
+    usar_cache: bool = False,
+    max_horas_cache: float = 4.0,
+    permitir_odds_api: bool = True,
+) -> pd.DataFrame:
     """Extrae y formatea todos los player props de la NBA disponibles hoy.
     
-    1. Revisa caché si es del mismo día y no ha expirado.
-    2. Intenta Bovada pública directa.
-    3. Si Bovada falla o no tiene líneas de hoy, consulta The Odds API (DraftKings / FanDuel).
+    1. Revisa caché si es del mismo día y no ha expirado (0 créditos).
+    2. Intenta Bovada pública directa con curl_cffi (0 créditos).
+    3. Si Bovada falla por bloqueo de red/firewall y permitir_odds_api=True, consulta The Odds API.
     4. Garantiza que NUNCA se utilicen líneas de días anteriores.
     """
+    global ESTADO_EXTRACCION
     DIR_CACHE.mkdir(parents=True, exist_ok=True)
     hoy_cdmx = datetime.now(ZONA_CDMX).strftime("%Y-%m-%d")
 
@@ -281,14 +339,15 @@ def extraer_props_nba(usar_cache: bool = False, max_horas_cache: float = 4.0) ->
                 if not df_cache.empty:
                     fecha_cache = str(df_cache.get("fecha", pd.Series([""])).iloc[0])[:10]
                     if fecha_cache >= hoy_cdmx:
-                        logger.info(f"⚡ Cargados {len(df_cache)} props desde caché local de hoy ({edad_horas:.1f}h de antigüedad).")
+                        logger.info(f"⚡ Cargados {len(df_cache)} props desde caché local de hoy ({edad_horas:.1f}h de antigüedad - 0 créditos).")
+                        ESTADO_EXTRACCION["origen"] = "Caché Local de Hoy (0 Créditos)"
                         return df_cache
                     else:
                         logger.info(f"Caché en disco es del {fecha_cache}; se renovará para la jornada de hoy ({hoy_cdmx}).")
         except Exception as e:
             logger.warning(f"Error leyendo caché de props: {e}")
 
-    # 2. Intentar Bovada directa
+    # 2. Intentar Bovada directa (0 créditos)
     raw_data = descargar_mercados_bovada()
     eventos_nba = []
     if raw_data:
@@ -470,10 +529,19 @@ def extraer_props_nba(usar_cache: bool = False, max_horas_cache: float = 4.0) ->
                         "game_spread": game_spread,
                     })
 
-    # 3. Si Bovada no arrojó props para hoy, consultar The Odds API (DraftKings / FanDuel)
-    if not props_extraidos:
-        logger.info("📡 Consultando The Odds API como proveedor alternativo de líneas de props...")
-        props_extraidos = extraer_props_the_odds_api()
+    # 3. Evaluar resultado de Bovada directa
+    if props_extraidos:
+        ESTADO_EXTRACCION["origen"] = "Bovada Directo (0 Créditos)"
+        ESTADO_EXTRACCION["creditos_consumidos"] = 0
+    else:
+        # Si Bovada no arrojó props para hoy (bloqueado por firewall o mercado aún cerrado)
+        if permitir_odds_api:
+            logger.info("📡 Consultando The Odds API como proveedor de respaldo...")
+            props_extraidos = extraer_props_the_odds_api()
+            if props_extraidos:
+                ESTADO_EXTRACCION["origen"] = "The Odds API (Respaldo)"
+        else:
+            logger.info("ℹ️ permitir_odds_api=False: Se omite The Odds API para proteger créditos.")
 
     df_props = pd.DataFrame(props_extraidos)
 
@@ -492,7 +560,8 @@ def extraer_props_nba(usar_cache: bool = False, max_horas_cache: float = 4.0) ->
                 if not df_cache.empty:
                     fecha_cache = str(df_cache.get("fecha", pd.Series([""])).iloc[0])[:10]
                     if fecha_cache >= hoy_cdmx:
-                        logger.info("Utilizando caché local disponible de hoy.")
+                        logger.info("Utilizando caché local disponible de hoy (0 créditos).")
+                        ESTADO_EXTRACCION["origen"] = "Caché Local de Hoy (0 Créditos)"
                         return df_cache
                     else:
                         logger.warning(f"El caché existente es del {fecha_cache} y los partidos ya concluyeron. No se utilizarán líneas caducas.")

@@ -300,6 +300,7 @@ def generar_predicciones_props_hoy(
     usar_cache_bovada: bool = True,
     min_juegos_muestra: int = 3,
     fecha_referencia: Optional[str] = None,
+    permitir_odds_api: bool = True,
 ) -> pd.DataFrame:
     """Genera predicciones con Valor Esperado (EV%) para todos los props de hoy."""
     DIR_PRED.mkdir(parents=True, exist_ok=True)
@@ -386,7 +387,7 @@ def generar_predicciones_props_hoy(
     }
 
     # 3. Líneas de Bovada
-    df_bovada = extraer_props_nba(usar_cache=usar_cache_bovada)
+    df_bovada = extraer_props_nba(usar_cache=usar_cache_bovada, permitir_odds_api=permitir_odds_api)
     if df_bovada.empty:
         logger.warning("No se obtuvieron props de Bovada.")
         return pd.DataFrame()

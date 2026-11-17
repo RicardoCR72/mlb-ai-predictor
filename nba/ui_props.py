@@ -23,7 +23,11 @@ RUTA_PRED_JSON = RAIZ / "data" / "nba" / "predictions" / "predicciones_props_nba
 
 from core.constants import ZONA_CDMX
 from nba.predecir_props import generar_predicciones_props_hoy
-from nba.servicio_bovada_props import extraer_props_nba
+from nba.servicio_bovada_props import (
+    extraer_props_nba,
+    consultar_saldo_odds_api,
+    ESTADO_EXTRACCION,
+)
 from core.ui_tarjeta_universal import render_tarjeta_universal
 
 NOMBRES_MERCADOS_ES = {
@@ -54,13 +58,13 @@ def cargar_predicciones_props() -> pd.DataFrame:
         except Exception:
             pass
 
-    # Si hay archivo pero pertenece a una jornada anterior, intentar refrescar para hoy
+    # Si hay archivo pero pertenece a una jornada anterior, intentar refrescar para hoy (0 créditos)
     if not df.empty and "fecha" in df.columns:
         fecha_props = str(df["fecha"].iloc[0])[:10]
         if fecha_props < hoy_cdmx:
             try:
-                extraer_props_nba(usar_cache=False)
-                df_nuevo = generar_predicciones_props_hoy(usar_cache_bovada=False)
+                extraer_props_nba(usar_cache=False, permitir_odds_api=False)
+                df_nuevo = generar_predicciones_props_hoy(usar_cache_bovada=False, permitir_odds_api=False)
                 if not df_nuevo.empty:
                     df = df_nuevo
                 else:
@@ -69,8 +73,8 @@ def cargar_predicciones_props() -> pd.DataFrame:
                 df = pd.DataFrame()
     elif df.empty:
         try:
-            extraer_props_nba(usar_cache=False)
-            df = generar_predicciones_props_hoy(usar_cache_bovada=False)
+            extraer_props_nba(usar_cache=False, permitir_odds_api=False)
+            df = generar_predicciones_props_hoy(usar_cache_bovada=False, permitir_odds_api=False)
         except Exception:
             df = pd.DataFrame()
 
@@ -78,30 +82,58 @@ def cargar_predicciones_props() -> pd.DataFrame:
 
 
 def renderizar_ui_props_nba():
-    """Renderiza la sección completa de Player Props de la NBA."""
-    st.markdown("### 🎯 Player Props NBA — Inteligencia de Líneas (0 Créditos)")
-    st.caption("Motor de cuotas y líneas en tiempo real provisto por **Bovada**, sin consumir tu cuota mensual de The Odds API.")
+    """Renderiza la sección completa de Player Props de la NBA con protección de créditos."""
+    st.markdown("### 🎯 Player Props NBA — Inteligencia de Líneas")
+    st.caption("Motor de cuotas y líneas en tiempo real provisto por **Bovada (0 Créditos)** con respaldo opcional de **The Odds API**.")
 
-    col_btn, col_info = st.columns([1, 3])
+    saldo_creditos = consultar_saldo_odds_api()
+
+    col_btn, col_chk, col_info = st.columns([1.2, 1.8, 1.3])
     with col_btn:
-        if st.button("🔄 Actualizar Líneas en Vivo", use_container_width=True, type="primary"):
-            with st.spinner("Descargando líneas frescas de Bovada y proyectando con lesiones..."):
-                extraer_props_nba(usar_cache=False)
-                df_fresco = generar_predicciones_props_hoy(usar_cache_bovada=True)
-                st.cache_data.clear()
-                st.success(f"¡Líneas actualizadas! Se analizaron {len(df_fresco)} props.")
+        btn_actualizar = st.button("🔄 Actualizar Líneas", use_container_width=True, type="primary")
+
+    with col_chk:
+        permitir_odds = st.checkbox(
+            "Permitir The Odds API si Bovada falla",
+            value=False,
+            help=(
+                "Bovada es 100% gratis a 0 créditos (requiere VPN o red sin bloqueo FortiGuard). "
+                "Si marcas esta casilla, se consultará The Odds API si Bovada no responde, consumiendo créditos de tu plan mensual."
+            )
+        )
+
+    with col_info:
+        if saldo_creditos is not None:
+            st.metric("Créditos The Odds API", f"{saldo_creditos} disp.", label_visibility="collapsed")
+            st.caption(f"🎟️ The Odds API: **{saldo_creditos}** créditos")
+        else:
+            st.caption("🎟️ The Odds API: *Sin conexión*")
+
+    if btn_actualizar:
+        with st.spinner("Descargando líneas frescas y proyectando valor esperado (EV)..."):
+            extraer_props_nba(usar_cache=False, permitir_odds_api=permitir_odds)
+            df_fresco = generar_predicciones_props_hoy(usar_cache_bovada=True, permitir_odds_api=permitir_odds)
+            st.cache_data.clear()
+
+            origen = ESTADO_EXTRACCION.get("origen", "Desconocido")
+            if not df_fresco.empty:
+                st.success(f"¡Líneas actualizadas con éxito! Origen: **{origen}** ({len(df_fresco)} props analizados).")
                 st.rerun()
+            else:
+                if ESTADO_EXTRACCION.get("bloqueo_firewall") and not permitir_odds:
+                    st.warning(
+                        "🛡️ **Firewall Detectado en tu Red (FortiGuard):** El firewall de tu red local bloqueó la conexión a Bovada. "
+                        "Para actualizar a **0 créditos**, conéctate a una VPN (o tus datos móviles) y pulsa de nuevo. "
+                        "O bien, marca la casilla **'Permitir The Odds API si Bovada falla'** si deseas usar créditos de tu cuenta."
+                    )
+                else:
+                    st.info("ℹ️ No se encontraron líneas abiertas para hoy en este momento.")
 
     df_props = cargar_predicciones_props()
 
     if df_props.empty:
         hoy_str = datetime.now(ZONA_CDMX).strftime("%d-%b-%Y")
-        st.info(f"ℹ️ **Líneas de Props en Espera ({hoy_str})**: Las casas de apuestas (Bovada) aún no abren la totalidad de líneas de props individuales para los partidos de hoy (suelen estar disponibles entre las 10:30 y 11:30 AM tras los shootarounds matutinos). Pulsa **Actualizar Líneas en Vivo** más tarde para sincronizarlas, o consulta las proyecciones activas de **Totales, Moneyline y Spread** de hoy en el menú superior.")
-        if st.button("🚀 Intentar Generar Props Ahora"):
-            with st.spinner("Consultando cartelera de NBA..."):
-                generar_predicciones_props_hoy(usar_cache_bovada=False)
-                st.cache_data.clear()
-                st.rerun()
+        st.info(f"ℹ️ **Líneas de Props en Espera ({hoy_str})**: Las casas de apuestas aún no abren la totalidad de líneas de props individuales para hoy (suelen abrir entre 10:30 y 11:30 AM). Si estás en una red con bloqueo de firewall, recuerda activar tu VPN para 0 créditos o marcar la casilla de The Odds API.")
         return
 
     # Controles y Filtros
