@@ -174,6 +174,38 @@ def cargar_rendimiento_consolidado_nba() -> pd.DataFrame:
     except Exception as exc:
         logger.warning(f"No se pudieron consolidar props de NBA: {exc}")
 
+    if df.empty:
+        return df
+
+    # =========================================================================
+    # CANDADOS ESTRICTOS DE DIVERSIFICACIÓN Y ANTI-DUPLICADOS
+    # =========================================================================
+    # 1. Partidos (Totales, Spread, Moneyline):
+    #    Máximo 1 pick por mercado (pilar) por partido.
+    #    Si la línea se movió (ej. UNDER 225.5 y UNDER 228.5), se conserva la más reciente / mayor edge.
+    df_partidos = df[df["pilar"] != "Props de Jugadores"].copy()
+    if not df_partidos.empty:
+        df_partidos = df_partidos.sort_values(
+            by=["fecha_str", "edge"], ascending=[False, False]
+        ).drop_duplicates(
+            subset=["fecha_str", "equipo_visitante", "equipo_local", "pilar"],
+            keep="first"
+        )
+
+    # 2. Props de Jugadores:
+    #    Máximo 1 pick por jugador en la jornada completa.
+    #    Evita que un mismo atleta salga 2 veces (ej. triples y asistencias). Se conserva el de mayor EV%.
+    df_props_filtrados = df[df["pilar"] == "Props de Jugadores"].copy()
+    if not df_props_filtrados.empty:
+        df_props_filtrados = df_props_filtrados.sort_values(
+            by=["fecha_str", "ev_pct"], ascending=[False, False]
+        ).drop_duplicates(
+            subset=["fecha_str", "jugador"],
+            keep="first"
+        )
+
+    df = pd.concat([df_partidos, df_props_filtrados], ignore_index=True)
+
     # Re-asegurar estrellas consistentes con EV% en todo el dataset unificado
     df["stars"] = df["ev_pct"].apply(_asignar_estrellas)
 

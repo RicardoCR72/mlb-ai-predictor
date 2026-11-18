@@ -335,11 +335,24 @@ def guardar_predicciones_nba(predicciones: List[Dict[str, Any]]) -> None:
 
         if not df_nuevas_filtradas.empty:
             df_total = pd.concat([df_existente, df_nuevas_filtradas], ignore_index=True)
-            df_total = df_total.drop_duplicates(subset=["id_juego", "mercado"], keep="last")
         else:
             df_total = df_existente
     else:
-        df_total = df_nuevas.drop_duplicates(subset=["id_juego", "mercado"], keep="last")
+        df_total = df_nuevas
+
+    if not df_total.empty:
+        # Candado estricto: Máximo 1 pick por mercado (pilar) por partido en una fecha
+        # Si la línea cambió (ej. UNDER 225.5 a UNDER 228.5), conserva la más reciente
+        if "mercado" in df_total.columns:
+            df_total["_pilar_tmp"] = df_total["mercado"].apply(
+                lambda m: "Totales" if "Totales" in str(m) else ("Spread" if "Spread" in str(m) else ("Moneyline" if "Moneyline" in str(m) else str(m)))
+            )
+            df_total = df_total.sort_values(by="actualizado_en", ascending=True) if "actualizado_en" in df_total.columns else df_total
+            cols_sub = ["fecha", "equipo_visitante", "equipo_local", "_pilar_tmp"]
+            if all(c in df_total.columns for c in cols_sub):
+                df_total = df_total.drop_duplicates(subset=cols_sub, keep="last")
+            df_total.drop(columns=["_pilar_tmp"], inplace=True)
+        df_total = df_total.drop_duplicates(subset=["id_juego", "mercado"], keep="last")
 
     if "fecha" in df_total.columns:
         df_total["fecha"] = df_total["fecha"].astype(str)
@@ -640,6 +653,14 @@ def liquidar_partidos_pendientes_nba() -> dict[str, Any]:
                 liquidados_indices.append(idx)
 
     if liquidados_count > 0:
+        if "mercado" in df.columns:
+            df["_pilar_tmp"] = df["mercado"].apply(
+                lambda m: "Totales" if "Totales" in str(m) else ("Spread" if "Spread" in str(m) else ("Moneyline" if "Moneyline" in str(m) else str(m)))
+            )
+            cols_sub = ["fecha", "equipo_visitante", "equipo_local", "_pilar_tmp"]
+            if all(c in df.columns for c in cols_sub):
+                df = df.drop_duplicates(subset=cols_sub, keep="last")
+            df.drop(columns=["_pilar_tmp"], inplace=True)
         df = df.drop_duplicates(subset=["id_juego", "mercado"], keep="last")
         if "fecha" in df.columns:
             df["fecha"] = df["fecha"].astype(str)
