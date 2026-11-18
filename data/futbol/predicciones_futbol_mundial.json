@@ -75,7 +75,7 @@
         "detalle": "Flujo ofensivo mutuo alto (xG 1.69 y 1.54, BTTS SÍ Calibrado: 57.1%, EV: +5.7%)"
       }
     ],
-    "timestamp": "2026-11-17T14:06:54.476499-06:00"
+    "timestamp": "2026-11-17T20:32:44.972669-06:00"
   },
   {
     "id_evento": "401933555",
@@ -141,7 +141,7 @@
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-17T14:06:54.480417-06:00"
+    "timestamp": "2026-11-17T20:32:44.976142-06:00"
   },
   {
     "id_evento": "401884736",
@@ -207,7 +207,7 @@
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-17T14:06:54.484254-06:00"
+    "timestamp": "2026-11-17T20:32:44.979569-06:00"
   },
   {
     "id_evento": "401876395",
@@ -273,7 +273,7 @@
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-17T14:06:54.488208-06:00"
+    "timestamp": "2026-11-17T20:32:44.983291-06:00"
   },
   {
     "id_evento": "401882805",
@@ -351,7 +351,7 @@
         "detalle": "Solidez defensiva proyectada (xG 1.85 y 0.63, BTTS NO Calibrado: 55.4%, EV: +8.0%)"
       }
     ],
-    "timestamp": "2026-11-17T14:06:54.492076-06:00"
+    "timestamp": "2026-11-17T20:32:44.986744-06:00"
   },
   {
     "id_evento": "401877054",
@@ -374,50 +374,50 @@
     "marcador_visita": 0,
     "provider": "DraftKings",
     "linea_total": 2.5,
-    "over_momio": "-155",
-    "under_momio": "+105",
-    "over_momio_dec": 1.645,
-    "under_momio_dec": 2.05,
+    "over_momio": "-150",
+    "under_momio": "+110",
+    "over_momio_dec": 1.667,
+    "under_momio_dec": 2.1,
     "moneyline_local": "+145",
-    "moneyline_empate": "+240",
+    "moneyline_empate": "+245",
     "moneyline_visita": "+165",
     "ml_local_dec": 2.45,
-    "ml_empate_dec": 3.4,
+    "ml_empate_dec": 3.45,
     "ml_visita_dec": 2.65,
     "xg_local": 1.21,
     "xg_visita": 1.12,
     "total_proyectado": 2.33,
     "marcador_mas_probable": "1 - 1",
     "prob_marcador_mas_probable": 0.148,
-    "prob_local": 0.37,
-    "prob_empate": 0.2945,
-    "prob_visita": 0.3355,
-    "prob_over": 0.4834,
-    "prob_under": 0.5166,
+    "prob_local": 0.3707,
+    "prob_empate": 0.2931,
+    "prob_visita": 0.3361,
+    "prob_over": 0.4847,
+    "prob_under": 0.5153,
     "prob_btts_si": 0.498,
     "prob_btts_no": 0.502,
-    "prob_1x": 0.6645,
-    "prob_x2": 0.63,
+    "prob_1x": 0.6638,
+    "prob_x2": 0.6292,
     "prob_dnb_local": 0.5245,
     "prob_dnb_visita": 0.4755,
-    "edge_local": -0.0382,
-    "edge_visita": -0.0419,
-    "edge_empate": 0.0004,
-    "edge_over": -0.1245,
-    "edge_under": 0.0505,
+    "edge_local": -0.0375,
+    "edge_visita": -0.0413,
+    "edge_empate": 0.0032,
+    "edge_over": -0.1152,
+    "edge_under": 0.0617,
     "pick_mercado": "Totales (Over/Under)",
     "pick_seleccion": "UNDER 2.5 Goles",
-    "pick_probabilidad": 0.5383,
-    "pick_edge": 0.0505,
-    "pick_ev": 0.1034,
-    "pick_cuota": "+105",
-    "pick_cuota_dec": 2.05,
+    "pick_probabilidad": 0.5379,
+    "pick_edge": 0.0617,
+    "pick_ev": 0.1295,
+    "pick_cuota": "+110",
+    "pick_cuota_dec": 2.1,
     "pick_detalle": "Línea de mercado eficiente (xG Total: 2.33 vs línea 2.5). Descartado para proteger bankroll.",
     "confianza": "NEUTRAL",
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-17T14:06:54.495985-06:00"
+    "timestamp": "2026-11-17T20:32:44.990252-06:00"
   },
   {
     "id_evento": "401877053",
@@ -483,7 +483,7 @@
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-17T14:06:54.499841-06:00"
+    "timestamp": "2026-11-17T20:32:44.993723-06:00"
   },
   {
     "id_evento": "401877052",
@@ -561,7 +561,7 @@
         "detalle": "Solidez defensiva proyectada (xG 1.60 y 0.74, BTTS NO Calibrado: 54.6%, EV: +6.5%)"
       }
     ],
-    "timestamp": "2026-11-17T14:06:54.503644-06:00"
+    "timestamp": "2026-11-17T20:32:44.997223-06:00"
   },
   {
     "id_evento": "401879233",
@@ -627,7 +627,7 @@
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-17T14:06:54.507434-06:00"
+    "timestamp": "2026-11-17T20:32:45.000743-06:00"
   },
   {
     "id_evento": "401875056",
@@ -705,7 +705,7 @@
         "detalle": "Solidez defensiva proyectada (xG 2.48 y 0.68, BTTS NO Calibrado: 54.1%, EV: +5.6%)"
       }
     ],
-    "timestamp": "2026-11-17T14:06:54.511205-06:00"
+    "timestamp": "2026-11-17T20:32:45.004242-06:00"
   },
   {
     "id_evento": "401874981",
@@ -783,7 +783,7 @@
         "detalle": "Solidez defensiva proyectada (xG 1.99 y 0.63, BTTS NO Calibrado: 55.1%, EV: +7.5%)"
       }
     ],
-    "timestamp": "2026-11-17T14:06:54.515136-06:00"
+    "timestamp": "2026-11-17T20:32:45.007703-06:00"
   },
   {
     "id_evento": "401879238",
@@ -849,7 +849,7 @@
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-17T14:06:54.518928-06:00"
+    "timestamp": "2026-11-17T20:32:45.011134-06:00"
   },
   {
     "id_evento": "401878756",
@@ -915,7 +915,7 @@
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-17T14:06:54.522780-06:00"
+    "timestamp": "2026-11-17T20:32:45.014617-06:00"
   },
   {
     "id_evento": "401879236",
@@ -981,7 +981,7 @@
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-17T14:06:54.526673-06:00"
+    "timestamp": "2026-11-17T20:32:45.018120-06:00"
   },
   {
     "id_evento": "401879235",
@@ -1047,7 +1047,7 @@
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-17T14:06:54.530489-06:00"
+    "timestamp": "2026-11-17T20:32:45.021577-06:00"
   },
   {
     "id_evento": "401878754",
@@ -1125,7 +1125,7 @@
         "detalle": "Solidez defensiva proyectada (xG 1.84 y 0.69, BTTS NO Calibrado: 54.4%, EV: +6.1%)"
       }
     ],
-    "timestamp": "2026-11-17T14:06:54.534321-06:00"
+    "timestamp": "2026-11-17T20:32:45.025025-06:00"
   },
   {
     "id_evento": "401875541",
@@ -1203,7 +1203,7 @@
         "detalle": "Flujo ofensivo mutuo alto (xG 1.30 y 2.18, BTTS SÍ Calibrado: 57.5%, EV: +6.3%)"
       }
     ],
-    "timestamp": "2026-11-17T14:06:54.538138-06:00"
+    "timestamp": "2026-11-17T20:32:45.028579-06:00"
   },
   {
     "id_evento": "401874967",
@@ -1269,7 +1269,7 @@
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-17T14:06:54.542021-06:00"
+    "timestamp": "2026-11-17T20:32:45.031976-06:00"
   },
   {
     "id_evento": "401879232",
@@ -1335,7 +1335,7 @@
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-17T14:06:54.545856-06:00"
+    "timestamp": "2026-11-17T20:32:45.035422-06:00"
   },
   {
     "id_evento": "401875544",
@@ -1413,7 +1413,7 @@
         "detalle": "Flujo ofensivo mutuo alto (xG 2.05 y 1.35, BTTS SÍ Calibrado: 57.5%, EV: +6.3%)"
       }
     ],
-    "timestamp": "2026-11-17T14:06:54.549698-06:00"
+    "timestamp": "2026-11-17T20:32:45.038818-06:00"
   },
   {
     "id_evento": "401875543",
@@ -1479,7 +1479,7 @@
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-17T14:06:54.553516-06:00"
+    "timestamp": "2026-11-17T20:32:45.042233-06:00"
   },
   {
     "id_evento": "401875067",
@@ -1557,7 +1557,7 @@
         "detalle": "Solidez defensiva proyectada (xG 1.91 y 0.68, BTTS NO Calibrado: 54.8%, EV: +6.8%)"
       }
     ],
-    "timestamp": "2026-11-17T14:06:54.557475-06:00"
+    "timestamp": "2026-11-17T20:32:45.045611-06:00"
   },
   {
     "id_evento": "401875546",
@@ -1635,7 +1635,7 @@
         "detalle": "Flujo ofensivo mutuo alto (xG 1.79 y 1.64, BTTS SÍ Calibrado: 58.1%, EV: +7.4%)"
       }
     ],
-    "timestamp": "2026-11-17T14:06:54.561315-06:00"
+    "timestamp": "2026-11-17T20:32:45.049003-06:00"
   },
   {
     "id_evento": "401875539",
@@ -1658,9 +1658,9 @@
     "marcador_visita": 0,
     "provider": "DraftKings",
     "linea_total": 2.5,
-    "over_momio": "-170",
+    "over_momio": "-165",
     "under_momio": "+115",
-    "over_momio_dec": 1.588,
+    "over_momio_dec": 1.606,
     "under_momio_dec": 2.15,
     "moneyline_local": "+105",
     "moneyline_empate": "+250",
@@ -1669,38 +1669,38 @@
     "ml_empate_dec": 3.5,
     "ml_visita_dec": 3.3,
     "xg_local": 1.66,
-    "xg_visita": 1.14,
-    "total_proyectado": 2.8,
+    "xg_visita": 1.13,
+    "total_proyectado": 2.79,
     "marcador_mas_probable": "1 - 1",
     "prob_marcador_mas_probable": 0.126,
-    "prob_local": 0.4618,
-    "prob_empate": 0.2686,
-    "prob_visita": 0.2695,
-    "prob_over": 0.5529,
-    "prob_under": 0.4471,
-    "prob_btts_si": 0.5702,
-    "prob_btts_no": 0.4298,
-    "prob_1x": 0.7304,
-    "prob_x2": 0.5381,
-    "prob_dnb_local": 0.6315,
-    "prob_dnb_visita": 0.3685,
-    "edge_local": -0.026,
-    "edge_visita": -0.0335,
-    "edge_empate": -0.0171,
-    "edge_over": -0.0805,
-    "edge_under": -0.018,
+    "prob_local": 0.463,
+    "prob_empate": 0.2687,
+    "prob_visita": 0.2683,
+    "prob_over": 0.5503,
+    "prob_under": 0.4497,
+    "prob_btts_si": 0.5684,
+    "prob_btts_no": 0.4316,
+    "prob_1x": 0.7317,
+    "prob_x2": 0.537,
+    "prob_dnb_local": 0.6331,
+    "prob_dnb_visita": 0.3669,
+    "edge_local": -0.0248,
+    "edge_visita": -0.0347,
+    "edge_empate": -0.017,
+    "edge_over": -0.0742,
+    "edge_under": -0.0154,
     "pick_mercado": "Totales (Over/Under)",
     "pick_seleccion": "OVER 2.5 Goles",
-    "pick_probabilidad": 0.5492,
-    "pick_edge": -0.0805,
-    "pick_ev": -0.1278,
-    "pick_cuota": "-170",
-    "pick_cuota_dec": 1.588,
-    "pick_detalle": "Línea de mercado eficiente (xG Total: 2.80 vs línea 2.5). Descartado para proteger bankroll.",
+    "pick_probabilidad": 0.5485,
+    "pick_edge": -0.0742,
+    "pick_ev": -0.1192,
+    "pick_cuota": "-165",
+    "pick_cuota_dec": 1.606,
+    "pick_detalle": "Línea de mercado eficiente (xG Total: 2.79 vs línea 2.5). Descartado para proteger bankroll.",
     "confianza": "NEUTRAL",
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-17T14:06:54.565168-06:00"
+    "timestamp": "2026-11-17T20:32:45.052463-06:00"
   }
 ]
