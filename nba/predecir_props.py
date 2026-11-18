@@ -255,7 +255,8 @@ def seleccionar_top_props_diarios(df_preds: pd.DataFrame, limite: int = 20) -> p
     df["_score_ranking"] = df.apply(_calcular_score_seleccion, axis=1)
     df.sort_values(by="_score_ranking", ascending=False, inplace=True)
 
-    jugadores_vistos = set()
+    conteo_por_jugador: Dict[str, int] = {}
+    props_jugador_mercado = set()
     juegos_conteo: Dict[str, int] = {}
     mercados_por_juego: Dict[Tuple[str, str], int] = {}
     top_indices = []
@@ -265,8 +266,11 @@ def seleccionar_top_props_diarios(df_preds: pd.DataFrame, limite: int = 20) -> p
         game = str(r.get("game", "")).strip()
         market = str(r.get("market", "")).strip()
 
-        # Máximo 1 pick por jugador
-        if p_name in jugadores_vistos:
+        # NUNCA el mismo mercado duplicado para el mismo jugador (ej. dos líneas distintas de triples o puntos)
+        if (p_name, market) in props_jugador_mercado:
+            continue
+        # Máximo 2 props diferentes por jugador (permite mercados distintos como triples y asistencias sin sobre-concentración)
+        if conteo_por_jugador.get(p_name, 0) >= 2:
             continue
         # Máximo 3 picks por juego en total
         if juegos_conteo.get(game, 0) >= 3:
@@ -283,7 +287,8 @@ def seleccionar_top_props_diarios(df_preds: pd.DataFrame, limite: int = 20) -> p
         if r.get("stars") in ["⚪", ""] and ev_val <= 0.0:
             continue
 
-        jugadores_vistos.add(p_name)
+        props_jugador_mercado.add((p_name, market))
+        conteo_por_jugador[p_name] = conteo_por_jugador.get(p_name, 0) + 1
         juegos_conteo[game] = juegos_conteo.get(game, 0) + 1
         mercados_por_juego[clave_juego_mercado] = mercados_por_juego.get(clave_juego_mercado, 0) + 1
         top_indices.append(idx)

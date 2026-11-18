@@ -193,14 +193,14 @@ def cargar_rendimiento_consolidado_nba() -> pd.DataFrame:
         )
 
     # 2. Props de Jugadores:
-    #    Máximo 1 pick por jugador en la jornada completa.
-    #    Evita que un mismo atleta salga 2 veces (ej. triples y asistencias). Se conserva el de mayor EV%.
+    #    Permite que un jugador tenga apuestas en mercados diferentes (ej. triples y asistencias),
+    #    pero NUNCA el mismo mercado duplicado para el mismo atleta (ej. dos líneas de puntos).
     df_props_filtrados = df[df["pilar"] == "Props de Jugadores"].copy()
     if not df_props_filtrados.empty:
         df_props_filtrados = df_props_filtrados.sort_values(
             by=["fecha_str", "ev_pct"], ascending=[False, False]
         ).drop_duplicates(
-            subset=["fecha_str", "jugador"],
+            subset=["fecha_str", "jugador", "mercado"],
             keep="first"
         )
 

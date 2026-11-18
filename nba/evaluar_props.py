@@ -284,10 +284,10 @@ def sincronizar_y_liquidar_props_nba(conn=None) -> Dict[str, Any]:
             else:
                 df_preds = df_preds.head(20).copy()
 
-    # Deduplicar predicciones por jugador (máximo 1 pick por jugador en la jornada, conservando el de mayor EV%)
+    # Deduplicar predicciones por jugador y mercado (permite apuestas diferentes pero nunca el mismo mercado repetido)
     if "ev_pct" in df_preds.columns:
         df_preds = df_preds.sort_values(by="ev_pct", ascending=False)
-    df_preds = df_preds.drop_duplicates(subset=["player_name"], keep="first").copy()
+    df_preds = df_preds.drop_duplicates(subset=["player_name", "market"], keep="first").copy()
 
     # 2. Cargar y sincronizar Boxscores de Jugadores oficiales con ESPN
     df_box = pd.DataFrame()
@@ -390,8 +390,8 @@ def sincronizar_y_liquidar_props_nba(conn=None) -> Dict[str, Any]:
 
     if "ev_pct" in df_total.columns:
         df_total = df_total.sort_values(by=["fecha_str", "ev_pct"], ascending=[False, False])
-    # Máximo 1 pick por jugador en una misma fecha
-    df_total.drop_duplicates(subset=["fecha_str", "jugador"], keep="first", inplace=True)
+    # Permite diferentes mercados por jugador, pero nunca el mismo mercado duplicado
+    df_total.drop_duplicates(subset=["fecha_str", "jugador", "mercado"], keep="first", inplace=True)
 
     # Re-evaluar contra los boxscores oficiales para asegurar que ningún jugador que sí jugó quede en PUSH
     if not df_box.empty:
