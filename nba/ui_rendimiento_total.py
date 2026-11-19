@@ -269,6 +269,7 @@ def render():
         return
 
     hoy_cdmx = datetime.now(ZONA_CDMX).date()
+    ayer_cdmx = hoy_cdmx - timedelta(days=1)
     fechas_disponibles = sorted([f for f in df["fecha_dt"].dropna().unique()], reverse=True)
 
     # 3. Controles de Filtrado
@@ -286,7 +287,7 @@ def render():
             opciones_periodo = [
                 "Toda la temporada (Cualquier fecha)",
                 f"Hoy ({hoy_cdmx.strftime('%d-%b-%Y')})",
-                "Ayer",
+                f"Ayer ({ayer_cdmx.strftime('%d-%b-%Y')})",
                 "Últimos 7 días",
                 "Últimos 14 días",
                 "Rango personalizado",
@@ -298,8 +299,8 @@ def render():
 
         if periodo == f"Hoy ({hoy_cdmx.strftime('%d-%b-%Y')})":
             start_date = end_date = hoy_cdmx
-        elif periodo == "Ayer":
-            start_date = end_date = hoy_cdmx - timedelta(days=1)
+        elif "Ayer" in periodo:
+            start_date = end_date = ayer_cdmx
         elif periodo == "Últimos 7 días":
             start_date = hoy_cdmx - timedelta(days=6)
             end_date = hoy_cdmx
@@ -365,10 +366,10 @@ def render():
 
     # 1. Dataset base para comparativa de estrellas (SIN filtro de EV ni de confianza, para mostrar siempre los 4 niveles completos)
     df_comp = df.copy()
-    if start_date and end_date:
-        df_comp = df_comp[(df_comp["fecha_dt"] >= start_date) & (df_comp["fecha_dt"] <= end_date)]
     if filtro_dia_especifico != "Todas las jornadas":
         df_comp = df_comp[df_comp["fecha_str"] == filtro_dia_especifico]
+    elif start_date and end_date:
+        df_comp = df_comp[(df_comp["fecha_dt"] >= start_date) & (df_comp["fecha_dt"] <= end_date)]
     if mercados_sel:
         df_comp = df_comp[df_comp["pilar"].isin(mercados_sel)]
     if tipo_auditoria == "👑 Solo Partidos Principales (Moneyline + Totales + Spread)":
