@@ -1,7 +1,7 @@
 {
   "scan_from": "2026-07-01",
-  "scan_until": "2026-11-17",
-  "verified_utc": "2026-11-18T20:06:07.213158+00:00",
+  "scan_until": "2026-11-18",
+  "verified_utc": "2026-11-19T20:05:21.116144+00:00",
   "failed_days": [],
   "partial_day": null,
   "unresolved_events": [],
