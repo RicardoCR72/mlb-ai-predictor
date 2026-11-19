@@ -301,6 +301,7 @@ def extraer_props_the_odds_api() -> List[Dict[str, Any]]:
                         "implied_prob_under": round(1.0 / un_dec, 4) if un_dec else None,
                         "is_milestone": 0,
                         "game_spread": 0.0,
+                        "timestamp_cuota": datetime.now(timezone.utc).isoformat(),
                     })
 
         logger.info(f"✅ The Odds API: {len(props_extraidos)} props extraídos para la cartelera de hoy.")
@@ -471,6 +472,7 @@ def extraer_props_nba(
                                         "implied_prob_under": None,
                                         "is_milestone": 1,
                                         "game_spread": game_spread,
+                                        "timestamp_cuota": datetime.now(timezone.utc).isoformat(),
                                     })
                         continue
 
@@ -527,6 +529,7 @@ def extraer_props_nba(
                         "implied_prob_under": round(1.0 / under_dec, 4) if under_dec else None,
                         "is_milestone": 0,
                         "game_spread": game_spread,
+                        "timestamp_cuota": datetime.now(timezone.utc).isoformat(),
                     })
 
     # 3. Evaluar resultado de Bovada directa

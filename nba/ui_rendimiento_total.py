@@ -195,14 +195,26 @@ def cargar_rendimiento_consolidado_nba() -> pd.DataFrame:
     # 2. Props de Jugadores:
     #    Permite que un jugador tenga apuestas en mercados diferentes (ej. triples y asistencias),
     #    pero NUNCA el mismo mercado duplicado para el mismo atleta (ej. dos líneas de puntos).
+    #    Desempate estricto por primer snapshot registrado (registrado_en ASC) para evitar line-shopping a posteriori.
     df_props_filtrados = df[df["pilar"] == "Props de Jugadores"].copy()
     if not df_props_filtrados.empty:
-        df_props_filtrados = df_props_filtrados.sort_values(
-            by=["fecha_str", "ev_pct"], ascending=[False, False]
-        ).drop_duplicates(
-            subset=["fecha_str", "jugador", "mercado"],
-            keep="first"
-        )
+        if "registrado_en" in df_props_filtrados.columns:
+            df_props_filtrados["_ts"] = pd.to_datetime(
+                df_props_filtrados["registrado_en"].fillna(df_props_filtrados.get("actualizado_en")),
+                errors="coerce"
+            )
+            df_props_filtrados = df_props_filtrados.sort_values(
+                by=["fecha_str", "_ts"], ascending=[False, True]
+            ).drop_duplicates(
+                subset=["fecha_str", "jugador", "mercado"],
+                keep="first"
+            )
+            df_props_filtrados.drop(columns=["_ts"], inplace=True, errors="ignore")
+        else:
+            df_props_filtrados = df_props_filtrados.drop_duplicates(
+                subset=["fecha_str", "jugador", "mercado"],
+                keep="first"
+            )
 
     df = pd.concat([df_partidos, df_props_filtrados], ignore_index=True)
 

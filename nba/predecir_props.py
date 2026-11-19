@@ -49,6 +49,16 @@ from nba.servicio_lesiones import obtener_reporte_lesiones_nba
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("nba_predecir_props")
 
+
+def _obtener_model_version() -> str:
+    """Retorna la versión del modelo anclada al commit de git para auditoría inmutable."""
+    try:
+        import subprocess
+        commit = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"], text=True).strip()
+        return f"v2.5_bayesian_{commit}"
+    except Exception:
+        return "v2.5_bayesian_props"
+
 DIR_PRED = RAIZ / "data" / "nba" / "predictions"
 RUTA_PRED_PARQUET = DIR_PRED / "predicciones_props_nba_hoy.parquet"
 RUTA_PRED_JSON = DIR_PRED / "predicciones_props_nba_hoy.json"
@@ -690,6 +700,9 @@ def generar_predicciones_props_hoy(
             "descuento_blowout_pct": round((1.0 - descuento_blowout) * 100.0, 1),
             "is_milestone": is_milestone,
             "es_candado": es_candado,
+            "registrado_en": datetime.now(ZONA_CDMX).isoformat(),
+            "timestamp_cuota": str(row.get("timestamp_cuota") or datetime.now(ZONA_CDMX).isoformat()),
+            "model_version": _obtener_model_version(),
         })
 
     df_res = pd.DataFrame(predicciones)
