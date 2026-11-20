@@ -8,7 +8,7 @@
     "abbr_visita": "GSW",
     "fecha_cdmx": "2026-11-19",
     "hora_cdmx": "19:00",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_IN_PROGRESS",
     "provider": "Draft Kings",
     "linea_spread": -5.5,
     "spread_detalles": "MEM -5.5",
@@ -242,7 +242,10 @@
         "detalle": "Margen Proyectado: +11.1 pts (Spread: -5.5)"
       }
     ],
-    "timestamp": "2026-11-19T15:13:22.958897-06:00"
+    "timestamp": "2026-11-19T15:13:22.958897-06:00",
+    "descripcion_estado": "In Progress",
+    "marcador_local": 92,
+    "marcador_visita": 72
   },
   {
     "id_evento": "401910020",
@@ -253,7 +256,7 @@
     "abbr_visita": "POR",
     "fecha_cdmx": "2026-11-19",
     "hora_cdmx": "19:00",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_IN_PROGRESS",
     "provider": "DraftKings",
     "linea_spread": 11.5,
     "spread_detalles": "POR -11.5",
@@ -438,7 +441,10 @@
         "detalle": "Margen Proyectado: -4.2 pts (Spread: +11.5)"
       }
     ],
-    "timestamp": "2026-11-19T15:13:22.966059-06:00"
+    "timestamp": "2026-11-19T15:13:22.966059-06:00",
+    "descripcion_estado": "In Progress",
+    "marcador_local": 79,
+    "marcador_visita": 86
   },
   {
     "id_evento": "401910021",
@@ -449,7 +455,7 @@
     "abbr_visita": "NYK",
     "fecha_cdmx": "2026-11-19",
     "hora_cdmx": "19:00",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_IN_PROGRESS",
     "provider": "DraftKings",
     "linea_spread": 1.5,
     "spread_detalles": "NY -1.5",
@@ -549,7 +555,10 @@
         "detalle": "Prob Calibrada: 56.7% vs Book: 53.0% (Edge: +3.6%, EV: +6.8%)"
       }
     ],
-    "timestamp": "2026-11-19T15:13:22.973040-06:00"
+    "timestamp": "2026-11-19T15:13:22.973040-06:00",
+    "descripcion_estado": "In Progress",
+    "marcador_local": 85,
+    "marcador_visita": 95
   },
   {
     "id_evento": "401910022",
@@ -560,7 +569,7 @@
     "abbr_visita": "LAC",
     "fecha_cdmx": "2026-11-19",
     "hora_cdmx": "19:00",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_IN_PROGRESS",
     "provider": "DraftKings",
     "linea_spread": -15.5,
     "spread_detalles": "SA -15.5",
@@ -646,6 +655,9 @@
         "detalle": "Margen Proyectado Visita: -5.8 pts (Spread: +15.5)"
       }
     ],
-    "timestamp": "2026-11-19T15:13:22.983858-06:00"
+    "timestamp": "2026-11-19T15:13:22.983858-06:00",
+    "descripcion_estado": "In Progress",
+    "marcador_local": 92,
+    "marcador_visita": 88
   }
 ]
