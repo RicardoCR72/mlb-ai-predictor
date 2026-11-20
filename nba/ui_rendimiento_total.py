@@ -96,7 +96,11 @@ def cargar_rendimiento_consolidado_nba() -> pd.DataFrame:
 
     df["ev_pct"] = df["edge"].apply(_calcular_ev_pct)
 
-    def _asignar_estrellas(ev: float) -> str:
+    def _asignar_estrellas(row: pd.Series) -> str:
+        s = str(row.get("stars", "")).strip()
+        if s in ("⭐⭐⭐", "⭐⭐", "⭐", "⚪"):
+            return s
+        ev = float(row.get("ev_pct", 0.0) or 0.0)
         if ev >= 10.0:
             return "⭐⭐⭐"
         elif ev >= 5.0:
@@ -105,7 +109,7 @@ def cargar_rendimiento_consolidado_nba() -> pd.DataFrame:
             return "⭐"
         return "⚪"
 
-    df["stars"] = df["ev_pct"].apply(_asignar_estrellas)
+    df["stars"] = df.apply(_asignar_estrellas, axis=1)
 
     # Normalizar resultado
     df["resultado"] = df["resultado"].fillna("PENDIENTE").astype(str).str.strip().str.upper()
@@ -219,8 +223,8 @@ def cargar_rendimiento_consolidado_nba() -> pd.DataFrame:
 
     df = pd.concat([df_partidos, df_props_filtrados], ignore_index=True)
 
-    # Re-asegurar estrellas consistentes con EV% en todo el dataset unificado
-    df["stars"] = df["ev_pct"].apply(_asignar_estrellas)
+    # Re-asegurar estrellas consistentes con el modelo en todo el dataset unificado
+    df["stars"] = df.apply(_asignar_estrellas, axis=1)
 
     return df
 
