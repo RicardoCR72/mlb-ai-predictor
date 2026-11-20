@@ -201,6 +201,7 @@ def cargar_rendimiento_consolidado_nba() -> pd.DataFrame:
         if "registrado_en" in df_props_filtrados.columns:
             df_props_filtrados["_ts"] = pd.to_datetime(
                 df_props_filtrados["registrado_en"].fillna(df_props_filtrados.get("actualizado_en")),
+                utc=True,
                 errors="coerce"
             )
             df_props_filtrados = df_props_filtrados.sort_values(

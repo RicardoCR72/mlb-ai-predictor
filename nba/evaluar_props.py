@@ -446,7 +446,9 @@ def sincronizar_y_liquidar_props_nba(conn=None) -> Dict[str, Any]:
 
     if not df_existente.empty:
         if "registrado_en" not in df_existente.columns:
-            df_existente["registrado_en"] = df_existente["actualizado_en"]
+            df_existente["registrado_en"] = df_existente["actualizado_en"].astype(str)
+        else:
+            df_existente["registrado_en"] = df_existente["registrado_en"].astype(str)
         # Alinear esquemas de columnas
         for col_f in df_nuevas.columns:
             if col_f not in df_existente.columns:
@@ -461,7 +463,7 @@ def sincronizar_y_liquidar_props_nba(conn=None) -> Dict[str, Any]:
     # Candado Anti-Sesgo y Regla de Inmutabilidad de Auditoría:
     # Desempate estricto por primer snapshot registrado (registrado_en ASC).
     # La primera línea y cuota registradas son permanentes; descarta snapshots o corridas posteriores.
-    df_total["_ts_reg"] = pd.to_datetime(df_total["registrado_en"].fillna(df_total["actualizado_en"]), errors="coerce")
+    df_total["_ts_reg"] = pd.to_datetime(df_total["registrado_en"].fillna(df_total["actualizado_en"]), utc=True, errors="coerce")
     df_total.sort_values(
         by=["fecha_str", "_ts_reg"],
         ascending=[False, True],
@@ -512,6 +514,10 @@ def sincronizar_y_liquidar_props_nba(conn=None) -> Dict[str, Any]:
             filas_actualizadas.append(row_dict)
         df_total = pd.DataFrame(filas_actualizadas)
 
+    for c_str in ["registrado_en", "actualizado_en", "timestamp_cuota", "model_version", "equipo"]:
+        if c_str in df_total.columns:
+            df_total[c_str] = df_total[c_str].fillna("").astype(str)
+
     df_total.sort_values(by=["fecha_str", "ev_pct"], ascending=[False, False], inplace=True)
 
     df_total.to_parquet(RUTA_HISTORIAL_PROPS_PARQUET, index=False)
@@ -557,6 +563,7 @@ def sincronizar_y_liquidar_props_nba(conn=None) -> Dict[str, Any]:
                 motivo = VALUES(motivo),
                 actualizado_en = VALUES(actualizado_en);
             """
+            filas_sql = []
             for _, f in df_total.iterrows():
                 reg_dt_str = str(f.get("registrado_en") or "")[:19].replace("T", " ")
                 if not reg_dt_str or reg_dt_str == "None":
@@ -566,7 +573,7 @@ def sincronizar_y_liquidar_props_nba(conn=None) -> Dict[str, Any]:
                 if not act_dt_str or act_dt_str == "None":
                     act_dt_str = ahora_dt.strftime("%Y-%m-%d %H:%M:%S")
 
-                cur.execute(sql_insert, (
+                filas_sql.append((
                     str(f.get("id_juego", "")),
                     str(f.get("fecha_str", f.get("fecha", "")))[:10],
                     str(f.get("hora_cdmx", "TBD")),
@@ -594,6 +601,8 @@ def sincronizar_y_liquidar_props_nba(conn=None) -> Dict[str, Any]:
                     str(f.get("model_version", "v2.5_bayesian_props")),
                     act_dt_str,
                 ))
+            if filas_sql:
+                cur.executemany(sql_insert, filas_sql)
             conexion.commit()
             cur.close()
             if conn is None and conexion.is_connected():
@@ -602,10 +611,11 @@ def sincronizar_y_liquidar_props_nba(conn=None) -> Dict[str, Any]:
     except Exception as exc:
         logger.warning(f"No se pudo guardar en MySQL (usando Parquet local): {exc}")
 
-    tot_liq = len([f for f in filas_evaluadas if f["resultado"] in ["GANADA", "PERDIDA", "PUSH"]])
-    ganadas = len([f for f in filas_evaluadas if f["resultado"] == "GANADA"])
-    perdidas = len([f for f in filas_evaluadas if f["resultado"] == "PERDIDA"])
-    pushes = len([f for f in filas_evaluadas if f["resultado"] == "PUSH"])
+    df_liq = df_total[df_total["resultado"].isin(["GANADA", "PERDIDA", "PUSH"])]
+    tot_liq = len(df_liq)
+    ganadas = int((df_liq["resultado"] == "GANADA").sum())
+    perdidas = int((df_liq["resultado"] == "PERDIDA").sum())
+    pushes = int((df_liq["resultado"] == "PUSH").sum())
 
     return {
         "ok": True,
@@ -720,7 +730,9 @@ def registrar_props_pendientes(df_preds: pd.DataFrame) -> None:
 
     if not df_existente.empty:
         if "registrado_en" not in df_existente.columns:
-            df_existente["registrado_en"] = df_existente["actualizado_en"]
+            df_existente["registrado_en"] = df_existente["actualizado_en"].astype(str)
+        else:
+            df_existente["registrado_en"] = df_existente["registrado_en"].astype(str)
         # Combinar respetando registros ya concluidos sin duplicar filas
         # Alinear esquemas de columnas y tipos para evitar warnings de concatenación
         cols_nuevas_faltantes = [c for c in df_nuevas.columns if c not in df_existente.columns]
@@ -742,7 +754,7 @@ def registrar_props_pendientes(df_preds: pd.DataFrame) -> None:
         # Candado Anti-Sesgo y Regla de Inmutabilidad de Primer Snapshot:
         # Desempate estricto por tiempo de registro matutino (registrado_en ASC).
         # La primera cuota y línea registradas se preservan inmutables.
-        df_total["_ts_reg"] = pd.to_datetime(df_total["registrado_en"].fillna(df_total["actualizado_en"]), errors="coerce")
+        df_total["_ts_reg"] = pd.to_datetime(df_total["registrado_en"].fillna(df_total["actualizado_en"]), utc=True, errors="coerce")
         df_total.sort_values(
             by=["fecha_str", "_ts_reg"],
             ascending=[False, True],
@@ -752,6 +764,10 @@ def registrar_props_pendientes(df_preds: pd.DataFrame) -> None:
         df_total.drop(columns=["_ts_reg"], inplace=True, errors="ignore")
     else:
         df_total = df_nuevas
+
+    for c_str in ["registrado_en", "actualizado_en", "timestamp_cuota", "model_version", "equipo"]:
+        if c_str in df_total.columns:
+            df_total[c_str] = df_total[c_str].fillna("").astype(str)
 
     df_total.sort_values(by=["fecha_str", "ev_pct"], ascending=[False, False], inplace=True)
     df_total.to_parquet(RUTA_HISTORIAL_PROPS_PARQUET, index=False)
@@ -766,13 +782,26 @@ def cargar_historial_props_nba() -> pd.DataFrame:
         try:
             df = pd.read_parquet(RUTA_HISTORIAL_PROPS_PARQUET)
             if not df.empty:
-                # Si hay registros pendientes de días previos, intentar liquidar en segundo plano
+                # Verificar si hay pendientes de días previos o si hay archivo de predicciones aún no incorporado
                 hoy_cdmx = datetime.now(ZONA_CDMX).strftime("%Y-%m-%d")
                 hay_pendientes_pasados = any(
                     (str(r.get("resultado")).strip().upper() == "PENDIENTE") and (str(r.get("fecha_str", ""))[:10] < hoy_cdmx)
                     for _, r in df.iterrows()
                 )
-                if hay_pendientes_pasados:
+                
+                preds_faltantes = False
+                if RUTA_PRED_PARQUET.exists() or RUTA_PRED_JSON.exists():
+                    try:
+                        df_p_check = pd.read_parquet(RUTA_PRED_PARQUET) if RUTA_PRED_PARQUET.exists() else pd.read_json(RUTA_PRED_JSON)
+                        if not df_p_check.empty and "fecha" in df_p_check.columns:
+                            fechas_p = set(df_p_check["fecha"].dropna().astype(str).str[:10].unique())
+                            fechas_h = set(df["fecha_str"].dropna().astype(str).str[:10].unique())
+                            if fechas_p - fechas_h:
+                                preds_faltantes = True
+                    except Exception:
+                        pass
+
+                if hay_pendientes_pasados or preds_faltantes:
                     try:
                         sincronizar_y_liquidar_props_nba()
                         df = pd.read_parquet(RUTA_HISTORIAL_PROPS_PARQUET)
