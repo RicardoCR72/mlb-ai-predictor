@@ -561,9 +561,9 @@ def generar_predicciones_props_hoy(
         ev_over = _comprimir_ev_suave(raw_ev_over) if over_dec else -100.0
         ev_under = _comprimir_ev_suave(raw_ev_under) if under_dec else -100.0
 
-        # Selección del pick
+        # Selección del pick con Candado de Coherencia Direccional (Proyección vs Línea)
         if is_milestone:
-            if not over_dec:
+            if not over_dec or proyeccion <= linea_modelo:
                 continue
             pick_tipo = "OVER"
             pick_ev, pick_ev_raw = ev_over, raw_ev_over
@@ -572,20 +572,32 @@ def generar_predicciones_props_hoy(
             pick_cuota_dec = over_dec
             pick_implied_fair = implied_over
         else:
-            if raw_ev_over >= raw_ev_under:
+            # Candado de Coherencia Direccional (Proyección vs Línea de Mercado):
+            # 1. Si la proyección supera la línea (proyeccion > linea_modelo), SOLO se permite evaluar OVER.
+            # 2. Si la proyección está por debajo de la línea (proyeccion < linea_modelo), SOLO se permite evaluar UNDER.
+            # 3. Si proyeccion == linea_modelo, no existe margen direccional del modelo y se descarta el pick.
+            # Esto evita contradicciones visuales y analíticas donde se recomienda UNDER a pesar de proyectar más que la línea
+            # simplemente porque la casa ofreció un momio positivo asimétrico (+140) en el lado perdedor esperado.
+            if proyeccion > linea_modelo:
+                if not over_dec:
+                    continue
                 pick_tipo = "OVER"
                 pick_ev, pick_ev_raw = ev_over, raw_ev_over
                 pick_prob = prob_over_blended
                 pick_cuota_am = row.get("over_american")
                 pick_cuota_dec = over_dec
                 pick_implied_fair = implied_over
-            else:
+            elif proyeccion < linea_modelo:
+                if not under_dec:
+                    continue
                 pick_tipo = "UNDER"
                 pick_ev, pick_ev_raw = ev_under, raw_ev_under
                 pick_prob = prob_under_blended
                 pick_cuota_am = row.get("under_american")
                 pick_cuota_dec = under_dec
                 pick_implied_fair = implied_under
+            else:
+                continue
 
         if not pick_cuota_dec:
             continue
