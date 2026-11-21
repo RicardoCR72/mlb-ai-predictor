@@ -186,15 +186,27 @@ def cargar_rendimiento_consolidado_nba() -> pd.DataFrame:
     # =========================================================================
     # 1. Partidos (Totales, Spread, Moneyline):
     #    Máximo 1 pick por mercado (pilar) por partido.
-    #    Si la línea se movió (ej. UNDER 225.5 y UNDER 228.5), se conserva la más reciente / mayor edge.
+    #    Inmutabilidad estricta: Se preserva el primer snapshot registrado (menor id o primer registro).
     df_partidos = df[df["pilar"] != "Props de Jugadores"].copy()
     if not df_partidos.empty:
+        sort_cols = ["fecha_str"]
+        ascending_cols = [False]
+        if "id" in df_partidos.columns:
+            df_partidos["_sort_id"] = pd.to_numeric(df_partidos["id"], errors="coerce").fillna(999999999)
+            sort_cols.append("_sort_id")
+            ascending_cols.append(True)
+        elif "actualizado_en" in df_partidos.columns:
+            sort_cols.append("actualizado_en")
+            ascending_cols.append(True)
+
         df_partidos = df_partidos.sort_values(
-            by=["fecha_str", "edge"], ascending=[False, False]
+            by=sort_cols, ascending=ascending_cols
         ).drop_duplicates(
             subset=["fecha_str", "equipo_visitante", "equipo_local", "pilar"],
             keep="first"
         )
+        if "_sort_id" in df_partidos.columns:
+            df_partidos.drop(columns=["_sort_id"], inplace=True)
 
     # 2. Props de Jugadores:
     #    Permite que un jugador tenga apuestas en mercados diferentes (ej. triples y asistencias),
@@ -399,20 +411,22 @@ def render():
     # 2. Dataset con todos los filtros aplicados (incluyendo EV y confianza)
     df_f = df_comp.copy()
 
-    # Filtro EV / Nivel de Estrellas
+    # Filtro EV / Nivel de Estrellas (alineado tanto con EV como con las estrellas del modelo)
     modo_ev, val_ev = opciones_ev.get(ev_sel_label, ("min", 0.0))
     if modo_ev == "min":
         if val_ev == 0.0:
-            df_f = df_f[df_f["ev_pct"] > 0.0]
-        else:
-            df_f = df_f[df_f["ev_pct"] >= val_ev]
+            df_f = df_f[(df_f["ev_pct"] > 0.0) | (df_f["stars"].isin(["⭐", "⭐⭐", "⭐⭐⭐"]))]
+        elif val_ev == 5.0:
+            df_f = df_f[(df_f["ev_pct"] >= 5.0) | (df_f["stars"].isin(["⭐⭐", "⭐⭐⭐"]))]
+        elif val_ev == 10.0:
+            df_f = df_f[(df_f["ev_pct"] >= 10.0) | (df_f["stars"] == "⭐⭐⭐")]
     elif modo_ev == "exact":
         if val_ev == 1:
-            df_f = df_f[(df_f["ev_pct"] > 0.0) & (df_f["ev_pct"] < 5.0)]
+            df_f = df_f[(df_f["stars"] == "⭐") | ((df_f["ev_pct"] > 0.0) & (df_f["ev_pct"] < 5.0))]
         elif val_ev == 2:
-            df_f = df_f[(df_f["ev_pct"] >= 5.0) & (df_f["ev_pct"] < 10.0)]
+            df_f = df_f[(df_f["stars"] == "⭐⭐") | ((df_f["ev_pct"] >= 5.0) & (df_f["ev_pct"] < 10.0))]
         elif val_ev == 3:
-            df_f = df_f[df_f["ev_pct"] >= 10.0]
+            df_f = df_f[(df_f["stars"] == "⭐⭐⭐") | (df_f["ev_pct"] >= 10.0)]
 
     if confianza_sel == "Solo ALTA":
         df_f = df_f[df_f["confianza"] == "ALTA"]

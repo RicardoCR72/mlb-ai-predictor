@@ -252,6 +252,28 @@ def guardar_predicciones_nba(predicciones: List[Dict[str, Any]]) -> None:
         if conn:
             preparar_tablas_nba(conn)
             cursor = conn.cursor()
+            
+            # Consultar picks ya registrados hoy para garantizar la inmutabilidad del primer snapshot
+            cursor.execute("SELECT id_juego, mercado, equipo_visitante, equipo_local FROM nba_registro_picks WHERE fecha = %s;", (ahora.strftime("%Y-%m-%d"),))
+            existentes_rows = cursor.fetchall()
+            base_existentes = set()
+            for r_db in existentes_rows:
+                b_id = str(r_db[0]).split("_")[0]
+                m_pil = "Totales" if "Totales" in str(r_db[1]) else ("Spread" if "Spread" in str(r_db[1]) else "Moneyline")
+                base_existentes.add((b_id, m_pil))
+                base_existentes.add((str(r_db[2]).upper(), str(r_db[3]).upper(), m_pil))
+
+            filas_a_insertar = []
+            for f in nuevas_filas:
+                b_id_f = str(f["id_juego"]).split("_")[0]
+                m_pil_f = "Totales" if "Totales" in str(f["mercado"]) else ("Spread" if "Spread" in str(f["mercado"]) else "Moneyline")
+                eq_v = str(f.get("equipo_visitante", "")).upper()
+                eq_l = str(f.get("equipo_local", "")).upper()
+                if (b_id_f, m_pil_f) not in base_existentes and (eq_v, eq_l, m_pil_f) not in base_existentes:
+                    filas_a_insertar.append(f)
+                    base_existentes.add((b_id_f, m_pil_f))
+                    base_existentes.add((eq_v, eq_l, m_pil_f))
+
             sql_insert = """
             INSERT INTO nba_registro_picks (
                 id_juego, fecha, hora_cdmx, equipo_local, equipo_visitante,
@@ -260,10 +282,6 @@ def guardar_predicciones_nba(predicciones: List[Dict[str, Any]]) -> None:
                 unidades_ganadas, actualizado_en
             ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             ON DUPLICATE KEY UPDATE
-                cuota = VALUES(cuota),
-                probabilidad = VALUES(probabilidad),
-                edge = VALUES(edge),
-                confianza = VALUES(confianza),
                 marcador_local = CASE
                     WHEN VALUES(marcador_local) > 0 AND VALUES(marcador_visitante) > 0 THEN VALUES(marcador_local)
                     ELSE COALESCE(marcador_local, VALUES(marcador_local))
@@ -284,7 +302,7 @@ def guardar_predicciones_nba(predicciones: List[Dict[str, Any]]) -> None:
                 END,
                 actualizado_en = VALUES(actualizado_en);
             """
-            for f in nuevas_filas:
+            for f in filas_a_insertar:
                 cursor.execute(sql_insert, (
                     f["id_juego"], f["fecha"], f["hora_cdmx"], f["equipo_local"], f["equipo_visitante"],
                     f["mercado"], f["seleccion"], f["linea"], f["cuota"], f["probabilidad"], f["edge"],
@@ -293,7 +311,7 @@ def guardar_predicciones_nba(predicciones: List[Dict[str, Any]]) -> None:
                 ))
             conn.commit()
             cursor.close()
-            logger.info(f"✅ {len(nuevas_filas)} predicciones sincronizadas en MySQL (nba_registro_picks).")
+            logger.info(f"✅ {len(filas_a_insertar)} predicciones sincronizadas en MySQL (nba_registro_picks).")
     except Exception as err:
         logger.info(f"Base de datos remota no disponible en este momento ({err}). Guardando en almacenamiento local.")
     finally:
@@ -341,8 +359,8 @@ def guardar_predicciones_nba(predicciones: List[Dict[str, Any]]) -> None:
         df_total = df_nuevas
 
     if not df_total.empty:
-        # Candado estricto: Máximo 1 pick por mercado (pilar) por partido en una fecha
-        # Si la línea cambió (ej. UNDER 225.5 a UNDER 228.5), conserva la más reciente
+        # Candado estricto: Máximo 1 pick por mercado (pilar) por partido en una fecha.
+        # Inmutabilidad estricta: Se preserva de forma permanente el PRIMER snapshot registrado (keep="first").
         if "mercado" in df_total.columns:
             df_total["_pilar_tmp"] = df_total["mercado"].apply(
                 lambda m: "Totales" if "Totales" in str(m) else ("Spread" if "Spread" in str(m) else ("Moneyline" if "Moneyline" in str(m) else str(m)))
@@ -350,9 +368,9 @@ def guardar_predicciones_nba(predicciones: List[Dict[str, Any]]) -> None:
             df_total = df_total.sort_values(by="actualizado_en", ascending=True) if "actualizado_en" in df_total.columns else df_total
             cols_sub = ["fecha", "equipo_visitante", "equipo_local", "_pilar_tmp"]
             if all(c in df_total.columns for c in cols_sub):
-                df_total = df_total.drop_duplicates(subset=cols_sub, keep="last")
+                df_total = df_total.drop_duplicates(subset=cols_sub, keep="first")
             df_total.drop(columns=["_pilar_tmp"], inplace=True)
-        df_total = df_total.drop_duplicates(subset=["id_juego", "mercado"], keep="last")
+        df_total = df_total.drop_duplicates(subset=["id_juego", "mercado"], keep="first")
 
     if "fecha" in df_total.columns:
         df_total["fecha"] = df_total["fecha"].astype(str)
@@ -561,7 +579,15 @@ def liquidar_partidos_pendientes_nba() -> dict[str, Any]:
                     df_db["fecha"] = df_db["fecha"].astype(str)
                 if "actualizado_en" in df_db.columns:
                     df_db["actualizado_en"] = pd.to_datetime(df_db["actualizado_en"], errors="coerce")
-                df = pd.concat([df, df_db], ignore_index=True).drop_duplicates(subset=["id_juego", "mercado"], keep="last")
+                # Desempate estricto por primer snapshot (id o fecha de registro)
+                sort_cols = ["fecha"]
+                asc_cols = [True]
+                if "id" in df_db.columns and "id" in df.columns:
+                    sort_cols.append("id")
+                    asc_cols.append(True)
+                df = pd.concat([df, df_db], ignore_index=True).sort_values(
+                    by=sort_cols, ascending=asc_cols
+                ).drop_duplicates(subset=["id_juego", "mercado"], keep="first")
     except Exception:
         pass
 
@@ -659,9 +685,9 @@ def liquidar_partidos_pendientes_nba() -> dict[str, Any]:
             )
             cols_sub = ["fecha", "equipo_visitante", "equipo_local", "_pilar_tmp"]
             if all(c in df.columns for c in cols_sub):
-                df = df.drop_duplicates(subset=cols_sub, keep="last")
+                df = df.drop_duplicates(subset=cols_sub, keep="first")
             df.drop(columns=["_pilar_tmp"], inplace=True)
-        df = df.drop_duplicates(subset=["id_juego", "mercado"], keep="last")
+        df = df.drop_duplicates(subset=["id_juego", "mercado"], keep="first")
         if "fecha" in df.columns:
             df["fecha"] = df["fecha"].astype(str)
         if "actualizado_en" in df.columns:
@@ -675,21 +701,25 @@ def liquidar_partidos_pendientes_nba() -> dict[str, Any]:
             conn = obtener_conexion_mysql(timeout=5)
             if conn and liquidados_indices:
                 cursor = conn.cursor()
-                sql_update = """
-                UPDATE nba_registro_picks
-                SET marcador_local = %s, marcador_visitante = %s, resultado = %s,
-                    unidades_ganadas = %s, actualizado_en = %s
-                WHERE id_juego = %s AND mercado = %s AND seleccion = %s;
-                """
-                params_list = [
-                    (
-                        int(df.at[i, "marcador_local"]), int(df.at[i, "marcador_visitante"]), str(df.at[i, "resultado"]),
-                        float(df.at[i, "unidades_ganadas"]) if pd.notna(df.at[i, "unidades_ganadas"]) else None,
-                        ahora_str, str(df.at[i, "id_juego"]), str(df.at[i, "mercado"]), str(df.at[i, "seleccion"])
-                    )
-                    for i in liquidados_indices
-                ]
-                cursor.executemany(sql_update, params_list)
+                for i in liquidados_indices:
+                    m_loc_val = int(df.at[i, "marcador_local"])
+                    m_vis_val = int(df.at[i, "marcador_visitante"])
+                    res_val = str(df.at[i, "resultado"])
+                    u_val = float(df.at[i, "unidades_ganadas"]) if pd.notna(df.at[i, "unidades_ganadas"]) else None
+                    if "id" in df.columns and pd.notna(df.at[i, "id"]):
+                        cursor.execute("""
+                        UPDATE nba_registro_picks
+                        SET marcador_local = %s, marcador_visitante = %s, resultado = %s,
+                            unidades_ganadas = %s, actualizado_en = %s
+                        WHERE id = %s;
+                        """, (m_loc_val, m_vis_val, res_val, u_val, ahora_str, int(df.at[i, "id"])))
+                    else:
+                        cursor.execute("""
+                        UPDATE nba_registro_picks
+                        SET marcador_local = %s, marcador_visitante = %s, resultado = %s,
+                            unidades_ganadas = %s, actualizado_en = %s
+                        WHERE id_juego = %s AND mercado = %s;
+                        """, (m_loc_val, m_vis_val, res_val, u_val, ahora_str, str(df.at[i, "id_juego"]), str(df.at[i, "mercado"])))
                 conn.commit()
                 cursor.close()
                 logger.info(f"✅ {len(liquidados_indices)} picks actualizados en MySQL.")
@@ -823,6 +853,30 @@ def cargar_historial_rendimiento() -> pd.DataFrame:
                             logger.info(f"✅ {len(indices_corregidos)} registros saneados directamente en MySQL.")
                     except Exception as e_sql:
                         logger.warning(f"No se pudo sincronizar corrección en MySQL: {e_sql}")
+
+                # Deduplicación rigurosa: Preservar el primer snapshot oficial (menor id)
+                if "id" in df_mysql.columns and not df_mysql.empty:
+                    df_mysql["_pilar_tmp"] = df_mysql["mercado"].apply(
+                        lambda m: "Totales" if "Totales" in str(m) else ("Spread" if "Spread" in str(m) else ("Moneyline" if "Moneyline" in str(m) else str(m)))
+                    )
+                    df_mysql = df_mysql.sort_values(by=["fecha", "id"], ascending=[False, True]).drop_duplicates(
+                        subset=["fecha", "equipo_visitante", "equipo_local", "_pilar_tmp"],
+                        keep="first"
+                    ).drop(columns=["_pilar_tmp"])
+
+                # Auto-liquidar si existen juegos concluidos de jornadas pasadas en estado PENDIENTE
+                hoy_str = datetime.now(ZONA_CDMX).strftime("%Y-%m-%d")
+                hay_pendientes_pasados = any(
+                    (str(r.get("resultado")).strip().upper() == "PENDIENTE") and (str(r.get("fecha", ""))[:10] < hoy_str)
+                    for _, r in df_mysql.iterrows()
+                )
+                if hay_pendientes_pasados:
+                    try:
+                        liquidar_partidos_pendientes_nba()
+                        if RUTA_HISTORIAL_PARQUET.exists():
+                            return pd.read_parquet(RUTA_HISTORIAL_PARQUET)
+                    except Exception as e_liq:
+                        logger.warning(f"Error auto-liquidando partidos pendientes: {e_liq}")
 
                 RUTA_PROCESSED.mkdir(parents=True, exist_ok=True)
                 df_mysql.to_parquet(RUTA_HISTORIAL_PARQUET, index=False)
