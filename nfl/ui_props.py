@@ -387,6 +387,7 @@ def mostrar_prop_compacto(fila):
         desplegar_grafica_directa=False,
         key_suffix=f"nfl_{prop_id}",
         boton_boleta=slip_item,
+        probabilidad_modelo=fila.get("probabilidad_pick"),
     )
 
 

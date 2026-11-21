@@ -750,6 +750,7 @@ def render_cartelera_futbol(predicciones: list[dict], mercado_activo: str):
                     etiqueta_proyeccion=lbl_pf,
                     boton_boleta=slip_f,
                     contenido_desglose=_render_futbol_desglose,
+                    probabilidad_modelo=pick_data.get("probabilidad"),
                 )
             else:
                 st.markdown(pick_box_html, unsafe_allow_html=True)

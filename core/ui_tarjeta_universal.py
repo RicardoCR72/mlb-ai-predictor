@@ -105,11 +105,28 @@ def render_tarjeta_universal(
     contenido_desglose: Optional[Any] = None,
     contenido_lesiones: Optional[Any] = None,
     mostrar_grafica: bool = True,
+    probabilidad_modelo: Optional[float] = None,
+    probabilidad_implicita: Optional[float] = None,
 ):
     """Renderiza una tarjeta de pronóstico de alta fidelidad homologada."""
     color_pick = _color_por_seleccion(seleccion)
     color_ev = _color_por_ev(ev_pct)
     momio_am = _formatear_momio_americano(momio_americano, cuota_decimal)
+
+    # Cálculo y normalización de probabilidades (Modelo e Implícita)
+    prob_imp_pct = None
+    if probabilidad_implicita is not None and float(probabilidad_implicita) > 0:
+        val_imp = float(probabilidad_implicita)
+        prob_imp_pct = val_imp * 100.0 if val_imp <= 1.0 else val_imp
+    elif cuota_decimal and float(cuota_decimal) > 0:
+        prob_imp_pct = 100.0 / float(cuota_decimal)
+
+    prob_mod_pct = None
+    if probabilidad_modelo is not None and float(probabilidad_modelo) > 0:
+        val_mod = float(probabilidad_modelo)
+        prob_mod_pct = val_mod * 100.0 if val_mod <= 1.0 else val_mod
+    elif ev_pct is not None and prob_imp_pct is not None:
+        prob_mod_pct = prob_imp_pct * (1.0 + float(ev_pct) / 100.0)
 
     # Formateo de línea y proyección
     lin_str = f"{float(linea_casa):.1f}" if isinstance(linea_casa, (int, float)) else str(linea_casa or "N/D")
@@ -121,30 +138,34 @@ def render_tarjeta_universal(
         proy_str = f"+{float(proyeccion_modelo):.1f}"
 
     with st.container(border=True):
-        # 1. Encabezado: Título + Mercado + Estrellas + EV%
-        c1, c2 = st.columns([3, 1])
+        # 1. Encabezado: Título + Mercado + Estrellas + EV% + Probabilidad del Modelo
+        c1, c2 = st.columns([2.6, 1.4])
         with c1:
             st.markdown(f"**{titulo}** · `{mercado}`")
             if subtitulo:
                 st.caption(subtitulo)
         with c2:
             signo_ev = "+" if ev_pct > 0 else ""
+            html_prob_mod = f"<br><span style='font-size:0.75rem; color:#A1A1AA;'>Prob IA: <b style='color:#F4F4F5;'>{prob_mod_pct:.1f}%</b></span>" if prob_mod_pct is not None else ""
             st.markdown(
-                f"<div style='text-align:right;'>"
+                f"<div style='text-align:right; line-height:1.25;'>"
                 f"<span style='font-size:1.1rem;'>{estrellas}</span><br>"
-                f"<b style='color:{color_ev};'>{signo_ev}{ev_pct:.1f}% EV</b>"
+                f"<b style='color:{color_ev}; font-size:1.0rem;'>{signo_ev}{ev_pct:.1f}% EV</b>"
+                f"{html_prob_mod}"
                 f"</div>",
                 unsafe_allow_html=True
             )
 
-        # 2. Bloque de 3 Métricas Ejecutivas
+        # 2. Bloque de 3 Métricas Ejecutivas (Línea, Proyección y Selección con Cuota + Prob Implícita)
         m1, m2, m3 = st.columns(3)
         m1.metric(etiqueta_linea, lin_str)
         m2.metric(etiqueta_proyeccion, proy_str)
+        html_prob_imp = f"<br><span style='font-size:0.74rem; color:#A1A1AA;'>Implícita: <b style='color:#E4E4E7;'>{prob_imp_pct:.1f}%</b></span>" if prob_imp_pct is not None else ""
         m3.markdown(
             f"<div style='background:{color_pick}22; padding:6px 10px; border-radius:8px; border:1px solid {color_pick}; text-align:center; margin-top:4px;'>"
             f"<b style='color:{color_pick}; font-size:1.05rem;'>{seleccion}</b><br>"
             f"<span style='font-size:0.85rem;'>{momio_am} ({cuota_decimal:.2f})</span>"
+            f"{html_prob_imp}"
             f"</div>",
             unsafe_allow_html=True
         )

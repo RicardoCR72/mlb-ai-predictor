@@ -360,5 +360,7 @@ def _renderizar_tarjeta_prop(p: Dict[str, Any], desplegar_grafica_directa: bool 
         key_suffix=f"nba_prop_{p.get('bovada_game_id')}_{p.get('player_clean')}_{linea}",
         etiqueta_linea="Línea Bovada",
         etiqueta_proyeccion="Proyección",
+        probabilidad_modelo=p.get("model_prob") or p.get("probabilidad"),
+        probabilidad_implicita=p.get("fair_implied_prob") or p.get("implied_prob"),
     )
 

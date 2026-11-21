@@ -332,6 +332,7 @@ def render_cartelera(predicciones: list[dict]):
             contenido_desglose=_render_ml_desglose,
             contenido_lesiones=fn_lesiones,
             mostrar_grafica=False,
+            probabilidad_modelo=prob_modelo_pick,
         )
 
         if conf == "NEUTRAL" or ev_val <= 0:

@@ -224,6 +224,7 @@ def mostrar_partido(fila: pd.Series):
         contenido_desglose=_render_totales_desglose,
         contenido_lesiones=fn_lesiones,
         mostrar_grafica=True,
+        probabilidad_modelo=fila.get("prob_pick"),
     )
 
 

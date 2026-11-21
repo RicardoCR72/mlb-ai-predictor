@@ -712,6 +712,7 @@ Los partidos de hoy ({n_liquidados} juegos) ya finalizaron y están auditados en
                 boton_boleta=slip_item,
                 contenido_desglose=_render_nba_desglose,
                 contenido_lesiones=fn_lesiones,
+                probabilidad_modelo=pick_info.get("probabilidad"),
             )
 
             if conf == "NEUTRAL":
