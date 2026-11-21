@@ -1,14 +1,14 @@
 id,id_juego,fecha,hora_cdmx,equipo_local,equipo_visitante,mercado,seleccion,linea,cuota,probabilidad,edge,confianza,marcador_local,marcador_visitante,resultado,unidades_ganadas,actualizado_en
-17397,401910023_tot,2026-11-21,12:00,Philadelphia 76ers,Milwaukee Bucks,Totales (UNDER),UNDER 228.5,228.5,1.909,0.71,0.186,ALTA,,,PENDIENTE,,2026-11-21 11:59:42
-17398,401910023_spread,2026-11-21,12:00,Philadelphia 76ers,Milwaukee Bucks,Spread,Milwaukee Bucks +11.5,11.5,1.909,0.704,0.18,ALTA,,,PENDIENTE,,2026-11-21 11:59:42
-17399,401910024_ml,2026-11-21,18:30,New York Knicks,Portland Trail Blazers,Moneyline,New York Knicks ML,0.0,1.498,0.756,0.089,ALTA,,,PENDIENTE,,2026-11-21 11:59:42
-17400,401910024_tot,2026-11-21,18:30,New York Knicks,Portland Trail Blazers,Totales (UNDER),UNDER 216.5,216.5,1.909,0.611,0.088,ALTA,,,PENDIENTE,,2026-11-21 11:59:42
-17401,401910024_spread,2026-11-21,18:30,New York Knicks,Portland Trail Blazers,Spread,New York Knicks -5.5,-5.5,1.909,0.565,0.041,MEDIA,,,PENDIENTE,,2026-11-21 11:59:42
-17402,401910025_tot,2026-11-21,19:00,Dallas Mavericks,Los Angeles Clippers,Totales (UNDER),UNDER 229.5,229.5,1.909,0.632,0.108,ALTA,,,PENDIENTE,,2026-11-21 11:59:42
-17403,401910025_spread,2026-11-21,19:00,Dallas Mavericks,Los Angeles Clippers,Spread,Los Angeles Clippers +5.5,5.5,1.909,0.622,0.098,ALTA,,,PENDIENTE,,2026-11-21 11:59:42
-17404,401910026_tot,2026-11-21,19:00,Minnesota Timberwolves,Memphis Grizzlies,Totales (UNDER),UNDER 227.5,227.5,1.909,0.682,0.158,ALTA,,,PENDIENTE,,2026-11-21 11:59:42
-17405,401910027_spread,2026-11-21,19:00,San Antonio Spurs,New Orleans Pelicans,Spread,New Orleans Pelicans +17.5,17.5,1.909,0.654,0.13,ALTA,,,PENDIENTE,,2026-11-21 11:59:42
-17406,401910028_spread,2026-11-21,21:00,Sacramento Kings,Boston Celtics,Spread,Sacramento Kings +13.5,13.5,1.909,0.575,0.051,MEDIA,,,PENDIENTE,,2026-11-21 11:59:42
+17397,401910023_tot,2026-11-21,12:00,Philadelphia 76ers,Milwaukee Bucks,Totales (UNDER),UNDER 228.5,228.5,1.909,0.71,0.186,ALTA,,,PENDIENTE,,2026-11-21 12:03:25
+17398,401910023_spread,2026-11-21,12:00,Philadelphia 76ers,Milwaukee Bucks,Spread,Milwaukee Bucks +11.5,11.5,1.909,0.704,0.18,ALTA,,,PENDIENTE,,2026-11-21 12:03:25
+17399,401910024_ml,2026-11-21,18:30,New York Knicks,Portland Trail Blazers,Moneyline,New York Knicks ML,0.0,1.498,0.756,0.089,ALTA,,,PENDIENTE,,2026-11-21 12:03:25
+17400,401910024_tot,2026-11-21,18:30,New York Knicks,Portland Trail Blazers,Totales (UNDER),UNDER 216.5,216.5,1.909,0.611,0.088,ALTA,,,PENDIENTE,,2026-11-21 12:03:25
+17401,401910024_spread,2026-11-21,18:30,New York Knicks,Portland Trail Blazers,Spread,New York Knicks -5.5,-5.5,1.909,0.565,0.041,MEDIA,,,PENDIENTE,,2026-11-21 12:03:25
+17402,401910025_tot,2026-11-21,19:00,Dallas Mavericks,Los Angeles Clippers,Totales (UNDER),UNDER 229.5,229.5,1.909,0.632,0.108,ALTA,,,PENDIENTE,,2026-11-21 12:03:25
+17403,401910025_spread,2026-11-21,19:00,Dallas Mavericks,Los Angeles Clippers,Spread,Los Angeles Clippers +5.5,5.5,1.909,0.622,0.098,ALTA,,,PENDIENTE,,2026-11-21 12:03:25
+17404,401910026_tot,2026-11-21,19:00,Minnesota Timberwolves,Memphis Grizzlies,Totales (UNDER),UNDER 227.5,227.5,1.909,0.682,0.158,ALTA,,,PENDIENTE,,2026-11-21 12:03:25
+17405,401910027_spread,2026-11-21,19:00,San Antonio Spurs,New Orleans Pelicans,Spread,New Orleans Pelicans +17.5,17.5,1.909,0.654,0.13,ALTA,,,PENDIENTE,,2026-11-21 12:03:25
+17406,401910028_spread,2026-11-21,21:00,Sacramento Kings,Boston Celtics,Spread,Sacramento Kings +13.5,13.5,1.909,0.575,0.051,MEDIA,,,PENDIENTE,,2026-11-21 12:03:25
 16900,401909305_tot,2026-11-20,18:00,Atlanta Hawks,Charlotte Hornets,Totales (UNDER),UNDER 219.5,219.5,1.909,0.664,0.14,ALTA,111.0,97.0,GANADA,0.909,2026-11-21 11:46:32
 16901,401909305_ml,2026-11-20,18:00,Atlanta Hawks,Charlotte Hornets,Moneyline,Atlanta Hawks ML,0.0,1.435,0.743,0.046,MEDIA,111.0,97.0,GANADA,0.435,2026-11-21 11:46:32
 16902,401909306_tot,2026-11-20,18:30,Brooklyn Nets,Orlando Magic,Totales (UNDER),UNDER 223.5,223.5,1.909,0.73,0.206,ALTA,111.0,113.0,PERDIDA,-1.0,2026-11-21 11:46:32
