@@ -511,6 +511,27 @@ def predecir_partidos_hoy(force_refresh: bool = False, fecha: Optional[str] = No
 
         predicciones.append(prediccion_partido)
 
+    # Control de Sesgo de Cartera (Circuito Antisesgo de Totales):
+    # Si más del 70% de los picks del día apuntan unidireccionalmente a Totales UNDER,
+    # el sistema activa un filtro de disciplina: solo mantiene aquellos con un Edge real robusto
+    # (|edge_puntos| >= 4.0 pts y EV >= 4.0%), descartando picks marginales producto de drift colectivo.
+    picks_totales = [p for p in predicciones if "Totales" in str(p.get("pick_mercado", "")) and p.get("confianza") != "NEUTRAL"]
+    if len(picks_totales) >= 3:
+        unders = [p for p in picks_totales if "UNDER" in str(p.get("pick_seleccion", "")).upper()]
+        ratio_under = len(unders) / len(picks_totales)
+        if ratio_under > 0.70:
+            logger.warning(
+                f"🛡️ [Antisesgo NBA] Se detectó concentración extrema en Totales UNDER ({len(unders)}/{len(picks_totales)} = {ratio_under*100:.1f}%). "
+                f"Aplicando filtro estricto de convicción (Edge >= 4.0 pts, EV >= 4.0%)."
+            )
+            for p in predicciones:
+                if "Totales (UNDER)" in str(p.get("pick_mercado", "")) and p.get("confianza") != "NEUTRAL":
+                    edge_pts = abs(float(p.get("edge_puntos_total", 0.0) or 0.0))
+                    ev_val = float(p.get("pick_ev", 0.0) or 0.0)
+                    if edge_pts < 4.0 or ev_val < 0.04:
+                        p["confianza"] = "NEUTRAL"
+                        p["pick_detalle"] += " (🛡️ Descartado por sesgo de cartera colectivo: Edge < 4.0 pts)"
+
     archivo_json = RUTA_PREDICCIONES / "predicciones_nba_hoy.json"
     with open(archivo_json, "w", encoding="utf-8") as f:
         json.dump(predicciones, f, indent=2, ensure_ascii=False)

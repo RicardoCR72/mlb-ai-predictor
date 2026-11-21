@@ -60,9 +60,14 @@ def entrenar_modelo_totales() -> Dict[str, Any]:
         raise FileNotFoundError(f"No existe el dataset procesado en {RUTA_DATASET}. Ejecuta nba/construir_dataset.py primero.")
 
     df = pd.read_parquet(RUTA_DATASET)
-    logger.info(f"Dataset cargado con {len(df):,} partidos.")
+    logger.info(f"Dataset cargado con {len(df):,} partidos en total.")
 
-    # 1. Validación Temporal Out-of-Sample (Temporada 2024-25 como test)
+    # 1. Filtro de Época Moderna (Elimina el lastre de temporadas arcaicas 2020-2022 de 220 pts)
+    # Desde la temporada 2022-23 la media de la NBA se estabilizó en 227-228 pts.
+    df = df[df["SEASON"] >= "2022-23"].copy()
+    logger.info(f"Dataset filtrado a la Era Moderna (>= 2022-23): {len(df):,} partidos.")
+
+    # Validación Temporal Out-of-Sample (Temporada 2024-25 como test)
     train_mask = df["SEASON"] < "2024-25"
     test_mask = df["SEASON"] == "2024-25"
 
@@ -99,8 +104,8 @@ def entrenar_modelo_totales() -> Dict[str, Any]:
     logger.info(f"R²: {r2_val:.4f}")
     logger.info(f"Media Real: {media_real:.2f} pts | Media Proyectada: {media_pred:.2f} pts")
 
-    # 2. Entrenar Modelos de Producción sobre el 100% de los datos
-    logger.info("⚡ Entrenando modelos de producción final con el 100% del histórico...")
+    # 2. Entrenar Modelos de Producción sobre el 100% de los datos modernos
+    logger.info("⚡ Entrenando modelos de producción final con el 100% del histórico moderno...")
     prod_hgb = HistGradientBoostingRegressor(
         max_iter=100,
         max_leaf_nodes=20,
@@ -117,7 +122,7 @@ def entrenar_modelo_totales() -> Dict[str, Any]:
     preds_prod = 0.65 * prod_hgb.predict(df[FEATURES_TOTALES]) + 0.35 * prod_ridge.predict(df[FEATURES_TOTALES])
     residuales = df["TOTAL_PTS"] - preds_prod
     sigma_residual = float(np.std(residuales))
-    logger.info(f"Desviación estándar de residuales (sigma): {sigma_residual:.2f} pts")
+    logger.info(f"Desviación estándar real de residuales (sigma): {sigma_residual:.2f} pts")
 
     bundle = {
         "model": prod_hgb,
@@ -125,7 +130,7 @@ def entrenar_modelo_totales() -> Dict[str, Any]:
         "model_ridge": prod_ridge,
         "features": FEATURES_TOTALES,
         "sigma_residual": sigma_residual,
-        "sigma_condicional": 13.5,
+        "sigma_condicional": round(sigma_residual, 1),
         "peso_hgb": 0.65,
         "peso_ridge": 0.35,
         "metrics_val": {
@@ -174,7 +179,17 @@ def proyectar_partido_totales(
         "HOME_IS_B2B": 0, "AWAY_IS_B2B": 0
     }
 
-    X = pd.DataFrame([{col: features_dict.get(col) or DEFAULTS_TOTALES.get(col, 0.0) for col in features}])
+    # Construcción segura de vector de features: solo usa default si es None o NaN
+    # Evita el bug donde 0 días de descanso (B2B real) se convertía erróneamente en 2.0 días
+    fila_feats = {}
+    for col in features:
+        val = features_dict.get(col)
+        if val is None or (isinstance(val, float) and np.isnan(val)):
+            fila_feats[col] = DEFAULTS_TOTALES.get(col, 0.0)
+        else:
+            fila_feats[col] = float(val)
+
+    X = pd.DataFrame([fila_feats])
 
     if "model_hgb" in bundle and "model_ridge" in bundle:
         pred_hgb = float(bundle["model_hgb"].predict(X)[0])
@@ -187,39 +202,49 @@ def proyectar_partido_totales(
     elif "model" in bundle:
         raw_pred = float(bundle["model"].predict(X)[0])
     else:
-        raw_pred = 225.0
+        raw_pred = 227.6
+
+    def _obtener_num(d: Dict[str, Any], k: str, def_val: float) -> float:
+        v = d.get(k)
+        if v is None or (isinstance(v, float) and np.isnan(v)):
+            return def_val
+        try:
+            return float(v)
+        except (ValueError, TypeError):
+            return def_val
 
     # Puntos esperados basados en matchup ofensivo/defensivo reciente
-    h_pts = float(features_dict.get("HOME_PTS_L10") or 114.5)
-    a_opp = float(features_dict.get("AWAY_OPP_PTS_L10") or 114.5)
-    a_pts = float(features_dict.get("AWAY_PTS_L10") or 114.5)
-    h_opp = float(features_dict.get("HOME_OPP_PTS_L10") or 114.5)
+    h_pts = _obtener_num(features_dict, "HOME_PTS_L10", 114.5)
+    a_opp = _obtener_num(features_dict, "AWAY_OPP_PTS_L10", 114.5)
+    a_pts = _obtener_num(features_dict, "AWAY_PTS_L10", 114.5)
+    h_opp = _obtener_num(features_dict, "HOME_OPP_PTS_L10", 114.5)
     pts_matchup = ((h_pts + a_opp) / 2.0) + ((a_pts + h_opp) / 2.0)
 
     # Blending de modelo estadístico (60%) y matchup dinámico reciente (40%)
-    # Evita que la regresión colapse hacia la media global (225 pts) en equipos de ritmo alto
     modelo_combinado = 0.60 * raw_pred + 0.40 * pts_matchup
 
-    # Aplicar ajuste por reporte oficial de lesiones y ausencias
-    modelo_combinado += float(ajuste_lesiones)
+    # Control de Lesiones sin Doble Conteo:
+    # La línea consensuada del mercado ya reacciona y descuenta las bajas públicas de estrellas.
+    # Por tanto, atenuamos el impacto residual al 40% para evitar castigar dos veces el mismo juego.
+    modelo_combinado += float(ajuste_lesiones) * 0.40
 
     # Shrinkage Bayesiano equilibrado hacia la línea consensuada del mercado (50% modelo / 50% mercado)
     if linea_total and linea_total > 0:
         total_pred = 0.50 * modelo_combinado + 0.50 * linea_total
         edge_puntos = total_pred - linea_total
 
-        # Sigma calibrado para dispersión de totales (~11.5 pts)
-        sigma_tot = bundle.get("sigma_condicional", 11.5)
-        if sigma_tot > 12.0:
-            sigma_tot = 11.5
+        # Sigma empírico real calibrado para totales NBA (~17.0 - 18.5 pts)
+        # Eliminado el recorte arbitrario a 11.5 que inflaba falsas probabilidades
+        sigma_tot = float(bundle.get("sigma_residual") or bundle.get("sigma_condicional") or 17.5)
+        sigma_tot = max(16.0, min(sigma_tot, 21.0))
         z_score = edge_puntos / sigma_tot
         prob_over = float(norm.cdf(z_score))
         prob_under = 1.0 - prob_over
 
-        # Dead Zone simétrica: requiere al menos 2.0 pts de edge y 54% de prob
-        if edge_puntos >= 2.0 and prob_over >= 0.54:
+        # Dead Zone Rigurosa Profesional: exige al menos 3.0 pts de edge neto y P >= 54.5%
+        if edge_puntos >= 3.0 and prob_over >= 0.545:
             recom = "OVER"
-        elif edge_puntos <= -2.0 and prob_under >= 0.54:
+        elif edge_puntos <= -3.0 and prob_under >= 0.545:
             recom = "UNDER"
         else:
             recom = "PASAR"
