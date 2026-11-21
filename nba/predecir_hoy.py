@@ -64,10 +64,16 @@ def cargar_perfiles_recientes_equipos() -> Dict[str, Dict[str, float]]:
     perfiles: Dict[str, Dict[str, float]] = {}
     todos_equipos = set(df["HOME_TEAM"].unique()).union(set(df["AWAY_TEAM"].unique()))
 
-    # Promedios de liga regular NBA moderna (para desinflar estadísticas de playoffs de junio 2025)
-    baseline_pts = 114.5
-    baseline_pace = 100.2
-    baseline_rtg = 114.5
+    # Promedios dinámicos derivados directamente de la temporada actual 2026-27
+    df_act = df[df["SEASON"] == "2026-27"]
+    if not df_act.empty and len(df_act) >= 20:
+        baseline_pts = round(float(df_act["TOTAL_PTS"].mean() / 2.0), 1)
+        baseline_pace = round(float(df_act[["HOME_PACE_L10", "AWAY_PACE_L10"]].mean().mean()), 1)
+        baseline_rtg = baseline_pts
+    else:
+        baseline_pts = 113.6
+        baseline_pace = 100.2
+        baseline_rtg = 113.6
 
     for team in todos_equipos:
         matches = df[(df["HOME_TEAM"] == team) | (df["AWAY_TEAM"] == team)].sort_values("GAME_DATE")

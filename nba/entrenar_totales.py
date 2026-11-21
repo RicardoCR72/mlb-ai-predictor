@@ -171,8 +171,8 @@ def proyectar_partido_totales(
     DEFAULTS_TOTALES = {
         "PACE_PROYECTADO_L10": 100.2, "HOME_PACE_L5": 100.2, "AWAY_PACE_L5": 100.2,
         "HOME_PACE_L10": 100.2, "AWAY_PACE_L10": 100.2,
-        "HOME_PTS_L10": 114.5, "AWAY_PTS_L10": 114.5, "HOME_OPP_PTS_L10": 114.5, "AWAY_OPP_PTS_L10": 114.5,
-        "HOME_ORTG_L10": 114.5, "AWAY_ORTG_L10": 114.5, "HOME_DRTG_L10": 114.5, "AWAY_DRTG_L10": 114.5,
+        "HOME_PTS_L10": 113.6, "AWAY_PTS_L10": 113.6, "HOME_OPP_PTS_L10": 113.6, "AWAY_OPP_PTS_L10": 113.6,
+        "HOME_ORTG_L10": 113.6, "AWAY_ORTG_L10": 113.6, "HOME_DRTG_L10": 113.6, "AWAY_DRTG_L10": 113.6,
         "HOME_EFG_PCT_L10": 0.54, "AWAY_EFG_PCT_L10": 0.54,
         "HOME_TOV_PCT_L10": 0.135, "AWAY_TOV_PCT_L10": 0.135,
         "HOME_REST_DAYS": 2.0, "AWAY_REST_DAYS": 2.0,
@@ -202,7 +202,7 @@ def proyectar_partido_totales(
     elif "model" in bundle:
         raw_pred = float(bundle["model"].predict(X)[0])
     else:
-        raw_pred = 227.6
+        raw_pred = 227.2
 
     def _obtener_num(d: Dict[str, Any], k: str, def_val: float) -> float:
         v = d.get(k)
@@ -214,10 +214,10 @@ def proyectar_partido_totales(
             return def_val
 
     # Puntos esperados basados en matchup ofensivo/defensivo reciente
-    h_pts = _obtener_num(features_dict, "HOME_PTS_L10", 114.5)
-    a_opp = _obtener_num(features_dict, "AWAY_OPP_PTS_L10", 114.5)
-    a_pts = _obtener_num(features_dict, "AWAY_PTS_L10", 114.5)
-    h_opp = _obtener_num(features_dict, "HOME_OPP_PTS_L10", 114.5)
+    h_pts = _obtener_num(features_dict, "HOME_PTS_L10", 113.6)
+    a_opp = _obtener_num(features_dict, "AWAY_OPP_PTS_L10", 113.6)
+    a_pts = _obtener_num(features_dict, "AWAY_PTS_L10", 113.6)
+    h_opp = _obtener_num(features_dict, "HOME_OPP_PTS_L10", 113.6)
     pts_matchup = ((h_pts + a_opp) / 2.0) + ((a_pts + h_opp) / 2.0)
 
     # Blending de modelo estadístico (60%) y matchup dinámico reciente (40%)
