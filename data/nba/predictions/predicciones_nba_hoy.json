@@ -8,7 +8,7 @@
     "abbr_visita": "CHA",
     "fecha_cdmx": "2026-11-20",
     "hora_cdmx": "18:00",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_FINAL",
     "provider": "DraftKings",
     "linea_spread": -7.5,
     "spread_detalles": "ATL -7.5",
@@ -191,7 +191,12 @@
         "detalle": "Prob Calibrada: 75.6% vs Book: 71.3% (Edge: +4.3%, EV: +6.0%)"
       }
     ],
-    "timestamp": "2026-11-20T14:57:26.687497-06:00"
+    "timestamp": "2026-11-20T14:57:26.687497-06:00",
+    "marcador_local": 111,
+    "marcador_visita": 97,
+    "resultado": "GANADA",
+    "unidades_ganadas": 0.909,
+    "descripcion_estado": "Final"
   },
   {
     "id_evento": "401909306",
@@ -202,7 +207,7 @@
     "abbr_visita": "ORL",
     "fecha_cdmx": "2026-11-20",
     "hora_cdmx": "18:30",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_IN_PROGRESS",
     "provider": "DraftKings",
     "linea_spread": 6.5,
     "spread_detalles": "ORL -6.5",
@@ -327,7 +332,10 @@
         "detalle": "Margen Proyectado: -2.5 pts (Spread: +6.5)"
       }
     ],
-    "timestamp": "2026-11-20T14:57:26.694413-06:00"
+    "timestamp": "2026-11-20T14:57:26.694413-06:00",
+    "descripcion_estado": "In Progress",
+    "marcador_local": 111,
+    "marcador_visita": 111
   },
   {
     "id_evento": "401909307",
@@ -338,7 +346,7 @@
     "abbr_visita": "IND",
     "fecha_cdmx": "2026-11-20",
     "hora_cdmx": "18:30",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_FINAL",
     "provider": "DraftKings",
     "linea_spread": -5.5,
     "spread_detalles": "CLE -5.5",
@@ -535,7 +543,12 @@
         "detalle": "Margen Proyectado: +8.1 pts (Spread: -5.5)"
       }
     ],
-    "timestamp": "2026-11-20T14:57:26.700867-06:00"
+    "timestamp": "2026-11-20T14:57:26.700867-06:00",
+    "marcador_local": 128,
+    "marcador_visita": 119,
+    "resultado": "PERDIDA",
+    "unidades_ganadas": -1.0,
+    "descripcion_estado": "Final"
   },
   {
     "id_evento": "401909308",
@@ -546,7 +559,7 @@
     "abbr_visita": "TOR",
     "fecha_cdmx": "2026-11-20",
     "hora_cdmx": "18:30",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_IN_PROGRESS",
     "provider": "DraftKings",
     "linea_spread": -6.5,
     "spread_detalles": "DET -6.5",
@@ -732,7 +745,10 @@
         "detalle": "Proyección Calibrada: 212.7 pts vs línea 215.5 (Edge: +6.8%, EV: +12.9%)"
       }
     ],
-    "timestamp": "2026-11-20T14:57:26.707089-06:00"
+    "timestamp": "2026-11-20T14:57:26.707089-06:00",
+    "descripcion_estado": "In Progress",
+    "marcador_local": 99,
+    "marcador_visita": 101
   },
   {
     "id_evento": "401909309",
@@ -743,7 +759,7 @@
     "abbr_visita": "WAS",
     "fecha_cdmx": "2026-11-20",
     "hora_cdmx": "19:00",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_IN_PROGRESS",
     "provider": "DraftKings",
     "linea_spread": -2.5,
     "spread_detalles": "CHI -2.5",
@@ -914,7 +930,10 @@
         "detalle": "Prob Calibrada: 65.4% vs Book: 57.4% (Edge: +7.9%, EV: +13.8%)"
       }
     ],
-    "timestamp": "2026-11-20T14:57:26.713398-06:00"
+    "timestamp": "2026-11-20T14:57:26.713398-06:00",
+    "descripcion_estado": "In Progress",
+    "marcador_local": 85,
+    "marcador_visita": 93
   },
   {
     "id_evento": "401909310",
@@ -925,7 +944,7 @@
     "abbr_visita": "NOP",
     "fecha_cdmx": "2026-11-20",
     "hora_cdmx": "19:00",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_IN_PROGRESS",
     "provider": "DraftKings",
     "linea_spread": -11.5,
     "spread_detalles": "OKC -11.5",
@@ -1123,7 +1142,10 @@
         "detalle": "Margen Proyectado Visita: -5.2 pts (Spread: +11.5)"
       }
     ],
-    "timestamp": "2026-11-20T14:57:26.719724-06:00"
+    "timestamp": "2026-11-20T14:57:26.719724-06:00",
+    "descripcion_estado": "In Progress",
+    "marcador_local": 106,
+    "marcador_visita": 102
   },
   {
     "id_evento": "401909311",
@@ -1134,7 +1156,7 @@
     "abbr_visita": "PHX",
     "fecha_cdmx": "2026-11-20",
     "hora_cdmx": "20:30",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_IN_PROGRESS",
     "provider": "DraftKings",
     "linea_spread": 4.5,
     "spread_detalles": "PHX -4.5",
@@ -1247,7 +1269,10 @@
         "detalle": "Margen Proyectado Visita: +8.0 pts (Spread: -4.5)"
       }
     ],
-    "timestamp": "2026-11-20T14:57:26.725889-06:00"
+    "timestamp": "2026-11-20T14:57:26.725889-06:00",
+    "descripcion_estado": "In Progress",
+    "marcador_local": 16,
+    "marcador_visita": 16
   },
   {
     "id_evento": "401909312",
@@ -1260,43 +1285,29 @@
     "hora_cdmx": "21:00",
     "estado": "STATUS_SCHEDULED",
     "provider": "DraftKings",
-    "linea_spread": -1.5,
-    "spread_detalles": "DEN -1.5",
-    "linea_total": 226.5,
-    "ml_local": "-125",
-    "ml_visita": "+105",
-    "ml_local_dec": 1.8,
-    "ml_visita_dec": 2.05,
-    "margen_local_esperado": 2.19,
-    "prob_local_win": 0.5774,
-    "prob_visita_win": 0.4226,
-    "prob_local_win_cruda": 0.5804,
-    "prob_visita_win_cruda": 0.4196,
-    "prob_cover_home": 0.5183,
-    "prob_cover_away": 0.4817,
-    "total_proyectado": 223.2,
-    "prob_over": 0.3876,
-    "prob_under": 0.6124,
-    "edge_puntos_total": -3.3,
+    "linea_spread": 1.5,
+    "spread_detalles": "HOU -1.5",
+    "linea_total": 227.5,
+    "ml_local": "+103",
+    "ml_visita": "-122",
+    "ml_local_dec": 2.03,
+    "ml_visita_dec": 1.82,
+    "margen_local_esperado": -0.41,
+    "prob_local_win": 0.4853,
+    "prob_visita_win": 0.5147,
+    "prob_local_win_cruda": 0.4847,
+    "prob_visita_win_cruda": 0.5153,
+    "prob_cover_home": 0.5288,
+    "prob_cover_away": 0.4712,
+    "total_proyectado": 224.8,
+    "prob_over": 0.4064,
+    "prob_under": 0.5936,
+    "edge_puntos_total": -2.7,
     "candado_lesion": false,
-    "alertas_lesiones": [
-      "⚠️ Alperen Sengun (HOU) EN DUDA (QUESTIONABLE)"
-    ],
-    "ajuste_spread_lesiones": 3.01,
-    "ajuste_totales_lesiones": -4.42,
+    "alertas_lesiones": [],
+    "ajuste_spread_lesiones": 0.8,
+    "ajuste_totales_lesiones": -2.3,
     "lesiones_visita": [
-      {
-        "jugador": "Steven Adams",
-        "posicion": "C",
-        "estado_raw": "Day-To-Day",
-        "estado": "QUESTIONABLE",
-        "tipo_lesion": "Quadriceps",
-        "comentario": "Adams (quadriceps) is listed as questionable for Friday's game against Denver.",
-        "impacto_spread": 1.5,
-        "impacto_total": 1.2,
-        "tier": 3,
-        "es_estrella": false
-      },
       {
         "jugador": "Clint Capela",
         "posicion": "C",
@@ -1308,18 +1319,6 @@
         "impacto_total": 1.4,
         "tier": 3,
         "es_estrella": false
-      },
-      {
-        "jugador": "Alperen Sengun",
-        "posicion": "C",
-        "estado_raw": "Day-To-Day",
-        "estado": "QUESTIONABLE",
-        "tipo_lesion": "Eye",
-        "comentario": "Sengun (eye) is questionable for Friday's game against the Nuggets.",
-        "impacto_spread": 3.4,
-        "impacto_total": 3.5,
-        "tier": 2,
-        "es_estrella": true
       }
     ],
     "lesiones_local": [
@@ -1337,29 +1336,29 @@
       }
     ],
     "pick_mercado": "Totales (UNDER)",
-    "pick_seleccion": "UNDER 226.5",
-    "pick_probabilidad": 0.6082,
-    "pick_edge": 0.0844,
-    "pick_ev": 0.1611,
+    "pick_seleccion": "UNDER 227.5",
+    "pick_probabilidad": 0.5901,
+    "pick_edge": 0.0663,
+    "pick_ev": 0.1265,
     "pick_cuota": "-110",
     "pick_cuota_dec": 1.909,
-    "pick_detalle": "Proyección Calibrada: 223.2 pts vs línea 226.5 (Edge: +8.4%, EV: +16.1%)",
+    "pick_detalle": "Proyección Calibrada: 224.8 pts vs línea 227.5 (Edge: +6.6%, EV: +12.7%)",
     "confianza": "ALTA",
     "candidatos": [
       {
         "mercado": "Totales (UNDER)",
-        "seleccion": "UNDER 226.5",
-        "probabilidad": 0.6082,
-        "probabilidad_cruda": 0.6124,
-        "edge": 0.0844,
-        "ev": 0.1611,
+        "seleccion": "UNDER 227.5",
+        "probabilidad": 0.5901,
+        "probabilidad_cruda": 0.5936,
+        "edge": 0.0663,
+        "ev": 0.1265,
         "cuota": "-110",
         "cuota_dec": 1.909,
         "confianza": "ALTA",
-        "detalle": "Proyección Calibrada: 223.2 pts vs línea 226.5 (Edge: +8.4%, EV: +16.1%)"
+        "detalle": "Proyección Calibrada: 224.8 pts vs línea 227.5 (Edge: +6.6%, EV: +12.7%)"
       }
     ],
-    "timestamp": "2026-11-20T14:57:26.732163-06:00"
+    "timestamp": "2026-11-20T21:02:25.230794-06:00"
   },
   {
     "id_evento": "401909313",
@@ -1374,46 +1373,34 @@
     "provider": "DraftKings",
     "linea_spread": -14.5,
     "spread_detalles": "LAL -14.5",
-    "linea_total": 228.5,
-    "ml_local": "-890",
-    "ml_visita": "+600",
-    "ml_local_dec": 1.112,
-    "ml_visita_dec": 7.0,
-    "margen_local_esperado": 13.14,
-    "prob_local_win": 0.8665,
-    "prob_visita_win": 0.1335,
-    "prob_local_win_cruda": 0.8749,
-    "prob_visita_win_cruda": 0.1251,
-    "prob_cover_home": 0.4642,
-    "prob_cover_away": 0.5358,
-    "total_proyectado": 228.6,
-    "prob_over": 0.5041,
-    "prob_under": 0.4959,
-    "edge_puntos_total": 0.1,
+    "linea_total": 229.5,
+    "ml_local": "-840",
+    "ml_visita": "+580",
+    "ml_local_dec": 1.119,
+    "ml_visita_dec": 6.8,
+    "margen_local_esperado": 13.06,
+    "prob_local_win": 0.8652,
+    "prob_visita_win": 0.1348,
+    "prob_local_win_cruda": 0.8736,
+    "prob_visita_win_cruda": 0.1264,
+    "prob_cover_home": 0.4621,
+    "prob_cover_away": 0.5379,
+    "total_proyectado": 229.2,
+    "prob_over": 0.4899,
+    "prob_under": 0.5101,
+    "edge_puntos_total": -0.3,
     "candado_lesion": false,
     "alertas_lesiones": [],
-    "ajuste_spread_lesiones": 0.56,
-    "ajuste_totales_lesiones": -5.08,
+    "ajuste_spread_lesiones": 0.4,
+    "ajuste_totales_lesiones": -4.9,
     "lesiones_visita": [
       {
         "jugador": "Precious Achiuwa",
         "posicion": "F",
-        "estado_raw": "Day-To-Day",
-        "estado": "DOUBTFUL",
+        "estado_raw": "Out",
+        "estado": "OUT",
         "tipo_lesion": "Lower Leg",
-        "comentario": "Achiuwa is doubtful for Friday's game against the Lakers due to a left lower leg bruise.",
-        "impacto_spread": 0.8,
-        "impacto_total": 0.9,
-        "tier": 4,
-        "es_estrella": false
-      },
-      {
-        "jugador": "De'Andre Hunter",
-        "posicion": "F",
-        "estado_raw": "Day-To-Day",
-        "estado": "QUESTIONABLE",
-        "tipo_lesion": "Hip",
-        "comentario": "Hunter (hip) is listed as questionable for Friday's game against the Lakers.",
+        "comentario": "Achiuwa (lower leg) has been ruled out for Friday's game against the Lakers.",
         "impacto_spread": 0.8,
         "impacto_total": 0.9,
         "tier": 4,
@@ -1451,7 +1438,7 @@
         "estado_raw": "Out",
         "estado": "OUT",
         "tipo_lesion": "Heel",
-        "comentario": "Reaves (heel) is listed as out for Friday's game against the Kings.",
+        "comentario": "Head coach JJ Redick said he expects Reaves (heel) to return for Monday's matchup with Utah or Friday's game in San Antonio, Mark Medina of TheSportingTribune.com reports.",
         "impacto_spread": 2.0,
         "impacto_total": 2.2,
         "tier": 3,
@@ -1460,14 +1447,14 @@
     ],
     "pick_mercado": "Moneyline",
     "pick_seleccion": "Los Angeles Lakers ML",
-    "pick_probabilidad": 0.8665,
-    "pick_edge": -0.0328,
-    "pick_ev": -0.0365,
-    "pick_cuota": "-890",
-    "pick_cuota_dec": 1.112,
+    "pick_probabilidad": 0.8652,
+    "pick_edge": -0.0285,
+    "pick_ev": -0.0318,
+    "pick_cuota": "-840",
+    "pick_cuota_dec": 1.119,
     "pick_detalle": "Líneas de mercado eficientes (Sin ventaja clara. Margen: +13.1 pts)",
     "confianza": "NEUTRAL",
     "candidatos": [],
-    "timestamp": "2026-11-20T14:57:26.738357-06:00"
+    "timestamp": "2026-11-20T21:02:25.234509-06:00"
   }
 ]
