@@ -45,6 +45,28 @@ def get_db_credentials() -> dict[str, Any]:
     except Exception:
         pass
 
+    # 1.1 Si no está en streamlit runtime, leer directo de .streamlit/secrets.toml si existe
+    if "host" not in creds:
+        try:
+            import tomllib
+            secrets_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), ".streamlit", "secrets.toml")
+            if not os.path.exists(secrets_path):
+                secrets_path = os.path.join(os.getcwd(), ".streamlit", "secrets.toml")
+            if os.path.exists(secrets_path):
+                with open(secrets_path, "rb") as f:
+                    sec = tomllib.load(f)
+                    section = sec.get("mysql", sec)
+                    if "host" in section:
+                        creds["host"] = section["host"]
+                        creds["port"] = int(section.get("port", 3306))
+                        creds["user"] = section["user"]
+                        creds["password"] = section["password"]
+                        creds["database"] = section["database"]
+                        for key in ("ssl_ca", "ssl_verify_cert", "ssl_verify_identity"):
+                            if key in section: creds[key] = section[key]
+        except Exception:
+            pass
+
     # 2. Si falta algún valor, complementar desde os.environ (GitHub Actions o local)
     if "host" not in creds:
         creds["host"] = env.get("NFL_DB_HOST") or env.get("DB_HOST", "localhost")
