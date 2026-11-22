@@ -13,3 +13,4 @@ lxml
 nflreadpy
 polars
 pyarrow
+plotly

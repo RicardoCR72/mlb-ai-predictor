@@ -174,12 +174,16 @@ def calcular_metricas_clv_resumen(df: pd.DataFrame) -> Dict[str, Any]:
             "roi_esperado_clv": 0.0
         }
 
-    valid_clv = df[df["clv_cuota"].notna() & np.isfinite(df["clv_cuota"])]
+    s_clv = pd.to_numeric(df["clv_cuota"], errors="coerce")
+    valid_mask = s_clv.notna() & np.isfinite(s_clv)
+    valid_clv = df[valid_mask].copy()
+    valid_clv["clv_cuota"] = s_clv[valid_mask]
     n_valid = len(valid_clv)
     if n_valid == 0:
         return {
             "total_picks": len(df),
             "picks_con_clv": 0,
+            "picks_con_clv_positivo": 0,
             "pct_beat_clv": 0.0,
             "clv_cuota_promedio": 0.0,
             "clv_linea_promedio": 0.0,
@@ -193,9 +197,9 @@ def calcular_metricas_clv_resumen(df: pd.DataFrame) -> Dict[str, Any]:
     # CLV de línea si existe
     prom_clv_linea = 0.0
     if "clv_linea" in valid_clv.columns:
-        valid_line = valid_clv["clv_linea"].dropna()
-        if not valid_line.empty:
-            prom_clv_linea = float(valid_line.mean())
+        s_line = pd.to_numeric(valid_clv["clv_linea"], errors="coerce").dropna()
+        if not s_line.empty:
+            prom_clv_linea = float(s_line.mean())
 
     return {
         "total_picks": len(df),

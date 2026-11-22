@@ -226,3 +226,43 @@ def generar_figura_diagrama_fiabilidad(df_calibracion: pd.DataFrame, metricas: D
     except Exception as err:
         logger.warning(f"No se pudo generar figura Plotly: {err}")
         return None
+
+
+def generar_chart_altair_fiabilidad(df_calibracion: pd.DataFrame, metricas: Dict[str, float]):
+    """Genera un gráfico interactivo nativo de Altair como respaldo sin requerir Plotly."""
+    try:
+        import altair as alt
+        valid_df = df_calibracion.dropna(subset=["frecuencia_real", "probabilidad_media"]).copy()
+        if valid_df.empty:
+            return None
+
+        # 1. Diagonal Ideal y = x
+        diag = alt.Chart(pd.DataFrame({"x": [0.40, 0.85], "y": [0.40, 0.85]})).mark_line(
+            strokeDash=[4, 4], color="#94a3b8"
+        ).encode(x="x:Q", y="y:Q")
+
+        # 2. Curva del modelo
+        line = alt.Chart(valid_df).mark_line(color="#38bdf8", strokeWidth=3).encode(
+            x=alt.X("probabilidad_media:Q", scale=alt.Scale(domain=[0.40, 0.85]), title="Probabilidad Media del Modelo"),
+            y=alt.Y("frecuencia_real:Q", scale=alt.Scale(domain=[0.35, 0.90]), title="Frecuencia Real Observada")
+        )
+        points = alt.Chart(valid_df).mark_point(size=90, color="#22c55e", filled=True).encode(
+            x="probabilidad_media:Q",
+            y="frecuencia_real:Q",
+            tooltip=[
+                alt.Tooltip("etiqueta:N", title="Rango"),
+                alt.Tooltip("picks_en_bucket:Q", title="Picks"),
+                alt.Tooltip("probabilidad_media:Q", title="Prob. Modelo", format=".1%"),
+                alt.Tooltip("frecuencia_real:Q", title="Acierto Real", format=".1%"),
+                alt.Tooltip("sesgo:N", title="Diagnóstico")
+            ]
+        )
+        ece = metricas.get("ece", 0.0) * 100.0
+        brier = metricas.get("brier_score", 0.0)
+        return (diag + line + points).properties(
+            title=f"Diagrama de Fiabilidad · ECE: {ece:.2f}% | Brier Score: {brier:.4f}",
+            height=380
+        )
+    except Exception as err:
+        logger.warning(f"No se pudo generar gráfico Altair: {err}")
+        return None

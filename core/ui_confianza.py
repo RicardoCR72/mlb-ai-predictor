@@ -25,6 +25,7 @@ from core.clv import (
 from core.calibracion_evaluador import (
     calcular_tabla_calibracion,
     generar_figura_diagrama_fiabilidad,
+    generar_chart_altair_fiabilidad,
     CalibradorIsotonicoWalkForward
 )
 from core.gestion_riesgo import (
@@ -140,10 +141,19 @@ def render():
                 with c4:
                     st.metric("Brier Score", f"{metricas['brier_score']:.4f}", help="0.0 es predicción perfecta; 0.25 es azar puro.")
 
-                # Gráfica interactiva de fiabilidad Plotly
+                # Gráfica interactiva de fiabilidad Plotly / Altair
                 fig_calib = generar_figura_diagrama_fiabilidad(df_bins, metricas)
                 if fig_calib is not None:
-                    st.plotly_chart(fig_calib, use_container_width=True)
+                    try:
+                        st.plotly_chart(fig_calib, width="stretch")
+                    except Exception:
+                        chart_alt = generar_chart_altair_fiabilidad(df_bins, metricas)
+                        if chart_alt is not None:
+                            st.altair_chart(chart_alt, width="stretch")
+                else:
+                    chart_alt = generar_chart_altair_fiabilidad(df_bins, metricas)
+                    if chart_alt is not None:
+                        st.altair_chart(chart_alt, width="stretch")
 
                 # Tabla por intervalos
                 st.markdown("#### 📋 Desglose por Intervalos de Confianza")
@@ -152,7 +162,7 @@ def render():
                         "etiqueta", "picks_en_bucket", "probabilidad_media", "frecuencia_real", "error_calibracion", "sesgo"
                     ]],
                     hide_index=True,
-                    use_container_width=True,
+                    width="stretch",
                     column_config={
                         "etiqueta": st.column_config.TextColumn("Rango de Probabilidad"),
                         "picks_en_bucket": st.column_config.NumberColumn("Volumen de Picks"),
