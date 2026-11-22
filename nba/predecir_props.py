@@ -603,7 +603,13 @@ def generar_predicciones_props_hoy(
         max_edge_prob = 0.08
         min_p = max(0.04, implied_over - max_edge_prob)
         max_p = min(0.96, implied_over + max_edge_prob)
-        p_over_cond_clipped = float(np.clip(p_over_cond_shrunk, min_p, max_p))
+        p_over_shrunk = float(np.clip(p_over_cond_shrunk, min_p, max_p))
+
+        # 3B. Penalización por Sesgo de Under / Atrición NBA (-3.5% a Overs)
+        # En la NBA, los factores imprevistos (palizas/blowouts que sientan a titulares en el 4to cuarto,
+        # problemas tempranos de faltas personales, torceduras o descansos preventivos)
+        # perjudican desproporcionadamente al OVER y benefician sistemáticamente al UNDER.
+        p_over_cond_clipped = float(np.clip(p_over_shrunk - 0.035, 0.05, 0.95))
         p_under_cond_clipped = 1.0 - p_over_cond_clipped
 
         # 4. Reescalar por (1 - push)
@@ -663,7 +669,19 @@ def generar_predicciones_props_hoy(
 
         colchon_linea = abs(proyeccion - linea_modelo)
         games_p = int(perfil.get("games_played", 0) or 0)
-        min_colchon = 0.3 if mercado in MERCADOS_CONTEO else 0.6
+        
+        # En asistencias, la dependencia del tiro del compañero exige un colchón más seguro (0.5 vs 0.3)
+        if mercado == "Total Assists":
+            min_colchon = 0.5
+        elif mercado in MERCADOS_CONTEO:
+            min_colchon = 0.3
+        else:
+            min_colchon = 0.6
+
+        # Candado Anti-Varianza / Filtro de Divergencia Extrema en NBA (>35% de la línea en líneas >= 5.0)
+        divergencia_extrema = False
+        if linea_modelo >= 5.0 and (colchon_linea / linea_modelo) > 0.35:
+            divergencia_extrema = True
 
         # Edge matemático real contra la probabilidad implícita justa de la casa
         edge_pick = (pick_prob - pick_implied_fair) if pick_implied_fair else (pick_prob - 0.5238)
@@ -683,13 +701,17 @@ def generar_predicciones_props_hoy(
             and games_p >= 5
             and minutos_prom >= 18.0
             and pick_cuota_dec <= 2.25
+            and not divergencia_extrema
         )
 
         es_alta_confianza = (
             pick_ev >= 1.0 * umbral_factor
             and edge_pick >= 0.008
-            and games_p >= 4
-            and minutos_prom >= 14.0
+            and games_p >= 5
+            and minutos_prom >= 16.0
+            and misma_direccion
+            and pick_cuota_dec <= 2.25
+            and not divergencia_extrema
         )
 
         if es_top_pick:
