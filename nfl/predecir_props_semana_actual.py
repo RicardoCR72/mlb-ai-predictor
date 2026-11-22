@@ -680,10 +680,6 @@ def agregar_lineas_y_probabilidades(proyecciones, lineas):
             how="left",
         )
 
-    resultado["edge"] = resultado["proyeccion"] - resultado["linea"]
-    resultado["seleccion"] = np.where(resultado["edge"] >= 0, "OVER", "UNDER")
-    resultado.loc[resultado["linea"].isna(), "seleccion"] = None
-
     validacion = pd.read_csv(RUTA_VALIDACION)
     calibracion_recepcion = validacion[validacion["season"] == 2024].copy()
     config = json.loads(RUTA_CALIBRACION_PC.read_text(encoding="utf-8"))
@@ -693,14 +689,45 @@ def agregar_lineas_y_probabilidades(proyecciones, lineas):
     probabilidades_over = []
     edges = []
     selecciones = []
+    proyecciones_calibradas = []
+    proyecciones_raw = []
+
     for fila in resultado.itertuples(index=False):
+        proy_cruda = float(fila.proyeccion) if pd.notna(fila.proyeccion) else np.nan
+        proyecciones_raw.append(proy_cruda)
+
         if pd.isna(fila.linea):
             probabilidades_over.append(np.nan)
             edges.append(np.nan)
             selecciones.append(None)
+            proyecciones_calibradas.append(proy_cruda)
             continue
 
-        edge_punto = float(fila.proyeccion - fila.linea)
+        linea_val = float(fila.linea)
+
+        # -------------------------------------------------------------
+        # 1. Calibración Bayesiana de Proyección (Shrinkage hacia Mercado)
+        # Ponderación institucional: 65% línea de mercado / 35% modelo.
+        # Elimina la trampa de divergencias ficticias causadas por el sesgo
+        # de distribución asimétrica (Media aritmética vs Mediana de Las Vegas).
+        # -------------------------------------------------------------
+        if linea_val > 0 and fila.tipo_prop != "anytime_td":
+            proy_calibrada = 0.65 * linea_val + 0.35 * proy_cruda
+            edge_calibrado = proy_calibrada - linea_val
+        else:
+            proy_calibrada = proy_cruda
+            edge_calibrado = proy_cruda - linea_val if pd.notna(proy_cruda) else np.nan
+        proyecciones_calibradas.append(proy_calibrada)
+
+        # La diferencia cruda sirve para consultar la distribución de residuos empíricos
+        diff_cruda = proy_cruda - linea_val
+
+        # -------------------------------------------------------------
+        # 2. Estimación de Probabilidad Empírica + Penalización por Sesgo Under
+        # En la NFL, eventos imprevistos (lesiones tempranas, palizas/blowouts,
+        # castigos de holding, castigo de reloj) perjudican sistemáticamente al OVER.
+        # Descuento institucional: -4% (-0.04) a la probabilidad de OVER.
+        # -------------------------------------------------------------
         if fila.tipo_prop in {"receptions", "receiving_yards"}:
             residuos = calibracion_recepcion[
                 (calibracion_recepcion["objetivo"] == fila.tipo_prop)
@@ -710,35 +737,42 @@ def agregar_lineas_y_probabilidades(proyecciones, lineas):
                 residuos = calibracion_recepcion[
                     calibracion_recepcion["objetivo"] == fila.tipo_prop
                 ]["error"].dropna()
-            probabilidad = float((residuos < edge_punto).mean())
-            seleccion = "OVER" if edge_punto >= 0 else "UNDER"
-            edge = edge_punto
+            prob_raw = float((residuos < diff_cruda).mean())
+            probabilidad = float(np.clip(prob_raw - 0.04, 0.05, 0.95))
+            seleccion = "OVER" if probabilidad >= 0.50 else "UNDER"
+            edge = edge_calibrado
+
         elif fila.tipo_prop in {"passing_yards", "rushing_yards"}:
             residuos = np.asarray(residuos_pc[fila.tipo_prop], dtype=float)
-            probabilidad = float(np.mean(residuos < edge_punto))
-            seleccion = "OVER" if edge_punto >= 0 else "UNDER"
-            edge = edge_punto
+            prob_raw = float(np.mean(residuos < diff_cruda))
+            probabilidad = float(np.clip(prob_raw - 0.04, 0.05, 0.95))
+            seleccion = "OVER" if probabilidad >= 0.50 else "UNDER"
+            edge = edge_calibrado
+
         elif fila.tipo_prop == "passing_tds":
-            clave = str(float(fila.linea))
+            clave = str(linea_val)
             calibrador = config.get("passing_tds", {}).get("lineas", {}).get(clave)
             if calibrador and calibrador.get("metodo") == "logistico":
                 z = (
                     float(calibrador["intercepto"])
-                    + float(calibrador["coeficiente"]) * float(fila.proyeccion)
+                    + float(calibrador["coeficiente"]) * proy_calibrada
                 )
-                probabilidad = float(1 / (1 + np.exp(-np.clip(z, -35, 35))))
+                prob_raw = float(1 / (1 + np.exp(-np.clip(z, -35, 35))))
             else:
-                probabilidad = float(
-                    1 - poisson.cdf(np.floor(float(fila.linea)), max(float(fila.proyeccion), 1e-6))
+                prob_raw = float(
+                    1 - poisson.cdf(np.floor(linea_val), max(proy_calibrada, 1e-6))
                 )
-            seleccion = "OVER" if probabilidad >= 0.5 else "UNDER"
-            edge = edge_punto
+            probabilidad = float(np.clip(prob_raw - 0.04, 0.05, 0.95))
+            seleccion = "OVER" if probabilidad >= 0.50 else "UNDER"
+            edge = edge_calibrado
+
         elif fila.tipo_prop == "anytime_td":
-            probabilidad = float(np.clip(fila.proyeccion, 0, 1))
+            probabilidad = float(np.clip(proy_cruda, 0, 1))
             seleccion = "ANOTA"
             decimal_over = american_a_decimal(fila.cuota_over)
             implicita = 1 / decimal_over if pd.notna(decimal_over) else np.nan
             edge = probabilidad - implicita if pd.notna(implicita) else np.nan
+
         else:
             probabilidad = np.nan
             seleccion = None
@@ -748,7 +782,9 @@ def agregar_lineas_y_probabilidades(proyecciones, lineas):
         edges.append(edge)
         selecciones.append(seleccion)
 
-    resultado["edge"] = edges
+    resultado["proyeccion_raw"] = proyecciones_raw
+    resultado["proyeccion"] = np.round(proyecciones_calibradas, 2)
+    resultado["edge"] = np.round(edges, 2)
     resultado["seleccion"] = selecciones
     resultado["probabilidad_over"] = probabilidades_over
     resultado["probabilidad_under"] = 1 - resultado["probabilidad_over"]
@@ -782,13 +818,19 @@ def seleccionar_candidatos(resultado):
     )
     resultado["estado_pick"] = "NO PICK"
     resultado.loc[resultado["linea"].isna(), "estado_pick"] = "SIN LINEA"
+
+    # -----------------------------------------------------------------
+    # Umbrales de edge calibrado (adaptados al Bayesian Shrinkage 65/35)
+    # Como el edge se comprimió un factor de ~0.35, los umbrales institucionales
+    # se reajustan proporcionalmente para capturar valor genuino y disciplinado.
+    # -----------------------------------------------------------------
     umbrales_edge = {
-        "receptions": 0.65,
-        "receiving_yards": 8.0,
-        "passing_yards": 25.0,
-        "passing_tds": 0.35,
-        "rushing_yards": 20.0,
-        "anytime_td": 0.05,
+        "receptions": 0.25,        # ~0.7 recepciones crudas
+        "receiving_yards": 2.8,    # ~8.0 yardas crudas
+        "passing_yards": 8.5,      # ~25.0 yardas crudas
+        "passing_tds": 0.12,       # ~0.35 TDs crudos
+        "rushing_yards": 7.0,      # ~20.0 yardas crudas
+        "anytime_td": 0.05,        # 5% EV sobre cuota implícita
     }
     umbral = resultado["tipo_prop"].map(umbrales_edge).fillna(np.inf)
     es_rushing = resultado["tipo_prop"].eq("rushing_yards")
@@ -803,13 +845,30 @@ def seleccionar_candidatos(resultado):
 
     umbral_probabilidad = np.select(
         [es_td, es_rushing],
-        [0.25, 0.62],
-        default=0.57,
+        [0.25, 0.60],
+        default=0.55,
     )
     umbral_ev = np.where(es_rushing, 0.05, 0.0)
     cuota_maxima = np.where(
         es_td, 1000, 2500
     )
+
+    # -----------------------------------------------------------------
+    # Candado Anti-Varianza / Filtro de Divergencia Extrema:
+    # Si la proyección cruda diverge más del 40% de la línea de Las Vegas
+    # en props de yardas (línea >= 20.0), indica falta de contexto crítico
+    # (lesión no reportada, clima huracanado, rol reducido no capturado).
+    # Se descarta como candidato oficial para evitar trampas de la casa.
+    # -----------------------------------------------------------------
+    linea_val = pd.to_numeric(resultado["linea"], errors="coerce").fillna(0.0)
+    proy_raw = pd.to_numeric(resultado.get("proyeccion_raw", resultado["proyeccion"]), errors="coerce").fillna(0.0)
+    divergencia_relativa = np.where(
+        linea_val >= 20.0,
+        (proy_raw - linea_val).abs() / linea_val,
+        0.0
+    )
+    divergencia_segura = divergencia_relativa <= 0.40
+
     candidato = (
         resultado["linea"].notna()
         & edge_valido
@@ -817,6 +876,7 @@ def seleccionar_candidatos(resultado):
         & (resultado["ev_estimado"] > umbral_ev)
         & (resultado["cuota_pick"].abs() >= 100)
         & (resultado["cuota_pick"].abs() <= cuota_maxima)
+        & divergencia_segura
     )
 
     # Candado 1: Yardas terrestres: solamente el RB titular (#1) con volumen probado (mínimo 12 acarreos avg).
