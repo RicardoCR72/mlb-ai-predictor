@@ -26,7 +26,6 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import logging
 import os
 import subprocess
 import sys
@@ -37,8 +36,6 @@ from typing import Any, Dict, List, Optional
 
 import numpy as np
 import pandas as pd
-
-logger = logging.getLogger("nba_auditoria_publica")
 
 RAIZ = Path(__file__).resolve().parents[1]
 DIR_AUDIT = RAIZ / "data" / "nba" / "audit"
@@ -51,7 +48,7 @@ CAMPOS_PICK = [
     "fecha", "game", "player_name", "team", "market", "pick_type", "line", "line_modelo",
     "is_milestone", "pick_odds_decimal", "pick_odds_american", "timestamp_cuota",
     "model_prob", "fair_implied_prob", "ev_pct", "ev_raw", "projection", "stars",
-    "home_team", "away_team",
+    "home_team", "away_team", "hora", "commence_ts",
 ]
 
 
@@ -69,7 +66,7 @@ def _hash(prev: str, cuerpo: Dict[str, Any]) -> str:
 
 
 def pick_id(fecha: str, jugador: str, mercado: str) -> str:
-    base = f"{str(fecha)[:10]}|{str(jugador).strip().lower()}|{str(mercado).strip().lower()}"
+    base = f"{str(fecha)[:10]}|{jugador.strip().lower()}|{mercado.strip().lower()}"
     return hashlib.sha256(base.encode("utf-8")).hexdigest()[:16]
 
 
@@ -85,7 +82,6 @@ def version_modelo() -> str:
 
 
 class _Lock:
-    """Lock de archivo atómico multi-proceso compatible con Windows y Linux."""
     def __enter__(self):
         DIR_AUDIT.mkdir(parents=True, exist_ok=True)
         t0 = time.time()
@@ -95,17 +91,11 @@ class _Lock:
                 return self
             except (FileExistsError, PermissionError):
                 if time.time() - t0 > 15:
-                    try:
-                        os.unlink(LOCK)
-                    except OSError:
-                        pass
+                    raise TimeoutError(f"Lock colgado: borra {LOCK} si no hay otro proceso corriendo.")
                 time.sleep(0.1)
 
     def __exit__(self, *a):
-        try:
-            os.close(self.fd)
-        except OSError:
-            pass
+        os.close(self.fd)
         try:
             os.unlink(LOCK)
         except OSError:
@@ -129,21 +119,13 @@ def _agregar(eventos: List[Dict[str, Any]]) -> int:
         prev = previos[-1]["hash"] if previos else GENESIS
         with open(LEDGER, "a", encoding="utf-8") as f:
             for ev in eventos:
-                cuerpo = {
-                    "seq": seq,
-                    "tipo": ev["tipo"],
-                    "pick_id": ev.get("pick_id"),
-                    "ts": _ahora(),
-                    "payload": ev["payload"]
-                }
+                cuerpo = {"seq": seq, "tipo": ev["tipo"], "pick_id": ev.get("pick_id"),
+                          "ts": _ahora(), "payload": ev["payload"]}
                 h = _hash(prev, cuerpo)
                 f.write(_canon({**cuerpo, "prev_hash": prev, "hash": h}) + "\n")
                 prev, seq = h, seq + 1
             f.flush()
-            try:
-                os.fsync(f.fileno())
-            except OSError:
-                pass
+            os.fsync(f.fileno())
     return len(eventos)
 
 
@@ -168,11 +150,8 @@ def verificar() -> bool:
 
 
 # ---------------------------------------------------------------- registro de picks
-def registrar_picks(
-    df: pd.DataFrame,
-    solo_con_senal: bool = True,
-    commence_col: str = "commence_ts"
-) -> Dict[str, int]:
+def registrar_picks(df: pd.DataFrame, solo_con_senal: bool = True,
+                    commence_col: str = "commence_ts") -> Dict[str, int]:
     """Registra picks nuevos. Regla fija: todo pick con >= ⭐ se registra, se publique o no."""
     if df is None or df.empty:
         return {"nuevos": 0, "duplicados": 0, "rechazados": 0}
@@ -190,30 +169,21 @@ def registrar_picks(
             dup += 1
             continue
         cuota, prob = r.get("pick_odds_decimal"), r.get("model_prob")
-        # Validaciones básicas de cordura
-        try:
-            c_val = float(cuota) if cuota is not None else None
-            p_val = float(prob) if prob is not None else None
-        except (ValueError, TypeError):
+        # validaciones básicas de cordura
+        if cuota is None or not (1.01 < float(cuota) < 15) or prob is None or not (0 < float(prob) < 1):
             rech += 1
             continue
-
-        if c_val is None or not (1.01 < c_val < 15.0) or p_val is None or not (0.0 < p_val < 1.0):
-            rech += 1
-            continue
-
         if commence_col in df.columns and pd.notna(r.get(commence_col)):
             try:
                 if ahora >= pd.to_datetime(r[commence_col], utc=True):
-                    rech += 1  # El partido ya empezó: no cuenta como pick pre-partido
+                    rech += 1  # el partido ya empezó: no cuenta como pick pre-partido
                     continue
             except Exception:
                 pass
-
         payload = {c: (None if pd.isna(r.get(c)) else r.get(c)) for c in CAMPOS_PICK if c in df.columns}
         payload["model_version"] = version
         payload["publicado"] = bool(r.get("es_top20_oficial", False))
-        payload["cuota_tomada"] = c_val
+        payload["cuota_tomada"] = float(cuota)
         nuevos.append({"tipo": "PICK", "pick_id": pid, "payload": payload})
         existentes.add(pid)
 
@@ -222,43 +192,26 @@ def registrar_picks(
 
 
 # ---------------------------------------------------------------- cierres (para CLV)
-def registrar_cierres(df_bovada: pd.DataFrame) -> int:
+def registrar_cierres(df_bovada: pd.DataFrame, solo_pick_ids: Optional[set] = None) -> int:
     """Captura la cuota vigente (ejecutar 5-10 min antes del tip-off). Sin cierre no hay CLV."""
-    if df_bovada is None or df_bovada.empty:
-        return 0
     ev = _leer()
     picks = {e["pick_id"]: e["payload"] for e in ev if e["tipo"] == "PICK"}
     liquidados = {e["pick_id"] for e in ev if e["tipo"] == "LIQUIDACION"}
     nuevos = []
-    idx = {}
-    for _, r in df_bovada.iterrows():
-        p_clean = str(r.get("player_clean", "")).strip().lower()
-        m_name = str(r.get("market", "")).strip()
-        try:
-            l_val = float(r.get("line", 0.0))
-            idx[(p_clean, m_name, l_val)] = r
-        except (ValueError, TypeError):
-            continue
-
+    idx = {(str(r["player_clean"]).lower(), r["market"], float(r["line"])): r
+           for _, r in df_bovada.iterrows()}
     for pid, p in picks.items():
-        if pid in liquidados:
+        if pid in liquidados or (solo_pick_ids is not None and pid not in solo_pick_ids):
             continue
-        try:
-            clave = (str(p.get("player_name", "")).strip().lower(), str(p.get("market", "")).strip(), float(p.get("line", 0.0)))
-        except (ValueError, TypeError):
-            continue
-
+        clave = (str(p["player_name"]).lower(), p["market"], float(p["line"]))
         fila = idx.get(clave)
         if fila is None:
-            continue  # La línea se movió o ya no existe: sin cierre comparable
-        col = "over_decimal" if p.get("pick_type") == "OVER" else "under_decimal"
+            continue  # la línea se movió o ya no existe: sin cierre comparable
+        col = "over_decimal" if p["pick_type"] == "OVER" else "under_decimal"
         cierre = fila.get(col)
         if cierre and float(cierre) > 1.0:
-            nuevos.append({
-                "tipo": "CIERRE",
-                "pick_id": pid,
-                "payload": {"cuota_cierre": float(cierre), "linea_cierre": float(fila["line"])}
-            })
+            nuevos.append({"tipo": "CIERRE", "pick_id": pid,
+                           "payload": {"cuota_cierre": float(cierre), "linea_cierre": float(fila["line"])}})
     return _agregar(nuevos)
 
 
@@ -281,51 +234,28 @@ def registrar_liquidaciones(df_box: pd.DataFrame) -> int:
         if e["tipo"] != "PICK" or e["pick_id"] in liquidados:
             continue
         p = e["payload"]
-        sub = df_box[df_box["fecha"].astype(str).str[:10] == str(p["fecha"])[:10]]
+        sub = df_box[df_box["fecha"].astype(str) == str(p["fecha"])[:10]]
         if sub.empty:
-            continue  # Sin boxscores de ese día: no liquidar (evita falsos PUSH)
-
+            continue  # sin boxscores de ese día: no liquidar (evita falsos PUSH)
         res = liquidar_prop_nba({
-            "player_name": p["player_name"],
-            "player_clean": p["player_name"],
-            "team": p.get("team"),
-            "market": p["market"],
-            "line": p["line"],
-            "pick_type": p["pick_type"],
-            "pick_odds_decimal": p["cuota_tomada"],
-            "is_milestone": p.get("is_milestone", 0),
+            "player_name": p["player_name"], "player_clean": p["player_name"], "team": p.get("team"),
+            "market": p["market"], "line": p["line"], "pick_type": p["pick_type"],
+            "pick_odds_decimal": p["cuota_tomada"], "is_milestone": p.get("is_milestone", 0),
         }, sub, partido_finalizado=True)
-
-        if res.get("resultado") == "PENDIENTE":
+        if res["resultado"] == "PENDIENTE":
             continue
-
-        nuevos.append({
-            "tipo": "LIQUIDACION",
-            "pick_id": e["pick_id"],
-            "payload": {
-                "resultado": res["resultado"],
-                "valor_real": res.get("valor_real"),
-                "unidades": res.get("unidades_ganadas"),
-                "motivo": res.get("motivo")
-            }
-        })
+        nuevos.append({"tipo": "LIQUIDACION", "pick_id": e["pick_id"], "payload": {
+            "resultado": res["resultado"], "valor_real": res["valor_real"],
+            "unidades": res["unidades_ganadas"], "motivo": res["motivo"]}})
     return _agregar(nuevos)
 
 
 def corregir(pick_id_: str, resultado: str, valor_real: Optional[float], unidades: float, motivo: str) -> None:
     """Correcciones manuales: quedan como evento visible y marcadas en el reporte."""
     if not motivo.strip():
-        raise ValueError("Toda corrección exige un motivo explícito.")
-    _agregar([{
-        "tipo": "CORRECCION",
-        "pick_id": pick_id_,
-        "payload": {
-            "resultado": resultado,
-            "valor_real": valor_real,
-            "unidades": unidades,
-            "motivo": motivo
-        }
-    }])
+        raise ValueError("Toda corrección exige un motivo.")
+    _agregar([{"tipo": "CORRECCION", "pick_id": pick_id_, "payload": {
+        "resultado": resultado, "valor_real": valor_real, "unidades": unidades, "motivo": motivo}}])
 
 
 # ---------------------------------------------------------------- reporte
@@ -337,10 +267,10 @@ def tabla_picks() -> pd.DataFrame:
             filas[pid] = {**e["payload"], "pick_id": pid, "registrado_en": e["ts"], "corregido": False}
         elif pid in filas:
             if e["tipo"] == "CIERRE":
-                filas[pid].update(e["payload"])  # El último cierre previo al juego prevalece
+                filas[pid].update(e["payload"])  # el último cierre previo al juego prevalece
             elif e["tipo"] in ("LIQUIDACION", "CORRECCION"):
                 filas[pid].update(e["payload"])
-                filas[pid]["corregido"] = filas[pid]["corregido"] or (e["tipo"] == "CORRECCION")
+                filas[pid]["corregido"] = filas[pid]["corregido"] or e["tipo"] == "CORRECCION"
     return pd.DataFrame(filas.values())
 
 
@@ -357,14 +287,9 @@ def _resumen(d: pd.DataFrame) -> Dict[str, Any]:
         return {"n": 0}
     u = d.unidades.astype(float)
     lo, hi = _ic_roi(u) if len(d) >= 20 else (np.nan, np.nan)
-    return {
-        "n": len(d),
-        "acierto_%": round((d.resultado == "GANADA").mean() * 100, 1),
-        "unidades": round(u.sum(), 2),
-        "roi_%": round(u.mean() * 100, 1),
-        "ic95_lo": round(lo, 1) if pd.notna(lo) else None,
-        "ic95_hi": round(hi, 1) if pd.notna(hi) else None
-    }
+    return {"n": len(d), "acierto_%": round((d.resultado == "GANADA").mean() * 100, 1),
+            "unidades": round(u.sum(), 2), "roi_%": round(u.mean() * 100, 1),
+            "ic95_lo": round(lo, 1), "ic95_hi": round(hi, 1)}
 
 
 def generar_reporte() -> str:
@@ -378,19 +303,13 @@ def generar_reporte() -> str:
     liq["gano"] = (liq.resultado == "GANADA").astype(int)
     liq["tipo"] = liq.pick_type
 
-    out = [
-        f"# Reporte de rendimiento NBA props (Sellado Criptográficamente)",
-        f"Generado: {_ahora()} UTC | Hash de cabecera: `{hash_cabecera()}`",
-        f"Picks registrados: {len(df)} | Liquidados: {len(liq)} | Pendientes: {len(df) - len(liq)} "
-        f"| Correcciones manuales: {int(df.corregido.sum()) if 'corregido' in df.columns else 0}",
-        ""
-    ]
+    out = [f"# Reporte de rendimiento NBA props",
+           f"Generado: {_ahora()} UTC | Hash de cabecera: `{hash_cabecera()}`",
+           f"Picks registrados: {len(df)} | Liquidados: {len(liq)} | Pendientes: {len(df) - len(liq)} "
+           f"| Correcciones manuales: {int(df.corregido.sum())}", ""]
 
     def seccion(titulo: str, sub: pd.DataFrame, por: Optional[str] = None):
         out.append(f"## {titulo}")
-        if sub.empty:
-            out.append("```\nSin picks liquidados en este segmento.\n```\n")
-            return
         if por is None:
             out.append("```\n" + pd.DataFrame([_resumen(sub)]).to_string(index=False) + "\n```")
         else:
@@ -401,51 +320,42 @@ def generar_reporte() -> str:
         out.append("")
 
     seccion("Todos los picks registrados (sin filtrar por publicación)", liq)
-    seccion("Solo picks publicados (Top 20)", liq[liq.get("publicado") == True])
-    seccion("Por lado (Over vs Under)", liq, "tipo")
+    seccion("Solo picks publicados (Top 20)", liq[liq.publicado == True])  # noqa: E712
+    seccion("Por lado", liq, "tipo")
     seccion("Por mercado", liq, "market")
     seccion("Milestones vs líneas regulares", liq, "is_milestone")
     seccion("Por versión de modelo", liq, "model_version")
 
     # CLV
     out.append("## CLV (cuota tomada vs cuota de cierre, misma línea)")
-    c = liq[cierre_ok.reindex(liq.index, fill_value=False)].copy() if len(liq) else pd.DataFrame()
-    if not c.empty and "linea_cierre" in c.columns:
+    c = liq[cierre_ok.reindex(liq.index, fill_value=False)].copy() if len(liq) else liq
+    if not c.empty:
         c = c[c.linea_cierre.astype(float) == c.line.astype(float)]
-        if not c.empty:
-            c["clv"] = c.cuota_tomada.astype(float) / c.cuota_cierre.astype(float) - 1.0
-            out.append(f"```\nn={len(c)} | CLV medio={c.clv.mean()*100:+.2f}% | % picks con CLV>0={(c.clv>0).mean()*100:.0f}%\n```")
-        else:
-            out.append("Sin cierres comparables en la misma línea.")
+        c["clv"] = c.cuota_tomada.astype(float) / c.cuota_cierre.astype(float) - 1
+        out.append(f"```\nn={len(c)} | CLV medio={c.clv.mean()*100:+.2f}% | % picks con CLV>0={(c.clv>0).mean()*100:.0f}%\n```")
     else:
         out.append("Sin cierres capturados todavía (ejecuta `cierres` antes de cada bloque de partidos).")
     out.append("")
 
     # Brier / calibración (sin pushes)
-    sp = liq[liq.resultado.isin(["GANADA", "PERDIDA"])].dropna(subset=["model_prob", "fair_implied_prob"]) if "model_prob" in liq.columns and "fair_implied_prob" in liq.columns else pd.DataFrame()
-    out.append("## ¿El modelo supera al mercado? (Brier Score, menor = mejor)")
+    sp = liq[liq.resultado.isin(["GANADA", "PERDIDA"])].dropna(subset=["model_prob", "fair_implied_prob"])
+    out.append("## ¿El modelo supera al mercado? (Brier, menor = mejor)")
     if len(sp) >= 30:
-        bm = float(((sp.model_prob.astype(float) - sp.gano) ** 2).mean())
-        bk = float(((sp.fair_implied_prob.astype(float) - sp.gano) ** 2).mean())
+        bm = ((sp.model_prob.astype(float) - sp.gano) ** 2).mean()
+        bk = ((sp.fair_implied_prob.astype(float) - sp.gano) ** 2).mean()
         out.append(f"```\nModelo: {bm:.4f} | Mercado: {bk:.4f} | n={len(sp)}\n```")
         sp = sp.assign(bucket=pd.qcut(sp.model_prob.astype(float), 5, duplicates="drop"))
-        cal = sp.groupby("bucket", observed=True).agg(
-            n=("gano", "size"),
-            prob_modelo=("model_prob", "mean"),
-            frecuencia_real=("gano", "mean")
-        ).round(3)
+        cal = sp.groupby("bucket", observed=True).agg(n=("gano", "size"), prob_modelo=("model_prob", "mean"),
+                                                      frecuencia_real=("gano", "mean")).round(3)
         out.append("### Calibración\n```\n" + cal.to_string() + "\n```")
     else:
         out.append("Muestra insuficiente (<30 picks liquidados).")
 
-    out += [
-        "", "---",
-        "**Aviso:** Resultados pasados no garantizan rendimientos futuros. Las apuestas implican riesgo de "
-        "pérdida. El historial es append-only y verificable por cadena de hashes criptográfica; las correcciones "
-        "manuales aparecen contadas arriba. Este reporte no es asesoría financiera ni promesa de ganancias."
-    ]
+    out += ["", "---",
+            "**Aviso:** resultados pasados no garantizan resultados futuros. Las apuestas implican riesgo de "
+            "pérdida. El historial es append-only y verificable por cadena de hashes; las correcciones "
+            "manuales aparecen contadas arriba. Este reporte no es asesoría financiera ni promesa de ganancias."]
     texto = "\n".join(out)
-    DIR_AUDIT.mkdir(parents=True, exist_ok=True)
     REPORTE_MD.write_text(texto, encoding="utf-8")
     return texto
 
@@ -453,7 +363,7 @@ def generar_reporte() -> str:
 # ---------------------------------------------------------------- CLI
 if __name__ == "__main__":
     sys.path.insert(0, str(RAIZ))
-    ap = argparse.ArgumentParser(description="Auditoría Pública y Ledger Criptográfico NBA Props")
+    ap = argparse.ArgumentParser()
     ap.add_argument("accion", choices=["cierres", "liquidar", "verificar", "reporte"])
     a = ap.parse_args()
     if a.accion == "verificar":

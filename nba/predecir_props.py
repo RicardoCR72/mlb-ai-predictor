@@ -679,6 +679,7 @@ def generar_predicciones_props_hoy(
             "game": row["game"],
             "fecha": row["fecha"],
             "hora": row["hora"],
+            "commence_ts": row.get("commence_ts"),
             "away_team": row["away_team"],
             "home_team": row["home_team"],
             "player_name": row["player_name"],
