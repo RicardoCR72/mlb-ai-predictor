@@ -312,49 +312,63 @@ REGLAS INSTITUCIONALES OBLIGATORIAS:
 
 def responder_consulta_asesor(
     pregunta: str,
-    historial: List[Dict[str, str]],
+    candidatos: Optional[Dict[str, Any]] = None,
+    historial: Optional[List[Dict[str, str]]] = None,
     api_key: Optional[str] = None,
+    gemini_api_key: Optional[str] = None,
+    **kwargs: Any,
 ) -> str:
     """Procesa la pregunta del usuario utilizando Gemini o el motor heurístico Overdog."""
-    candidatos = cargar_candidatos_hoy()
-    key = api_key or os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+    if candidatos is None:
+        candidatos = cargar_candidatos_hoy()
 
-    # MODO 1: Si hay API Key de Gemini, llamada a Gemini 2.5 Flash
-    if key:
+    # Resolver API Key desde parámetros, variables de entorno o streamlit secrets
+    raw_key = gemini_api_key or api_key or os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+    if not raw_key:
         try:
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={key}"
-            
-            mensajes_chat = []
-            # Mensaje de sistema + contexto de candidatos
-            contexto_completo = (
-                f"{PROMPT_SISTEMA_ASESOR}\n\n"
-                f"--- CONTEXTO EN VIVO DEL SISTEMA OVERDOG HOY ---\n"
-                f"{candidatos['resumen_texto']}\n"
-                f"------------------------------------------------"
-            )
-            
-            contenido_parts = [{"text": contexto_completo}]
-            # Historial previo breve
-            for h in historial[-4:]:
-                contenido_parts.append({"text": f"{h['role'].upper()}: {h['content']}"})
-            
-            contenido_parts.append({"text": f"USUARIO: {pregunta}\nASESOR OVERDOG AI:"})
-
-            payload = {
-                "contents": [{"parts": contenido_parts}],
-                "generationConfig": {
-                    "temperature": 0.25,
-                    "maxOutputTokens": 900,
-                }
-            }
-            
-            resp = requests.post(url, json=payload, timeout=12)
-            if resp.status_code == 200:
-                data = resp.json()
-                texto = data["candidates"][0]["content"]["parts"][0]["text"]
-                return texto
+            import streamlit as st
+            raw_key = st.secrets.get("GEMINI_API_KEY") or st.secrets.get("gemini_api_key")
         except Exception:
-            pass  # Fallback suave al motor heurístico si la red o API falla
+            pass
+
+    key = str(raw_key).strip().rstrip(".") if raw_key else None
+
+    # MODO 1: Si hay API Key de Gemini, llamada con soporte multimodelo
+    if key:
+        modelos_disponibles = ["gemini-3.5-flash-lite", "gemini-3.8-flash", "gemini-flash-latest"]
+        
+        contexto_completo = (
+            f"{PROMPT_SISTEMA_ASESOR}\n\n"
+            f"--- CONTEXTO EN VIVO DEL SISTEMA OVERDOG HOY ---\n"
+            f"{candidatos.get('resumen_texto', '')}\n"
+            f"------------------------------------------------"
+        )
+        
+        contenido_parts = [{"text": contexto_completo}]
+        if historial:
+            for h in historial[-4:]:
+                contenido_parts.append({"text": f"{h.get('role', 'user').upper()}: {h.get('content', '')}"})
+        
+        contenido_parts.append({"text": f"USUARIO: {pregunta}\nASESOR OVERDOG AI:"})
+
+        payload = {
+            "contents": [{"parts": contenido_parts}],
+            "generationConfig": {
+                "temperature": 0.25,
+                "maxOutputTokens": 900,
+            }
+        }
+
+        for modelo in modelos_disponibles:
+            try:
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/{modelo}:generateContent?key={key}"
+                resp = requests.post(url, json=payload, timeout=14)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    texto = data["candidates"][0]["content"]["parts"][0]["text"]
+                    return texto
+            except Exception:
+                continue  # Intenta el siguiente modelo si hay timeout o error temporal
 
     # MODO 2: Motor Heurístico Cuantitativo Autónomo (Zero-API Fallback)
     pregunta_norm = pregunta.lower()

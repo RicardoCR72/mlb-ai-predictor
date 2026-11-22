@@ -107,14 +107,23 @@ with st.sidebar:
     st.divider()
     st.markdown("### 🔑 Motor de Razonamiento")
     api_key_default = os.getenv("GEMINI_API_KEY", "")
+    if not api_key_default:
+        try:
+            api_key_default = st.secrets.get("GEMINI_API_KEY", "")
+        except Exception:
+            pass
+
     api_key_input = st.text_input(
-        "Gemini API Key (Opcional):",
+        "Gemini API Key:",
         value=api_key_default,
         type="password",
-        help="Si no se ingresa, el asesor opera con el motor de inferencia matemática heurística autónomo de Overdog."
+        help="Clave para activar el razonamiento profundo de Gemini. Si se deja vacía, opera el motor cuantitativo autónomo."
     )
     if api_key_input:
-        os.environ["GEMINI_API_KEY"] = api_key_input
+        os.environ["GEMINI_API_KEY"] = api_key_input.strip().rstrip(".")
+        st.success("🟢 Gemini AI Activo (Flash)", icon="⚡")
+    else:
+        st.info("🟡 Motor Heurístico Cuantitativo", icon="🛡️")
 
 # ==============================================================================
 # ACCIONES RÁPIDAS (BOTONES DE UN SOLO CLIC)
@@ -182,6 +191,7 @@ if prompt:
             respuesta = responder_consulta_asesor(
                 pregunta=prompt,
                 candidatos=candidatos,
+                historial=st.session_state.asesor_chat_history,
                 gemini_api_key=key_a_usar
             )
             st.markdown(respuesta)
