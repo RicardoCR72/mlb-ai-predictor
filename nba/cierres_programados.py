@@ -51,10 +51,16 @@ def _inicio(p: Dict) -> Optional[datetime]:
             return datetime.combine(datetime.strptime(fecha, "%Y-%m-%d").date(), t, tzinfo=ZONA).astimezone(timezone.utc)
         except ValueError:
             continue
+    if fecha and len(fecha) == 10:
+        try:
+            t = datetime.strptime("18:30", "%H:%M").time()
+            return datetime.combine(datetime.strptime(fecha, "%Y-%m-%d").date(), t, tzinfo=ZONA).astimezone(timezone.utc)
+        except Exception:
+            pass
     return None
 
 
-def ciclo(capturados: set, avisados: set) -> None:
+def ciclo(capturados: set, avisados: set, ventana_min: float = VENTANA_MIN) -> int:
     ev = _leer()
     liquidados = {e["pick_id"] for e in ev if e["tipo"] == "LIQUIDACION"}
     cerrados = {e["pick_id"] for e in ev if e["tipo"] == "CIERRE"}
@@ -78,27 +84,41 @@ def ciclo(capturados: set, avisados: set) -> None:
         if (game, fecha) in capturados:
             continue
         faltan = (ini - ahora).total_seconds() / 60.0
-        if 0 <= faltan <= VENTANA_MIN:
+        if 0 <= faltan <= ventana_min:
             por_capturar.append(((game, fecha), pids))
         elif faltan < 0 and not any(p in cerrados for p in pids) and (game, fecha) not in avisados:
             avisados.add((game, fecha))
             log.warning(f"⚠️ {game} {fecha}: empezó sin cierre capturado (sin CLV para esos picks)")
 
     if not por_capturar:
-        return
+        return 0
     df_b = extraer_props_nba(usar_cache=False, permitir_odds_api=False)  # una consulta fresca por ciclo
+    total_cierres = 0
     for clave, pids in por_capturar:
         n = registrar_cierres(df_b, solo_pick_ids=set(pids))
         capturados.add(clave)
+        total_cierres += n
         log.info(f"Cierre {clave[0]}: {n}/{len(pids)} picks con cuota comparable")
+    return total_cierres
 
 
 if __name__ == "__main__":
+    import argparse
+    parser = argparse.ArgumentParser(description="Captura de cierres NBA")
+    parser.add_argument("--una-vez", action="store_true", help="Ejecuta una sola revisión y sale")
+    parser.add_argument("--ventana-min", type=float, default=VENTANA_MIN, help="Minutos antes del juego para capturar")
+    args = parser.parse_args()
+
     cap, avi = set(), set()
-    log.info("Capturador de cierres activo (Ctrl+C para salir)")
+    if args.una_vez:
+        log.info(f"Modo ejecución única (ventana: {args.ventana_min} min)")
+        ciclo(cap, avi, ventana_min=args.ventana_min)
+        sys.exit(0)
+
+    log.info("Capturador de cierres continuo activo (Ctrl+C para salir)")
     while True:
         try:
-            ciclo(cap, avi)
+            ciclo(cap, avi, ventana_min=args.ventana_min)
         except Exception as exc:
             log.error(f"Error en ciclo: {exc}")
         time.sleep(CICLO_SEG)
