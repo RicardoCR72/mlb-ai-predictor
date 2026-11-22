@@ -228,23 +228,29 @@ def proyectar_partido_totales(
     # Por tanto, atenuamos el impacto residual al 40% para evitar castigar dos veces el mismo juego.
     modelo_combinado += float(ajuste_lesiones) * 0.40
 
-    # Shrinkage Bayesiano equilibrado hacia la línea consensuada del mercado (50% modelo / 50% mercado)
+    # Shrinkage Bayesiano institucional hacia la línea consensuada del mercado (65% mercado / 35% modelo)
     if linea_total and linea_total > 0:
-        total_pred = 0.50 * modelo_combinado + 0.50 * linea_total
+        total_pred = 0.65 * linea_total + 0.35 * modelo_combinado
         edge_puntos = total_pred - linea_total
+        diff_cruda = modelo_combinado - linea_total
 
         # Sigma empírico real calibrado para totales NBA (~17.0 - 18.5 pts)
-        # Eliminado el recorte arbitrario a 11.5 que inflaba falsas probabilidades
         sigma_tot = float(bundle.get("sigma_residual") or bundle.get("sigma_condicional") or 17.5)
         sigma_tot = max(16.0, min(sigma_tot, 21.0))
-        z_score = edge_puntos / sigma_tot
-        prob_over = float(norm.cdf(z_score))
+        z_score = diff_cruda / sigma_tot
+        prob_over_raw = float(norm.cdf(z_score))
+
+        # Penalización por Sesgo de Under / Atrición NBA (-3.5% a Overs por riesgo de paliza/blowout y ritmo lento):
+        prob_over = float(np.clip(prob_over_raw - 0.035, 0.05, 0.95))
         prob_under = 1.0 - prob_over
 
-        # Dead Zone Rigurosa Profesional: exige al menos 3.0 pts de edge neto y P >= 54.5%
-        if edge_puntos >= 3.0 and prob_over >= 0.545:
+        # Filtro de Divergencia Extrema: si el modelo crudo difiere en más de 14 puntos de Las Vegas, veto preventivo
+        divergencia_extrema = abs(diff_cruda) > 14.0
+
+        # Dead Zone Rigurosa Profesional: exige al menos 1.2 pts de edge calibrado (~3.5 pts crudos) y P >= 54.0%
+        if edge_puntos >= 1.2 and prob_over >= 0.540 and not divergencia_extrema:
             recom = "OVER"
-        elif edge_puntos <= -3.0 and prob_under >= 0.545:
+        elif edge_puntos <= -1.2 and prob_under >= 0.540 and not divergencia_extrema:
             recom = "UNDER"
         else:
             recom = "PASAR"

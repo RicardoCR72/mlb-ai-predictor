@@ -2,7 +2,7 @@
 import numpy as np
 import pandas as pd
 from nfl.feature_spec import FEATURES_BASE, FEATURES_CATEGORICAS, FEATURES_MERCADO
-EDGE_MINIMO = 3.0
+EDGE_MINIMO = 1.05  # Calibrado proporcional al Shrinkage Bayesiano (equivale a ~3.0 pts crudos)
 NFL_TOTALS_INTERCEPT_BIAS = 1.10  # Ajuste de calibración empírica (modelo 2012-2024 vs entorno anotador 2024-2026)
 
 def american_a_decimal(odds):
@@ -120,133 +120,44 @@ def generar_predicciones(
     ]
 
     predicciones = modelo_mercado.predict(
-
         X_mercado
-
     )
 
-    resultado.loc[
+    pred_cruda = predicciones - NFL_TOTALS_INTERCEPT_BIAS
+    linea_tot = pd.to_numeric(resultado.loc[con_linea, "total_line"], errors="coerce")
 
-        con_linea,
+    # 1. Shrinkage Bayesiano Institucional hacia la línea de mercado (65% mercado / 35% modelo):
+    pred_calibrada = 0.65 * linea_tot + 0.35 * pred_cruda
 
-        "pred_total"
+    resultado.loc[con_linea, "pred_total"] = pred_calibrada
+    resultado.loc[con_linea, "edge"] = pred_calibrada - linea_tot
+    resultado.loc[con_linea, "edge_absoluto"] = resultado.loc[con_linea, "edge"].abs()
+    diff_cruda = pred_cruda - linea_tot
 
-    ] = predicciones - NFL_TOTALS_INTERCEPT_BIAS
-
-    resultado.loc[
-
-        con_linea,
-
-        "edge"
-
-    ] = (
-
-        resultado.loc[
-
-            con_linea,
-
-            "pred_total"
-
-        ]
-
-        - resultado.loc[
-
-            con_linea,
-
-            "total_line"
-
-        ]
-
-    )
-
-    resultado.loc[
-
-        con_linea,
-
-        "edge_absoluto"
-
-    ] = (
-
-        resultado.loc[
-
-            con_linea,
-
-            "edge"
-
-        ].abs()
-
-    )
-
-    resultado.loc[
-
-        con_linea,
-
-        "pick"
-
-    ] = np.where(
-
+    resultado.loc[con_linea, "pick"] = np.where(
         resultado.loc[con_linea, "edge"] > 0,
-
         "OVER",
-
         "UNDER",
-
     )
 
-    probabilidades = calibrador.predict_proba(
-
-        resultado.loc[
-
-            con_linea,
-
-            ["edge_absoluto"]
-
-        ]
-
+    # Probabilidad empírica ajustando la escala al calibrador
+    prob_raw = calibrador.predict_proba(
+        pd.DataFrame({"edge_absoluto": diff_cruda.abs()})
     )[:, 1]
 
-    resultado.loc[
-
-        con_linea,
-
-        "prob_pick"
-
-    ] = probabilidades
-
-    resultado.loc[
-
-        con_linea,
-
-        "prob_over"
-
-    ] = np.where(
-
+    # 2. Penalización por Sesgo de Under / Atrición NFL (-3.5% a Overs por riesgo de clima adverso y posesiones lentas):
+    prob_over_cal = np.where(
         resultado.loc[con_linea, "pick"] == "OVER",
-
-        probabilidades,
-
-        1 - probabilidades,
-
+        np.clip(prob_raw - 0.035, 0.05, 0.95),
+        np.clip(1.0 - prob_raw - 0.035, 0.05, 0.95)
     )
 
-    resultado.loc[
-
-        con_linea,
-
-        "prob_under"
-
-    ] = (
-
-        1
-
-        - resultado.loc[
-
-            con_linea,
-
-            "prob_over"
-
-        ]
-
+    resultado.loc[con_linea, "prob_over"] = prob_over_cal
+    resultado.loc[con_linea, "prob_under"] = 1.0 - prob_over_cal
+    resultado.loc[con_linea, "prob_pick"] = np.where(
+        resultado.loc[con_linea, "pick"] == "OVER",
+        resultado.loc[con_linea, "prob_over"],
+        resultado.loc[con_linea, "prob_under"],
     )
 
     resultado.loc[
@@ -350,13 +261,17 @@ def generar_predicciones(
     else:
         wind_val = float(wind_val or 0.0)
 
-    over_valido = es_over & ((linea_val < 51.5) | (resultado["edge_absoluto"] >= 3.5))
-    under_valido = es_under & ((linea_val > 39.5) | (resultado["edge_absoluto"] >= 3.5) | (wind_val >= 12.0))
+    over_valido = es_over & ((linea_val < 51.5) | (resultado["edge_absoluto"] >= 1.25))
+    under_valido = es_under & ((linea_val > 39.5) | (resultado["edge_absoluto"] >= 1.25) | (wind_val >= 12.0))
+
+    # Filtro Anti-Varianza / Divergencia Extrema: descarta diferencias crudas > 9.0 puntos contra Las Vegas
+    divergencia_segura = resultado["edge_absoluto"] <= 3.15
 
     valido_para_pick = (
         cumple_edge
         & cumple_ev
         & (over_valido | under_valido)
+        & divergencia_segura
     )
 
     resultado.loc[
