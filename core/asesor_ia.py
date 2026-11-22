@@ -335,7 +335,8 @@ def responder_consulta_asesor(
 
     # MODO 1: Si hay API Key de Gemini, llamada con soporte multimodelo
     if key:
-        modelos_disponibles = ["gemini-3.5-flash-lite", "gemini-3.8-flash", "gemini-flash-latest"]
+        # Priorizar gemini-3.5-flash que es el modelo activo y estable
+        modelos_disponibles = ["gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-3.8-flash", "gemini-flash-latest"]
         
         contexto_completo = (
             f"{PROMPT_SISTEMA_ASESOR}\n\n"
@@ -362,40 +363,22 @@ def responder_consulta_asesor(
         for modelo in modelos_disponibles:
             try:
                 url = f"https://generativelanguage.googleapis.com/v1beta/models/{modelo}:generateContent?key={key}"
-                resp = requests.post(url, json=payload, timeout=14)
+                resp = requests.post(url, json=payload, timeout=12)
                 if resp.status_code == 200:
                     data = resp.json()
-                    texto = data["candidates"][0]["content"]["parts"][0]["text"]
-                    return texto
+                    cands = data.get("candidates", [])
+                    if cands and "content" in cands[0] and "parts" in cands[0]["content"]:
+                        texto = cands[0]["content"]["parts"][0].get("text", "")
+                        if texto.strip():
+                            return texto
             except Exception:
                 continue  # Intenta el siguiente modelo si hay timeout o error temporal
 
     # MODO 2: Motor Heurístico Cuantitativo Autónomo (Zero-API Fallback)
     pregunta_norm = pregunta.lower()
 
-    if any(k in pregunta_norm for k in ["seguro", "candado", "mejor", "top", "firme", "1"]):
-        candado = seleccionar_candado_oficial(candidatos)
-        if not candado:
-            return (
-                "⚡ **Análisis de Overdog Sports AI:**\n\n"
-                "En este momento no hay suficientes selecciones con margen de valor estadístico de alta convicción. "
-                "Los modelos recomiendan esperar a la actualización de alineaciones oficiales para no forzar selecciones sin ventaja."
-            )
-        
-        jugador_txt = f"**{candado['jugador']}** ({candado.get('equipo', '')})" if candado.get("jugador") else f"**{candado['partido']}**"
-        return (
-            f"⚡ **El Candado del Día · Overdog Sports AI**\n\n"
-            f"🎯 **Selección:** {jugador_txt} · **{candado['seleccion']}**\n"
-            f"📊 **Mercado:** {candado['mercado']} | **Deporte:** {candado['deporte']}\n"
-            f"📈 **Probabilidad del Modelo:** {candado['probabilidad']*100:.1f}%\n"
-            f"💎 **Margen de Valor (EV):** {candado['ev']:+.1f}%\n"
-            f"🎯 **Cuota:** {candado['cuota']}\n\n"
-            f"🔍 **Doble Filtro Cuantitativo:**\n"
-            f"Esta selección superó tanto el Shrinkage Bayesiano como la prueba de varianza. "
-            f"Presenta una sólida consistencia en sus últimos partidos y un emparejamiento favorable sin riesgo severo de reducción de minutos."
-        )
-
-    elif any(k in pregunta_norm for k in ["parlay", "combinada", "patas", "doble", "combinar"]):
+    # Prioridad 1: Solicitud de Combinada / Parlay
+    if any(k in pregunta_norm for k in ["parlay", "combinada", "patas", "doble", "combinar"]):
         patas = construir_parlay_seguro(candidatos, n_patas=2)
         if len(patas) < 2:
             return (
@@ -435,25 +418,56 @@ def responder_consulta_asesor(
             f"Ambas patas pertenecen a partidos independientes para evitar contaminación de rendimiento y correlaciones negativas."
         )
 
-    elif "nba" in pregunta_norm:
-        props = candidatos.get("nba_props", [])
-        if not props:
-            return "🏀 **NBA:** No hay selecciones oficiales activas para hoy en la cartelera NBA."
-        top_nba = props[:3]
-        items = "\n".join([f"- **{p['jugador']}** · {p['seleccion']} ({p['mercado']}) | Prob: {p['probabilidad']*100:.1f}%" for p in top_nba])
-        return f"🏀 **Top Selecciones NBA de Hoy:**\n\n{items}\n\n*Todas cuentan con proyección cuantitativa desacoplada y Shrinkage 60/40.*"
-
+    # Prioridad 2: Consulta específica de NFL
     elif "nfl" in pregunta_norm:
         props = candidatos.get("nfl_props", [])
         partidos = candidatos.get("nfl_partidos", [])
         items = []
-        for p in props[:2]:
+        for p in props[:3]:
             items.append(f"- **{p['jugador']}** · {p['seleccion']} ({p['mercado']}) | Prob: {p['probabilidad']*100:.1f}%")
         for m in partidos[:2]:
             items.append(f"- **{m['partido']}** · {m['seleccion']} | Prob: {m['probabilidad']*100:.1f}%")
         
         if not items:
             return "🏈 **NFL:** No hay selecciones oficiales activas para la cartelera NFL de hoy."
+        return f"🏈 **Top Selecciones NFL de Hoy:**\n\n" + "\n".join(items)
+
+    # Prioridad 3: Consulta específica de NBA
+    elif "nba" in pregunta_norm:
+        props = candidatos.get("nba_props", [])
+        partidos = candidatos.get("nba_partidos", [])
+        items = []
+        for p in props[:3]:
+            items.append(f"- **{p['jugador']}** · {p['seleccion']} ({p['mercado']}) | Prob: {p['probabilidad']*100:.1f}%")
+        for m in partidos[:2]:
+            items.append(f"- **{m['partido']}** · {m['seleccion']} | Prob: {m['probabilidad']*100:.1f}%")
+        
+        if not items:
+            return "🏀 **NBA:** No hay selecciones oficiales activas para hoy en la cartelera NBA."
+        return f"🏀 **Top Selecciones NBA de Hoy:**\n\n" + "\n".join(items) + "\n\n*Todas cuentan con proyección cuantitativa desacoplada y Shrinkage 60/40.*"
+
+    # Prioridad 4: El Candado del Día (selección más segura individual)
+    elif any(k in pregunta_norm for k in ["seguro", "candado", "firme", "el mas seguro", "el más seguro"]):
+        candado = seleccionar_candado_oficial(candidatos)
+        if not candado:
+            return (
+                "⚡ **Análisis de Overdog Sports AI:**\n\n"
+                "En este momento no hay suficientes selecciones con margen de valor estadístico de alta convicción. "
+                "Los modelos recomiendan esperar a la actualización de alineaciones oficiales para no forzar selecciones sin ventaja."
+            )
+        
+        jugador_txt = f"**{candado['jugador']}** ({candado.get('equipo', '')})" if candado.get("jugador") else f"**{candado['partido']}**"
+        return (
+            f"⚡ **El Candado del Día · Overdog Sports AI**\n\n"
+            f"🎯 **Selección:** {jugador_txt} · **{candado['seleccion']}**\n"
+            f"📊 **Mercado:** {candado['mercado']} | **Deporte:** {candado['deporte']}\n"
+            f"📈 **Probabilidad del Modelo:** {candado['probabilidad']*100:.1f}%\n"
+            f"💎 **Margen de Valor (EV):** {candado['ev']:+.1f}%\n"
+            f"🎯 **Cuota:** {candado['cuota']}\n\n"
+            f"🔍 **Doble Filtro Cuantitativo:**\n"
+            f"Esta selección superó tanto el Shrinkage Bayesiano como la prueba de varianza. "
+            f"Presenta una sólida consistencia en sus últimos partidos y un emparejamiento favorable sin riesgo severo de reducción de minutos."
+        )
         return f"🏈 **Top Selecciones NFL de Hoy:**\n\n" + "\n".join(items)
 
     else:
