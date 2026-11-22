@@ -76,6 +76,24 @@ EQUIPOS_BOVADA_A_SIGLA = {
     "Washington Commanders": "WAS",
 }
 
+SIGLAS_BOVADA_A_OFICIAL = {
+    "NOR": "NO",
+    "JAC": "JAX",
+    "GNB": "GB",
+    "KAN": "KC",
+    "SFO": "SF",
+    "TAM": "TB",
+    "NWE": "NE",
+    "LVR": "LV",
+    "LAR": "LA",
+    "WSH": "WAS",
+}
+
+
+def _normalizar_sigla(sigla: str) -> str:
+    s = str(sigla or "").strip().upper()
+    return SIGLAS_BOVADA_A_OFICIAL.get(s, s)
+
 
 def _limpiar_nombre(texto: str) -> str:
     """Normaliza cadenas quitando puntuación y sufijos de nombres."""
@@ -317,14 +335,28 @@ def extraer_props_nfl(usar_cache: bool = True) -> pd.DataFrame:
                     for o in m.get("outcomes", []):
                         jug_desc = o.get("description", "") # Ej: "Ja'Marr Chase (CIN)"
                         m_team = re.search(r"\(([A-Z]{2,3})\)", jug_desc)
-                        team_sug = m_team.group(1) if m_team else ""
-                        jug_nom_limpio = re.sub(r"\s*\([A-Z]{2,3}\)", "", jug_desc).strip()
+                        team_sug_raw = m_team.group(1) if m_team else ""
+                        team_sug = _normalizar_sigla(team_sug_raw)
 
+                        # Candado de integridad: Si Bovada sugiere equipo y no juega en este partido, ignorar
+                        if team_sug and team_sug not in {vis_sigla, loc_sigla}:
+                            continue
+
+                        jug_nom_limpio = re.sub(r"\s*\([A-Z]{2,3}\)", "", jug_desc).strip()
                         jug_info = _resolver_jugador_nfl(jug_nom_limpio, team_sug, indice_jug)
                         id_jugador = jug_info["id_jugador"] if jug_info else None
                         nombre_oficial = jug_info["nombre"] if jug_info else jug_nom_limpio
                         pos = jug_info.get("posicion", "OF") if jug_info else "OF"
-                        equipo_real = jug_info.get("equipo_actual", team_sug or vis_sigla) if jug_info else team_sug
+                        equipo_bd = _normalizar_sigla(jug_info.get("equipo_actual") if jug_info else "")
+
+                        # Determinar equipo legítimo del jugador en este partido
+                        if team_sug in {vis_sigla, loc_sigla}:
+                            equipo_real = team_sug
+                        elif equipo_bd in {vis_sigla, loc_sigla}:
+                            equipo_real = equipo_bd
+                        else:
+                            # El jugador no pertenece a ninguno de los dos equipos del partido
+                            continue
 
                         am_odds = o.get("price", {}).get("american")
                         if am_odds is not None:
@@ -358,13 +390,25 @@ def extraer_props_nfl(usar_cache: bool = True) -> pd.DataFrame:
                     continue
 
                 jug_nom = mat.group(2).strip()
-                team_sug = mat.group(3) or ""
+                team_sug_raw = mat.group(3) or ""
+                team_sug = _normalizar_sigla(team_sug_raw)
+
+                # Candado de integridad: Si sugiere equipo y no juega en este partido, ignorar
+                if team_sug and team_sug not in {vis_sigla, loc_sigla}:
+                    continue
 
                 jug_info = _resolver_jugador_nfl(jug_nom, team_sug, indice_jug)
                 id_jugador = jug_info["id_jugador"] if jug_info else None
                 nombre_oficial = jug_info["nombre"] if jug_info else jug_nom
                 pos = jug_info.get("posicion", "OF") if jug_info else "OF"
-                equipo_real = jug_info.get("equipo_actual", team_sug or vis_sigla) if jug_info else team_sug
+                equipo_bd = _normalizar_sigla(jug_info.get("equipo_actual") if jug_info else "")
+
+                if team_sug in {vis_sigla, loc_sigla}:
+                    equipo_real = team_sug
+                elif equipo_bd in {vis_sigla, loc_sigla}:
+                    equipo_real = equipo_bd
+                else:
+                    continue
 
                 # Agrupar outcomes por handicap para hallar la línea balanceada principal
                 outcomes_por_handicap: Dict[float, Dict[str, Any]] = {}

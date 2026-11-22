@@ -392,10 +392,8 @@ def render_pick(pick, *, market, state='', details=(), allow_register=True):
             tendencia_parts.append(f"{k}: {v}")
 
     cuota_val = pick.get('cuota') or 1.91
-    try:
-        cuota_dec = float(decimal_odds(cuota_val) or 1.91)
-    except Exception:
-        cuota_dec = 1.91
+    from core.ui_boleta import parsear_cuota_decimal
+    cuota_dec = float(parsear_cuota_decimal(cuota_val) or 1.91)
 
     tendencia = " · ".join(tendencia_parts)
     if not tendencia:
@@ -441,8 +439,8 @@ def nfl_pick(row, prop=False):
     side = row['seleccion'] if prop else row['pick']
     line = number(row['linea'] if prop else row['total_line'])
     raw_odds = row.get('cuota_pick') if prop else row.get('odds_pick')
-    try: odds = decimal_odds(raw_odds)
-    except (TypeError, ValueError): odds = None
+    try: odds = parsear_cuota_decimal(raw_odds)
+    except Exception: odds = None
     p_name = str(row.get('player_name') or '').strip()
     p_id = str(row.get('id_jugador') or '').strip()
     reference = dict(game_id=str(row['id_juego']), side=side, line=line, linea=line)

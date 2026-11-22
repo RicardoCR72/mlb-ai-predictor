@@ -26,6 +26,12 @@ def filtrar_partidos_pendientes(datos):
         pendientes = pendientes[~pendientes["game_status"].astype(str).str.lower().isin(["finalizado", "final", "post"])].copy()
     if "home_score" in pendientes.columns:
         pendientes = pendientes[pendientes["home_score"].isna()].copy()
+    # Candado de integridad: Excluir cualquier prop donde el equipo del jugador no coincida con el partido
+    if "team" in pendientes.columns and "home_team" in pendientes.columns and "away_team" in pendientes.columns:
+        pendientes = pendientes[
+            (pendientes["team"].astype(str).str.upper() == pendientes["home_team"].astype(str).str.upper()) |
+            (pendientes["team"].astype(str).str.upper() == pendientes["away_team"].astype(str).str.upper())
+        ].copy()
     return pendientes
 
 
@@ -283,6 +289,7 @@ def mostrar_prop(fila):
 
 
 from core.ui_tarjeta_universal import render_tarjeta_universal
+from core.ui_boleta import parsear_cuota_decimal
 
 
 def mostrar_prop_compacto(fila):
@@ -326,10 +333,7 @@ def mostrar_prop_compacto(fila):
     sel_str = f"{sel_raw} {linea_val}".strip() if pd.notna(linea_val) else sel_raw
 
     odds_raw = fila.get("cuota_pick") or 1.91
-    try:
-        cuota_dec = float(decimal_odds(odds_raw) or 1.91)
-    except Exception:
-        cuota_dec = 1.91
+    cuota_dec = float(parsear_cuota_decimal(odds_raw) or 1.91)
 
     ev_val = float(fila.get("ev_estimado", 0.0) or 0.0)
     if abs(ev_val) < 1.0:
@@ -388,6 +392,7 @@ def mostrar_prop_compacto(fila):
         key_suffix=f"nfl_{prop_id}",
         boton_boleta=slip_item,
         probabilidad_modelo=fila.get("probabilidad_pick"),
+        probabilidad_implicita=(1.0 / cuota_dec) if cuota_dec > 0 else 0.524,
     )
 
 
