@@ -778,6 +778,16 @@ def generar_predicciones_props_hoy(
         except Exception as e_reg:
             logger.warning(f"No se pudieron registrar props pendientes en el historial: {e_reg}")
 
+        try:
+            from nba.auditoria_publica import registrar_picks
+            res_audit = registrar_picks(df_res)
+            logger.info(
+                f"🔒 Ledger criptográfico sellado: {res_audit['nuevos']} nuevos, "
+                f"{res_audit['duplicados']} duplicados, {res_audit['rechazados']} rechazados."
+            )
+        except Exception as e_audit:
+            logger.warning(f"No se pudo registrar en ledger criptográfico de auditoría: {e_audit}")
+
         logger.info(f"🎯 Generadas {len(df_res)} predicciones de props ({len(df_top20)} Top 20 oficiales). Top EV: +{df_res['ev_pct'].max()}%")
 
     return df_res
