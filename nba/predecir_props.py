@@ -44,6 +44,11 @@ from nba.servicio_jugadores_boxscores import (
     sincronizar_boxscores_jugadores,
     calcular_perfil_jugador
 )
+from nba.modelo_minutos_props import (
+    proyectar_prop_por_minuto,
+    proyectar_minutos_jugador,
+    calcular_tasa_por_minuto_bayesiana,
+)
 from nba.servicio_lesiones import obtener_reporte_lesiones_nba
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -401,6 +406,13 @@ def generar_predicciones_props_hoy(
         for p_name, grp in df_boxscores.groupby("player_norm")
     }
 
+    try:
+        from nba.predecir_hoy import cargar_perfiles_recientes_equipos
+        perfiles_equipos = cargar_perfiles_recientes_equipos()
+    except Exception as e_eq:
+        logger.warning(f"No se pudieron cargar perfiles de equipos para ritmo y defensa: {e_eq}")
+        perfiles_equipos = {}
+
     # 3. Líneas de Bovada
     df_bovada = extraer_props_nba(usar_cache=usar_cache_bovada, permitir_odds_api=permitir_odds_api)
     if df_bovada.empty:
@@ -462,12 +474,26 @@ def generar_predicciones_props_hoy(
         hit_rate_season, ov_season, n_season = _calcular_hit_rate(serie_stat, linea_modelo)
         hit_rate_l5, ov_l5, n_l5 = _calcular_hit_rate(serie_stat.tail(5), linea_modelo)
 
-        # Proyección ponderada más robusta: 35% forma reciente (L5), 65% temporada
-        # Evita la sobre-reacción a rachas cortas de 3 a 5 partidos
-        proj_base = 0.35 * stat_l5 + 0.65 * stat_avg
+        # Contexto de rival, ritmo (Pace) y eficiencia defensiva (DRTG)
+        equipo_canon = normalizar_sigla_equipo(equipo)
+        home_sigla = normalizar_sigla_equipo(row.get("home_team", ""))
+        away_sigla = normalizar_sigla_equipo(row.get("away_team", ""))
+        rival_sigla = away_sigla if equipo_canon == home_sigla else home_sigla
+
+        prof_home = perfiles_equipos.get(home_sigla, {})
+        prof_away = perfiles_equipos.get(away_sigla, {})
+        prof_rival = perfiles_equipos.get(rival_sigla, {})
+
+        pace_home = float(prof_home.get("PACE_L10", 100.2) or 100.2)
+        pace_away = float(prof_away.get("PACE_L10", 100.2) or 100.2)
+        rival_drtg = float(prof_rival.get("DRTG_L10", 114.5) or 114.5)
+
+        factor_defensa_rival = 1.0
+        if raw_col in ["pts", "ast", "t3_made", "pra", "pa"]:
+            # DRTG > 114.5 indica defensa permisiva (>1.0); DRTG < 114.5 defensa de élite (<1.0)
+            factor_defensa_rival = float(np.clip(rival_drtg / 114.5, 0.93, 1.07))
 
         # Boost por lesiones de compañeros moderado y calibrado
-        equipo_canon = normalizar_sigla_equipo(equipo)
         impacto_bajas = bajas_por_equipo.get(equipo_canon, 0.0)
         boost_lesion = 1.0
         if impacto_bajas >= 3.5:
@@ -478,16 +504,46 @@ def generar_predicciones_props_hoy(
         factor_mercado = 0.70 if mercado in ["Total Points", "Total Triples", "Total PRA", "Total PA"] else 0.35
         boost_mercado = round(1.0 + (boost_lesion - 1.0) * factor_mercado, 3)
 
-        # Titular según minutaje
-        minutos_prom = float(perfil.get("min_avg", 0.0) or 0.0)
-        minutos_l5 = float(perfil.get("min_l5", minutos_prom) or minutos_prom)
-        es_titular = (minutos_prom >= 24.0) or (minutos_l5 >= 25.0)
-
         # Descuento por riesgo de blowout
         game_spread = abs(float(row.get("game_spread") or 0.0))
+
+        # Desacoplamiento Cuantitativo: Minutos Proyectados × Tasa por Minuto (con Shrinkage Bayesiano)
+        col_min = "min" if (not hist_player.empty and "min" in hist_player.columns) else None
+        has_min_data = col_min is not None and len(hist_player.dropna(subset=[col_min, raw_col])) >= 3
+
+        pos_jugador = str(perfil.get("position", "") or "")
+        minutos_proyectados = None
+        tasa_por_minuto = None
         descuento_blowout = 1.0
-        if game_spread >= 8.5 and es_titular:
-            descuento_blowout = 0.88 if game_spread >= 11.5 else 0.94
+
+        if has_min_data:
+            res_cuant = proyectar_prop_por_minuto(
+                df_boxscores_jugador=hist_player,
+                posicion=pos_jugador,
+                clave_stat=raw_col,
+                spread_partido=game_spread,
+                total_partido=float(row.get("total_line") or 226.0),
+                pace_local=pace_home,
+                pace_visita=pace_away,
+                es_b2b=False,
+                defensa_rival_factor=factor_defensa_rival,
+            )
+            proj_cuant = res_cuant["proyeccion"]
+            minutos_proyectados = res_cuant["minutos_proyectados"]
+            tasa_por_minuto = res_cuant["tasa_por_minuto"]
+            descuento_blowout = res_cuant["factor_blowout"]
+            es_titular = res_cuant["es_titular"]
+            minutos_prom = minutos_proyectados
+
+            # Ponderación: 75% modelo desacoplado cuantitativo / 25% forma ponderada
+            proj_base = 0.75 * proj_cuant + 0.25 * (0.35 * stat_l5 + 0.65 * stat_avg)
+        else:
+            proj_base = 0.35 * stat_l5 + 0.65 * stat_avg
+            minutos_prom = float(perfil.get("min_avg", 0.0) or 0.0)
+            minutos_l5 = float(perfil.get("min_l5", minutos_prom) or minutos_prom)
+            es_titular = (minutos_prom >= 24.0) or (minutos_l5 >= 25.0)
+            if game_spread >= 8.5 and es_titular:
+                descuento_blowout = 0.88 if game_spread >= 11.5 else 0.94
 
         proy_bruta = proj_base * boost_mercado * descuento_blowout
 
@@ -711,6 +767,9 @@ def generar_predicciones_props_hoy(
             "boost_lesion_pct": round((boost_lesion - 1.0) * 100.0, 1),
             "game_spread": game_spread,
             "descuento_blowout_pct": round((1.0 - descuento_blowout) * 100.0, 1),
+            "minutos_proyectados": minutos_proyectados,
+            "tasa_por_minuto": tasa_por_minuto,
+            "factor_defensa_rival": round(factor_defensa_rival, 3),
             "is_milestone": is_milestone,
             "es_candado": es_candado,
             "registrado_en": datetime.now(ZONA_CDMX).isoformat(),

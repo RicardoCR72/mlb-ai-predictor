@@ -48,7 +48,7 @@ CAMPOS_PICK = [
     "fecha", "game", "player_name", "team", "market", "pick_type", "line", "line_modelo",
     "is_milestone", "pick_odds_decimal", "pick_odds_american", "timestamp_cuota",
     "model_prob", "fair_implied_prob", "ev_pct", "ev_raw", "projection", "stars",
-    "home_team", "away_team", "hora", "commence_ts",
+    "home_team", "away_team", "hora", "commence_ts", "minutos_proyectados", "tasa_por_minuto", "factor_defensa_rival",
 ]
 
 

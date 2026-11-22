@@ -1081,9 +1081,29 @@ def main():
         lineas = cargar_lineas(conexion, juegos["game_id"].tolist())
         resultado = agregar_lineas_y_probabilidades(proyecciones, lineas)
         resultado = evaluar_dependencia_recepcion(resultado, features, lineas)
+
+        # Enriquecer con fecha y horario del partido para la auditoría y CLV
+        cols_juegos = [c for c in ["game_id", "gameday", "gametime", "home_team", "away_team"] if c in juegos.columns]
+        if cols_juegos:
+            resultado = resultado.merge(juegos[cols_juegos].drop_duplicates("game_id"), on="game_id", how="left")
+            if "gameday" in resultado.columns:
+                resultado["fecha"] = resultado["gameday"]
+            if "gametime" in resultado.columns:
+                resultado["hora"] = resultado["gametime"]
+
         from nfl.publicaciones_props import save_publications
         guardar_proyecciones(conexion, resultado)
         save_publications(conexion, resultado, juegos, MODELO_VERSION)
+
+        try:
+            from nfl.auditoria_publica import registrar_picks
+            res_audit = registrar_picks(resultado)
+            print(
+                f"🔒 Ledger criptográfico NFL sellado: {res_audit['nuevos']} nuevos, "
+                f"{res_audit['duplicados']} duplicados, {res_audit['rechazados']} rechazados."
+            )
+        except Exception as e_audit:
+            print(f"Aviso auditoría NFL: {e_audit}")
     finally:
         if conexion is not None and conexion.is_connected():
             conexion.close()
