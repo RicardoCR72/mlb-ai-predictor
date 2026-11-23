@@ -5,29 +5,29 @@ Este documento establece las especificaciones técnicas obligatorias y el están
 
 ---
 
-## 1. Estructura Temporal y Retención (Duración Total: 35 – 42 segundos)
-El algoritmo de Shorts y TikTok premia videos con tasa de finalización >80%. Cada segundo innecesario destruye la retención.
+## 1. Estructura Temporal y Retención
 
-| Segmento | Duración Objetivo | Regla de Oro |
-|---|---|---|
-| **Intro / Hook** | **1.5 a 2.0 s** | Gancho inmediato o arrancar directamente en el segundo 0 con el Pick #1. Prohibidas intros estáticas largas. |
-| **Pick #1 (Top Prop / Pick Principal)** | **8.5 a 10.0 s** | Jugador/partido, línea, selección, momio y edge clave. Sin explicaciones redundantes. |
-| **Pick #2 (Totales / Moneyline)** | **8.5 a 10.0 s** | Partido, línea, proyección, colchón numérico y momio. |
-| **Pick #3 (Spread / Valor)** | **8.0 a 9.5 s** | Partido, selección, ventaja en puntos y momio. |
-| **Outro / Cierre** | **2.5 a 3.5 s** | Llamado al enlace en descripción / comentario fijado. Prohibido simular botones falsos en pantalla. |
+### Formato Ultra-Retención Individual (Duración Total: 15 – 18 segundos)
+Optimizado para maximizar el hook en los primeros 3 segundos, disparar la tasa de finalización (>90%) y generar comentarios:
+
+| Fase | Ventana | Regla Estricta | Elemento Visual |
+|---|---|---|---|
+| **1. Gancho Táctico** | **0.0s – 3.0s** (~8 a 11 palabras) | Oración directa sobre matchup o desajuste de línea. Prohibido leer la racha histórica que ya está en pantalla. | **Tarjeta Estado 1 (Teaser):** Encabezado oficial + Nombre gigante + Badge neón `ANOMALÍA DETECTADA` (Línea oculta en suspenso). |
+| **2. Revelación y Modelo** | **3.0s – 12.0s** (~18 a 22 palabras) | Se pronuncia explícitamente el pick (Over/Under + línea) respaldado por la ventaja del modelo. | **Tarjeta Estado 2 (Revelación):** Transición dinámica en `t_revelacion` mostrando el pick completo, línea, proyección y racha histórica. |
+| **3. Cierre en Seco** | **12.0s – 16.0s** (~8 a 12 palabras) | Pregunta corta directa para debate en comentarios. Cero despedidas ("no olvides seguirme" está prohibido). | Tarjeta completa visible hasta el corte exacto en `dur_audio + 0.25s`. |
 
 ---
 
-## 2. Ingeniería de Audio y Masterización de Sonoridad
-- **Norma de Sonoridad**: **`-14.0 LUFS`** integrados (estándar nativo de YouTube Shorts, TikTok e Instagram Reels).
-- **True Peak**: Máximo **`-1.0 dBFS`**.
-- **Filtro de Normalización ffmpeg**:
-  ```bash
-  -af "loudnorm=I=-14:LRA=7:tp=-1"
-  ```
-- **Pausas y Silencios**:
-  - Eliminar silencios muertos entre oraciones de la locución sintética.
-  - Pausa máxima inter-frase: **0.25 a 0.35 s** (nunca pausas de ~1.0 s dentro de un mismo pick).
+## 2. Ingeniería de Audio y Procesamiento TTS
+- **Voz Oficial**: Álvaro (`es-ES-AlvaroNeural`) a velocidad base `rate="+8%"`.
+- **Recorte de Silencio Extremo**:
+  - `silenceremove` en ambos extremos (`silenceremove=start_periods=1:start_duration=0.01:start_threshold=-50dB,areverse,silenceremove=...,areverse`) para que la primera sílaba de la voz arranque exactamente en `t = 0.0s`.
+- **Dinamismo Temporal (`atempo`)**:
+  - Aceleración a `1.08x` manteniendo el pitch natural sin distorsión.
+- **Normalización de Sonoridad**:
+  - **`-14.0 LUFS`** integrados (`loudnorm=I=-14:LRA=7:tp=-1.5`).
+- **Corte de Video**:
+  - El render final corta exactamente `0.25s` después de que termina el audio para eliminar tiempos muertos al cierre.
 - **Música de Fondo Dinámica**:
   - Pista instrumental con ritmo/beat deportivo a **`-22 LUFS`** (aproximadamente -18 a -20 dB por debajo de la voz).
   - Evita la frialdad de la locución sintética aislada y enriquece el rango dinámico.
