@@ -26,6 +26,7 @@ from core.asesor_ia import (
     seleccionar_candado_oficial,
     construir_parlay_seguro,
     responder_consulta_asesor,
+    obtener_gemini_api_key,
 )
 
 hora_actual_cdmx = datetime.now(ZONA_CDMX).strftime("%H:%M")
@@ -106,13 +107,7 @@ with st.sidebar:
 
     st.divider()
     st.markdown("### 🔑 Motor de Razonamiento")
-    api_key_default = os.getenv("GEMINI_API_KEY", "")
-    if not api_key_default:
-        try:
-            api_key_default = st.secrets.get("GEMINI_API_KEY", "")
-        except Exception:
-            pass
-
+    api_key_default = obtener_gemini_api_key() or ""
     api_key_input = st.text_input(
         "Gemini API Key:",
         value=api_key_default,

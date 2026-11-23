@@ -310,6 +310,37 @@ REGLAS INSTITUCIONALES OBLIGATORIAS:
    - Explica el POR QUÉ matemático (Línea vs Proyección calibrada) y el POR QUÉ cualitativo (defensa rival, rol consolidado).
 """
 
+def obtener_gemini_api_key() -> Optional[str]:
+    """Obtiene la clave de API de Gemini desde variables de entorno, Streamlit secrets o archivo local secrets.toml."""
+    key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+    if key:
+        return key.strip().rstrip(".")
+    try:
+        import streamlit as st
+        if hasattr(st, "secrets"):
+            key = st.secrets.get("GEMINI_API_KEY") or st.secrets.get("gemini_api_key")
+            if key:
+                return str(key).strip().rstrip(".")
+    except Exception:
+        pass
+    
+    # Lectura directa de .streamlit/secrets.toml
+    try:
+        sec_path = RAIZ / ".streamlit" / "secrets.toml"
+        if sec_path.exists():
+            for line in sec_path.read_text(encoding="utf-8").splitlines():
+                line = line.strip()
+                if line.startswith("GEMINI_API_KEY") or line.startswith("gemini_api_key"):
+                    partes = line.split("=", 1)
+                    if len(partes) == 2:
+                        val = partes[1].strip().strip('"').strip("'").rstrip(".")
+                        if val:
+                            return val
+    except Exception:
+        pass
+    return None
+
+
 def responder_consulta_asesor(
     pregunta: str,
     candidatos: Optional[Dict[str, Any]] = None,
@@ -322,15 +353,8 @@ def responder_consulta_asesor(
     if candidatos is None:
         candidatos = cargar_candidatos_hoy()
 
-    # Resolver API Key desde parámetros, variables de entorno o streamlit secrets
-    raw_key = gemini_api_key or api_key or os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
-    if not raw_key:
-        try:
-            import streamlit as st
-            raw_key = st.secrets.get("GEMINI_API_KEY") or st.secrets.get("gemini_api_key")
-        except Exception:
-            pass
-
+    # Resolver API Key
+    raw_key = gemini_api_key or api_key or obtener_gemini_api_key()
     key = str(raw_key).strip().rstrip(".") if raw_key else None
 
     # MODO 1: Si hay API Key de Gemini, llamada con soporte multimodelo
@@ -375,10 +399,38 @@ def responder_consulta_asesor(
                 continue  # Intenta el siguiente modelo si hay timeout o error temporal
 
     # MODO 2: Motor Heurístico Cuantitativo Autónomo (Zero-API Fallback)
-    pregunta_norm = pregunta.lower()
+    pregunta_norm = pregunta.lower().strip()
+    pregunta_limpia = pregunta_norm.replace("doble filtro", "")
 
-    # Prioridad 1: Solicitud de Combinada / Parlay
-    if any(k in pregunta_norm for k in ["parlay", "combinada", "patas", "doble", "combinar"]):
+    # Prioridad 1: Consulta del Candado / Más Seguro Individual
+    # (Si el usuario pregunta por el pick/partido más seguro o candado, y NO pide explícitamente parlay/combinada)
+    es_candado = any(k in pregunta_limpia for k in ["mas seguro", "más seguro", "candado", "el mas seguro", "el más seguro", "firme", "seguro del dia", "seguro del día"])
+    es_combinada = any(k in pregunta_limpia for k in ["parlay", "combinada", "patas", "combinar", "combinadas", "parleys"])
+
+    if es_candado and not es_combinada:
+        candado = seleccionar_candado_oficial(candidatos)
+        if not candado:
+            return (
+                "⚡ **Análisis de Overdog Sports AI:**\n\n"
+                "En este momento no hay suficientes selecciones con margen de valor estadístico de alta convicción. "
+                "Los modelos recomiendan esperar a la actualización de alineaciones oficiales para no forzar selecciones sin ventaja."
+            )
+        
+        jugador_txt = f"**{candado['jugador']}** ({candado.get('equipo', '')})" if candado.get("jugador") else f"**{candado['partido']}**"
+        return (
+            f"⚡ **El Candado del Día · Overdog Sports AI**\n\n"
+            f"🎯 **Selección:** {jugador_txt} · **{candado['seleccion']}**\n"
+            f"📊 **Mercado:** {candado['mercado']} | **Deporte:** {candado['deporte']}\n"
+            f"📈 **Probabilidad del Modelo:** {candado['probabilidad']*100:.1f}%\n"
+            f"💎 **Margen de Valor (EV):** {candado['ev']:+.1f}%\n"
+            f"🎯 **Cuota:** {candado['cuota']}\n\n"
+            f"🔍 **Doble Filtro Cuantitativo:**\n"
+            f"Esta selección superó tanto el Shrinkage Bayesiano como la prueba de varianza. "
+            f"Presenta una sólida consistencia en sus últimos partidos y un emparejamiento favorable sin riesgo severo de reducción de minutos."
+        )
+
+    # Prioridad 2: Solicitud de Combinada / Parlay (2 o más patas)
+    elif es_combinada:
         patas = construir_parlay_seguro(candidatos, n_patas=2)
         if len(patas) < 2:
             return (
