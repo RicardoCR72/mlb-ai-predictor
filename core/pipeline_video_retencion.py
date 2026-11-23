@@ -246,6 +246,22 @@ async def sintetizar_audio_con_recorte(
 # 3. GENERADOR DE TARJETAS DE REVELACIÓN PROGRESIVA (PILLOW)
 # ==============================================================================
 
+def limpiar_texto_para_imagen(texto: Any) -> str:
+    """Elimina emojis y caracteres especiales no soportados por fuentes TrueType (evita el cuadrito blanco □)."""
+    if not texto:
+        return ""
+    s = str(texto)
+    # 1. Remover rangos de emojis comunes y símbolos de presentación Unicode
+    s = re.sub(r'[\U00010000-\U0010ffff\u200d\u2600-\u27bf\ufe0f\u2300-\u23ff\u25a0-\u25ff\u2b00-\u2bff]', '', s)
+    # 2. Remover símbolos específicos conocidos que no tienen glifo en Impact o Segoe UI en Windows
+    simbolos = [
+        '⚡', '🔒', '🔥', '🚨', '🏀', '🏈', '⚾', '⚽', '💎', '🎯', 
+        '📈', '📊', '📲', '💥', '▶', '◀', '▲', '▼', '★', '☆', '□', '■'
+    ]
+    for sym in simbolos:
+        s = s.replace(sym, '')
+    return ' '.join(s.split()).strip()
+
 def _get_font(name: str, size: int) -> ImageFont.FreeTypeFont:
     path = os.path.join(FONT_DIR, name)
     if os.path.exists(path):
@@ -254,14 +270,16 @@ def _get_font(name: str, size: int) -> ImageFont.FreeTypeFont:
 
 def _draw_text_fitted(draw: ImageDraw.ImageDraw, pos: Tuple[int, int], text: str, font_name: str, 
                       max_size: int, max_width: int, fill: Any, anchor: str = "la", min_size: int = 14) -> ImageFont.FreeTypeFont:
+    # Sanitizar siempre el texto antes de medir o dibujar para evitar glifos .notdef (□)
+    clean_text = limpiar_texto_para_imagen(text)
     size = max_size
     font = _get_font(font_name, size)
-    bbox = draw.textbbox((0, 0), text, font=font)
+    bbox = draw.textbbox((0, 0), clean_text, font=font)
     while (bbox[2] - bbox[0]) > max_width and size > min_size:
         size -= 1
         font = _get_font(font_name, size)
-        bbox = draw.textbbox((0, 0), text, font=font)
-    draw.text(pos, text, font=font, fill=fill, anchor=anchor)
+        bbox = draw.textbbox((0, 0), clean_text, font=font)
+    draw.text(pos, clean_text, font=font, fill=fill, anchor=anchor)
     return font
 
 def generar_tarjetas_revelacion(datos: Dict[str, Any], path_teaser: str, path_reveal: str) -> Tuple[str, str]:
@@ -273,17 +291,17 @@ def generar_tarjetas_revelacion(datos: Dict[str, Any], path_teaser: str, path_re
     os.makedirs(os.path.dirname(os.path.abspath(path_reveal)), exist_ok=True)
 
     W, H = 1000, 480
-    deporte = datos.get("deporte", "NBA").upper()
-    fecha_str = datos.get("fecha_str", datetime.now().strftime("%A %d de %B %Y").upper())
-    jugador = datos.get("jugador", "JUGADOR OFICIAL").upper()
-    equipo = datos.get("equipo", "").upper()
-    mercado = datos.get("mercado", "MERCADO").upper()
-    linea = str(datos.get("linea", "0.0"))
-    tipo_pick = datos.get("tipo_pick", "OVER").upper()
-    proy = str(datos.get("proyeccion", "0.0"))
-    ventaja = str(datos.get("ventaja", "+0.0"))
-    racha_texto = datos.get("racha_texto", "🔥 4 DE SUS ÚLTIMOS 5 PARTIDOS CUBIERTOS")
-    promedio_texto = datos.get("promedio_texto", f"MEDIA L5: {proy}")
+    deporte = limpiar_texto_para_imagen(datos.get("deporte", "NBA")).upper()
+    fecha_str = limpiar_texto_para_imagen(datos.get("fecha_str", datetime.now().strftime("%A %d de %B %Y"))).upper()
+    jugador = limpiar_texto_para_imagen(datos.get("jugador", "JUGADOR OFICIAL")).upper()
+    equipo = limpiar_texto_para_imagen(datos.get("equipo", "")).upper()
+    mercado = limpiar_texto_para_imagen(datos.get("mercado", "MERCADO")).upper()
+    linea = str(datos.get("linea", "0.0")).strip()
+    tipo_pick = limpiar_texto_para_imagen(datos.get("tipo_pick", "OVER")).upper()
+    proy = str(datos.get("proyeccion", "0.0")).strip()
+    ventaja = limpiar_texto_para_imagen(datos.get("ventaja", "+0.0"))
+    racha_texto = limpiar_texto_para_imagen(datos.get("racha_texto", "4 DE SUS ÚLTIMOS 5 PARTIDOS CUBIERTOS"))
+    promedio_texto = limpiar_texto_para_imagen(datos.get("promedio_texto", f"MEDIA L5: {proy}"))
 
     es_over = "OVER" in tipo_pick or "MÁS" in tipo_pick
     neon_color = (74, 222, 128) if es_over else (56, 189, 248) # Verde neón o Cyan neón
@@ -310,14 +328,14 @@ def generar_tarjetas_revelacion(datos: Dict[str, Any], path_teaser: str, path_re
     _draw_text_fitted(d1, (W // 2, 122), jugador, "impact.ttf", 64, 920, (255, 255, 255), anchor="mm")
     _draw_text_fitted(d1, (W // 2, 158), f"{equipo} · {mercado}", "segoeuib.ttf", 20, 900, (148, 163, 184), anchor="mm")
 
-    # Bloque Central: Badge de Suspenso en Neón
+    # Bloque Central: Badge de Suspenso en Neón (limpio sin emojis)
     d1.rounded_rectangle([40, 185, W - 40, 335], radius=20, fill=box_dark, outline=badge_teaser_color, width=3)
-    _draw_text_fitted(d1, (W // 2, 238), "⚡ ANOMALÍA DETECTADA", "impact.ttf", 58, 880, badge_teaser_color, anchor="mm")
+    _draw_text_fitted(d1, (W // 2, 238), "ANOMALÍA DETECTADA", "impact.ttf", 60, 880, badge_teaser_color, anchor="mm")
     _draw_text_fitted(d1, (W // 2, 298), "PROYECCIÓN CUANTITATIVA EN ANÁLISIS", "segoeuib.ttf", 22, 880, (203, 213, 225), anchor="mm")
 
-    # Barra Inferior: Teaser Callout
+    # Barra Inferior: Teaser Callout (limpio sin emojis)
     d1.rounded_rectangle([40, 370, W - 40, 448], radius=16, fill=header_box, outline=badge_teaser_color, width=2)
-    _draw_text_fitted(d1, (W // 2, 409), "🔒 REVELANDO LÍNEA Y PROYECCIÓN DEL MODELO...", "segoeuib.ttf", 26, 900, (255, 255, 255), anchor="mm")
+    _draw_text_fitted(d1, (W // 2, 409), "REVELANDO LÍNEA Y PROYECCIÓN DEL MODELO...", "segoeuib.ttf", 26, 900, (255, 255, 255), anchor="mm")
 
     im_teaser.save(path_teaser, "PNG")
 
@@ -345,7 +363,7 @@ def generar_tarjetas_revelacion(datos: Dict[str, Any], path_teaser: str, path_re
     sub_pick = f"PROYECCIÓN MODELO: {proy} | MARGEN: {ventaja}"
     _draw_text_fitted(d2, (W // 2, 298), sub_pick, "segoeuib.ttf", 22, 880, (203, 213, 225), anchor="mm")
 
-    # Barra Inferior: Racha / Hit Rate Oficial
+    # Barra Inferior: Racha / Hit Rate Oficial (limpio sin emojis)
     fill_bar = (6, 78, 59, 240) if es_over else (15, 45, 80, 240)
     d2.rounded_rectangle([40, 370, W - 40, 448], radius=16, fill=fill_bar, outline=neon_color, width=2)
     pie_texto = f"{racha_texto} | {promedio_texto}".strip(" |")
