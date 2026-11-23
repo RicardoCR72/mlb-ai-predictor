@@ -119,12 +119,56 @@ def cargar_candidatos_hoy() -> Dict[str, Any]:
     except Exception:
         pass
 
-    # 4. NFL Partidos Hoy (Moneyline)
+    # Fallback NFL Props desde CSV si la base de datos está vacía
+    if not resultado["nfl_props"]:
+        dir_nfl_pred = RAIZ / "data" / "nfl" / "predictions"
+        archivos_props_csv = sorted(dir_nfl_pred.glob("nfl_props_*.csv"), key=lambda x: x.stat().st_mtime, reverse=True)
+        for f_csv in archivos_props_csv:
+            try:
+                df_p = pd.read_csv(f_csv)
+                if "estado_pick" in df_p.columns and "player_name" in df_p.columns:
+                    cands_nfl = df_p[df_p["estado_pick"] == "CANDIDATO"]
+                    for _, r in cands_nfl.iterrows():
+                        resultado["nfl_props"].append({
+                            "deporte": "NFL",
+                            "tipo": "PROP",
+                            "jugador": r.get("player_name"),
+                            "partido": f"{r.get('team', '')} vs {r.get('opponent_team', '')}",
+                            "mercado": r.get("tipo_prop"),
+                            "seleccion": f"{r.get('seleccion', 'OVER')} {r.get('linea', 0.0)}",
+                            "linea": float(r.get("linea") or 0.0),
+                            "proyeccion": float(r.get("proyeccion") or 0.0),
+                            "probabilidad": float(r.get("probabilidad_pick") or 0.55),
+                            "ev": float(r.get("ev_estimado") or 0.0) * 100.0,
+                            "cuota": str(r.get("cuota_pick") or "-110"),
+                            "confianza": "ALTA",
+                        })
+                    if resultado["nfl_props"]:
+                        break
+            except Exception:
+                pass
+
+    # 4. NFL Partidos Hoy (Moneyline y Spread)
     p_nfl_ml = RAIZ / "data" / "nfl" / "predictions" / "predicciones_nfl_moneyline.parquet"
     if p_nfl_ml.exists():
         try:
             df_nfl_ml = pd.read_parquet(p_nfl_ml)
-            if "recomendar" in df_nfl_ml.columns:
+            # Soporte para ambas estructuras (antigua con away_team y actual con partido)
+            if "confianza" in df_nfl_ml.columns and "partido" in df_nfl_ml.columns:
+                recs_ml = df_nfl_ml[(df_nfl_ml["confianza"] == "ALTA") | (df_nfl_ml.get("edge", 0) > 0.04)]
+                for _, r in recs_ml.head(6).iterrows():
+                    resultado["nfl_partidos"].append({
+                        "deporte": "NFL",
+                        "tipo": "PARTIDO",
+                        "partido": r.get("partido"),
+                        "mercado": "Moneyline",
+                        "seleccion": r.get("seleccion"),
+                        "probabilidad": float(r.get("probabilidad_pick") or 0.6),
+                        "ev": float(r.get("ev_estimado") or 0.0) * 100.0,
+                        "cuota": str(r.get("cuota_pick", "-110")),
+                        "confianza": str(r.get("confianza", "ALTA")),
+                    })
+            elif "recomendar" in df_nfl_ml.columns:
                 recs = df_nfl_ml[df_nfl_ml["recomendar"] == True]
                 for _, r in recs.iterrows():
                     resultado["nfl_partidos"].append({
@@ -136,6 +180,28 @@ def cargar_candidatos_hoy() -> Dict[str, Any]:
                         "probabilidad": float(r.get("prob_ganar") or 0.6),
                         "ev": float(r.get("ev") or 0.0) * 100.0,
                         "cuota": str(r.get("cuota_americana", "-110")),
+                        "confianza": "ALTA",
+                    })
+        except Exception:
+            pass
+
+    # 5. NFL Spreads Calibrados
+    p_nfl_spread = RAIZ / "data" / "nfl" / "predictions" / "predicciones_nfl_spread.parquet"
+    if p_nfl_spread.exists():
+        try:
+            df_nfl_sp = pd.read_parquet(p_nfl_spread)
+            if "recomendar" in df_nfl_sp.columns:
+                recs_sp = df_nfl_sp[df_nfl_sp["recomendar"] == True]
+                for _, r in recs_sp.iterrows():
+                    resultado["nfl_partidos"].append({
+                        "deporte": "NFL",
+                        "tipo": "PARTIDO",
+                        "partido": f"{r.get('away_team')} @ {r.get('home_team')}",
+                        "mercado": f"Spread ({r.get('linea_pick', '')})",
+                        "seleccion": f"{r.get('pick')} {r.get('linea_pick', '')}",
+                        "probabilidad": float(r.get("prob_seleccion") or 0.54),
+                        "ev": float(r.get("ev_esperado_pct") or 0.0),
+                        "cuota": "-110",
                         "confianza": "ALTA",
                     })
         except Exception:
@@ -191,14 +257,19 @@ def cargar_candidatos_hoy() -> Dict[str, Any]:
 # 2. MOTOR DE SELECCIÓN CUANTITATIVA (DOBLE FILTRO DETERMINÍSTICO)
 # ==============================================================================
 
-def seleccionar_candado_oficial(candidatos_dict: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+def seleccionar_candado_oficial(candidatos_dict: Dict[str, Any], deporte: Optional[str] = None) -> Optional[Dict[str, Any]]:
     """Aplica el 'Doble Filtro' para elegir el pick #1 de máxima seguridad y menor varianza."""
-    todos = (
-        candidatos_dict.get("nba_props", [])
-        + candidatos_dict.get("nfl_props", [])
-        + candidatos_dict.get("nba_partidos", [])
-        + candidatos_dict.get("nfl_partidos", [])
-    )
+    if deporte == "NFL":
+        todos = candidatos_dict.get("nfl_props", []) + candidatos_dict.get("nfl_partidos", [])
+    elif deporte == "NBA":
+        todos = candidatos_dict.get("nba_props", []) + candidatos_dict.get("nba_partidos", [])
+    else:
+        todos = (
+            candidatos_dict.get("nba_props", [])
+            + candidatos_dict.get("nfl_props", [])
+            + candidatos_dict.get("nba_partidos", [])
+            + candidatos_dict.get("nfl_partidos", [])
+        )
     if not todos:
         return None
 
@@ -239,14 +310,19 @@ def seleccionar_candado_oficial(candidatos_dict: Dict[str, Any]) -> Optional[Dic
     return candidatos_ordenados[0] if candidatos_ordenados else None
 
 
-def construir_parlay_seguro(candidatos_dict: Dict[str, Any], n_patas: int = 2) -> List[Dict[str, Any]]:
+def construir_parlay_seguro(candidatos_dict: Dict[str, Any], n_patas: int = 2, deporte: Optional[str] = None) -> List[Dict[str, Any]]:
     """Construye un parlay de máxima seguridad con patas descorrelacionadas."""
-    todos = (
-        candidatos_dict.get("nba_props", [])
-        + candidatos_dict.get("nba_partidos", [])
-        + candidatos_dict.get("nfl_props", [])
-        + candidatos_dict.get("nfl_partidos", [])
-    )
+    if deporte == "NFL":
+        todos = candidatos_dict.get("nfl_props", []) + candidatos_dict.get("nfl_partidos", [])
+    elif deporte == "NBA":
+        todos = candidatos_dict.get("nba_props", []) + candidatos_dict.get("nba_partidos", [])
+    else:
+        todos = (
+            candidatos_dict.get("nba_props", [])
+            + candidatos_dict.get("nba_partidos", [])
+            + candidatos_dict.get("nfl_props", [])
+            + candidatos_dict.get("nfl_partidos", [])
+        )
     if len(todos) < n_patas:
         return todos
 
@@ -402,41 +478,28 @@ def responder_consulta_asesor(
     pregunta_norm = pregunta.lower().strip()
     pregunta_limpia = pregunta_norm.replace("doble filtro", "")
 
-    # Prioridad 1: Consulta del Candado / Más Seguro Individual
-    # (Si el usuario pregunta por el pick/partido más seguro o candado, y NO pide explícitamente parlay/combinada)
-    es_candado = any(k in pregunta_limpia for k in ["mas seguro", "más seguro", "candado", "el mas seguro", "el más seguro", "firme", "seguro del dia", "seguro del día"])
+    # Detección de deporte explícito en la consulta
+    deporte_filtro = None
+    if "nfl" in pregunta_norm and "nba" not in pregunta_norm:
+        deporte_filtro = "NFL"
+    elif "nba" in pregunta_norm and "nfl" not in pregunta_norm:
+        deporte_filtro = "NBA"
+
+    # Detección jerárquica de intención
     es_combinada = any(k in pregunta_limpia for k in ["parlay", "combinada", "patas", "combinar", "combinadas", "parleys"])
+    es_candado = any(k in pregunta_limpia for k in ["mas seguro", "más seguro", "candado", "el mas seguro", "el más seguro", "firme", "seguro del dia", "seguro del día"])
+    es_consulta_nfl = ("nfl" in pregunta_norm) and not es_candado and not es_combinada
+    es_consulta_nba = ("nba" in pregunta_norm) and not es_candado and not es_combinada
 
-    if es_candado and not es_combinada:
-        candado = seleccionar_candado_oficial(candidatos)
-        if not candado:
-            return (
-                "⚡ **Análisis de Overdog Sports AI:**\n\n"
-                "En este momento no hay suficientes selecciones con margen de valor estadístico de alta convicción. "
-                "Los modelos recomiendan esperar a la actualización de alineaciones oficiales para no forzar selecciones sin ventaja."
-            )
-        
-        jugador_txt = f"**{candado['jugador']}** ({candado.get('equipo', '')})" if candado.get("jugador") else f"**{candado['partido']}**"
-        return (
-            f"⚡ **El Candado del Día · Overdog Sports AI**\n\n"
-            f"🎯 **Selección:** {jugador_txt} · **{candado['seleccion']}**\n"
-            f"📊 **Mercado:** {candado['mercado']} | **Deporte:** {candado['deporte']}\n"
-            f"📈 **Probabilidad del Modelo:** {candado['probabilidad']*100:.1f}%\n"
-            f"💎 **Margen de Valor (EV):** {candado['ev']:+.1f}%\n"
-            f"🎯 **Cuota:** {candado['cuota']}\n\n"
-            f"🔍 **Doble Filtro Cuantitativo:**\n"
-            f"Esta selección superó tanto el Shrinkage Bayesiano como la prueba de varianza. "
-            f"Presenta una sólida consistencia en sus últimos partidos y un emparejamiento favorable sin riesgo severo de reducción de minutos."
-        )
-
-    # Prioridad 2: Solicitud de Combinada / Parlay (2 o más patas)
-    elif es_combinada:
-        patas = construir_parlay_seguro(candidatos, n_patas=2)
+    # Prioridad 1: Solicitud de Combinada / Parlay (2 o más patas)
+    if es_combinada:
+        patas = construir_parlay_seguro(candidatos, n_patas=2, deporte=deporte_filtro)
         if len(patas) < 2:
+            dep_msg = f" en {deporte_filtro}" if deporte_filtro else ""
             return (
-                "⚡ **Combinada de Baja Varianza · Overdog Sports AI:**\n\n"
-                "Para hoy la base de datos registra opciones individuales de valor, pero no recomienda una combinada multievento "
-                "por correlación cruzada o falta de volumen suficiente para mitigar la varianza."
+                f"⚡ **Combinada de Baja Varianza · Overdog Sports AI:**\n\n"
+                f"Para hoy la base de datos registra opciones individuales de valor{dep_msg}, pero no recomienda una combinada multievento "
+                f"por correlación cruzada o falta de volumen suficiente para mitigar la varianza."
             )
         
         texto_patas = []
@@ -461,51 +524,25 @@ def responder_consulta_asesor(
             )
 
         patas_str = "\n\n".join(texto_patas)
+        deporte_tag = f" ({deporte_filtro})" if deporte_filtro else ""
         return (
-            f"🎯 **Combinada de Baja Varianza (2 Patas) · Overdog Sports AI**\n\n"
+            f"🎯 **Combinada de Baja Varianza (2 Patas){deporte_tag} · Overdog Sports AI**\n\n"
             f"{patas_str}\n\n"
             f"📈 **Probabilidad Conjunta Estimada:** {prob_conjunta*100:.1f}%\n"
             f"💵 **Cuota Decimal Estimada:** {cuota_combinada:.2f}\n\n"
             f"🛡️ **Control de Riesgo Cuantitativo:**\n"
-            f"Ambas patas pertenecen a partidos independientes para evitar contaminación de rendimiento y correlaciones negativas."
+            f"Ambas patas pertenecen a selecciones independientes para evitar contaminación de rendimiento y correlaciones negativas."
         )
 
-    # Prioridad 2: Consulta específica de NFL
-    elif "nfl" in pregunta_norm:
-        props = candidatos.get("nfl_props", [])
-        partidos = candidatos.get("nfl_partidos", [])
-        items = []
-        for p in props[:3]:
-            items.append(f"- **{p['jugador']}** · {p['seleccion']} ({p['mercado']}) | Prob: {p['probabilidad']*100:.1f}%")
-        for m in partidos[:2]:
-            items.append(f"- **{m['partido']}** · {m['seleccion']} | Prob: {m['probabilidad']*100:.1f}%")
-        
-        if not items:
-            return "🏈 **NFL:** No hay selecciones oficiales activas para la cartelera NFL de hoy."
-        return f"🏈 **Top Selecciones NFL de Hoy:**\n\n" + "\n".join(items)
-
-    # Prioridad 3: Consulta específica de NBA
-    elif "nba" in pregunta_norm:
-        props = candidatos.get("nba_props", [])
-        partidos = candidatos.get("nba_partidos", [])
-        items = []
-        for p in props[:3]:
-            items.append(f"- **{p['jugador']}** · {p['seleccion']} ({p['mercado']}) | Prob: {p['probabilidad']*100:.1f}%")
-        for m in partidos[:2]:
-            items.append(f"- **{m['partido']}** · {m['seleccion']} | Prob: {m['probabilidad']*100:.1f}%")
-        
-        if not items:
-            return "🏀 **NBA:** No hay selecciones oficiales activas para hoy en la cartelera NBA."
-        return f"🏀 **Top Selecciones NBA de Hoy:**\n\n" + "\n".join(items) + "\n\n*Todas cuentan con proyección cuantitativa desacoplada y Shrinkage 60/40.*"
-
-    # Prioridad 4: El Candado del Día (selección más segura individual)
-    elif any(k in pregunta_norm for k in ["seguro", "candado", "firme", "el mas seguro", "el más seguro"]):
-        candado = seleccionar_candado_oficial(candidatos)
+    # Prioridad 2: Consulta del Candado / Más Seguro Individual
+    elif es_candado or any(k in pregunta_norm for k in ["seguro", "candado", "firme"]):
+        candado = seleccionar_candado_oficial(candidatos, deporte=deporte_filtro)
         if not candado:
+            dep_msg = f" para {deporte_filtro}" if deporte_filtro else ""
             return (
-                "⚡ **Análisis de Overdog Sports AI:**\n\n"
-                "En este momento no hay suficientes selecciones con margen de valor estadístico de alta convicción. "
-                "Los modelos recomiendan esperar a la actualización de alineaciones oficiales para no forzar selecciones sin ventaja."
+                f"⚡ **Análisis de Overdog Sports AI:**\n\n"
+                f"En este momento no hay suficientes selecciones con margen de valor estadístico de alta convicción{dep_msg}. "
+                f"Los modelos recomiendan esperar a la actualización de alineaciones oficiales para no forzar selecciones sin ventaja."
             )
         
         jugador_txt = f"**{candado['jugador']}** ({candado.get('equipo', '')})" if candado.get("jugador") else f"**{candado['partido']}**"
@@ -520,7 +557,34 @@ def responder_consulta_asesor(
             f"Esta selección superó tanto el Shrinkage Bayesiano como la prueba de varianza. "
             f"Presenta una sólida consistencia en sus últimos partidos y un emparejamiento favorable sin riesgo severo de reducción de minutos."
         )
-        return f"🏈 **Top Selecciones NFL de Hoy:**\n\n" + "\n".join(items)
+
+    # Prioridad 3: Consulta general de NFL
+    elif es_consulta_nfl or "nfl" in pregunta_norm:
+        props = candidatos.get("nfl_props", [])
+        partidos = candidatos.get("nfl_partidos", [])
+        items = []
+        for p in props[:4]:
+            items.append(f"- **{p['jugador']}** · {p['seleccion']} ({p['mercado']}) | Prob: {p['probabilidad']*100:.1f}% | EV: {p.get('ev', 0):+.1f}%")
+        for m in partidos[:3]:
+            items.append(f"- **{m['partido']}** · {m['seleccion']} | Prob: {m['probabilidad']*100:.1f}% | EV: {m.get('ev', 0):+.1f}%")
+        
+        if not items:
+            return "🏈 **NFL:** No hay selecciones oficiales activas para la cartelera NFL de hoy."
+        return f"🏈 **Top Selecciones NFL de Hoy:**\n\n" + "\n".join(items) + "\n\n*Todas filtradas con el protocolo de 9 candados defensivos y Shrinkage Bayesiano.*"
+
+    # Prioridad 4: Consulta general de NBA
+    elif es_consulta_nba or "nba" in pregunta_norm:
+        props = candidatos.get("nba_props", [])
+        partidos = candidatos.get("nba_partidos", [])
+        items = []
+        for p in props[:4]:
+            items.append(f"- **{p['jugador']}** ({p.get('equipo', '')}) · {p['seleccion']} ({p['mercado']}) | Prob: {p['probabilidad']*100:.1f}% | EV: {p.get('ev', 0):+.1f}%")
+        for m in partidos[:3]:
+            items.append(f"- **{m['partido']}** · {m['seleccion']} | Prob: {m['probabilidad']*100:.1f}% | EV: {m.get('ev', 0):+.1f}%")
+        
+        if not items:
+            return "🏀 **NBA:** No hay selecciones oficiales activas para hoy en la cartelera NBA."
+        return f"🏀 **Top Selecciones NBA de Hoy:**\n\n" + "\n".join(items) + "\n\n*Todas cuentan con proyección cuantitativa desacoplada y Shrinkage 60/40.*"
 
     else:
         candado = seleccionar_candado_oficial(candidatos)

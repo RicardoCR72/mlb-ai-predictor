@@ -386,9 +386,10 @@ def ensamblar_video_alta_retencion(
     t_revelacion: float,
     output_path: str,
     dur_audio: Optional[float] = None,
+    eliminar_scorebug: bool = True,
 ) -> str:
-    """Ensambla el video vertical 9:16 (1080x1920 a 30fps) con transición dinámica en t_revelacion
-    y corte exacto en dur_audio + 0.25s para eliminar tiempos muertos al final.
+    """Ensambla el video vertical 9:16 (1080x1920 a 30fps) con transición dinámica en t_revelacion,
+    recorte de marcador de transmisión (scorebug) en transmisiones de TV y corte exacto en dur_audio + 0.25s.
     """
     os.makedirs(os.path.dirname(os.path.abspath(output_path)), exist_ok=True)
 
@@ -404,8 +405,11 @@ def ensamblar_video_alta_retencion(
 
     dur_video_final = round(dur_audio + 0.25, 2)
 
+    # Si eliminar_scorebug es True, podar el 18% inferior del metraje 16:9 donde van los marcadores de TV (Fox, CBS, NBC)
+    filtro_bg = "crop=in_w:in_h*0.82:0:0,fps=30,scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1[bg];" if eliminar_scorebug else "fps=30,scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1[bg];"
+
     filter_complex = (
-        "[0:v]fps=30,scale=1080:1920:force_original_aspect_ratio=increase,crop=1080:1920,setsar=1[bg];"
+        f"[0:v]{filtro_bg}"
         "[1:v]scale=1000:-1[ic_teaser];"
         "[2:v]scale=1000:-1[ic_reveal];"
         f"[bg][ic_teaser]overlay=(W-w)/2:320:enable='between(t,0,{t_revelacion})'[v1];"
@@ -467,7 +471,8 @@ async def pipeline_video_completo(datos_prop: Dict[str, Any], clip_bg_path: str,
     # 3. Generar tarjetas visuales de revelación progresiva
     generar_tarjetas_revelacion(datos_prop, path_teaser, path_reveal)
 
-    # 4. Renderizar video con corte exacto en dur_audio + 0.25s
+    # 4. Renderizar video con corte exacto en dur_audio + 0.25s y remoción de scorebug
+    eliminar_scorebug = datos_prop.get("eliminar_scorebug", True)
     ensamblar_video_alta_retencion(
         clip_bg=clip_bg_path,
         audio_path=path_audio,
@@ -476,6 +481,7 @@ async def pipeline_video_completo(datos_prop: Dict[str, Any], clip_bg_path: str,
         t_revelacion=t_rev,
         output_path=output_video_path,
         dur_audio=dur_audio,
+        eliminar_scorebug=eliminar_scorebug,
     )
 
     return {
