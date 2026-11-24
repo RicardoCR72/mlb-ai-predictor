@@ -8,7 +8,7 @@
     "abbr_visita": "MEM",
     "fecha_cdmx": "2026-11-23",
     "hora_cdmx": "18:00",
-    "estado": "STATUS_IN_PROGRESS",
+    "estado": "STATUS_FINAL",
     "provider": "DraftKings",
     "linea_spread": 2.5,
     "spread_detalles": "MEM -2.5",
@@ -180,9 +180,11 @@
       }
     ],
     "timestamp": "2026-11-23T10:17:15.216975-06:00",
-    "descripcion_estado": "In Progress",
-    "marcador_local": 32,
-    "marcador_visita": 30
+    "descripcion_estado": "Final",
+    "marcador_local": 111,
+    "marcador_visita": 117,
+    "resultado": "GANADA",
+    "unidades_ganadas": 0.909
   },
   {
     "id_evento": "401910037",
@@ -193,7 +195,7 @@
     "abbr_visita": "POR",
     "fecha_cdmx": "2026-11-23",
     "hora_cdmx": "18:00",
-    "estado": "STATUS_IN_PROGRESS",
+    "estado": "STATUS_FINAL",
     "provider": "DraftKings",
     "linea_spread": -3.5,
     "spread_detalles": "PHI -3.5",
@@ -355,9 +357,11 @@
       }
     ],
     "timestamp": "2026-11-23T10:17:15.224305-06:00",
-    "descripcion_estado": "In Progress",
-    "marcador_local": 30,
-    "marcador_visita": 27
+    "descripcion_estado": "Final",
+    "marcador_local": 111,
+    "marcador_visita": 128,
+    "resultado": "PERDIDA",
+    "unidades_ganadas": -1.0
   },
   {
     "id_evento": "401910038",
@@ -368,7 +372,7 @@
     "abbr_visita": "OKC",
     "fecha_cdmx": "2026-11-23",
     "hora_cdmx": "18:30",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_FINAL",
     "provider": "DraftKings",
     "linea_spread": 4.5,
     "spread_detalles": "OKC -4.5",
@@ -591,7 +595,12 @@
         "detalle": "Margen Proyectado: -1.6 pts (Spread: +4.5)"
       }
     ],
-    "timestamp": "2026-11-23T18:38:00.415062-06:00"
+    "timestamp": "2026-11-23T18:38:00.415062-06:00",
+    "marcador_local": 125,
+    "marcador_visita": 120,
+    "resultado": "PERDIDA",
+    "unidades_ganadas": -1.0,
+    "descripcion_estado": "Final"
   },
   {
     "id_evento": "401910039",
@@ -602,7 +611,7 @@
     "abbr_visita": "MIL",
     "fecha_cdmx": "2026-11-23",
     "hora_cdmx": "18:30",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_FINAL",
     "provider": "DraftKings",
     "linea_spread": -10.5,
     "spread_detalles": "TOR -10.5",
@@ -690,7 +699,12 @@
         "detalle": "Margen Proyectado Visita: -7.2 pts (Spread: +10.5)"
       }
     ],
-    "timestamp": "2026-11-23T18:38:00.422513-06:00"
+    "timestamp": "2026-11-23T18:38:00.422513-06:00",
+    "marcador_local": 111,
+    "marcador_visita": 116,
+    "resultado": "GANADA",
+    "unidades_ganadas": 0.909,
+    "descripcion_estado": "Final"
   },
   {
     "id_evento": "401910040",
@@ -701,7 +715,7 @@
     "abbr_visita": "BKN",
     "fecha_cdmx": "2026-11-23",
     "hora_cdmx": "18:30",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_FINAL",
     "provider": "DraftKings",
     "linea_spread": -10.5,
     "spread_detalles": "MIN -10.5",
@@ -802,7 +816,12 @@
         "detalle": "Margen Proyectado Visita: -8.2 pts (Spread: +10.5)"
       }
     ],
-    "timestamp": "2026-11-23T18:38:00.431028-06:00"
+    "timestamp": "2026-11-23T18:38:00.431028-06:00",
+    "marcador_local": 142,
+    "marcador_visita": 116,
+    "resultado": "PERDIDA",
+    "unidades_ganadas": -1.0,
+    "descripcion_estado": "Final"
   },
   {
     "id_evento": "401910041",
@@ -813,7 +832,7 @@
     "abbr_visita": "CLE",
     "fecha_cdmx": "2026-11-23",
     "hora_cdmx": "19:00",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_FINAL",
     "provider": "DraftKings",
     "linea_spread": 8.5,
     "spread_detalles": "CLE -8.5",
@@ -936,7 +955,12 @@
         "detalle": "Margen Proyectado: -4.1 pts (Spread: +8.5)"
       }
     ],
-    "timestamp": "2026-11-23T18:38:00.438303-06:00"
+    "timestamp": "2026-11-23T18:38:00.438303-06:00",
+    "marcador_local": 122,
+    "marcador_visita": 108,
+    "resultado": "GANADA",
+    "unidades_ganadas": 0.909,
+    "descripcion_estado": "Final"
   },
   {
     "id_evento": "401910042",
@@ -947,7 +971,7 @@
     "abbr_visita": "PHX",
     "fecha_cdmx": "2026-11-23",
     "hora_cdmx": "19:00",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_FINAL",
     "provider": "DraftKings",
     "linea_spread": 3.5,
     "spread_detalles": "PHX -3.5",
@@ -1070,7 +1094,12 @@
         "detalle": "Margen Proyectado Visita: +6.0 pts (Spread: -3.5)"
       }
     ],
-    "timestamp": "2026-11-23T18:38:00.445472-06:00"
+    "timestamp": "2026-11-23T18:38:00.445472-06:00",
+    "marcador_local": 119,
+    "marcador_visita": 123,
+    "resultado": "GANADA",
+    "unidades_ganadas": 0.645,
+    "descripcion_estado": "Final"
   },
   {
     "id_evento": "401910043",
@@ -1081,7 +1110,7 @@
     "abbr_visita": "LAC",
     "fecha_cdmx": "2026-11-23",
     "hora_cdmx": "19:30",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_FINAL",
     "provider": "DraftKings",
     "linea_spread": -13.5,
     "spread_detalles": "HOU -13.5",
@@ -1117,7 +1146,12 @@
     "pick_detalle": "Líneas de mercado eficientes (Sin ventaja clara. Margen: +12.1 pts)",
     "confianza": "NEUTRAL",
     "candidatos": [],
-    "timestamp": "2026-11-23T18:38:00.452862-06:00"
+    "timestamp": "2026-11-23T18:38:00.452862-06:00",
+    "marcador_local": 116,
+    "marcador_visita": 104,
+    "descripcion_estado": "Final",
+    "resultado": "GANADA",
+    "unidades_ganadas": 0.143
   },
   {
     "id_evento": "401910044",
@@ -1128,7 +1162,7 @@
     "abbr_visita": "UTA",
     "fecha_cdmx": "2026-11-23",
     "hora_cdmx": "21:00",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_FINAL",
     "provider": "DraftKings",
     "linea_spread": -13.5,
     "spread_detalles": "LAL -13.5",
@@ -1228,7 +1262,12 @@
     "pick_detalle": "Líneas de mercado eficientes (Sin ventaja clara. Margen: +13.7 pts)",
     "confianza": "NEUTRAL",
     "candidatos": [],
-    "timestamp": "2026-11-23T18:38:00.460008-06:00"
+    "timestamp": "2026-11-23T18:38:00.460008-06:00",
+    "marcador_local": 109,
+    "marcador_visita": 94,
+    "resultado": "GANADA",
+    "unidades_ganadas": 0.125,
+    "descripcion_estado": "Final"
   },
   {
     "id_evento": "401910045",
@@ -1239,7 +1278,7 @@
     "abbr_visita": "SAS",
     "fecha_cdmx": "2026-11-23",
     "hora_cdmx": "21:00",
-    "estado": "STATUS_SCHEDULED",
+    "estado": "STATUS_FINAL",
     "provider": "DraftKings",
     "linea_spread": 12.5,
     "spread_detalles": "SA -12.5",
@@ -1401,6 +1440,11 @@
         "detalle": "Margen Proyectado: -10.2 pts (Spread: +12.5)"
       }
     ],
-    "timestamp": "2026-11-23T18:38:00.467212-06:00"
+    "timestamp": "2026-11-23T18:38:00.467212-06:00",
+    "marcador_local": 107,
+    "marcador_visita": 123,
+    "resultado": "PERDIDA",
+    "unidades_ganadas": -1.0,
+    "descripcion_estado": "Final"
   }
 ]
