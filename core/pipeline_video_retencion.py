@@ -61,18 +61,34 @@ def generar_guion_fallback_con_reglas(datos: Dict[str, Any]) -> str:
     """Generador determinista que garantiza exactamente entre 38 y 45 palabras y 3 partes."""
     jugador = datos.get("jugador", "El jugador")
     equipo = datos.get("equipo", "")
-    rival = datos.get("rival", "su rival")
-    mercado = datos.get("mercado", "puntos")
-    linea = datos.get("linea", "20.5")
-    tipo_pick = datos.get("tipo_pick", "Over").capitalize()
-    proy = datos.get("proyeccion", "24.0")
-    contexto = datos.get("contexto_rival", f"concede alto volumen en la pintura")
+    rival_raw = datos.get("rival", "su rival")
+    
+    # Limpiar nombre del rival si viene en formato "A @ B" o "A vs B"
+    rival = rival_raw
+    if "@" in rival_raw:
+        partes = [p.strip() for p in rival_raw.split("@")]
+        # Si el equipo del jugador coincide con uno, el rival es el otro
+        if any(e.lower() in partes[1].lower() for e in [equipo, jugador]):
+            rival = partes[0]
+        else:
+            rival = partes[1] if len(partes) > 1 else partes[0]
+    elif "vs" in rival_raw.lower():
+        partes = [p.strip() for p in re.split(r'\bvs\b', rival_raw, flags=re.IGNORECASE)]
+        if any(e.lower() in partes[0].lower() for e in [equipo, jugador]):
+            rival = partes[1] if len(partes) > 1 else partes[0]
+        else:
+            rival = partes[0]
 
-    # Parte 1: Gancho contextual (9-10 palabras)
-    p1 = f"{rival} llega con serios desajustes defensivos permitiendo jugadas constantes."
-    # Parte 2: Revelación y modelo (21 palabras)
-    p2 = f"Nuestro modelo cuantitativo marca {tipo_pick} {linea} {mercado} para {jugador}, proyectando {proy} con amplia ventaja sobre la línea del mercado."
-    # Parte 3: Cierre en seco (9 palabras)
+    mercado = datos.get("mercado", "rebotes").lower().replace("total ", "")
+    linea = datos.get("linea", "7.5")
+    tipo_pick = datos.get("tipo_pick", "Under").capitalize()
+    proy = datos.get("proyeccion", "6.8")
+
+    # Parte 1: Gancho contextual sin saludos (10 palabras)
+    p1 = f"{rival} concede espacios críticos y un ritmo acelerado en sus rotaciones."
+    # Parte 2: Revelación y argumento del modelo (21 palabras)
+    p2 = f"Nuestro modelo cuantitativo marca {tipo_pick} {linea} {mercado} para {jugador}, proyectando {proy} con claro valor sobre la línea del mercado."
+    # Parte 3: Cierre en seco detonante de debate (8 palabras)
     p3 = f"¿Cumplirá esta proyección antes de llegar al último cuarto?"
 
     texto = f"{p1} {p2} {p3}"
@@ -80,9 +96,10 @@ def generar_guion_fallback_con_reglas(datos: Dict[str, Any]) -> str:
     
     # Ajuste milimétrico si excede o falta
     if len(palabras) > 45:
-        texto = " ".join(palabras[:44]) + "?"
+        p1 = f"{rival} concede transiciones rápidas y rotaciones defensivas muy exigidas."
+        texto = f"{p1} {p2} {p3}"
     elif len(palabras) < 38:
-        p2 = f"El modelo cuantitativo de Overdog marca con alta convicción {tipo_pick} {linea} {mercado} para {jugador}, proyectando {proy} con claro valor matemático."
+        p2 = f"El modelo cuantitativo de Overdog marca con alta convicción {tipo_pick} {linea} {mercado} para {jugador}, proyectando {proy} con sólida ventaja frente a la línea del mercado."
         texto = f"{p1} {p2} {p3}"
 
     return texto

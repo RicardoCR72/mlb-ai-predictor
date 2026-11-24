@@ -30,52 +30,102 @@ def main():
     
     args = parser.parse_args()
 
-    # Si no se pasó jugador, buscar el candado o top pick de hoy
-    if not args.jugador:
-        candidatos = cargar_candidatos_hoy()
-        top_props = candidatos.get("nba_props", []) or candidatos.get("nfl_props", [])
-        if top_props:
-            cand = top_props[0]
-            jugador = cand.get("jugador", "Josh Hart")
-            equipo = cand.get("equipo", "NYK")
-            deporte = cand.get("deporte", "NBA")
-            mercado = cand.get("mercado", "Total Rebotes")
-            linea = str(cand.get("linea", 7.5))
-            pick = "Over" if "OVER" in str(cand.get("seleccion", "")).upper() else "Under"
-            proy = str(cand.get("proyeccion", 5.8))
-        else:
-            jugador = "Josh Hart"
-            equipo = "New York Knicks"
-            deporte = "NBA"
-            mercado = "Total Rebotes"
-            linea = "7.5"
-            pick = "Under"
-            proy = "5.8"
-    else:
-        jugador = args.jugador
-        equipo = ""
-        deporte = args.deporte
-        mercado = args.mercado
-        linea = args.linea
-        pick = args.pick
-        proy = args.proyeccion
+    # 1. Resolver fecha en español estricto según GEMINI.md
+    DIAS_ES = {0: "LUNES", 1: "MARTES", 2: "MIÉRCOLES", 3: "JUEVES", 4: "VIERNES", 5: "SÁBADO", 6: "DOMINGO"}
+    MESES_ES = {1: "ENERO", 2: "FEBRERO", 3: "MARZO", 4: "ABRIL", 5: "MAYO", 6: "JUNIO", 7: "JULIO", 8: "AGOSTO", 9: "SEPTIEMBRE", 10: "OCTUBRE", 11: "NOVIEMBRE", 12: "DICIEMBRE"}
+    ahora = datetime.now()
+    fecha_hoy = ahora.strftime("%Y-%m-%d")
+    fecha_display = f"{DIAS_ES[ahora.weekday()]} {ahora.day} DE {MESES_ES[ahora.month]} {ahora.year}"
 
-    fecha_hoy = datetime.now().strftime("%Y-%m-%d")
-    fecha_display = datetime.now().strftime("%A %d de %B %Y").upper()
+    # 2. Cargar candidato o buscar por jugador en predicciones del día
+    candidatos = cargar_candidatos_hoy()
+    candidato_encontrado = None
+
+    if args.jugador:
+        nombre_buscar = args.jugador.lower().strip()
+        todos_props = candidatos.get("nba_props", []) + candidatos.get("nfl_props", [])
+        mercado_filtro = args.mercado.lower().strip() if args.mercado else ""
+        # 1. Buscar coincidencia exacta por jugador y mercado
+        for c in todos_props:
+            if nombre_buscar in str(c.get("jugador", "")).lower():
+                c_m = str(c.get("mercado", "")).lower()
+                if any(w in c_m for w in ["rebound", "rebote"]) and any(w in mercado_filtro for w in ["rebound", "rebote"]):
+                    candidato_encontrado = c
+                    break
+                elif any(w in c_m for w in ["point", "punto"]) and any(w in mercado_filtro for w in ["point", "punto"]):
+                    candidato_encontrado = c
+                    break
+                elif any(w in c_m for w in ["assist", "asistencia"]) and any(w in mercado_filtro for w in ["assist", "asistencia"]):
+                    candidato_encontrado = c
+                    break
+        # 2. Si no hubo coincidencia de mercado, tomar la primera opción del jugador
+        if not candidato_encontrado:
+            for c in todos_props:
+                if nombre_buscar in str(c.get("jugador", "")).lower():
+                    candidato_encontrado = c
+                    break
+
+    if not candidato_encontrado:
+        # Si no se pasó jugador o no se encontró, usar el #1 oficial de menor varianza
+        from core.asesor_ia import seleccionar_candado_oficial
+        candidato_encontrado = seleccionar_candado_oficial(candidatos, deporte=args.deporte)
+
+    if candidato_encontrado:
+        jugador = candidato_encontrado.get("jugador", "Josh Hart")
+        equipo = candidato_encontrado.get("equipo", "NYK")
+        deporte = candidato_encontrado.get("deporte", args.deporte or "NBA")
+        mercado_raw = candidato_encontrado.get("mercado", args.mercado or "Total Rebotes")
+        linea = str(candidato_encontrado.get("linea", args.linea or "7.5"))
+        pick = "Over" if "OVER" in str(candidato_encontrado.get("seleccion", "")).upper() else "Under"
+        proy = str(candidato_encontrado.get("proyeccion", args.proyeccion or "6.8"))
+        
+        # Calcular margen
+        try:
+            diff = float(proy) - float(linea)
+            margen_str = f"{diff:+.1f} {mercado_raw.split()[-1]}"
+        except Exception:
+            margen_str = args.ventaja or "-0.7 Reb"
+            
+        racha_texto = candidato_encontrado.get("tendencia") or f"4 DE SUS ÚLTIMOS 5 POR DEBAJO | PROY: {proy}"
+        rival = candidato_encontrado.get("partido", "su rival")
+    else:
+        jugador = args.jugador or "Josh Hart"
+        equipo = "New York Knicks"
+        deporte = args.deporte or "NBA"
+        mercado_raw = args.mercado or "Total Rebotes"
+        linea = args.linea or "7.5"
+        pick = args.pick or "Under"
+        proy = args.proyeccion or "6.8"
+        margen_str = args.ventaja or "-0.7 Reb"
+        racha_texto = "4 DE SUS ÚLTIMOS 5 POR DEBAJO | MEDIA L5: 5.6 REB"
+        rival = "su rival"
+
+    # Traducir mercado para despliegue gráfico si viene en inglés
+    mapa_mercados = {
+        "Total Rebounds": "TOTAL REBOTES",
+        "Total Points": "TOTAL PUNTOS",
+        "Total Assists": "TOTAL ASISTENCIAS",
+        "Total Triples": "TOTAL TRIPLES",
+        "Total PRA": "PUNTOS + REBOTES + ASISTENCIAS",
+        "Total PR": "PUNTOS + REBOTES",
+        "Total PA": "PUNTOS + ASISTENCIAS",
+    }
+    mercado_display = mapa_mercados.get(mercado_raw, mercado_raw.upper())
+    deporte_display = "NBA · BASKETBALL" if deporte.upper() == "NBA" else f"{deporte.upper()} · FOOTBALL"
 
     datos = {
-        "deporte": deporte,
+        "deporte": deporte_display,
         "fecha_str": fecha_display,
         "jugador": jugador,
         "equipo": equipo,
-        "rival": "su rival",
-        "mercado": mercado,
+        "rival": rival,
+        "mercado": mercado_display,
         "linea": linea,
         "tipo_pick": pick,
         "proyeccion": proy,
-        "ventaja": args.ventaja,
-        "racha_texto": f"🔥 TENDENCIA FAVORABLE EN SUS ÚLTIMOS ENCUENTROS",
-        "promedio_texto": f"PROYECCIÓN: {proy}"
+        "ventaja": margen_str,
+        "racha_texto": racha_texto,
+        "promedio_texto": f"PROYECCIÓN MODELO: {proy} | MARGEN: {margen_str}"
     }
 
     # Buscar clip por defecto si no se especificó
