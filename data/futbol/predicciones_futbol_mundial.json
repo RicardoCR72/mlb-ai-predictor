@@ -14,10 +14,10 @@
     "logo_visita": "https://a.espncdn.com/i/teamlogos/soccer/500/219.png",
     "fecha_cdmx": "2026-11-26",
     "hora_cdmx": "19:00",
-    "estado": "STATUS_SCHEDULED",
-    "descripcion_estado": "Scheduled",
-    "marcador_local": 0,
-    "marcador_visita": 0,
+    "estado": "STATUS_SECOND_HALF",
+    "descripcion_estado": "90'+5'",
+    "marcador_local": 2,
+    "marcador_visita": 1,
     "provider": "DraftKings",
     "linea_total": 2.5,
     "over_momio": "-105",
@@ -86,50 +86,50 @@
     "marcador_visita": 0,
     "provider": "DraftKings",
     "linea_total": 2.5,
-    "over_momio": "-140",
-    "under_momio": "+105",
-    "over_momio_dec": 1.714,
-    "under_momio_dec": 2.05,
-    "moneyline_local": "+220",
-    "moneyline_empate": "+260",
+    "over_momio": "-130",
+    "under_momio": "-105",
+    "over_momio_dec": 1.769,
+    "under_momio_dec": 1.952,
+    "moneyline_local": "+230",
+    "moneyline_empate": "+250",
     "moneyline_visita": "+115",
-    "ml_local_dec": 3.2,
-    "ml_empate_dec": 3.6,
+    "ml_local_dec": 3.3,
+    "ml_empate_dec": 3.5,
     "ml_visita_dec": 2.15,
-    "xg_local": 0.98,
-    "xg_visita": 1.27,
-    "total_proyectado": 2.25,
+    "xg_local": 0.96,
+    "xg_visita": 1.28,
+    "total_proyectado": 2.24,
     "marcador_mas_probable": "1 - 1",
     "prob_marcador_mas_probable": 0.147,
-    "prob_local": 0.2858,
-    "prob_empate": 0.2913,
-    "prob_visita": 0.4229,
-    "prob_over": 0.4676,
-    "prob_under": 0.5324,
-    "prob_btts_si": 0.4815,
-    "prob_btts_no": 0.5185,
-    "prob_1x": 0.5771,
-    "prob_x2": 0.7142,
-    "prob_dnb_local": 0.4033,
-    "prob_dnb_visita": 0.5967,
-    "edge_local": -0.0267,
-    "edge_visita": -0.0422,
-    "edge_empate": 0.0135,
-    "edge_over": -0.1158,
-    "edge_under": 0.0552,
+    "prob_local": 0.2781,
+    "prob_empate": 0.295,
+    "prob_visita": 0.4269,
+    "prob_over": 0.4563,
+    "prob_under": 0.5437,
+    "prob_btts_si": 0.4789,
+    "prob_btts_no": 0.5211,
+    "prob_1x": 0.5731,
+    "prob_x2": 0.7219,
+    "prob_dnb_local": 0.3945,
+    "prob_dnb_visita": 0.6055,
+    "edge_local": -0.0249,
+    "edge_visita": -0.0382,
+    "edge_empate": 0.0093,
+    "edge_over": -0.109,
+    "edge_under": 0.0342,
     "pick_mercado": "Totales (Over/Under)",
     "pick_seleccion": "UNDER 2.5 Goles",
-    "pick_probabilidad": 0.543,
-    "pick_edge": 0.0552,
-    "pick_ev": 0.1132,
-    "pick_cuota": "+105",
-    "pick_cuota_dec": 2.05,
-    "pick_detalle": "Línea de mercado eficiente (xG Total: 2.25 vs línea 2.5). Descartado para proteger bankroll.",
+    "pick_probabilidad": 0.5465,
+    "pick_edge": 0.0342,
+    "pick_ev": 0.0667,
+    "pick_cuota": "-105",
+    "pick_cuota_dec": 1.952,
+    "pick_detalle": "Línea de mercado eficiente (xG Total: 2.24 vs línea 2.5). Descartado para proteger bankroll.",
     "confianza": "NEUTRAL",
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-26T14:36:27.644000-06:00"
+    "timestamp": "2026-11-26T21:05:00.879253-06:00"
   },
   {
     "id_evento": "401875536",
@@ -156,31 +156,31 @@
     "under_momio": "-150",
     "over_momio_dec": 2.15,
     "under_momio_dec": 1.667,
-    "moneyline_local": "-235",
-    "moneyline_empate": "+400",
+    "moneyline_local": "-255",
+    "moneyline_empate": "+425",
     "moneyline_visita": "+550",
-    "ml_local_dec": 1.426,
-    "ml_empate_dec": 5.0,
+    "ml_local_dec": 1.392,
+    "ml_empate_dec": 5.25,
     "ml_visita_dec": 6.5,
-    "xg_local": 2.48,
-    "xg_visita": 0.87,
+    "xg_local": 2.49,
+    "xg_visita": 0.86,
     "total_proyectado": 3.35,
     "marcador_mas_probable": "2 - 0",
-    "prob_marcador_mas_probable": 0.108,
-    "prob_local": 0.6763,
-    "prob_empate": 0.1911,
-    "prob_visita": 0.1326,
+    "prob_marcador_mas_probable": 0.109,
+    "prob_local": 0.6837,
+    "prob_empate": 0.1853,
+    "prob_visita": 0.131,
     "prob_over": 0.4336,
     "prob_under": 0.5664,
-    "prob_btts_si": 0.5547,
-    "prob_btts_no": 0.4453,
-    "prob_1x": 0.8674,
-    "prob_x2": 0.3237,
-    "prob_dnb_local": 0.8361,
-    "prob_dnb_visita": 0.1639,
-    "edge_local": -0.025,
-    "edge_visita": -0.0212,
-    "edge_empate": -0.0089,
+    "prob_btts_si": 0.5523,
+    "prob_btts_no": 0.4477,
+    "prob_1x": 0.869,
+    "prob_x2": 0.3163,
+    "prob_dnb_local": 0.8392,
+    "prob_dnb_visita": 0.1608,
+    "edge_local": -0.0347,
+    "edge_visita": -0.0228,
+    "edge_empate": -0.0052,
     "edge_over": -0.0315,
     "edge_under": -0.0465,
     "pick_mercado": "Totales (Over/Under)",
@@ -195,7 +195,7 @@
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-26T14:36:27.650877-06:00"
+    "timestamp": "2026-11-26T21:05:00.882990-06:00"
   },
   {
     "id_evento": "401884720",
@@ -222,31 +222,31 @@
     "under_momio": "-165",
     "over_momio_dec": 2.3,
     "under_momio_dec": 1.606,
-    "moneyline_local": "-145",
+    "moneyline_local": "-150",
     "moneyline_empate": "+320",
-    "moneyline_visita": "+300",
-    "ml_local_dec": 1.69,
+    "moneyline_visita": "+320",
+    "ml_local_dec": 1.667,
     "ml_empate_dec": 4.2,
-    "ml_visita_dec": 4.0,
-    "xg_local": 2.13,
-    "xg_visita": 1.04,
+    "ml_visita_dec": 4.2,
+    "xg_local": 2.16,
+    "xg_visita": 1.01,
     "total_proyectado": 3.17,
     "marcador_mas_probable": "1 - 1",
-    "prob_marcador_mas_probable": 0.102,
-    "prob_local": 0.5692,
-    "prob_empate": 0.2254,
-    "prob_visita": 0.2053,
+    "prob_marcador_mas_probable": 0.1,
+    "prob_local": 0.5801,
+    "prob_empate": 0.224,
+    "prob_visita": 0.1959,
     "prob_over": 0.401,
     "prob_under": 0.599,
-    "prob_btts_si": 0.579,
-    "prob_btts_no": 0.421,
-    "prob_1x": 0.7946,
-    "prob_x2": 0.4307,
-    "prob_dnb_local": 0.7349,
-    "prob_dnb_visita": 0.2651,
-    "edge_local": -0.0225,
-    "edge_visita": -0.0447,
-    "edge_empate": -0.0127,
+    "prob_btts_si": 0.5738,
+    "prob_btts_no": 0.4262,
+    "prob_1x": 0.8041,
+    "prob_x2": 0.4199,
+    "prob_dnb_local": 0.7476,
+    "prob_dnb_visita": 0.2524,
+    "edge_local": -0.0198,
+    "edge_visita": -0.0422,
+    "edge_empate": -0.0141,
     "edge_over": -0.0338,
     "edge_under": -0.0593,
     "pick_mercado": "Totales (Over/Under)",
@@ -261,7 +261,7 @@
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-26T14:36:27.657226-06:00"
+    "timestamp": "2026-11-26T21:05:00.886648-06:00"
   },
   {
     "id_evento": "401875004",
@@ -327,7 +327,7 @@
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-26T14:36:27.663562-06:00"
+    "timestamp": "2026-11-26T21:05:00.890269-06:00"
   },
   {
     "id_evento": "401876392",
@@ -350,10 +350,10 @@
     "marcador_visita": 0,
     "provider": "DraftKings",
     "linea_total": 2.5,
-    "over_momio": "-115",
-    "under_momio": "-110",
-    "over_momio_dec": 1.87,
-    "under_momio_dec": 1.909,
+    "over_momio": "-110",
+    "under_momio": "-115",
+    "over_momio_dec": 1.909,
+    "under_momio_dec": 1.87,
     "moneyline_local": "+235",
     "moneyline_empate": "+240",
     "moneyline_visita": "+120",
@@ -368,8 +368,8 @@
     "prob_local": 0.2846,
     "prob_empate": 0.2917,
     "prob_visita": 0.4237,
-    "prob_over": 0.4755,
-    "prob_under": 0.5245,
+    "prob_over": 0.4703,
+    "prob_under": 0.5297,
     "prob_btts_si": 0.5092,
     "prob_btts_no": 0.4908,
     "prob_1x": 0.5763,
@@ -379,21 +379,21 @@
     "edge_local": -0.0139,
     "edge_visita": -0.0308,
     "edge_empate": -0.0024,
-    "edge_over": -0.0593,
-    "edge_under": 0.0168,
+    "edge_over": -0.0535,
+    "edge_under": -0.0051,
     "pick_mercado": "Totales (Over/Under)",
     "pick_seleccion": "UNDER 2.5 Goles",
-    "pick_probabilidad": 0.5406,
-    "pick_edge": 0.0168,
-    "pick_ev": 0.0321,
-    "pick_cuota": "-110",
-    "pick_cuota_dec": 1.909,
+    "pick_probabilidad": 0.5297,
+    "pick_edge": -0.0051,
+    "pick_ev": -0.0095,
+    "pick_cuota": "-115",
+    "pick_cuota_dec": 1.87,
     "pick_detalle": "Línea de mercado eficiente (xG Total: 2.46 vs línea 2.5). Descartado para proteger bankroll.",
     "confianza": "NEUTRAL",
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-26T14:36:27.669924-06:00"
+    "timestamp": "2026-11-26T21:05:00.893953-06:00"
   },
   {
     "id_evento": "401879225",
@@ -416,10 +416,10 @@
     "marcador_visita": 0,
     "provider": "DraftKings",
     "linea_total": 2.5,
-    "over_momio": "-125",
-    "under_momio": "+100",
-    "over_momio_dec": 1.8,
-    "under_momio_dec": 2.0,
+    "over_momio": "-120",
+    "under_momio": "-105",
+    "over_momio_dec": 1.833,
+    "under_momio_dec": 1.952,
     "moneyline_local": "+150",
     "moneyline_empate": "+235",
     "moneyline_visita": "+185",
@@ -434,8 +434,8 @@
     "prob_local": 0.3907,
     "prob_empate": 0.2931,
     "prob_visita": 0.3162,
-    "prob_over": 0.4874,
-    "prob_under": 0.5126,
+    "prob_over": 0.4821,
+    "prob_under": 0.5179,
     "prob_btts_si": 0.5212,
     "prob_btts_no": 0.4788,
     "prob_1x": 0.6838,
@@ -445,21 +445,21 @@
     "edge_local": -0.0093,
     "edge_visita": -0.0347,
     "edge_empate": -0.0054,
-    "edge_over": -0.0682,
-    "edge_under": 0.0371,
+    "edge_over": -0.0635,
+    "edge_under": 0.0264,
     "pick_mercado": "Totales (Over/Under)",
     "pick_seleccion": "UNDER 2.5 Goles",
-    "pick_probabilidad": 0.5371,
-    "pick_edge": 0.0371,
-    "pick_ev": 0.0741,
-    "pick_cuota": "+100",
-    "pick_cuota_dec": 2.0,
+    "pick_probabilidad": 0.5387,
+    "pick_edge": 0.0264,
+    "pick_ev": 0.0515,
+    "pick_cuota": "-105",
+    "pick_cuota_dec": 1.952,
     "pick_detalle": "Línea de mercado eficiente (xG Total: 2.47 vs línea 2.5). Descartado para proteger bankroll.",
     "confianza": "NEUTRAL",
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-26T14:36:27.676230-06:00"
+    "timestamp": "2026-11-26T21:05:00.897595-06:00"
   },
   {
     "id_evento": "401882791",
@@ -486,31 +486,31 @@
     "under_momio": "-125",
     "over_momio_dec": 2.0,
     "under_momio_dec": 1.8,
-    "moneyline_local": "+105",
+    "moneyline_local": "+100",
     "moneyline_empate": "+300",
-    "moneyline_visita": "+220",
-    "ml_local_dec": 2.05,
+    "moneyline_visita": "+230",
+    "ml_local_dec": 2.0,
     "ml_empate_dec": 4.0,
-    "ml_visita_dec": 3.2,
-    "xg_local": 1.82,
-    "xg_visita": 1.25,
+    "ml_visita_dec": 3.3,
+    "xg_local": 1.85,
+    "xg_visita": 1.22,
     "total_proyectado": 3.07,
     "marcador_mas_probable": "1 - 1",
-    "prob_marcador_mas_probable": 0.119,
-    "prob_local": 0.4723,
-    "prob_empate": 0.2511,
-    "prob_visita": 0.2767,
+    "prob_marcador_mas_probable": 0.118,
+    "prob_local": 0.4837,
+    "prob_empate": 0.2497,
+    "prob_visita": 0.2666,
     "prob_over": 0.4211,
     "prob_under": 0.5789,
-    "prob_btts_si": 0.5748,
-    "prob_btts_no": 0.4252,
-    "prob_1x": 0.7234,
-    "prob_x2": 0.5278,
-    "prob_dnb_local": 0.6306,
-    "prob_dnb_visita": 0.3694,
-    "edge_local": -0.0155,
-    "edge_visita": -0.0358,
-    "edge_empate": 0.0011,
+    "prob_btts_si": 0.5719,
+    "prob_btts_no": 0.4281,
+    "prob_1x": 0.7334,
+    "prob_x2": 0.5163,
+    "prob_dnb_local": 0.6447,
+    "prob_dnb_visita": 0.3553,
+    "edge_local": -0.0163,
+    "edge_visita": -0.0364,
+    "edge_empate": -0.0003,
     "edge_over": -0.0789,
     "edge_under": 0.0016,
     "pick_mercado": "Totales (Over/Under)",
@@ -525,7 +525,7 @@
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-26T14:36:27.682585-06:00"
+    "timestamp": "2026-11-26T21:05:00.901201-06:00"
   },
   {
     "id_evento": "401933727",
@@ -548,45 +548,45 @@
     "marcador_visita": 0,
     "provider": "DraftKings",
     "linea_total": 3.5,
-    "over_momio": "-120",
-    "under_momio": "-105",
-    "over_momio_dec": 1.833,
-    "under_momio_dec": 1.952,
+    "over_momio": "-110",
+    "under_momio": "-115",
+    "over_momio_dec": 1.909,
+    "under_momio_dec": 1.87,
     "moneyline_local": "+150",
     "moneyline_empate": "+285",
     "moneyline_visita": "+135",
     "ml_local_dec": 2.5,
     "ml_empate_dec": 3.85,
     "ml_visita_dec": 2.35,
-    "xg_local": 1.6,
-    "xg_visita": 1.55,
-    "total_proyectado": 3.15,
+    "xg_local": 1.59,
+    "xg_visita": 1.54,
+    "total_proyectado": 3.13,
     "marcador_mas_probable": "1 - 1",
-    "prob_marcador_mas_probable": 0.117,
-    "prob_local": 0.3732,
-    "prob_empate": 0.2527,
-    "prob_visita": 0.3741,
-    "prob_over": 0.451,
-    "prob_under": 0.549,
-    "prob_btts_si": 0.6159,
-    "prob_btts_no": 0.3841,
-    "prob_1x": 0.6259,
-    "prob_x2": 0.6268,
+    "prob_marcador_mas_probable": 0.118,
+    "prob_local": 0.373,
+    "prob_empate": 0.2531,
+    "prob_visita": 0.3739,
+    "prob_over": 0.4383,
+    "prob_under": 0.5617,
+    "prob_btts_si": 0.6137,
+    "prob_btts_no": 0.3863,
+    "prob_1x": 0.6261,
+    "prob_x2": 0.627,
     "prob_dnb_local": 0.4994,
     "prob_dnb_visita": 0.5006,
-    "edge_local": -0.0268,
-    "edge_visita": -0.0514,
-    "edge_empate": -0.007,
-    "edge_over": -0.0946,
-    "edge_under": 0.0358,
+    "edge_local": -0.027,
+    "edge_visita": -0.0516,
+    "edge_empate": -0.0066,
+    "edge_over": -0.0855,
+    "edge_under": 0.0172,
     "pick_mercado": "Ambos Anotan (BTTS)",
     "pick_seleccion": "Ambos Anotan: SÍ",
-    "pick_probabilidad": 0.5687,
-    "pick_edge": 0.0281,
-    "pick_ev": 0.052,
+    "pick_probabilidad": 0.568,
+    "pick_edge": 0.0274,
+    "pick_ev": 0.0508,
     "pick_cuota": "1.85",
     "pick_cuota_dec": 1.85,
-    "pick_detalle": "Flujo ofensivo mutuo alto (xG 1.60 y 1.55, BTTS SÍ Calibrado: 56.9%, EV: +5.2%)",
+    "pick_detalle": "Flujo ofensivo mutuo alto (xG 1.59 y 1.54, BTTS SÍ Calibrado: 56.8%, EV: +5.1%)",
     "confianza": "NEUTRAL",
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
@@ -594,16 +594,16 @@
       {
         "mercado": "Ambos Anotan (BTTS)",
         "seleccion": "Ambos Anotan: SÍ",
-        "probabilidad": 0.5686665316978639,
-        "edge": 0.0281,
-        "ev": 0.052,
+        "probabilidad": 0.5679752892016805,
+        "edge": 0.0274,
+        "ev": 0.0508,
         "cuota": "1.85",
         "cuota_dec": 1.85,
         "confianza": "MEDIA",
-        "detalle": "Flujo ofensivo mutuo alto (xG 1.60 y 1.55, BTTS SÍ Calibrado: 56.9%, EV: +5.2%)"
+        "detalle": "Flujo ofensivo mutuo alto (xG 1.59 y 1.54, BTTS SÍ Calibrado: 56.8%, EV: +5.1%)"
       }
     ],
-    "timestamp": "2026-11-26T14:36:27.689095-06:00"
+    "timestamp": "2026-11-26T21:05:00.904854-06:00"
   },
   {
     "id_evento": "401933725",
@@ -630,41 +630,41 @@
     "under_momio": "-150",
     "over_momio_dec": 2.15,
     "under_momio_dec": 1.667,
-    "moneyline_local": "+170",
+    "moneyline_local": "+165",
     "moneyline_empate": "+260",
-    "moneyline_visita": "+130",
-    "ml_local_dec": 2.7,
+    "moneyline_visita": "+135",
+    "ml_local_dec": 2.65,
     "ml_empate_dec": 3.6,
-    "ml_visita_dec": 2.3,
-    "xg_local": 1.51,
-    "xg_visita": 1.57,
+    "ml_visita_dec": 2.35,
+    "xg_local": 1.53,
+    "xg_visita": 1.55,
     "total_proyectado": 3.08,
     "marcador_mas_probable": "1 - 1",
     "prob_marcador_mas_probable": 0.12,
-    "prob_local": 0.3484,
-    "prob_empate": 0.2626,
-    "prob_visita": 0.389,
+    "prob_local": 0.3559,
+    "prob_empate": 0.2629,
+    "prob_visita": 0.3811,
     "prob_over": 0.4037,
     "prob_under": 0.5963,
-    "prob_btts_si": 0.6079,
-    "prob_btts_no": 0.3921,
-    "prob_1x": 0.611,
-    "prob_x2": 0.6516,
-    "prob_dnb_local": 0.4725,
-    "prob_dnb_visita": 0.5275,
-    "edge_local": -0.022,
-    "edge_visita": -0.0458,
-    "edge_empate": -0.0152,
+    "prob_btts_si": 0.608,
+    "prob_btts_no": 0.392,
+    "prob_1x": 0.6188,
+    "prob_x2": 0.644,
+    "prob_dnb_local": 0.4829,
+    "prob_dnb_visita": 0.5171,
+    "edge_local": -0.0215,
+    "edge_visita": -0.0444,
+    "edge_empate": -0.0149,
     "edge_over": -0.0614,
     "edge_under": -0.0373,
     "pick_mercado": "Ambos Anotan (BTTS)",
     "pick_seleccion": "Ambos Anotan: SÍ",
     "pick_probabilidad": 0.5662,
     "pick_edge": 0.0256,
-    "pick_ev": 0.0474,
+    "pick_ev": 0.0475,
     "pick_cuota": "1.85",
     "pick_cuota_dec": 1.85,
-    "pick_detalle": "Flujo ofensivo mutuo alto (xG 1.51 y 1.57, BTTS SÍ Calibrado: 56.6%, EV: +4.7%)",
+    "pick_detalle": "Flujo ofensivo mutuo alto (xG 1.53 y 1.55, BTTS SÍ Calibrado: 56.6%, EV: +4.7%)",
     "confianza": "NEUTRAL",
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
@@ -672,16 +672,16 @@
       {
         "mercado": "Ambos Anotan (BTTS)",
         "seleccion": "Ambos Anotan: SÍ",
-        "probabilidad": 0.5661585638190839,
+        "probabilidad": 0.5661898194697561,
         "edge": 0.0256,
-        "ev": 0.0474,
+        "ev": 0.0475,
         "cuota": "1.85",
         "cuota_dec": 1.85,
         "confianza": "MEDIA",
-        "detalle": "Flujo ofensivo mutuo alto (xG 1.51 y 1.57, BTTS SÍ Calibrado: 56.6%, EV: +4.7%)"
+        "detalle": "Flujo ofensivo mutuo alto (xG 1.53 y 1.55, BTTS SÍ Calibrado: 56.6%, EV: +4.7%)"
       }
     ],
-    "timestamp": "2026-11-26T14:36:27.695383-06:00"
+    "timestamp": "2026-11-26T21:05:00.908555-06:00"
   },
   {
     "id_evento": "401882796",
@@ -747,7 +747,7 @@
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-26T14:36:27.701759-06:00"
+    "timestamp": "2026-11-26T21:05:00.912241-06:00"
   },
   {
     "id_evento": "401875081",
@@ -813,7 +813,7 @@
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-26T14:36:27.708079-06:00"
+    "timestamp": "2026-11-26T21:05:00.915923-06:00"
   },
   {
     "id_evento": "401884721",
@@ -879,7 +879,7 @@
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-26T14:36:27.714416-06:00"
+    "timestamp": "2026-11-26T21:05:00.919567-06:00"
   },
   {
     "id_evento": "401884722",
@@ -945,7 +945,7 @@
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-26T14:36:27.720753-06:00"
+    "timestamp": "2026-11-26T21:05:00.923208-06:00"
   },
   {
     "id_evento": "401884723",
@@ -1011,7 +1011,7 @@
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-26T14:36:27.727152-06:00"
+    "timestamp": "2026-11-26T21:05:00.926866-06:00"
   },
   {
     "id_evento": "401884719",
@@ -1038,46 +1038,46 @@
     "under_momio": "+100",
     "over_momio_dec": 1.769,
     "under_momio_dec": 2.0,
-    "moneyline_local": "+140",
+    "moneyline_local": "+145",
     "moneyline_empate": "+235",
-    "moneyline_visita": "+175",
-    "ml_local_dec": 2.4,
+    "moneyline_visita": "+165",
+    "ml_local_dec": 2.45,
     "ml_empate_dec": 3.35,
-    "ml_visita_dec": 2.75,
-    "xg_local": 1.4,
-    "xg_visita": 1.17,
-    "total_proyectado": 2.57,
+    "ml_visita_dec": 2.65,
+    "xg_local": 1.37,
+    "xg_visita": 1.19,
+    "total_proyectado": 2.56,
     "marcador_mas_probable": "1 - 1",
-    "prob_marcador_mas_probable": 0.137,
-    "prob_local": 0.3951,
+    "prob_marcador_mas_probable": 0.138,
+    "prob_local": 0.3846,
     "prob_empate": 0.2845,
-    "prob_visita": 0.3204,
-    "prob_over": 0.5023,
-    "prob_under": 0.4977,
-    "prob_btts_si": 0.546,
-    "prob_btts_no": 0.454,
-    "prob_1x": 0.6796,
-    "prob_x2": 0.6049,
-    "prob_dnb_local": 0.5522,
-    "prob_dnb_visita": 0.4478,
-    "edge_local": -0.0216,
-    "edge_visita": -0.0432,
+    "prob_visita": 0.3309,
+    "prob_over": 0.501,
+    "prob_under": 0.499,
+    "prob_btts_si": 0.5457,
+    "prob_btts_no": 0.4543,
+    "prob_1x": 0.6691,
+    "prob_x2": 0.6154,
+    "prob_dnb_local": 0.5375,
+    "prob_dnb_visita": 0.4625,
+    "edge_local": -0.0236,
+    "edge_visita": -0.0465,
     "edge_empate": -0.014,
-    "edge_over": -0.063,
-    "edge_under": -0.0023,
+    "edge_over": -0.0643,
+    "edge_under": -0.001,
     "pick_mercado": "Totales (Over/Under)",
     "pick_seleccion": "OVER 2.5 Goles",
-    "pick_probabilidad": 0.5023,
-    "pick_edge": -0.063,
-    "pick_ev": -0.1114,
+    "pick_probabilidad": 0.501,
+    "pick_edge": -0.0643,
+    "pick_ev": -0.1137,
     "pick_cuota": "-130",
     "pick_cuota_dec": 1.769,
-    "pick_detalle": "Línea de mercado eficiente (xG Total: 2.57 vs línea 2.5). Descartado para proteger bankroll.",
+    "pick_detalle": "Línea de mercado eficiente (xG Total: 2.56 vs línea 2.5). Descartado para proteger bankroll.",
     "confianza": "NEUTRAL",
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-26T14:36:27.733619-06:00"
+    "timestamp": "2026-11-26T21:05:00.930514-06:00"
   },
   {
     "id_evento": "401879227",
@@ -1155,7 +1155,7 @@
         "detalle": "Solidez defensiva proyectada (xG 1.89 y 0.61, BTTS NO Calibrado: 55.1%, EV: +7.5%)"
       }
     ],
-    "timestamp": "2026-11-26T14:36:27.739983-06:00"
+    "timestamp": "2026-11-26T21:05:00.934256-06:00"
   },
   {
     "id_evento": "401879226",
@@ -1233,7 +1233,7 @@
         "detalle": "Doble Oportunidad Local sólida (Prob 1X: 72.5%, EV: +3.7%)"
       }
     ],
-    "timestamp": "2026-11-26T14:36:27.746395-06:00"
+    "timestamp": "2026-11-26T21:05:00.938062-06:00"
   },
   {
     "id_evento": "401882790",
@@ -1311,7 +1311,7 @@
         "detalle": "Solidez defensiva proyectada (xG 0.82 y 1.59, BTTS NO Calibrado: 54.3%, EV: +5.8%)"
       }
     ],
-    "timestamp": "2026-11-26T14:36:27.752772-06:00"
+    "timestamp": "2026-11-26T21:05:00.941775-06:00"
   },
   {
     "id_evento": "401875537",
@@ -1334,10 +1334,10 @@
     "marcador_visita": 0,
     "provider": "DraftKings",
     "linea_total": 2.5,
-    "over_momio": "-160",
-    "under_momio": "+115",
-    "over_momio_dec": 1.625,
-    "under_momio_dec": 2.15,
+    "over_momio": "-155",
+    "under_momio": "+110",
+    "over_momio_dec": 1.645,
+    "under_momio_dec": 2.1,
     "moneyline_local": "-105",
     "moneyline_empate": "+265",
     "moneyline_visita": "+250",
@@ -1352,8 +1352,8 @@
     "prob_local": 0.4803,
     "prob_empate": 0.2639,
     "prob_visita": 0.2558,
-    "prob_over": 0.5453,
-    "prob_under": 0.4547,
+    "prob_over": 0.5408,
+    "prob_under": 0.4592,
     "prob_btts_si": 0.5618,
     "prob_btts_no": 0.4382,
     "prob_1x": 0.7442,
@@ -1363,21 +1363,21 @@
     "edge_local": -0.032,
     "edge_visita": -0.0299,
     "edge_empate": -0.0101,
-    "edge_over": -0.0701,
-    "edge_under": -0.0104,
+    "edge_over": -0.0671,
+    "edge_under": -0.017,
     "pick_mercado": "Totales (Over/Under)",
     "pick_seleccion": "OVER 2.5 Goles",
-    "pick_probabilidad": 0.5453,
-    "pick_edge": -0.0701,
-    "pick_ev": -0.1139,
-    "pick_cuota": "-160",
-    "pick_cuota_dec": 1.625,
+    "pick_probabilidad": 0.5408,
+    "pick_edge": -0.0671,
+    "pick_ev": -0.1104,
+    "pick_cuota": "-155",
+    "pick_cuota_dec": 1.645,
     "pick_detalle": "Línea de mercado eficiente (xG Total: 2.76 vs línea 2.5). Descartado para proteger bankroll.",
     "confianza": "NEUTRAL",
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-26T14:36:27.759096-06:00"
+    "timestamp": "2026-11-26T21:05:00.945569-06:00"
   },
   {
     "id_evento": "401876394",
@@ -1443,7 +1443,7 @@
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-26T14:36:27.765591-06:00"
+    "timestamp": "2026-11-26T21:05:00.949235-06:00"
   },
   {
     "id_evento": "401874826",
@@ -1509,7 +1509,7 @@
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-26T14:36:27.771932-06:00"
+    "timestamp": "2026-11-26T21:05:00.952902-06:00"
   },
   {
     "id_evento": "401878752",
@@ -1533,9 +1533,9 @@
     "provider": "DraftKings",
     "linea_total": 3.5,
     "over_momio": "+135",
-    "under_momio": "-165",
+    "under_momio": "-170",
     "over_momio_dec": 2.35,
-    "under_momio_dec": 1.606,
+    "under_momio_dec": 1.588,
     "moneyline_local": "+255",
     "moneyline_empate": "+290",
     "moneyline_visita": "-105",
@@ -1550,8 +1550,8 @@
     "prob_local": 0.2663,
     "prob_empate": 0.2529,
     "prob_visita": 0.4808,
-    "prob_over": 0.3883,
-    "prob_under": 0.6117,
+    "prob_over": 0.3869,
+    "prob_under": 0.6131,
     "prob_btts_si": 0.5912,
     "prob_btts_no": 0.4088,
     "prob_1x": 0.5192,
@@ -1561,21 +1561,21 @@
     "edge_local": -0.0154,
     "edge_visita": -0.0315,
     "edge_empate": -0.0035,
-    "edge_over": -0.0372,
-    "edge_under": -0.0553,
+    "edge_over": -0.0386,
+    "edge_under": -0.0619,
     "pick_mercado": "Totales (Over/Under)",
     "pick_seleccion": "UNDER 3.5 Goles",
-    "pick_probabilidad": 0.5673,
-    "pick_edge": -0.0553,
-    "pick_ev": -0.0888,
-    "pick_cuota": "-165",
-    "pick_cuota_dec": 1.606,
+    "pick_probabilidad": 0.5678,
+    "pick_edge": -0.0619,
+    "pick_ev": -0.0984,
+    "pick_cuota": "-170",
+    "pick_cuota_dec": 1.588,
     "pick_detalle": "Línea de mercado eficiente (xG Total: 3.08 vs línea 3.5). Descartado para proteger bankroll.",
     "confianza": "NEUTRAL",
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-26T14:36:27.778265-06:00"
+    "timestamp": "2026-11-26T21:05:00.956586-06:00"
   },
   {
     "id_evento": "401882793",
@@ -1641,7 +1641,7 @@
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-26T14:36:27.784660-06:00"
+    "timestamp": "2026-11-26T21:05:00.960305-06:00"
   },
   {
     "id_evento": "401884726",
@@ -1707,7 +1707,7 @@
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-26T14:36:27.790981-06:00"
+    "timestamp": "2026-11-26T21:05:00.964009-06:00"
   },
   {
     "id_evento": "401933737",
@@ -1785,7 +1785,7 @@
         "detalle": "Flujo ofensivo mutuo alto (xG 1.56 y 1.56, BTTS SÍ Calibrado: 56.8%, EV: +5.0%)"
       }
     ],
-    "timestamp": "2026-11-26T14:36:27.797329-06:00"
+    "timestamp": "2026-11-26T21:05:00.967664-06:00"
   },
   {
     "id_evento": "401875531",
@@ -1851,7 +1851,7 @@
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-26T14:36:27.803696-06:00"
+    "timestamp": "2026-11-26T21:05:00.971308-06:00"
   },
   {
     "id_evento": "401933724",
@@ -1917,7 +1917,7 @@
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-26T14:36:27.810266-06:00"
+    "timestamp": "2026-11-26T21:05:00.975018-06:00"
   },
   {
     "id_evento": "401874977",
@@ -1995,7 +1995,7 @@
         "detalle": "Solidez defensiva proyectada (xG 2.49 y 0.67, BTTS NO Calibrado: 54.2%, EV: +5.8%)"
       }
     ],
-    "timestamp": "2026-11-26T14:36:27.816618-06:00"
+    "timestamp": "2026-11-26T21:05:00.978830-06:00"
   },
   {
     "id_evento": "401876391",
@@ -2061,7 +2061,7 @@
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-26T14:36:27.823025-06:00"
+    "timestamp": "2026-11-26T21:05:00.982585-06:00"
   },
   {
     "id_evento": "401876390",
@@ -2127,7 +2127,7 @@
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-26T14:36:27.829320-06:00"
+    "timestamp": "2026-11-26T21:05:00.986262-06:00"
   },
   {
     "id_evento": "401876388",
@@ -2205,7 +2205,7 @@
         "detalle": "Solidez defensiva proyectada (xG 1.76 y 0.75, BTTS NO Calibrado: 54.3%, EV: +5.9%)"
       }
     ],
-    "timestamp": "2026-11-26T14:36:27.835764-06:00"
+    "timestamp": "2026-11-26T21:05:00.989945-06:00"
   },
   {
     "id_evento": "401876387",
@@ -2283,7 +2283,7 @@
         "detalle": "Solidez defensiva proyectada (xG 2.49 y 0.62, BTTS NO Calibrado: 54.7%, EV: +6.6%)"
       }
     ],
-    "timestamp": "2026-11-26T14:36:27.842141-06:00"
+    "timestamp": "2026-11-26T21:05:00.993696-06:00"
   },
   {
     "id_evento": "401882789",
@@ -2306,9 +2306,9 @@
     "marcador_visita": 0,
     "provider": "DraftKings",
     "linea_total": 3.5,
-    "over_momio": "-120",
+    "over_momio": "-125",
     "under_momio": "+100",
-    "over_momio_dec": 1.833,
+    "over_momio_dec": 1.8,
     "under_momio_dec": 2.0,
     "moneyline_local": "-800",
     "moneyline_empate": "+900",
@@ -2324,8 +2324,8 @@
     "prob_local": 0.797,
     "prob_empate": 0.1381,
     "prob_visita": 0.0649,
-    "prob_over": 0.4495,
-    "prob_under": 0.5505,
+    "prob_over": 0.4518,
+    "prob_under": 0.5482,
     "prob_btts_si": 0.4496,
     "prob_btts_no": 0.5504,
     "prob_1x": 0.9351,
@@ -2335,16 +2335,16 @@
     "edge_local": -0.0919,
     "edge_visita": 0.0093,
     "edge_empate": 0.0381,
-    "edge_over": -0.0961,
-    "edge_under": 0.0485,
+    "edge_over": -0.1038,
+    "edge_under": 0.0478,
     "pick_mercado": "Totales (Over/Under)",
     "pick_seleccion": "UNDER 3.5 Goles",
-    "pick_probabilidad": 0.5485,
-    "pick_edge": 0.0485,
-    "pick_ev": 0.097,
+    "pick_probabilidad": 0.5478,
+    "pick_edge": 0.0478,
+    "pick_ev": 0.0956,
     "pick_cuota": "+100",
     "pick_cuota_dec": 2.0,
-    "pick_detalle": "xG Proyectado: 3.11 goles vs línea 3.5 (Under Calibrado: 54.9%, EV: +9.7%)",
+    "pick_detalle": "xG Proyectado: 3.11 goles vs línea 3.5 (Under Calibrado: 54.8%, EV: +9.6%)",
     "confianza": "MEDIA",
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
@@ -2352,12 +2352,12 @@
       {
         "mercado": "Totales (Over/Under)",
         "seleccion": "UNDER 3.5 Goles",
-        "probabilidad": 0.5485159248038011,
-        "edge": 0.0485,
-        "ev": 0.09703184960760214,
+        "probabilidad": 0.5478180085518014,
+        "edge": 0.0478,
+        "ev": 0.09563601710360281,
         "cuota": "+100",
         "cuota_dec": 2.0,
-        "detalle": "xG Proyectado: 3.11 goles vs línea 3.5 (Under Calibrado: 54.9%, EV: +9.7%)"
+        "detalle": "xG Proyectado: 3.11 goles vs línea 3.5 (Under Calibrado: 54.8%, EV: +9.6%)"
       },
       {
         "mercado": "Ambos Anotan (BTTS)",
@@ -2371,7 +2371,7 @@
         "detalle": "Solidez defensiva proyectada (xG 2.49 y 0.62, BTTS NO Calibrado: 54.8%, EV: +7.0%)"
       }
     ],
-    "timestamp": "2026-11-26T14:36:27.848510-06:00"
+    "timestamp": "2026-11-26T21:05:00.997378-06:00"
   },
   {
     "id_evento": "401875530",
@@ -2394,45 +2394,45 @@
     "marcador_visita": 0,
     "provider": "DraftKings",
     "linea_total": 3.5,
-    "over_momio": "+100",
+    "over_momio": "-105",
     "under_momio": "-135",
-    "over_momio_dec": 2.0,
+    "over_momio_dec": 1.952,
     "under_momio_dec": 1.741,
-    "moneyline_local": "+115",
-    "moneyline_empate": "+280",
-    "moneyline_visita": "+195",
-    "ml_local_dec": 2.15,
-    "ml_empate_dec": 3.8,
-    "ml_visita_dec": 2.95,
-    "xg_local": 1.89,
-    "xg_visita": 1.49,
+    "moneyline_local": "+110",
+    "moneyline_empate": "+290",
+    "moneyline_visita": "+200",
+    "ml_local_dec": 2.1,
+    "ml_empate_dec": 3.9,
+    "ml_visita_dec": 3.0,
+    "xg_local": 1.91,
+    "xg_visita": 1.47,
     "total_proyectado": 3.38,
     "marcador_mas_probable": "1 - 1",
     "prob_marcador_mas_probable": 0.105,
-    "prob_local": 0.4434,
-    "prob_empate": 0.2478,
-    "prob_visita": 0.3088,
-    "prob_over": 0.4513,
-    "prob_under": 0.5487,
-    "prob_btts_si": 0.6437,
-    "prob_btts_no": 0.3563,
-    "prob_1x": 0.6912,
-    "prob_x2": 0.5566,
-    "prob_dnb_local": 0.5895,
-    "prob_dnb_visita": 0.4105,
-    "edge_local": -0.0217,
-    "edge_visita": -0.0302,
-    "edge_empate": -0.0154,
-    "edge_over": -0.0487,
-    "edge_under": -0.0264,
+    "prob_local": 0.4528,
+    "prob_empate": 0.2444,
+    "prob_visita": 0.3028,
+    "prob_over": 0.4543,
+    "prob_under": 0.5457,
+    "prob_btts_si": 0.6426,
+    "prob_btts_no": 0.3574,
+    "prob_1x": 0.6972,
+    "prob_x2": 0.5472,
+    "prob_dnb_local": 0.5993,
+    "prob_dnb_visita": 0.4007,
+    "edge_local": -0.0234,
+    "edge_visita": -0.0305,
+    "edge_empate": -0.012,
+    "edge_over": -0.058,
+    "edge_under": -0.0287,
     "pick_mercado": "Ambos Anotan (BTTS)",
     "pick_seleccion": "Ambos Anotan: SÍ",
-    "pick_probabilidad": 0.5775,
-    "pick_edge": 0.037,
-    "pick_ev": 0.0684,
+    "pick_probabilidad": 0.5772,
+    "pick_edge": 0.0366,
+    "pick_ev": 0.0678,
     "pick_cuota": "1.85",
     "pick_cuota_dec": 1.85,
-    "pick_detalle": "Flujo ofensivo mutuo alto (xG 1.89 y 1.49, BTTS SÍ Calibrado: 57.8%, EV: +6.8%)",
+    "pick_detalle": "Flujo ofensivo mutuo alto (xG 1.91 y 1.47, BTTS SÍ Calibrado: 57.7%, EV: +6.8%)",
     "confianza": "NEUTRAL",
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
@@ -2440,16 +2440,16 @@
       {
         "mercado": "Ambos Anotan (BTTS)",
         "seleccion": "Ambos Anotan: SÍ",
-        "probabilidad": 0.5775172584047491,
-        "edge": 0.037,
-        "ev": 0.0684,
+        "probabilidad": 0.5771625347225967,
+        "edge": 0.0366,
+        "ev": 0.0678,
         "cuota": "1.85",
         "cuota_dec": 1.85,
         "confianza": "MEDIA",
-        "detalle": "Flujo ofensivo mutuo alto (xG 1.89 y 1.49, BTTS SÍ Calibrado: 57.8%, EV: +6.8%)"
+        "detalle": "Flujo ofensivo mutuo alto (xG 1.91 y 1.47, BTTS SÍ Calibrado: 57.7%, EV: +6.8%)"
       }
     ],
-    "timestamp": "2026-11-26T14:36:27.854891-06:00"
+    "timestamp": "2026-11-26T21:05:01.001224-06:00"
   },
   {
     "id_evento": "401933723",
@@ -2515,7 +2515,7 @@
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-26T14:36:27.861218-06:00"
+    "timestamp": "2026-11-26T21:05:01.004916-06:00"
   },
   {
     "id_evento": "401933722",
@@ -2581,7 +2581,7 @@
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-26T14:36:27.867515-06:00"
+    "timestamp": "2026-11-26T21:05:01.008575-06:00"
   },
   {
     "id_evento": "401931997",
@@ -2647,7 +2647,7 @@
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-26T14:36:27.873904-06:00"
+    "timestamp": "2026-11-26T21:05:01.012300-06:00"
   },
   {
     "id_evento": "401933726",
@@ -2713,7 +2713,7 @@
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-26T14:36:27.880246-06:00"
+    "timestamp": "2026-11-26T21:05:01.015985-06:00"
   },
   {
     "id_evento": "401931996",
@@ -2741,57 +2741,45 @@
     "over_momio_dec": 1.769,
     "under_momio_dec": 1.909,
     "moneyline_local": "+130",
-    "moneyline_empate": "+195",
-    "moneyline_visita": "+235",
+    "moneyline_empate": "+200",
+    "moneyline_visita": "+230",
     "ml_local_dec": 2.3,
-    "ml_empate_dec": 2.95,
-    "ml_visita_dec": 3.35,
-    "xg_local": 1.3,
-    "xg_visita": 0.94,
+    "ml_empate_dec": 3.0,
+    "ml_visita_dec": 3.3,
+    "xg_local": 1.29,
+    "xg_visita": 0.95,
     "total_proyectado": 2.24,
     "marcador_mas_probable": "1 - 1",
     "prob_marcador_mas_probable": 0.146,
-    "prob_local": 0.4149,
-    "prob_empate": 0.3158,
-    "prob_visita": 0.2693,
+    "prob_local": 0.4126,
+    "prob_empate": 0.3138,
+    "prob_visita": 0.2736,
     "prob_over": 0.4535,
     "prob_under": 0.5465,
-    "prob_btts_si": 0.4772,
-    "prob_btts_no": 0.5228,
-    "prob_1x": 0.7307,
-    "prob_x2": 0.5851,
-    "prob_dnb_local": 0.6064,
-    "prob_dnb_visita": 0.3936,
-    "edge_local": -0.0199,
-    "edge_visita": -0.0292,
-    "edge_empate": -0.0232,
+    "prob_btts_si": 0.4781,
+    "prob_btts_no": 0.5219,
+    "prob_1x": 0.7264,
+    "prob_x2": 0.5874,
+    "prob_dnb_local": 0.6013,
+    "prob_dnb_visita": 0.3987,
+    "edge_local": -0.0222,
+    "edge_visita": -0.0294,
+    "edge_empate": -0.0195,
     "edge_over": -0.1118,
     "edge_under": 0.0235,
-    "pick_mercado": "Ambos Anotan (BTTS)",
-    "pick_seleccion": "Ambos Anotan: NO",
-    "pick_probabilidad": 0.5401,
-    "pick_edge": 0.0273,
-    "pick_ev": 0.0533,
-    "pick_cuota": "1.95",
-    "pick_cuota_dec": 1.95,
-    "pick_detalle": "Solidez defensiva proyectada (xG 1.30 y 0.94, BTTS NO Calibrado: 54.0%, EV: +5.3%)",
+    "pick_mercado": "Totales (Over/Under)",
+    "pick_seleccion": "UNDER 2.5 Goles",
+    "pick_probabilidad": 0.5473,
+    "pick_edge": 0.0235,
+    "pick_ev": 0.0448,
+    "pick_cuota": "-110",
+    "pick_cuota_dec": 1.909,
+    "pick_detalle": "Línea de mercado eficiente (xG Total: 2.24 vs línea 2.5). Descartado para proteger bankroll.",
     "confianza": "NEUTRAL",
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
-    "candidatos": [
-      {
-        "mercado": "Ambos Anotan (BTTS)",
-        "seleccion": "Ambos Anotan: NO",
-        "probabilidad": 0.5401335136774038,
-        "edge": 0.0273,
-        "ev": 0.0533,
-        "cuota": "1.95",
-        "cuota_dec": 1.95,
-        "confianza": "MEDIA",
-        "detalle": "Solidez defensiva proyectada (xG 1.30 y 0.94, BTTS NO Calibrado: 54.0%, EV: +5.3%)"
-      }
-    ],
-    "timestamp": "2026-11-26T14:36:27.886617-06:00"
+    "candidatos": [],
+    "timestamp": "2026-11-26T21:05:01.019636-06:00"
   },
   {
     "id_evento": "401933721",
@@ -2857,7 +2845,7 @@
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-26T14:36:27.892921-06:00"
+    "timestamp": "2026-11-26T21:05:01.023338-06:00"
   },
   {
     "id_evento": "401875538",
@@ -2923,7 +2911,7 @@
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-26T14:36:27.899394-06:00"
+    "timestamp": "2026-11-26T21:05:01.026999-06:00"
   },
   {
     "id_evento": "401875031",
@@ -2989,7 +2977,7 @@
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-26T14:36:27.905824-06:00"
+    "timestamp": "2026-11-26T21:05:01.030770-06:00"
   },
   {
     "id_evento": "401879229",
@@ -3055,7 +3043,7 @@
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-26T14:36:27.912203-06:00"
+    "timestamp": "2026-11-26T21:05:01.034442-06:00"
   },
   {
     "id_evento": "401882787",
@@ -3133,7 +3121,7 @@
         "detalle": "Solidez defensiva proyectada (xG 1.41 y 0.92, BTTS NO Calibrado: 54.0%, EV: +5.4%)"
       }
     ],
-    "timestamp": "2026-11-26T14:36:27.918624-06:00"
+    "timestamp": "2026-11-26T21:05:01.038142-06:00"
   },
   {
     "id_evento": "401875535",
@@ -3211,7 +3199,7 @@
         "detalle": "Flujo ofensivo mutuo alto (xG 1.88 y 1.51, BTTS SÍ Calibrado: 57.8%, EV: +6.9%)"
       }
     ],
-    "timestamp": "2026-11-26T14:36:27.924931-06:00"
+    "timestamp": "2026-11-26T21:05:01.041852-06:00"
   },
   {
     "id_evento": "401875534",
@@ -3289,7 +3277,7 @@
         "detalle": "Flujo ofensivo mutuo alto (xG 1.31 y 2.02, BTTS SÍ Calibrado: 57.2%, EV: +5.8%)"
       }
     ],
-    "timestamp": "2026-11-26T14:36:27.931289-06:00"
+    "timestamp": "2026-11-26T21:05:01.045565-06:00"
   },
   {
     "id_evento": "401874992",
@@ -3355,7 +3343,7 @@
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-26T14:36:27.937902-06:00"
+    "timestamp": "2026-11-26T21:05:01.049211-06:00"
   },
   {
     "id_evento": "401876393",
@@ -3421,7 +3409,7 @@
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-26T14:36:27.944296-06:00"
+    "timestamp": "2026-11-26T21:05:01.052880-06:00"
   },
   {
     "id_evento": "401879231",
@@ -3487,7 +3475,7 @@
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-26T14:36:27.950680-06:00"
+    "timestamp": "2026-11-26T21:05:01.056675-06:00"
   },
   {
     "id_evento": "401879230",
@@ -3553,7 +3541,7 @@
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-26T14:36:27.957011-06:00"
+    "timestamp": "2026-11-26T21:05:01.060339-06:00"
   },
   {
     "id_evento": "401879228",
@@ -3619,7 +3607,7 @@
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-26T14:36:27.963330-06:00"
+    "timestamp": "2026-11-26T21:05:01.063993-06:00"
   },
   {
     "id_evento": "401879224",
@@ -3646,46 +3634,46 @@
     "under_momio": "-120",
     "over_momio_dec": 1.952,
     "under_momio_dec": 1.833,
-    "moneyline_local": "+270",
-    "moneyline_empate": "+235",
-    "moneyline_visita": "+110",
-    "ml_local_dec": 3.7,
-    "ml_empate_dec": 3.35,
-    "ml_visita_dec": 2.1,
-    "xg_local": 1.02,
-    "xg_visita": 1.42,
-    "total_proyectado": 2.44,
+    "moneyline_local": "+275",
+    "moneyline_empate": "+240",
+    "moneyline_visita": "+105",
+    "ml_local_dec": 3.75,
+    "ml_empate_dec": 3.4,
+    "ml_visita_dec": 2.05,
+    "xg_local": 1.0,
+    "xg_visita": 1.43,
+    "total_proyectado": 2.43,
     "marcador_mas_probable": "1 - 1",
     "prob_marcador_mas_probable": 0.14,
-    "prob_local": 0.2613,
-    "prob_empate": 0.2926,
-    "prob_visita": 0.446,
-    "prob_over": 0.4625,
-    "prob_under": 0.5375,
-    "prob_btts_si": 0.5111,
-    "prob_btts_no": 0.4889,
-    "prob_1x": 0.5539,
-    "prob_x2": 0.7386,
-    "prob_dnb_local": 0.3694,
-    "prob_dnb_visita": 0.6306,
-    "edge_local": -0.009,
-    "edge_visita": -0.0302,
-    "edge_empate": -0.0059,
-    "edge_over": -0.0498,
-    "edge_under": -0.0081,
+    "prob_local": 0.2559,
+    "prob_empate": 0.29,
+    "prob_visita": 0.4541,
+    "prob_over": 0.4612,
+    "prob_under": 0.5388,
+    "prob_btts_si": 0.5083,
+    "prob_btts_no": 0.4917,
+    "prob_1x": 0.5459,
+    "prob_x2": 0.7441,
+    "prob_dnb_local": 0.3604,
+    "prob_dnb_visita": 0.6396,
+    "edge_local": -0.0108,
+    "edge_visita": -0.0337,
+    "edge_empate": -0.0041,
+    "edge_over": -0.0511,
+    "edge_under": -0.0068,
     "pick_mercado": "Totales (Over/Under)",
     "pick_seleccion": "UNDER 2.5 Goles",
-    "pick_probabilidad": 0.5375,
-    "pick_edge": -0.0081,
-    "pick_ev": -0.0148,
+    "pick_probabilidad": 0.5388,
+    "pick_edge": -0.0068,
+    "pick_ev": -0.0124,
     "pick_cuota": "-120",
     "pick_cuota_dec": 1.833,
-    "pick_detalle": "Línea de mercado eficiente (xG Total: 2.44 vs línea 2.5). Descartado para proteger bankroll.",
+    "pick_detalle": "Línea de mercado eficiente (xG Total: 2.43 vs línea 2.5). Descartado para proteger bankroll.",
     "confianza": "NEUTRAL",
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-26T14:36:27.969759-06:00"
+    "timestamp": "2026-11-26T21:05:01.067657-06:00"
   },
   {
     "id_evento": "401884724",
@@ -3763,7 +3751,7 @@
         "detalle": "Flujo ofensivo mutuo alto (xG 1.57 y 1.61, BTTS SÍ Calibrado: 57.1%, EV: +5.7%)"
       }
     ],
-    "timestamp": "2026-11-26T14:36:27.976138-06:00"
+    "timestamp": "2026-11-26T21:05:01.071331-06:00"
   },
   {
     "id_evento": "401882794",
@@ -3841,7 +3829,7 @@
         "detalle": "Solidez defensiva proyectada (xG 0.69 y 2.47, BTTS NO Calibrado: 54.1%, EV: +5.6%)"
       }
     ],
-    "timestamp": "2026-11-26T14:36:27.982637-06:00"
+    "timestamp": "2026-11-26T21:05:01.075080-06:00"
   },
   {
     "id_evento": "401875532",
@@ -3907,7 +3895,7 @@
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-26T14:36:27.988948-06:00"
+    "timestamp": "2026-11-26T21:05:01.078811-06:00"
   },
   {
     "id_evento": "401876386",
@@ -3973,7 +3961,7 @@
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-26T14:36:27.995277-06:00"
+    "timestamp": "2026-11-26T21:05:01.082545-06:00"
   },
   {
     "id_evento": "401878753",
@@ -4051,7 +4039,7 @@
         "detalle": "Doble Oportunidad Local sólida (Prob 1X: 75.5%, EV: +4.2%)"
       }
     ],
-    "timestamp": "2026-11-26T14:36:28.001861-06:00"
+    "timestamp": "2026-11-26T21:05:01.086229-06:00"
   },
   {
     "id_evento": "401884725",
@@ -4074,9 +4062,9 @@
     "marcador_visita": 0,
     "provider": "DraftKings",
     "linea_total": 3.5,
-    "over_momio": "-135",
+    "over_momio": "-130",
     "under_momio": "+105",
-    "over_momio_dec": 1.741,
+    "over_momio_dec": 1.769,
     "under_momio_dec": 2.05,
     "moneyline_local": "-145",
     "moneyline_empate": "+350",
@@ -4092,8 +4080,8 @@
     "prob_local": 0.5672,
     "prob_empate": 0.2174,
     "prob_visita": 0.2154,
-    "prob_over": 0.4769,
-    "prob_under": 0.5231,
+    "prob_over": 0.4749,
+    "prob_under": 0.5251,
     "prob_btts_si": 0.5937,
     "prob_btts_no": 0.4063,
     "prob_1x": 0.7846,
@@ -4103,13 +4091,13 @@
     "edge_local": -0.0245,
     "edge_visita": -0.0478,
     "edge_empate": -0.0048,
-    "edge_over": -0.0975,
-    "edge_under": 0.0524,
+    "edge_over": -0.0904,
+    "edge_under": 0.053,
     "pick_mercado": "Totales (Over/Under)",
     "pick_seleccion": "UNDER 3.5 Goles",
-    "pick_probabilidad": 0.5402,
-    "pick_edge": 0.0524,
-    "pick_ev": 0.1075,
+    "pick_probabilidad": 0.5408,
+    "pick_edge": 0.053,
+    "pick_ev": 0.1087,
     "pick_cuota": "+105",
     "pick_cuota_dec": 2.05,
     "pick_detalle": "Línea de mercado eficiente (xG Total: 3.27 vs línea 3.5). Descartado para proteger bankroll.",
@@ -4117,7 +4105,7 @@
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-26T14:36:28.008318-06:00"
+    "timestamp": "2026-11-26T21:05:01.089913-06:00"
   },
   {
     "id_evento": "401874769",
@@ -4195,7 +4183,7 @@
         "detalle": "Solidez defensiva proyectada (xG 2.60 y 0.65, BTTS NO Calibrado: 54.4%, EV: +6.0%)"
       }
     ],
-    "timestamp": "2026-11-26T14:36:28.014791-06:00"
+    "timestamp": "2026-11-26T21:05:01.093602-06:00"
   },
   {
     "id_evento": "401882795",
@@ -4261,7 +4249,7 @@
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-26T14:36:28.021287-06:00"
+    "timestamp": "2026-11-26T21:05:01.097273-06:00"
   },
   {
     "id_evento": "401884727",
@@ -4339,7 +4327,7 @@
         "detalle": "Flujo ofensivo mutuo alto (xG 1.88 y 1.30, BTTS SÍ Calibrado: 56.8%, EV: +5.0%)"
       }
     ],
-    "timestamp": "2026-11-26T14:36:28.028626-06:00"
+    "timestamp": "2026-11-26T21:05:01.101038-06:00"
   },
   {
     "id_evento": "401875533",
@@ -4417,7 +4405,7 @@
         "detalle": "Flujo ofensivo mutuo alto (xG 1.28 y 2.11, BTTS SÍ Calibrado: 57.2%, EV: +5.9%)"
       }
     ],
-    "timestamp": "2026-11-26T14:36:28.035138-06:00"
+    "timestamp": "2026-11-26T21:05:01.104784-06:00"
   },
   {
     "id_evento": "401874994",
@@ -4483,7 +4471,7 @@
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-26T14:36:28.041478-06:00"
+    "timestamp": "2026-11-26T21:05:01.108515-06:00"
   },
   {
     "id_evento": "401876389",
@@ -4549,7 +4537,7 @@
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-26T14:36:28.047859-06:00"
+    "timestamp": "2026-11-26T21:05:01.112222-06:00"
   },
   {
     "id_evento": "401882788",
@@ -4615,7 +4603,7 @@
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-26T14:36:28.054256-06:00"
+    "timestamp": "2026-11-26T21:05:01.115908-06:00"
   },
   {
     "id_evento": "401931983",
@@ -4681,7 +4669,7 @@
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-26T14:36:28.060719-06:00"
+    "timestamp": "2026-11-26T21:05:01.119563-06:00"
   },
   {
     "id_evento": "401932000",
@@ -4747,6 +4735,6 @@
     "resultado_pick": "PENDIENTE",
     "beneficio_unidades": null,
     "candidatos": [],
-    "timestamp": "2026-11-26T14:36:28.067367-06:00"
+    "timestamp": "2026-11-26T21:05:01.123265-06:00"
   }
 ]
