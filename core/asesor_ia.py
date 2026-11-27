@@ -93,7 +93,7 @@ def cargar_candidatos_hoy(fecha_objetivo: Optional[str] = None) -> Dict[str, Any
                     top_nba = top_nba[probs >= 0.54]
                 if "ev_pct" in top_nba.columns:
                     evs = pd.to_numeric(top_nba["ev_pct"], errors="coerce").fillna(0.0)
-                    top_nba = top_nba[evs > 0.0]
+                    top_nba = top_nba[evs >= 2.0]
                 for _, r in top_nba.iterrows():
                     resultado["nba_props"].append({
                         "deporte": "NBA",
@@ -120,7 +120,7 @@ def cargar_candidatos_hoy(fecha_objetivo: Optional[str] = None) -> Dict[str, Any
                     get_id_unico=lambda x: x.get("jugador"),
                     limite=TOP_N_PICKS,
                     min_prob=0.54,
-                    min_ev=0.0,
+                    min_ev_pct=1.99,
                     confianzas_validas=("ALTA", "MEDIA"),
                 )
         except Exception as err:

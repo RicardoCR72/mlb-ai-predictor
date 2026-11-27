@@ -46,8 +46,8 @@ PRIORS_POSICION = {
     }
 }
 
-# Peso M de observaciones del prior (a mayor M, más conservador el shrinkage)
-M_SHRINKAGE_JUEGOS = 7.0
+# Peso M de observaciones del prior (reducido a 2.5 para no jalar hacia abajo a titulares consolidados)
+M_SHRINKAGE_JUEGOS = 2.5
 
 
 def proyectar_minutos_jugador(

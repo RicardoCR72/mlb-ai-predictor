@@ -253,7 +253,7 @@ def seleccionar_top_props_diarios(df_preds: pd.DataFrame, limite: int = 5) -> pd
         df = df[probs >= 0.54].copy()
     if "ev_pct" in df.columns:
         evs = pd.to_numeric(df["ev_pct"], errors="coerce").fillna(0.0)
-        df = df[evs > 0.0].copy()
+        df = df[evs >= 2.0].copy()
     if "stars" in df.columns:
         df = df[df["stars"].astype(str).str.strip() != "⚪"].copy()
     if df.empty:
@@ -628,8 +628,8 @@ def generar_predicciones_props_hoy(
         p_no_push = prob_over_raw + prob_under_raw
         p_over_cond_raw = (prob_over_raw / p_no_push) if p_no_push > 0 else 0.50
 
-        # 2. Shrinkage hacia el mercado
-        peso_mercado = 0.65 if (over_dec and over_dec >= 2.15) else 0.50
+        # 2. Shrinkage ligero de probabilidad (la proyección ya aplica 60% shrinkage hacia la línea de mercado)
+        peso_mercado = 0.35 if (over_dec and over_dec >= 2.15) else 0.15
         p_over_cond_shrunk = (1.0 - peso_mercado) * p_over_cond_raw + peso_mercado * implied_over
 
         # 3. Clip de seguridad proporcional a la probabilidad implícita justa del mercado

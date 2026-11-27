@@ -206,7 +206,7 @@ def renderizar_ui_props_nba():
         dedupe_col="player_name",
         limite=TOP_N_PICKS,
         min_prob=0.54,
-        min_ev=0.0,
+        min_ev=1.99,
     )
 
     # KPIs de la Selección Top 5
