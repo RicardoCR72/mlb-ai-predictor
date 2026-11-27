@@ -1,27 +1,36 @@
-"""Tests unitarios para el Motor Cuantitativo NBA V2 (Ensamble Spread/ML y Totales)."""
+"""Tests unitarios para el Motor Cuantitativo NBA V2 (Ensamble Spread/ML, Totales y Props)."""
 import unittest
-import joblib
+from unittest.mock import patch
 from pathlib import Path
 import pandas as pd
 
 from nba.entrenar_spread_ml import proyectar_partido_spread, RUTA_MODELOS as RUTA_MOD_SPREAD
 from nba.entrenar_totales import proyectar_partido_totales, RUTA_MODELOS as RUTA_MOD_TOTALES
-from nba.predecir_hoy import cargar_perfiles_recientes_equipos, RUTA_MODELO_SPREAD, RUTA_MODELO_TOTALES
+from nba.predecir_hoy import (
+    cargar_perfiles_recientes_equipos,
+    _calcular_fatiga_en_fecha,
+    RUTA_MODELO_SPREAD,
+    RUTA_MODELO_TOTALES,
+)
+from nba.modelo_minutos_props import proyectar_minutos_jugador, proyectar_prop_por_minuto
 from nba.registro import liquidar_partido, _es_seleccion_local
 
 
 class TestNbaV2(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        import joblib
         cls.bundle_sp = joblib.load(RUTA_MODELO_SPREAD)
         cls.bundle_tot = joblib.load(RUTA_MODELO_TOTALES)
 
     def test_ensamble_spread_ml(self):
-        feats = {c: 0.0 for c in self.bundle_sp["features"]}
-        feats["DIFF_NET_RTG_L10"] = 4.5
-        feats["DIFF_ORTG_L10"] = 3.2
-        feats["HOME_WIN_L10"] = 0.7
-        feats["AWAY_WIN_L10"] = 0.4
+        feats = {c: None for c in self.bundle_sp["features"]}
+        feats["DIFF_NET_RTG_L5"] = 4.5
+        feats["DIFF_NET_RTG_L20"] = 4.0
+        feats["HOME_ORTG_L10"] = 118.0
+        feats["AWAY_ORTG_L10"] = 110.0
+        feats["HOME_DRTG_L10"] = 110.0
+        feats["AWAY_DRTG_L10"] = 115.0
 
         res = proyectar_partido_spread(self.bundle_sp, feats, spread_line=-4.5)
 
@@ -37,8 +46,11 @@ class TestNbaV2(unittest.TestCase):
         self.assertGreater(res["prob_local_win"], 0.50)
 
     def test_ensamble_totales_shrinkage(self):
-        feats = {c: 0.0 for c in self.bundle_tot["features"]}
-        feats["PACE_PROYECTADO_L10"] = 101.5
+        feats = {c: None for c in self.bundle_tot["features"]}
+        feats["HOME_PACE_L5"] = 101.5
+        feats["AWAY_PACE_L5"] = 101.0
+        feats["HOME_PACE_L10"] = 101.5
+        feats["AWAY_PACE_L10"] = 101.0
         feats["HOME_PTS_L10"] = 118.0
         feats["AWAY_PTS_L10"] = 116.0
         feats["HOME_ORTG_L10"] = 116.0
@@ -57,15 +69,55 @@ class TestNbaV2(unittest.TestCase):
         self.assertGreater(res["total_proyectado"], 220.0)
         self.assertLess(res["total_proyectado"], 245.0)
 
+    def test_totales_sin_sesgo_fijo_under(self):
+        feats = {c: None for c in self.bundle_tot["features"]}
+        res_base = proyectar_partido_totales(self.bundle_tot, feats, linea_total=225.0)
+        res_neutro = proyectar_partido_totales(
+            self.bundle_tot, feats, linea_total=res_base["total_raw_modelo"]
+        )
+        self.assertAlmostEqual(res_neutro["prob_over"], 0.5, places=2)
+        self.assertAlmostEqual(res_neutro["prob_under"], 0.5, places=2)
+
     def test_regresion_perfiles_recientes(self):
         perfiles = cargar_perfiles_recientes_equipos()
         self.assertIn("BOS", perfiles)
         self.assertIn("LAL", perfiles)
 
-        bos_pace = perfiles["BOS"]["PACE_L10"]
-        # Debe haber sido regresionado hacia la media de regular season (~100.2)
-        # y no estar en el mínimo de playoffs (~92.8)
-        self.assertGreater(bos_pace, 95.0)
+        bos = perfiles["BOS"]
+        self.assertGreater(bos["PACE_L10"], 95.0)
+        self.assertIn("TOV_PCT_L10", bos)
+        self.assertIn("ORB_PCT_L10", bos)
+        self.assertIn("FT_RATE_L10", bos)
+        self.assertIn("PREV_DATE_2", bos)
+
+        rest_b2b, is_b2b, _ = _calcular_fatiga_en_fecha(
+            {"LAST_DATE": "2026-11-25", "PREV_DATE_2": "2026-11-22"}, "2026-11-26"
+        )
+        self.assertEqual(rest_b2b, 1.0)
+        self.assertEqual(is_b2b, 1)
+
+        rest_off, b2b_off, t3_off = _calcular_fatiga_en_fecha(
+            {"LAST_DATE": "2026-04-12", "PREV_DATE_2": ""}, "2026-10-22"
+        )
+        self.assertEqual((rest_off, b2b_off, t3_off), (3.0, 0, 0))
+
+    def test_props_rebotes_sin_factor_total_y_faltas_opcional(self):
+        df_player = pd.DataFrame({
+            "min": [34.0, 32.0, 35.0, 33.0, 36.0],
+            "reb": [10.0, 9.0, 11.0, 8.0, 12.0],
+            "pts": [24.0, 22.0, 26.0, 20.0, 28.0],
+        })
+        reb_low = proyectar_prop_por_minuto(df_player, "C", "reb", total_partido=205.0)
+        reb_high = proyectar_prop_por_minuto(df_player, "C", "reb", total_partido=245.0)
+        self.assertEqual(reb_low["proyeccion"], reb_high["proyeccion"])
+
+        pts_low = proyectar_prop_por_minuto(df_player, "C", "pts", total_partido=205.0)
+        pts_high = proyectar_prop_por_minuto(df_player, "C", "pts", total_partido=245.0)
+        self.assertGreater(pts_high["proyeccion"], pts_low["proyeccion"])
+
+        m_none = proyectar_minutos_jugador(34.0, 34.0, es_titular=True, faltas_promedio_l5=None)
+        m_fouls = proyectar_minutos_jugador(34.0, 34.0, es_titular=True, faltas_promedio_l5=4.0)
+        self.assertEqual(round(m_none["minutos_proyectados"] - m_fouls["minutos_proyectados"], 1), 2.0)
 
     def test_liquidaciones_nba(self):
         # Totales Over
@@ -170,7 +222,13 @@ class TestNbaV2(unittest.TestCase):
         page_path = Path(__file__).resolve().parents[1] / "pages" / "4_🏀_NBA.py"
         spec = importlib.util.spec_from_file_location("nba_page", page_path)
         nba_page = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(nba_page)
+        with (
+            patch("nba.predecir_hoy.predecir_partidos_hoy", return_value=[]),
+            patch("nba.registro.liquidar_partidos_pendientes_nba", return_value=0),
+            patch("nba.registro.guardar_predicciones_nba", return_value=None),
+            patch("nba.registro.cargar_historial_rendimiento", return_value=pd.DataFrame()),
+        ):
+            spec.loader.exec_module(nba_page)
 
         partido_sin_cuotas = {
             "equipo_local": "Los Angeles Lakers",

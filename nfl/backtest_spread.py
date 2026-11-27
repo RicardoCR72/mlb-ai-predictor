@@ -44,9 +44,13 @@ def cargar_datos_prueba() -> pd.DataFrame:
 
     team_stats = pd.read_parquet(RUTA_EPA_ROLLING)
 
-    home_epa = team_stats[
-        ["game_id", "team", "roll_pass_epa_8", "roll_rush_epa_8", "roll_total_epa_8", "roll_sacks_8"]
-    ].copy()
+    cols_epa = [
+        "game_id", "team",
+        "roll_pass_epa_8", "roll_rush_epa_8", "roll_total_epa_8", "roll_sacks_8",
+        "roll_def_pass_epa_8", "roll_def_rush_epa_8", "roll_def_sacks_8",
+    ]
+
+    home_epa = team_stats[cols_epa].copy()
     home_epa.columns = [
         "game_id",
         "home_team",
@@ -54,11 +58,12 @@ def cargar_datos_prueba() -> pd.DataFrame:
         "home_rush_epa_8",
         "home_total_epa_8",
         "home_sacks_8",
+        "home_def_pass_epa_8",
+        "home_def_rush_epa_8",
+        "home_def_sacks_8",
     ]
 
-    away_epa = team_stats[
-        ["game_id", "team", "roll_pass_epa_8", "roll_rush_epa_8", "roll_total_epa_8", "roll_sacks_8"]
-    ].copy()
+    away_epa = team_stats[cols_epa].copy()
     away_epa.columns = [
         "game_id",
         "away_team",
@@ -66,6 +71,9 @@ def cargar_datos_prueba() -> pd.DataFrame:
         "away_rush_epa_8",
         "away_total_epa_8",
         "away_sacks_8",
+        "away_def_pass_epa_8",
+        "away_def_rush_epa_8",
+        "away_def_sacks_8",
     ]
 
     df = df_games.merge(home_epa, on=["game_id", "home_team"], how="left")
@@ -75,6 +83,9 @@ def cargar_datos_prueba() -> pd.DataFrame:
     df["diff_rush_epa_8"] = (df["home_rush_epa_8"] - df["away_rush_epa_8"]).fillna(0.0)
     df["diff_total_epa_8"] = (df["home_total_epa_8"] - df["away_total_epa_8"]).fillna(0.0)
     df["diff_sacks_8"] = (df["home_sacks_8"] - df["away_sacks_8"]).fillna(0.0)
+    df["diff_def_pass_epa_8"] = (df["home_def_pass_epa_8"] - df["away_def_pass_epa_8"]).fillna(0.0)
+    df["diff_def_rush_epa_8"] = (df["home_def_rush_epa_8"] - df["away_def_rush_epa_8"]).fillna(0.0)
+    df["diff_def_sacks_8"] = (df["home_def_sacks_8"] - df["away_def_sacks_8"]).fillna(0.0)
 
     df = preparar_features_spread(df)
     df["ats_margin"] = df["result"] - df["spread_line"]
@@ -241,7 +252,7 @@ def ejecutar_backtest_completo():
     df_test = cargar_datos_prueba()
     print(f"Partidos totales analizados en ventana de prueba: {len(df_test):,}")
 
-    umbrales = [0.515, 0.518, 0.520, 0.525, 0.530]
+    umbrales = [0.515, 0.520, 0.525, 0.530, 0.540]
     res_umbrales = {}
 
     print("\n📈 1. COMPARATIVA DE RENDIMIENTO POR UMBRAL DE VENTAJA (EDGE):")
@@ -256,8 +267,8 @@ def ejecutar_backtest_completo():
             f"P >= {u:.3f} | {m['total_picks']:<6} | {m['record']:<14} | {m['win_rate_pct']:>6.2f}%   | {m['unidades']:>+7.2f} U  | {m['roi_pct']:>+5.2f}% | {m['max_drawdown']:>6.2f} U | {m['profit_factor']:>6.2f}"
         )
 
-    # Análisis Profundo del Umbral Oficial (0.520)
-    u_oficial = 0.520
+    # Análisis Profundo del Umbral Oficial (0.530)
+    u_oficial = float(getattr(ensamble, "umbral_edge", 0.530))
     df_picks_oficial = simular_estrategia(df_test, ensamble, u_oficial)
     m_oficial = calcular_metricas(df_picks_oficial)
 

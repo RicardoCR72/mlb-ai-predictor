@@ -106,37 +106,37 @@ def fusionar_datos_rival(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def calcular_descanso_y_fatiga(df: pd.DataFrame) -> pd.DataFrame:
-    """Calcula días de descanso, back-to-back y 3-en-4 para cada equipo a lo largo del tiempo."""
-    df = df.sort_values(["TEAM_ABBREVIATION", "GAME_DATE"]).reset_index(drop=True)
+    """Calcula días de descanso, back-to-back y 3-en-4 para cada equipo dentro de cada temporada."""
+    df = df.sort_values(["TEAM_ABBREVIATION", "SEASON", "GAME_DATE"]).reset_index(drop=True)
     
-    # Diferencia de días con el partido anterior del mismo equipo
-    diff_dias = df.groupby("TEAM_ABBREVIATION")["GAME_DATE"].diff().dt.days
+    # Diferencia de días con el partido anterior del mismo equipo en la misma temporada
+    diff_dias = df.groupby(["TEAM_ABBREVIATION", "SEASON"])["GAME_DATE"].diff().dt.days
     
     # Imputar 3 días de descanso (promedio de liga) para el primer partido de temporada
     df["REST_DAYS"] = diff_dias.fillna(3).clip(lower=0, upper=7).astype(float)
     df["IS_B2B"] = (df["REST_DAYS"] == 1).astype(int)
     
-    # 3 partidos en 4 noches
-    diff_2_juegos = df.groupby("TEAM_ABBREVIATION")["GAME_DATE"].diff(2).dt.days
+    # 3 partidos en 4 noches (sin cruzar entre temporadas)
+    diff_2_juegos = df.groupby(["TEAM_ABBREVIATION", "SEASON"])["GAME_DATE"].diff(2).dt.days
     df["IS_3_IN_4"] = (diff_2_juegos <= 4).fillna(False).astype(int)
 
     return df
 
 
 def calcular_medias_rodantes(df: pd.DataFrame) -> pd.DataFrame:
-    """Calcula promedios rodantes L5, L10 y L20 usando estrictamente .shift(1) para evitar Data Leakage."""
-    df = df.sort_values(["TEAM_ABBREVIATION", "GAME_DATE"]).reset_index(drop=True)
+    """Calcula promedios rodantes L5, L10 y L20 por equipo y temporada usando .shift(1) sin Data Leakage."""
+    df = df.sort_values(["TEAM_ABBREVIATION", "SEASON", "GAME_DATE"]).reset_index(drop=True)
 
     metricas_rodantes = [
         "PTS", "OPP_PTS", "PACE", "ORTG", "DRTG", "NET_RTG",
-        "EFG_PCT", "TOV_PCT", "ORB_PCT", "FT_RATE", "WIN"
+        "EFG_PCT", "OPP_EFG_PCT", "TOV_PCT", "ORB_PCT", "FT_RATE", "WIN"
     ]
 
-    grouped = df.groupby("TEAM_ABBREVIATION", group_keys=False)
+    grouped = df.groupby(["TEAM_ABBREVIATION", "SEASON"], group_keys=False)
 
     for ventana in [5, 10, 20]:
         pref = f"L{ventana}"
-        # .shift(1) asegura que el partido de hoy NO esté incluido en la media
+        # .shift(1) asegura que el partido de hoy NO esté incluido en la media ni cruce de temporada
         rodante = grouped[metricas_rodantes].apply(
             lambda x: x.shift(1).rolling(window=ventana, min_periods=2).mean()
         )
@@ -152,7 +152,7 @@ def construir_dataset_partidos(df_teams: pd.DataFrame) -> pd.DataFrame:
     visita = df_teams[df_teams["IS_HOME"] == 0].copy()
 
     # Prefijar columnas para local y visitante
-    cols_meta = ["GAME_ID", "GAME_DATE", "SEASON"]
+    cols_meta = ["GAME_ID", "GAME_DATE", "SEASON", "IS_PLAYOFF"]
     cols_targets_local = ["PTS", "WIN"]
     cols_targets_visita = ["PTS"]
 
@@ -163,7 +163,7 @@ def construir_dataset_partidos(df_teams: pd.DataFrame) -> pd.DataFrame:
         "EFG_PCT_L5", "TOV_PCT_L5", "ORB_PCT_L5", "FT_RATE_L5", "WIN_L5",
         # L10
         "PTS_L10", "OPP_PTS_L10", "PACE_L10", "ORTG_L10", "DRTG_L10", "NET_RTG_L10",
-        "EFG_PCT_L10", "TOV_PCT_L10", "ORB_PCT_L10", "FT_RATE_L10", "WIN_L10",
+        "EFG_PCT_L10", "OPP_EFG_PCT_L10", "TOV_PCT_L10", "ORB_PCT_L10", "FT_RATE_L10", "WIN_L10",
         # L20
         "PTS_L20", "OPP_PTS_L20", "PACE_L20", "ORTG_L20", "DRTG_L20", "NET_RTG_L20",
         "EFG_PCT_L20", "TOV_PCT_L20", "ORB_PCT_L20", "FT_RATE_L20", "WIN_L20",
@@ -217,6 +217,7 @@ def procesar_pipeline_completo() -> pd.DataFrame:
     df_raw = pd.read_parquet(RUTA_RAW)
     # Filtrar solo juegos oficiales (Regular Season '002', Playoffs '004', Play-In '005')
     df_raw = df_raw[df_raw["GAME_ID"].str[:3].isin(["002", "004", "005"])].copy()
+    df_raw["IS_PLAYOFF"] = df_raw["GAME_ID"].str[:3].isin(["004", "005"]).astype(int)
     logger.info(f"Partidos oficiales a procesar: {df_raw['GAME_ID'].nunique():,} ({len(df_raw):,} filas equipo-partido)")
 
     df_home = resolver_local_visitante(df_raw)

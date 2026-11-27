@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import os
 import re
 import subprocess
@@ -24,6 +25,7 @@ from core.asesor_ia import obtener_gemini_api_key
 
 RAIZ = Path(__file__).resolve().parents[1]
 FONT_DIR = "C:/Windows/Fonts"
+logger = logging.getLogger(__name__)
 
 # ==============================================================================
 # 1. GENERADOR DE GUIONES CON PROMPT ESTRICTO DE ALTA RETENCIÓN
@@ -138,10 +140,11 @@ def generar_guion_retencion(datos: Dict[str, Any], gemini_api_key: Optional[str]
             }
         }
         
-        for modelo in ["gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-flash-latest"]:
+        headers = {"x-goog-api-key": key, "Content-Type": "application/json"}
+        for modelo in ["gemini-flash-latest", "gemini-2.5-flash", "gemini-2.0-flash"]:
             try:
-                url = f"https://generativelanguage.googleapis.com/v1beta/models/{modelo}:generateContent?key={key}"
-                resp = requests.post(url, json=payload, timeout=10)
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/{modelo}:generateContent"
+                resp = requests.post(url, json=payload, headers=headers, timeout=10)
                 if resp.status_code == 200:
                     data = resp.json()
                     cands = data.get("candidates", [])
@@ -155,7 +158,8 @@ def generar_guion_retencion(datos: Dict[str, Any], gemini_api_key: Optional[str]
                             if len(palabras) > 45:
                                 texto_limpio = " ".join(palabras[:44]) + ("?" if palabras[-1].endswith("?") else ".")
                             return texto_limpio
-            except Exception:
+            except Exception as err:
+                logger.warning(f"Fallo generando guion con Gemini ({modelo}): {err}")
                 continue
 
     return generar_guion_fallback_con_reglas(datos)
@@ -280,9 +284,19 @@ def limpiar_texto_para_imagen(texto: Any) -> str:
     return ' '.join(s.split()).strip()
 
 def _get_font(name: str, size: int) -> ImageFont.FreeTypeFont:
-    path = os.path.join(FONT_DIR, name)
-    if os.path.exists(path):
-        return ImageFont.truetype(path, size)
+    """Busca tipografía en assets/fonts, Windows Fonts y rutas estándar Linux antes de caer al default."""
+    candidatos = [
+        RAIZ / "assets" / "fonts" / name,
+        Path(FONT_DIR) / name,
+        Path("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"),
+        Path("/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf"),
+    ]
+    for path in candidatos:
+        if path.exists():
+            try:
+                return ImageFont.truetype(str(path), size)
+            except Exception:
+                continue
     return ImageFont.load_default()
 
 def _draw_text_fitted(draw: ImageDraw.ImageDraw, pos: Tuple[int, int], text: str, font_name: str, 

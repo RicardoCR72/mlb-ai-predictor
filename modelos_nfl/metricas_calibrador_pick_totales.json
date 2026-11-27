@@ -47,21 +47,21 @@
     },
     {
       "season": 2026,
-      "picks_totales": 33,
-      "logloss": 0.6844783622810166,
-      "brier": 0.24567527109368018,
-      "auc": 0.6029411764705883,
-      "ece_10": 0.030061304930655237,
-      "prob_pick_media": 0.5216334519916602,
-      "acierto_real": 0.5151515151515151,
+      "picks_totales": 138,
+      "logloss": 0.6954838768369185,
+      "brier": 0.25112335549743403,
+      "auc": 0.5257515240697919,
+      "ece_10": 0.01955503105478565,
+      "prob_pick_media": 0.5129492203883735,
+      "acierto_real": 0.5144927536231884,
       "edge_minimo": 3.0,
-      "picks_filtrados": 18,
-      "prob_filtrada_media": 0.5501405062821175,
-      "acierto_filtrado": 0.6111111111111112,
-      "overs_filtrados": 15,
-      "unders_filtrados": 3,
-      "roi_filtrado": 0.1701468967165838,
-      "ev_estimado_medio": 0.05072039824518024
+      "picks_filtrados": 55,
+      "prob_filtrada_media": 0.5491581957922111,
+      "acierto_filtrado": 0.6,
+      "overs_filtrados": 44,
+      "unders_filtrados": 11,
+      "roi_filtrado": 0.15035278101041286,
+      "ev_estimado_medio": 0.052372139817802574
     }
   ]
 }

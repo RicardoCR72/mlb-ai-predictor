@@ -110,13 +110,44 @@ def render_cartelera(predicciones: list[dict]):
         st.info("🏈 No hay partidos programados para la NFL en este momento.")
         return
 
+    from core.filtro_top5 import TOP_N_PICKS, etiqueta_top, filtrar_top5_picks_dict
     from core.ui_tarjeta_universal import render_tarjeta_universal
     from core.ui_boleta import parsear_cuota_decimal, render_widget_boleta
     from nfl.ui_lesiones_helper import crear_callback_lesiones_nfl
 
-    pendientes = [p for p in predicciones if p.get("resultado_pick") not in ["GANADA", "PERDIDA", "PUSH"]]
-    liquidados = [p for p in predicciones if p.get("resultado_pick") in ["GANADA", "PERDIDA", "PUSH"]]
-    picks_calificados = sum(1 for p in predicciones if p.get("confianza") in ["ALTA", "MEDIA"])
+    # Helper de cálculo/extracción de EV%
+    def _get_ev_nfl_ml(p: dict) -> float:
+        ev = p.get("ev_estimado")
+        if ev is not None:
+            try:
+                return float(ev)
+            except (ValueError, TypeError):
+                pass
+        c = parsear_cuota_decimal(p.get("pick_cuota"))
+        prob = float(p.get("pick_probabilidad") or p.get("pick_prob") or 0.5)
+        if c > 1.0 and prob > 0:
+            return (prob * c - 1.0) * 100.0
+        return float(p.get("pick_edge", 0.0) or 0.0) * 100.0
+
+    # Helper para determinar si el partido está concluido
+    def _es_partido_final_ml(p: dict) -> bool:
+        res = str(p.get("resultado_pick") or "").upper()
+        st_raw = str(p.get("estado") or "").upper()
+        return res in ["GANADA", "PERDIDA", "PUSH"] or "FINAL" in st_raw
+
+    pendientes = [p for p in predicciones if not _es_partido_final_ml(p)]
+    liquidados = [p for p in predicciones if _es_partido_final_ml(p)]
+    top5_ml = filtrar_top5_picks_dict(
+        pendientes,
+        get_conf=lambda p: p.get("confianza"),
+        get_prob=lambda p: p.get("pick_probabilidad") or p.get("pick_prob"),
+        get_ev=_get_ev_nfl_ml,
+        get_id_unico=lambda p: p.get("id_evento") or p.get("id_juego") or p.get("partido"),
+        limite=TOP_N_PICKS,
+        min_prob=0.53,
+        min_ev=0.0,
+        confianzas_validas=("ALTA", "MEDIA"),
+    )
 
     # Métricas clave superiores
     c1, c2, c3, c4 = st.columns(4)
@@ -127,21 +158,18 @@ def render_cartelera(predicciones: list[dict]):
     with c3:
         st.metric("Finalizados", len(liquidados))
     with c4:
-        st.metric("Picks Calificados (+EV)", picks_calificados)
+        st.metric("🏆 Top Picks (+EV)", f"{len(top5_ml)} / {TOP_N_PICKS}")
 
     st.markdown("<div style='margin-bottom: 1.25rem;'></div>", unsafe_allow_html=True)
 
-    # Filtros ejecutivos homologados con NBA y Fútbol
-    f_col1, f_col2, f_col3 = st.columns([1.6, 1.2, 1.2], gap="medium")
+    # Filtros de contexto (Top 5 +EV siempre automático en próximos)
+    f_col1, f_col3 = st.columns([2.0, 1.3], gap="medium")
     with f_col1:
         busqueda_nfl = st.text_input(
             "Buscar equipo NFL",
             key="nfl_ml_search_input",
             placeholder="🔍 Ej: Chiefs, 49ers, Eagles, Cowboys, Ravens...",
         ).strip().lower()
-    with f_col2:
-        st.markdown("<div style='margin-top: 1.8rem;'></div>", unsafe_allow_html=True)
-        solo_ev = st.checkbox("🔥 Solo picks Calificados (+EV)", key="nfl_ml_ev_filter")
     with f_col3:
         filtro_estado = st.selectbox(
             "Estado:",
@@ -160,47 +188,34 @@ def render_cartelera(predicciones: list[dict]):
                 busqueda_nfl in str(p.get("partido", "")).lower())
         ]
 
-    # Helper para determinar si el partido está concluido
-    def _es_partido_final_ml(p: dict) -> bool:
-        res = str(p.get("resultado_pick") or "").upper()
-        st_raw = str(p.get("estado") or "").upper()
-        return res in ["GANADA", "PERDIDA", "PUSH"] or "FINAL" in st_raw
-
     # 2. Filtro por estado
     if filtro_estado == "Solo Próximos (Por Jugar)":
         lista_mostrar = [p for p in lista_mostrar if not _es_partido_final_ml(p)]
     elif filtro_estado == "Solo Finalizados":
         lista_mostrar = [p for p in lista_mostrar if _es_partido_final_ml(p)]
 
-    # Helper de cálculo/extracción de EV%
-    def _get_ev_nfl_ml(p: dict) -> float:
-        ev = p.get("ev_estimado")
-        if ev is not None:
-            try:
-                return float(ev)
-            except (ValueError, TypeError):
-                pass
-        c = parsear_cuota_decimal(p.get("pick_cuota"))
-        prob = float(p.get("pick_probabilidad") or p.get("pick_prob") or 0.5)
-        if c > 1.0 and prob > 0:
-            return (prob * c - 1.0) * 100.0
-        return float(p.get("pick_edge", 0.0) or 0.0) * 100.0
-
-    # 3. Filtro "Solo Picks Calificados ordenados de Mayor a Menor EV%"
-    if solo_ev:
-        lista_mostrar = [
-            p for p in lista_mostrar
-            if p.get("confianza") in ["ALTA", "MEDIA"] and _get_ev_nfl_ml(p) > 0
-        ]
+    # 3. Filtro estricto Top 5 para cartelera activa (sin neutrales ni bajo valor)
+    if filtro_estado != "Solo Finalizados":
+        lista_mostrar = filtrar_top5_picks_dict(
+            lista_mostrar,
+            get_conf=lambda p: p.get("confianza"),
+            get_prob=lambda p: p.get("pick_probabilidad") or p.get("pick_prob"),
+            get_ev=_get_ev_nfl_ml,
+            get_id_unico=lambda p: p.get("id_evento") or p.get("id_juego") or p.get("partido"),
+            limite=TOP_N_PICKS,
+            min_prob=0.53,
+            min_ev=0.0,
+            confianzas_validas=("ALTA", "MEDIA"),
+        )
         if lista_mostrar:
-            lista_mostrar.sort(key=_get_ev_nfl_ml, reverse=True)
-            st.caption("🔥 Mostrando picks calificados ordenados de **Mayor a Menor Valor Esperado (+EV)**.")
+            st.caption(
+                f"🏆 **Filtro Automático Top {TOP_N_PICKS}:** Mostrando los **{len(lista_mostrar)} Moneylines más confiables con +EV** (sin líneas neutrales)."
+            )
     else:
-        # Orden natural por EV descendente
         lista_mostrar.sort(key=_get_ev_nfl_ml, reverse=True)
 
     if not lista_mostrar:
-        st.warning("No hay partidos o picks que coincidan con los filtros de búsqueda seleccionados.")
+        st.info("🛡️ Hoy no hay partidos NFL Moneyline que superen el umbral estricto de seguridad y +EV.")
         return
 
     # Renderizar tarjetas individuales homologadas
@@ -253,16 +268,8 @@ def render_cartelera(predicciones: list[dict]):
         cuota_dec = float(p.get("pick_cuota_dec") or parsear_cuota_decimal(pick_cuota) or 1.909)
         prob_modelo_pick = float(p.get("pick_probabilidad") or (prob_h / 100 if home in pick_sel else prob_a / 100))
 
-        # Asignación estricta de estrellas por Valor Esperado Positivo (+EV)
-        if ev_val > 0:
-            if conf == "ALTA" or ev_val >= 10.0:
-                estrellas = "⭐⭐⭐"
-            elif conf == "MEDIA" or ev_val >= 5.0:
-                estrellas = "⭐⭐"
-            else:
-                estrellas = "⭐"
-        else:
-            estrellas = "⚪"
+        # Insignia oficial Top N (sin estrellas ruidosas)
+        estrellas = etiqueta_top(idx + 1)
 
         diff_epa = float(p.get("diff_total_epa", 0.0) or 0.0)
         diff_ol = float(p.get("diff_injury_ol", 0.0) or 0.0)

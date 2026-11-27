@@ -9,25 +9,26 @@ import pandas as pd
 import streamlit as st
 
 from core.constants import ZONA_CDMX
+from core.filtro_top5 import TOP_N_PICKS, CONFIANZAS_EXCLUIDAS, etiqueta_top
 from core.ui_boleta import parsear_cuota_decimal, obtener_boleta, alternar_en_boleta, esta_en_boleta
 
 RAIZ = Path(__file__).resolve().parents[1]
 
 
 @st.cache_data(ttl=60)
-def obtener_picks_candado_del_dia(max_picks: int = 4, modo: str = "global") -> list[dict]:
-    """Recolecta y clasifica las mejores recomendaciones del día de todos los deportes con mayor EV%.
+def obtener_picks_candado_del_dia(max_picks: int = TOP_N_PICKS, modo: str = "global") -> list[dict]:
+    """Recolecta y clasifica las mejores recomendaciones del día de todos los deportes con mayor seguridad y +EV.
 
     Modos disponibles:
-      - 'global': Los 4 picks con mayor EV% absoluto de cualquier deporte (sin duplicar jugador/partido).
-      - 'balanceado': Garantiza presencia multi-deporte (1 mejor de NBA, 1 mejor de NFL, 1 mejor de Fútbol + 1 mejor restante).
-      - 'props': Únicamente props individuales de jugadores con alto valor esperado.
+      - 'global': Los Top 5 picks más seguros y con mayor EV% de cualquier deporte (sin duplicar jugador/partido).
+      - 'balanceado': Garantiza presencia multi-deporte (1 mejor de NBA, 1 mejor de NFL, 1 mejor de Fútbol + los mejores restantes hasta 5).
+      - 'props': Únicamente props individuales de jugadores con alta confianza y valor esperado.
       - 'juegos': Únicamente mercados de juego directo (Moneyline, Totales y Spread).
     """
     hoy_cdmx = datetime.now(ZONA_CDMX).strftime("%Y-%m-%d")
     candidatos = []
 
-    # 1. NBA Props de Jugadores (Alto EV)
+    # 1. NBA Props de Jugadores (Alta confianza + EV)
     p_nba_props = RAIZ / "data" / "nba" / "predictions" / "predicciones_props_nba_hoy.json"
     if p_nba_props.exists():
         try:
@@ -38,6 +39,8 @@ def obtener_picks_candado_del_dia(max_picks: int = 4, modo: str = "global") -> l
                 f_j = str(p.get("fecha") or "")[:10]
                 if f_j and f_j < hoy_cdmx:
                     continue
+                if str(p.get("stars") or "").strip() == "⚪":
+                    continue
                 player = p.get("player_name") or p.get("player_clean", "")
                 if player in seen_players:
                     continue
@@ -46,7 +49,7 @@ def obtener_picks_candado_del_dia(max_picks: int = 4, modo: str = "global") -> l
                 c_dec = float(p.get("pick_odds_decimal") or parsear_cuota_decimal(c_am))
                 ev = float(p.get("ev_pct") or ((prob * c_dec - 1.0) * 100.0))
 
-                if ev > 4.0 and prob >= 0.55:
+                if ev > 2.0 and prob >= 0.54:
                     seen_players.add(player)
                     candidatos.append({
                         "id": f"NBA_PROP_{player}_{p.get('market')}_{p.get('pick_type')}_{p.get('line')}",
@@ -67,7 +70,7 @@ def obtener_picks_candado_del_dia(max_picks: int = 4, modo: str = "global") -> l
                         "probabilidad": prob,
                         "edge": round(prob - (1.0 / c_dec if c_dec > 0 else 0.5238), 4),
                         "ev_pct": round(ev, 1),
-                        "confianza": p.get("confidence", "ALTA"),
+                        "confianza": str(p.get("confidence") or "ALTA").upper(),
                         "pagina": "pages/4_🏀_NBA.py",
                         "detalle": p.get("trend") or f"Proyección {p.get('projection')} vs línea {p.get('line')}",
                     })
@@ -89,12 +92,16 @@ def obtener_picks_candado_del_dia(max_picks: int = 4, modo: str = "global") -> l
                 if "FINAL" in estado or res in ["GANADA", "PERDIDA", "PUSH"]:
                     continue
 
+                conf = str(j.get("confianza") or "MEDIA").strip().upper()
+                if conf in CONFIANZAS_EXCLUIDAS or conf not in ("ALTA", "MEDIA"):
+                    continue
+
                 prob = float(j.get("pick_probabilidad") or 0.5)
                 c_am = str(j.get("pick_cuota") or "-110")
                 c_dec = float(j.get("pick_cuota_dec") or parsear_cuota_decimal(c_am))
                 ev = float(j.get("pick_ev") or ((prob * c_dec - 1.0) * 100.0))
 
-                if ev > 2.0 and prob >= 0.53:
+                if ev > 0.0 and prob >= 0.53:
                     candidatos.append({
                         "id": f"NBA_GAME_{j.get('id_evento')}_{j.get('pick_mercado')}_{j.get('pick_seleccion')}",
                         "deporte": "NBA",
@@ -114,14 +121,14 @@ def obtener_picks_candado_del_dia(max_picks: int = 4, modo: str = "global") -> l
                         "probabilidad": prob,
                         "edge": float(j.get("pick_edge") or 0.0),
                         "ev_pct": round(ev, 1),
-                        "confianza": j.get("confianza", "MEDIA"),
+                        "confianza": conf,
                         "pagina": "pages/4_🏀_NBA.py",
                         "detalle": j.get("pick_detalle") or f"Línea de casa {j.get('linea_total', '')}",
                     })
         except Exception:
             pass
 
-    # 3. NFL Moneyline y Totales
+    # 3. NFL Moneyline
     p_nfl = RAIZ / "data" / "nfl" / "predictions" / "predicciones_nfl_moneyline.json"
     if p_nfl.exists():
         try:
@@ -136,12 +143,16 @@ def obtener_picks_candado_del_dia(max_picks: int = 4, modo: str = "global") -> l
                 if "FINAL" in estado or res in ["GANADA", "PERDIDA", "PUSH"]:
                     continue
 
+                conf = str(j.get("confianza") or "MEDIA").strip().upper()
+                if conf in CONFIANZAS_EXCLUIDAS or conf not in ("ALTA", "MEDIA"):
+                    continue
+
                 prob = float(j.get("pick_probabilidad") or j.get("prob_pick_ml", 0.5))
                 c_am = str(j.get("pick_cuota") or j.get("momio_pick_ml", "-110"))
                 c_dec = float(j.get("pick_cuota_dec") or parsear_cuota_decimal(c_am))
                 ev = float(j.get("ev_estimado") or ((prob * c_dec - 1.0) * 100.0))
 
-                if ev > 0.0 and prob >= 0.50:
+                if ev > 0.0 and prob >= 0.53:
                     candidatos.append({
                         "id": f"NFL_ML_{j.get('id_evento')}_{j.get('pick_seleccion')}",
                         "deporte": "NFL",
@@ -161,9 +172,54 @@ def obtener_picks_candado_del_dia(max_picks: int = 4, modo: str = "global") -> l
                         "probabilidad": prob,
                         "edge": float(j.get("pick_edge") or 0.0),
                         "ev_pct": round(ev, 1),
-                        "confianza": j.get("confianza", "MEDIA"),
+                        "confianza": conf,
                         "pagina": "pages/2_🏈_NFL.py",
                         "detalle": j.get("pick_detalle") or "Ventaja matemática en Moneyline",
+                    })
+        except Exception:
+            pass
+
+    # 3b. NFL Spread / ATS (solo recomendar == True y +EV)
+    p_nfl_sp = RAIZ / "data" / "nfl" / "predictions" / "predicciones_nfl_spread.json"
+    if p_nfl_sp.exists():
+        try:
+            with open(p_nfl_sp, "r", encoding="utf-8") as f:
+                data_sp = json.load(f)
+            preds_sp = data_sp.get("predicciones", []) if isinstance(data_sp, dict) else data_sp
+            for j in preds_sp:
+                if not j.get("recomendar"):
+                    continue
+                f_j = str(j.get("gameday") or "")[:10]
+                if f_j and f_j < hoy_cdmx:
+                    continue
+                prob = float(j.get("prob_seleccion") or 0.5)
+                ev = float(j.get("ev_esperado_pct") or 0.0)
+                if ev > 0.0 and prob >= 0.53:
+                    linea_pk = j.get("linea_pick", "")
+                    sel_sp = f"{j.get('pick', '')} {linea_pk}".strip()
+                    partido_sp = f"{j.get('away_team', '')} @ {j.get('home_team', '')}".strip()
+                    candidatos.append({
+                        "id": f"NFL_SPREAD_{partido_sp}_{sel_sp}",
+                        "deporte": "NFL",
+                        "icono": "🏈",
+                        "tipo": "Juego",
+                        "color": "#b7ff3c",
+                        "color_bg": "rgba(183, 255, 60, 0.12)",
+                        "color_border": "rgba(183, 255, 60, 0.4)",
+                        "liga": f"NFL · Spread ATS",
+                        "partido": partido_sp,
+                        "fecha": j.get("gameday") or hoy_cdmx,
+                        "hora": "",
+                        "mercado": "Spread (ATS)",
+                        "seleccion": sel_sp,
+                        "cuota": "-110",
+                        "cuota_dec": 1.909,
+                        "probabilidad": prob,
+                        "edge": float(j.get("edge_modelo") or 0.0),
+                        "ev_pct": round(ev, 1),
+                        "confianza": "ALTA",
+                        "pagina": "pages/2_🏈_NFL.py",
+                        "detalle": f"Cobertura estimada {prob*100:.1f}% vs -110",
                     })
         except Exception:
             pass
@@ -185,12 +241,16 @@ def obtener_picks_candado_del_dia(max_picks: int = 4, modo: str = "global") -> l
                 if "FINAL" in estado or "FULL_TIME" in estado or res in ["GANADA", "PERDIDA", "PUSH"]:
                     continue
 
+                conf = str(j.get("confianza") or "MEDIA").strip().upper()
+                if conf in CONFIANZAS_EXCLUIDAS or conf not in ("ALTA", "MEDIA"):
+                    continue
+
                 prob = float(j.get("pick_probabilidad") or 0.5)
                 c_am = str(j.get("pick_cuota") or "-110")
                 c_dec = float(j.get("pick_cuota_dec") or parsear_cuota_decimal(c_am))
                 ev = float(j.get("pick_ev") or ((prob * c_dec - 1.0) * 100.0))
 
-                if ev > 0.0 and prob >= 0.50:
+                if ev > 0.0 and prob >= 0.53:
                     candidatos.append({
                         "id": f"FUTBOL_{j.get('id_evento')}_{j.get('pick_mercado')}_{j.get('pick_seleccion')}",
                         "deporte": "Fútbol",
@@ -210,7 +270,7 @@ def obtener_picks_candado_del_dia(max_picks: int = 4, modo: str = "global") -> l
                         "probabilidad": prob,
                         "edge": float(j.get("pick_edge") or 0.0),
                         "ev_pct": round(ev, 1),
-                        "confianza": j.get("confianza", "MEDIA"),
+                        "confianza": conf,
                         "pagina": "pages/3_⚽_Futbol.py",
                         "detalle": j.get("pick_detalle") or "Modelo xG y ventaja en momio",
                     })
@@ -223,8 +283,15 @@ def obtener_picks_candado_del_dia(max_picks: int = 4, modo: str = "global") -> l
     elif modo == "juegos":
         candidatos = [c for c in candidatos if c.get("tipo") == "Juego"]
 
-    # Ordenar estrictamente por mayor EV% y mayor probabilidad
-    candidatos.sort(key=lambda x: (round(x.get("ev_pct", 0.0), 2), round(x.get("probabilidad", 0.0), 4)), reverse=True)
+    # Ordenar estrictamente por seguridad (confianza + probabilidad) y mayor EV%
+    candidatos.sort(
+        key=lambda x: (
+            1 if str(x.get("confianza", "")).upper() == "ALTA" else 0,
+            round(x.get("probabilidad", 0.0), 4),
+            round(x.get("ev_pct", 0.0), 2),
+        ),
+        reverse=True,
+    )
 
     if modo == "balanceado":
         # Asegura representación de los 3 deportes activos (1 NBA, 1 NFL, 1 Fútbol)
@@ -235,46 +302,48 @@ def obtener_picks_candado_del_dia(max_picks: int = 4, modo: str = "global") -> l
             if pick_dep:
                 balanceados.append(pick_dep)
                 deportes_cubiertos.add(pick_dep["id"])
-        # Completar hasta max_picks con los restantes de mayor EV
+        # Completar hasta max_picks con los restantes de mayor seguridad y EV
         for c in candidatos:
             if len(balanceados) >= max_picks:
                 break
             if c["id"] not in deportes_cubiertos:
                 balanceados.append(c)
                 deportes_cubiertos.add(c["id"])
-        return balanceados[:max_picks]
+        resultado = balanceados[:max_picks]
+    else:
+        # Modo global o filtrado: deduplicar para que no haya dos picks del mismo partido
+        resultado = []
+        seen_matches = set()
+        for c in candidatos:
+            match_key = f"{c['deporte']}_{c['partido']}"
+            if match_key in seen_matches:
+                continue
+            seen_matches.add(match_key)
+            resultado.append(c)
+            if len(resultado) >= max_picks:
+                break
 
-    # Modo global o filtrado: deduplicar para que no haya dos picks del mismo partido
-    final_picks = []
-    seen_matches = set()
-    for c in candidatos:
-        match_key = f"{c['deporte']}_{c['partido']}"
-        if match_key in seen_matches:
-            continue
-        seen_matches.add(match_key)
-        final_picks.append(c)
-        if len(final_picks) >= max_picks:
-            break
-
-    return final_picks
+    for idx, item in enumerate(resultado):
+        item["estrellas"] = etiqueta_top(idx + 1)
+    return resultado
 
 
 # Alias de retrocompatibilidad
-def obtener_top_picks_del_dia(max_picks: int = 4) -> list[dict]:
+def obtener_top_picks_del_dia(max_picks: int = TOP_N_PICKS) -> list[dict]:
     return obtener_picks_candado_del_dia(max_picks=max_picks, modo="global")
 
 
 def render_top_picks_section():
-    """Renderiza la sección destacada de Picks Candado del Día (+EV) con botón de boleta rápida."""
+    """Renderiza la sección destacada de Top 5 Picks Más Confiables del Día (+EV) con botón de boleta rápida."""
     # Control de Modo de Candados
     if "candados_modo" not in st.session_state:
         st.session_state["candados_modo"] = "global"
 
     opciones_modo = {
-        "🔥 Top 4 Máximo EV Global": "global",
+        "🔥 Top 5 Más Seguros Global": "global",
         "🌐 Balance Multi-Deporte (NBA, NFL, Fútbol)": "balanceado",
         "📊 Solo Props de Jugador": "props",
-        "🏟️ Solo Mercados de Juego (ML / Totales)": "juegos",
+        "🏟️ Solo Mercados de Juego (ML / Totales / Spread)": "juegos",
     }
 
     # Contenedor superior con diseño Candado Neon
@@ -284,13 +353,13 @@ def render_top_picks_section():
         st.markdown(
             '<div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.2rem;">'
             '<span style="font-size:1.35rem;">🔒</span>'
-            '<h3 style="margin:0; font-size:1.3rem; font-weight:900; color:#ffffff; letter-spacing:-0.01em;">Picks Candado del Día (+EV)</h3>'
+            '<h3 style="margin:0; font-size:1.3rem; font-weight:900; color:#ffffff; letter-spacing:-0.01em;">Top 5 Picks Más Confiables del Día</h3>'
             '<span style="font-size:0.70rem; font-weight:800; color:#ffd700; background:rgba(255,215,0,0.12); border:1px solid rgba(255,215,0,0.35); padding:0.2rem 0.55rem; border-radius:12px;">'
-            'MÁXIMA VENTAJA MATEMÁTICA'
+            'FILTRO AUTOMÁTICO ALTA CONFIANZA'
             '</span>'
             '</div>'
             '<div style="font-size:0.83rem; color:#94a3b8; line-height:1.45;">'
-            'Acceso rápido a las mejores selecciones con mayor Valor Esperado de toda la plataforma combinada (NBA, NFL y Fútbol).'
+            'Selección automática del Top 5 con mayor probabilidad estadística y Valor Esperado positivo (+EV), sin ruido ni líneas neutrales.'
             '</div>',
             unsafe_allow_html=True,
         )
@@ -305,7 +374,7 @@ def render_top_picks_section():
     )
     modo_activo = opciones_modo.get(modo_sel_label, "global")
 
-    candados = obtener_picks_candado_del_dia(max_picks=4, modo=modo_activo)
+    candados = obtener_picks_candado_del_dia(max_picks=TOP_N_PICKS, modo=modo_activo)
     if not candados:
         st.info("No hay pronósticos activos con Valor Esperado positivo (+EV) para los filtros seleccionados.")
         return
@@ -377,7 +446,7 @@ def render_top_picks_section():
                 f'<div class="top-pick-sel" style="color:#ffffff; font-size:1.12rem; font-weight:900; margin:0.2rem 0 0.3rem;">{p["seleccion"]}</div>'
                 f'<div style="display:flex; justify-content:space-between; align-items:center; font-size:0.75rem; color:#a4b3c6;">'
                 f'<span>Momio: <b style="color:#ffffff;">{cuota_str}</b></span>'
-                f'<span style="color:#ffd700; font-weight:800;">🔒 CANDADO</span>'
+                f'<span style="color:#ffd700; font-weight:800;">{p.get("estrellas", etiqueta_top(idx + 1))}</span>'
                 f'</div>'
                 f'</div>'
                 f'</div>'

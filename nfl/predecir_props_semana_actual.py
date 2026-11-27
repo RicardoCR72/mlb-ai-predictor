@@ -723,10 +723,7 @@ def agregar_lineas_y_probabilidades(proyecciones, lineas):
         diff_cruda = proy_cruda - linea_val
 
         # -------------------------------------------------------------
-        # 2. Estimación de Probabilidad Empírica + Penalización por Sesgo Under
-        # En la NFL, eventos imprevistos (lesiones tempranas, palizas/blowouts,
-        # castigos de holding, castigo de reloj) perjudican sistemáticamente al OVER.
-        # Descuento institucional: -4% (-0.04) a la probabilidad de OVER.
+        # 2. Estimación de Probabilidad Empírica (sin penalización fija artificial)
         # -------------------------------------------------------------
         if fila.tipo_prop in {"receptions", "receiving_yards"}:
             residuos = calibracion_recepcion[
@@ -738,14 +735,14 @@ def agregar_lineas_y_probabilidades(proyecciones, lineas):
                     calibracion_recepcion["objetivo"] == fila.tipo_prop
                 ]["error"].dropna()
             prob_raw = float((residuos < diff_cruda).mean())
-            probabilidad = float(np.clip(prob_raw - 0.04, 0.05, 0.95))
+            probabilidad = float(np.clip(prob_raw, 0.05, 0.95))
             seleccion = "OVER" if probabilidad >= 0.50 else "UNDER"
             edge = edge_calibrado
 
         elif fila.tipo_prop in {"passing_yards", "rushing_yards"}:
             residuos = np.asarray(residuos_pc[fila.tipo_prop], dtype=float)
             prob_raw = float(np.mean(residuos < diff_cruda))
-            probabilidad = float(np.clip(prob_raw - 0.04, 0.05, 0.95))
+            probabilidad = float(np.clip(prob_raw, 0.05, 0.95))
             seleccion = "OVER" if probabilidad >= 0.50 else "UNDER"
             edge = edge_calibrado
 
@@ -755,14 +752,14 @@ def agregar_lineas_y_probabilidades(proyecciones, lineas):
             if calibrador and calibrador.get("metodo") == "logistico":
                 z = (
                     float(calibrador["intercepto"])
-                    + float(calibrador["coeficiente"]) * proy_calibrada
+                    + float(calibrador["coeficiente"]) * proy_cruda
                 )
                 prob_raw = float(1 / (1 + np.exp(-np.clip(z, -35, 35))))
             else:
                 prob_raw = float(
-                    1 - poisson.cdf(np.floor(linea_val), max(proy_calibrada, 1e-6))
+                    1 - poisson.cdf(np.floor(linea_val), max(proy_cruda, 1e-6))
                 )
-            probabilidad = float(np.clip(prob_raw - 0.04, 0.05, 0.95))
+            probabilidad = float(np.clip(prob_raw, 0.05, 0.95))
             seleccion = "OVER" if probabilidad >= 0.50 else "UNDER"
             edge = edge_calibrado
 

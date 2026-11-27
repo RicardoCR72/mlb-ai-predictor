@@ -1,18 +1,17 @@
-"""Entrenamiento del Modelo de Moneyline NFL V2 (Ensamble EPA + LightGBM + Logistic Regression).
+"""Entrenamiento del Modelo de Moneyline NFL V2 (Ensamble EPA + HistGradientBoosting + Logistic Regression).
 
 Incorpora:
-1. Métricas causales avanzadas de EPA (Expected Points Added) de nflverse/nflreadpy:
-   - Passing EPA rodante (8 partidos)
-   - Rushing EPA rodante (8 partidos)
-   - Total Offensive EPA rodante (8 partidos)
-   - Sacks sufridos rodante (8 partidos)
+1. Métricas causales avanzadas ofensivas y defensivas de EPA (Expected Points Added) de nflverse/nflreadpy:
+   - Passing/Rushing EPA ofensivo rodante (8 partidos, dentro de cada temporada)
+   - Passing/Rushing EPA defensivo permitido rodante (8 partidos, dentro de cada temporada)
+   - Sacks sufridos y sacks generados rodante (8 partidos)
 2. Salud posicional diferencial:
    - Lesión de Mariscal de Campo titular (QB)
    - Lesión de Línea Ofensiva (OL) - factor crítico de protección y bolsa de pase
    - Lesión en Defensiva (Front 7 y Secundaria)
-3. Ensamble ponderado calibrado:
-   - Logistic Regression regularizada L2 (C=0.08)
-   - LightGBM Classifier con calibración de probabilidad sigmoidea
+3. Ensamble ponderado calibrado sin dependencias externas:
+   - StandardScaler + Logistic Regression regularizada L2 (C=0.08)
+   - HistGradientBoostingClassifier con calibración de probabilidad sigmoidea
 4. Filtro de Zona Muerta / Números Clave para evitar picks con EV negativo.
 """
 from __future__ import annotations
@@ -28,12 +27,14 @@ except Exception:
     pass
 
 import joblib
-import lightgbm as lgb
 import numpy as np
 import pandas as pd
 from sklearn.calibration import CalibratedClassifierCV
+from sklearn.ensemble import HistGradientBoostingClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, brier_score_loss, log_loss, roc_auc_score
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
 
 RAIZ = Path(__file__).resolve().parents[1]
 if str(RAIZ) not in sys.path:
@@ -49,11 +50,12 @@ RUTA_METADATA = RAIZ / "modelos_nfl" / "metadata_moneyline_nfl.json"
 
 FEATURES_MONEYLINE_V2 = [
     "spread_line",
-    "diff_total_epa_8",
     "diff_pass_epa_8",
     "diff_rush_epa_8",
     "diff_sacks_8",
-    "diff_margin_avg_8",
+    "diff_def_pass_epa_8",
+    "diff_def_rush_epa_8",
+    "diff_def_sacks_8",
     "diff_points_for_avg_8",
     "diff_points_against_avg_8",
     "diff_win_pct_8",
@@ -70,8 +72,8 @@ FEATURES_MONEYLINE_V2 = [
 
 
 def calcular_epa_rodante_equipos(df_games: pd.DataFrame, df_players: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Calcula métricas rodantes causales de EPA por equipo y las une a cada juego."""
-    print("📊 Agregando estadísticas de jugadores y calculando EPA causal por equipo...")
+    """Calcula métricas rodantes causales ofensivas y defensivas de EPA por equipo y las une a cada juego."""
+    print("📊 Agregando estadísticas de jugadores y calculando EPA causal ofensivo/defensivo por equipo...")
     team_stats = (
         df_players.groupby(["game_id", "team"])
         .agg(
@@ -83,32 +85,71 @@ def calcular_epa_rodante_equipos(df_games: pd.DataFrame, df_players: pd.DataFram
     )
     team_stats["total_epa"] = team_stats["passing_epa"] + team_stats["rushing_epa"]
 
+    # Cruzar con el rival del mismo partido para obtener métricas defensivas permitidas/generadas
+    opp_stats = team_stats[["game_id", "team", "passing_epa", "rushing_epa", "sacks_suffered"]].rename(
+        columns={
+            "team": "opp_team",
+            "passing_epa": "def_pass_epa_allowed",
+            "rushing_epa": "def_rush_epa_allowed",
+            "sacks_suffered": "def_sacks_gen",
+        }
+    )
+    team_merged = team_stats.merge(opp_stats, on="game_id", how="left")
+    team_merged = team_merged[team_merged["team"] != team_merged["opp_team"]].drop_duplicates(
+        subset=["game_id", "team"]
+    )
+    team_stats = team_stats.merge(
+        team_merged[["game_id", "team", "def_pass_epa_allowed", "def_rush_epa_allowed", "def_sacks_gen"]],
+        on=["game_id", "team"],
+        how="left",
+    )
+
     sched = df_games[["game_id", "season", "week", "gameday", "home_team", "away_team"]].copy()
     team_stats = team_stats.merge(sched[["game_id", "season", "week", "gameday"]], on="game_id")
-    team_stats = team_stats.sort_values(["team", "gameday", "week"]).reset_index(drop=True)
+    team_stats = team_stats.sort_values(["team", "season", "gameday", "week"]).reset_index(drop=True)
 
-    # Causalidad estricta (shift 1): solo partidos previos al juego actual
-    team_stats["roll_pass_epa_8"] = team_stats.groupby("team")["passing_epa"].transform(
+    # Causalidad estricta (shift 1) agrupada por ["team", "season"] para evitar fugas entre temporadas
+    grp = team_stats.groupby(["team", "season"])
+    team_stats["roll_pass_epa_8"] = grp["passing_epa"].transform(
         lambda s: s.shift(1).rolling(8, min_periods=1).mean()
     )
-    team_stats["roll_rush_epa_8"] = team_stats.groupby("team")["rushing_epa"].transform(
+    team_stats["roll_rush_epa_8"] = grp["rushing_epa"].transform(
         lambda s: s.shift(1).rolling(8, min_periods=1).mean()
     )
-    team_stats["roll_total_epa_8"] = team_stats.groupby("team")["total_epa"].transform(
+    team_stats["roll_total_epa_8"] = grp["total_epa"].transform(
         lambda s: s.shift(1).rolling(8, min_periods=1).mean()
     )
-    team_stats["roll_sacks_8"] = team_stats.groupby("team")["sacks_suffered"].transform(
+    team_stats["roll_sacks_8"] = grp["sacks_suffered"].transform(
+        lambda s: s.shift(1).rolling(8, min_periods=1).mean()
+    )
+    team_stats["roll_def_pass_epa_8"] = grp["def_pass_epa_allowed"].transform(
+        lambda s: s.shift(1).rolling(8, min_periods=1).mean()
+    )
+    team_stats["roll_def_rush_epa_8"] = grp["def_rush_epa_allowed"].transform(
+        lambda s: s.shift(1).rolling(8, min_periods=1).mean()
+    )
+    team_stats["roll_def_sacks_8"] = grp["def_sacks_gen"].transform(
         lambda s: s.shift(1).rolling(8, min_periods=1).mean()
     )
 
-    # Guardar archivo de consulta rápida para inferencia
+    # Guardar archivo completo (crudo + rodante) de consulta rápida para inferencia en vivo
     RUTA_EPA_ROLLING.parent.mkdir(parents=True, exist_ok=True)
     team_stats.to_parquet(RUTA_EPA_ROLLING, index=False)
     print(f"💾 Métricas rodantes de EPA guardadas en {RUTA_EPA_ROLLING}")
 
-    home_epa = team_stats[
-        ["game_id", "team", "roll_pass_epa_8", "roll_rush_epa_8", "roll_total_epa_8", "roll_sacks_8"]
-    ].copy()
+    cols_epa = [
+        "game_id",
+        "team",
+        "roll_pass_epa_8",
+        "roll_rush_epa_8",
+        "roll_total_epa_8",
+        "roll_sacks_8",
+        "roll_def_pass_epa_8",
+        "roll_def_rush_epa_8",
+        "roll_def_sacks_8",
+    ]
+
+    home_epa = team_stats[cols_epa].copy()
     home_epa.columns = [
         "game_id",
         "home_team",
@@ -116,11 +157,12 @@ def calcular_epa_rodante_equipos(df_games: pd.DataFrame, df_players: pd.DataFram
         "home_rush_epa_8",
         "home_total_epa_8",
         "home_sacks_8",
+        "home_def_pass_epa_8",
+        "home_def_rush_epa_8",
+        "home_def_sacks_8",
     ]
 
-    away_epa = team_stats[
-        ["game_id", "team", "roll_pass_epa_8", "roll_rush_epa_8", "roll_total_epa_8", "roll_sacks_8"]
-    ].copy()
+    away_epa = team_stats[cols_epa].copy()
     away_epa.columns = [
         "game_id",
         "away_team",
@@ -128,6 +170,9 @@ def calcular_epa_rodante_equipos(df_games: pd.DataFrame, df_players: pd.DataFram
         "away_rush_epa_8",
         "away_total_epa_8",
         "away_sacks_8",
+        "away_def_pass_epa_8",
+        "away_def_rush_epa_8",
+        "away_def_sacks_8",
     ]
 
     df_full = df_games.merge(home_epa, on=["game_id", "home_team"], how="left")
@@ -137,6 +182,9 @@ def calcular_epa_rodante_equipos(df_games: pd.DataFrame, df_players: pd.DataFram
     df_full["diff_rush_epa_8"] = (df_full["home_rush_epa_8"] - df_full["away_rush_epa_8"]).fillna(0.0)
     df_full["diff_total_epa_8"] = (df_full["home_total_epa_8"] - df_full["away_total_epa_8"]).fillna(0.0)
     df_full["diff_sacks_8"] = (df_full["home_sacks_8"] - df_full["away_sacks_8"]).fillna(0.0)
+    df_full["diff_def_pass_epa_8"] = (df_full["home_def_pass_epa_8"] - df_full["away_def_pass_epa_8"]).fillna(0.0)
+    df_full["diff_def_rush_epa_8"] = (df_full["home_def_rush_epa_8"] - df_full["away_def_rush_epa_8"]).fillna(0.0)
+    df_full["diff_def_sacks_8"] = (df_full["home_def_sacks_8"] - df_full["away_def_sacks_8"]).fillna(0.0)
 
     return df_full, team_stats
 
@@ -169,31 +217,28 @@ def entrenar_modelo_moneyline_v2():
 
     print(f"📊 Train set: {len(X_train)} partidos | Test set: {len(X_test)} partidos")
 
-    # 1. Regresión Logística Calibrada (regularizada)
-    base_lr = LogisticRegression(C=0.08, max_iter=1000, random_state=42)
+    # 1. Regresión Logística Calibrada con escalado (regularizada)
+    base_lr = make_pipeline(StandardScaler(), LogisticRegression(C=0.08, max_iter=1000, random_state=42))
     lr_cal = CalibratedClassifierCV(estimator=base_lr, method="sigmoid", cv=5)
     lr_cal.fit(X_train, y_train)
 
-    # 2. LightGBM Calibrado
-    lgb_base = lgb.LGBMClassifier(
-        n_estimators=120,
-        learning_rate=0.025,
+    # 2. HistGradientBoosting Calibrado (nativo scikit-learn, sin dependencia externa lightgbm)
+    hgb_base = HistGradientBoostingClassifier(
+        max_iter=120,
+        learning_rate=0.03,
         max_depth=3,
-        num_leaves=7,
-        subsample=0.8,
-        colsample_bytree=0.8,
-        reg_alpha=1.0,
-        reg_lambda=2.0,
+        max_leaf_nodes=8,
+        min_samples_leaf=30,
+        l2_regularization=3.0,
         random_state=42,
-        verbose=-1,
     )
-    lgb_cal = CalibratedClassifierCV(estimator=lgb_base, method="sigmoid", cv=5)
-    lgb_cal.fit(X_train, y_train)
+    hgb_cal = CalibratedClassifierCV(estimator=hgb_base, method="sigmoid", cv=5)
+    hgb_cal.fit(X_train, y_train)
 
     # Ensamble de validación
     ensamble_val = EnsambleMoneylineNFLv2(
         modelo_lr=lr_cal,
-        modelo_lgb=lgb_cal,
+        modelo_lgb=hgb_cal,
         features=FEATURES_MONEYLINE_V2,
         peso_lr=0.65,
         peso_lgb=0.35,
@@ -266,30 +311,31 @@ def entrenar_modelo_moneyline_v2():
 
     # Entrenar modelo final con 100% de los datos para producción
     print("\n🚀 Entrenando ensamble final con todo el histórico (2012-2026)...")
-    final_lr = CalibratedClassifierCV(estimator=LogisticRegression(C=0.08, max_iter=1000, random_state=42), method="sigmoid", cv=5)
+    final_lr = CalibratedClassifierCV(
+        estimator=make_pipeline(StandardScaler(), LogisticRegression(C=0.08, max_iter=1000, random_state=42)),
+        method="sigmoid",
+        cv=5,
+    )
     final_lr.fit(X, y)
 
-    final_lgb = CalibratedClassifierCV(
-        estimator=lgb.LGBMClassifier(
-            n_estimators=120,
-            learning_rate=0.025,
+    final_hgb = CalibratedClassifierCV(
+        estimator=HistGradientBoostingClassifier(
+            max_iter=120,
+            learning_rate=0.03,
             max_depth=3,
-            num_leaves=7,
-            subsample=0.8,
-            colsample_bytree=0.8,
-            reg_alpha=1.0,
-            reg_lambda=2.0,
+            max_leaf_nodes=8,
+            min_samples_leaf=30,
+            l2_regularization=3.0,
             random_state=42,
-            verbose=-1,
         ),
         method="sigmoid",
         cv=5,
     )
-    final_lgb.fit(X, y)
+    final_hgb.fit(X, y)
 
     modelo_final = EnsambleMoneylineNFLv2(
         modelo_lr=final_lr,
-        modelo_lgb=final_lgb,
+        modelo_lgb=final_hgb,
         features=FEATURES_MONEYLINE_V2,
         peso_lr=0.65,
         peso_lgb=0.35,
@@ -319,7 +365,7 @@ def entrenar_modelo_moneyline_v2():
     metadata = {
         "modelo": "nfl_moneyline_v2_ensemble",
         "version": "v2_ensemble_epa",
-        "algoritmo": "Ensamble Hibrido Ponderado (Calibrated Logistic Regression 65% + Calibrated LightGBM 35%)",
+        "algoritmo": "Ensamble Hibrido Ponderado (Calibrated StandardScaler+LogReg 65% + Calibrated HistGradientBoosting 35%)",
         "variables_clave": FEATURES_MONEYLINE_V2,
         "metricas_out_of_sample": bundle["metricas"],
         "fecha_entrenamiento": pd.Timestamp.now().isoformat(),

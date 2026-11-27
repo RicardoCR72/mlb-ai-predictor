@@ -108,8 +108,18 @@ def test_bovada_props_cache():
     assert len(df_props) >= 50
 
 
-def test_predicciones_generadas():
-    """Verifica que el pipeline de predicciones genera picks con EV válido."""
+def test_predicciones_generadas(tmp_path, monkeypatch):
+    """Verifica que el pipeline de predicciones genera picks con EV válido sin mutar data/nba/."""
+    import nba.predecir_props as pp
+    import nba.evaluar_props as ep
+    import nba.auditoria_publica as ap
+
+    monkeypatch.setattr(pp, "DIR_PRED", tmp_path)
+    monkeypatch.setattr(pp, "RUTA_PRED_PARQUET", tmp_path / "pred_props.parquet")
+    monkeypatch.setattr(pp, "RUTA_PRED_JSON", tmp_path / "pred_props.json")
+    monkeypatch.setattr(ep, "registrar_props_pendientes", lambda *a, **kw: None)
+    monkeypatch.setattr(ap, "registrar_picks", lambda *a, **kw: {"nuevos": 0, "duplicados": 0, "rechazados": 0})
+
     df_preds = generar_predicciones_props_hoy(usar_cache_bovada=True)
     assert not df_preds.empty
     assert "ev_pct" in df_preds.columns
@@ -118,6 +128,13 @@ def test_predicciones_generadas():
     assert df_preds["pick_type"].isin(["OVER", "UNDER"]).all()
     # Debe haber picks con EV positivo
     assert (df_preds["ev_pct"] > 0).any()
+    # Ningún pick de 2 o 3 estrellas debe tener probabilidad < 52%
+    top_stars = df_preds[df_preds["stars"].isin(["⭐⭐⭐", "⭐⭐"])]
+    if not top_stars.empty:
+        assert (top_stars["model_prob"] >= 0.52).all()
+    # Las cuotas americanas no deben quedar nulas cuando hay cuota decimal válida
+    con_dec = df_preds[df_preds["pick_odds_decimal"] > 1.0]
+    assert con_dec["pick_odds_american"].notna().all()
 
 
 def test_grafica_cobertura_nba_props():

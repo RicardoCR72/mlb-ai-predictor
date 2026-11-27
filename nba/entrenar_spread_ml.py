@@ -36,24 +36,34 @@ RUTA_MODELOS.mkdir(parents=True, exist_ok=True)
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger(__name__)
 
-# Features predictivas seleccionadas basadas en Basketball Analytics
+# Features predictivas ortogonales seleccionadas basadas en Basketball Analytics
 FEATURES_SPREAD = [
-    # Diferenciales clave (Matchup Differentials)
-    "DIFF_NET_RTG_L5", "DIFF_NET_RTG_L10", "DIFF_NET_RTG_L20",
-    "DIFF_ORTG_L10", "DIFF_DRTG_L10", "DIFF_EFG_L10", "DIFF_WIN_L10",
-    "DIFF_REST",
-    # Ventana L10 de cada equipo
-    "HOME_NET_RTG_L10", "AWAY_NET_RTG_L10",
+    # Diferenciales de tendencia multi-ventana (sin colinealidad directa con L10 individual)
+    "DIFF_NET_RTG_L5", "DIFF_NET_RTG_L20",
+    # Eficiencia ofensiva y defensiva L10 por equipo
     "HOME_ORTG_L10", "AWAY_ORTG_L10",
     "HOME_DRTG_L10", "AWAY_DRTG_L10",
+    # Cuatro Factores clave (tiro efectivo, pérdidas, rebote ofensivo)
     "HOME_EFG_PCT_L10", "AWAY_EFG_PCT_L10",
-    "HOME_WIN_L10", "AWAY_WIN_L10",
-    # Fatiga y descanso
+    "HOME_TOV_PCT_L10", "AWAY_TOV_PCT_L10",
+    "HOME_ORB_PCT_L10", "AWAY_ORB_PCT_L10",
+    # Fatiga, descanso y contexto de postemporada
     "HOME_REST_DAYS", "AWAY_REST_DAYS",
     "HOME_IS_B2B", "AWAY_IS_B2B",
-    # Enfrentamiento directo proyectado
-    "OFF_VS_DEF_HOME", "OFF_VS_DEF_AWAY"
+    "IS_PLAYOFF",
 ]
+
+DEFAULTS_SPREAD = {
+    "DIFF_NET_RTG_L5": 0.0, "DIFF_NET_RTG_L20": 0.0,
+    "HOME_ORTG_L10": 113.6, "AWAY_ORTG_L10": 113.6,
+    "HOME_DRTG_L10": 113.6, "AWAY_DRTG_L10": 113.6,
+    "HOME_EFG_PCT_L10": 0.54, "AWAY_EFG_PCT_L10": 0.54,
+    "HOME_TOV_PCT_L10": 0.135, "AWAY_TOV_PCT_L10": 0.135,
+    "HOME_ORB_PCT_L10": 0.24, "AWAY_ORB_PCT_L10": 0.24,
+    "HOME_REST_DAYS": 2.0, "AWAY_REST_DAYS": 2.0,
+    "HOME_IS_B2B": 0, "AWAY_IS_B2B": 0,
+    "IS_PLAYOFF": 0,
+}
 
 
 def entrenar_modelo_spread() -> Dict[str, Any]:
@@ -123,10 +133,9 @@ def entrenar_modelo_spread() -> Dict[str, Any]:
     prod_ridge = make_pipeline(StandardScaler(), RidgeCV(alphas=np.logspace(-2, 3, 20)))
     prod_ridge.fit(df[FEATURES_SPREAD], df["MARGIN_HOME"])
 
-    preds_prod = 0.65 * prod_hgb.predict(df[FEATURES_SPREAD]) + 0.35 * prod_ridge.predict(df[FEATURES_SPREAD])
-    residuales = df["MARGIN_HOME"] - preds_prod
-    sigma_residual = float(np.std(residuales))
-    logger.info(f"Desviación estándar de residuales (sigma): {sigma_residual:.2f} pts")
+    # Sigma empírico honesto calculado Out-of-Sample sobre la validación 2024-25
+    sigma_residual = float(np.std(y_test - preds_val))
+    logger.info(f"Desviación estándar Out-of-Sample de residuales (sigma): {sigma_residual:.2f} pts")
 
     bundle = {
         "model": prod_hgb,
@@ -168,7 +177,14 @@ def proyectar_partido_spread(
 ) -> Dict[str, Any]:
     """Calcula el margen esperado y las probabilidades de cubrir el spread y ganar Moneyline."""
     features = bundle.get("features", FEATURES_SPREAD)
-    X = pd.DataFrame([{col: features_dict.get(col, 0.0) for col in features}])
+    fila_feats = {}
+    for col in features:
+        val = features_dict.get(col)
+        if val is None or (isinstance(val, float) and np.isnan(val)):
+            fila_feats[col] = DEFAULTS_SPREAD.get(col, 0.0)
+        else:
+            fila_feats[col] = float(val)
+    X = pd.DataFrame([fila_feats])
 
     # Predecir con ensamble o fallback a modelo simple
     if "model_hgb" in bundle and "model_ridge" in bundle:
@@ -184,16 +200,18 @@ def proyectar_partido_spread(
     else:
         raw_margin = 0.0
 
-    # Aplicar ajuste por reporte oficial de lesiones y ausencias
-    raw_margin += float(ajuste_lesiones)
+    # Ajuste por reporte oficial de lesiones atenuado (el mercado ya descuenta parte de las bajas confirmadas)
+    raw_margin += float(ajuste_lesiones) * 0.35
 
     # Shrinkage Bayesiano hacia el spread de mercado si existe
     if spread_line != 0.0:
         # El spread_line para el local: ej. BOS -6.5 -> mercado espera margen local de +6.5
         margen_mercado = -float(spread_line)
         margen_pred = 0.50 * raw_margin + 0.50 * margen_mercado
+        diff_cruda = raw_margin + float(spread_line)
     else:
         margen_pred = raw_margin
+        diff_cruda = raw_margin
 
     # 1. Probabilidad de victoria Moneyline calibrada con función Logística
     # Origen del coeficiente 0.148 (Stern 1994 / Winston & Morey / Pro-Basketball Reference):
@@ -206,12 +224,12 @@ def proyectar_partido_spread(
     prob_home_win = 1.0 / (1.0 + np.exp(-0.148 * margen_pred))
     prob_away_win = 1.0 - prob_home_win
 
-    # 2. Probabilidad de cubrir el spread
-    # Usar sigma_residual del bundle (calculado sobre los datos de producción).
-    # Si no está disponible, usar 14.5 como estimación conservadora (RMSE real del modelo).
+    # 2. Probabilidad de cubrir el spread evaluando el diferencial crudo y aplicando shrinkage al final
+    # Usar sigma_residual Out-of-Sample del bundle (piso 14.5 como estimación conservadora).
     sigma_spread = max(float(bundle.get("sigma_residual", 14.5)), 14.5)
-    z_spread = (margen_pred + spread_line) / sigma_spread
-    prob_cover_home = float(norm.cdf(z_spread))
+    z_spread = diff_cruda / sigma_spread
+    prob_cover_home_raw = float(norm.cdf(z_spread))
+    prob_cover_home = float(np.clip(0.65 * prob_cover_home_raw + 0.35 * 0.50, 0.05, 0.95))
     prob_cover_away = 1.0 - prob_cover_home
 
     return {

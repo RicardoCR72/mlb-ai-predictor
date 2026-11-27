@@ -141,6 +141,17 @@ verificar compatibilidad. El entorno virtual local no se versiona.
 - `nfl/providers/`: adaptadores HTTP.
 - `pages/` y módulos `ui_`: presentación mediante funciones `render()`.
 
+## NBA V2, Asesor IA y Pipeline de Video
+
+- **NBA V2 (`nba/`)**:
+  - `nba/actualizar_nba.py` orquesta el ciclo diario (`nba_pipeline.yml`): ingesta de boxscores, liquidación de resultados y generación de predicciones de partido y player props (`nba/predecir_props.py`).
+  - Los props exigen `model_prob >= 0.52` para niveles `⭐⭐` / `⭐⭐⭐` (con umbral reforzado en asistencias) y mantienen tope diario de 20 picks oficiales con relleno de cuota americana desde decimal.
+- **Asesor IA (`core/asesor_ia.py`, `pages/7_🤖_Asesor_IA.py`)**:
+  - `cargar_candidatos_hoy()` filtra los archivos de predicción por la fecha operativa CDMX y emite advertencias si las fuentes están desactualizadas.
+  - La selección de candados, combinadas o consulta por deporte es determinista; si hay clave de Gemini (enviada por cabecera `x-goog-api-key`), el LLM únicamente redacta la explicación sobre la selección validada.
+- **Video Vertical (`core/pipeline_video_retencion.py`, `render_video_tiktok_retencion.py`)**:
+  - Guion de 38–45 palabras con vocabulario cuantitativo, audio normalizado a `-14 LUFS` con recorte de silencio inicial (`t = 0.0s`) y revelación en dos estados (`Teaser` -> `Reveal`) con limpieza de emojis y resolución multiplataforma de tipografías.
+
 `core.db`, `core.trabajos` y `core.nfl_creditos` son fachadas de compatibilidad:
 conservan importaciones existentes sin duplicar implementaciones. Las tarjetas
 usan primitivas de cuotas independientes de Bankroll. Los repositorios NFL leen

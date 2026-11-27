@@ -3,6 +3,7 @@ from datetime import datetime,timezone
 import pandas as pd
 import streamlit as st
 from core import ui_historial_publicado as history
+from core.filtro_top5 import TOP_N_PICKS, etiqueta_top, filtrar_top5_dataframe
 from core.ui_tarjetas import render_pick
 from core.ui_controles import state_message
 from core.constants import ZONA_CDMX
@@ -34,7 +35,28 @@ def render_mlb_today(market):
     if 'publicada_utc' in frame:frame=frame.sort_values('publicada_utc',ascending=False,na_position='last')
     frame=frame.drop_duplicates('identidad')
 
-    picks_calificados = int((frame['probabilidad']>=0.54).sum()) if not frame.empty and 'probabilidad' in frame else len(frame)
+    if not frame.empty:
+        from core.ui_boleta import parsear_cuota_decimal
+        def _calc_ev_mlb(row):
+            p_val = float(row.get('probabilidad', 0.5) or 0.5)
+            c_dec = parsear_cuota_decimal(row.get('cuota'))
+            if c_dec > 1.0 and p_val > 0:
+                return (p_val * c_dec - 1.0) * 100.0
+            return (p_val * 1.909 - 1.0) * 100.0
+        frame = frame.copy()
+        frame['_ev_calc'] = frame.apply(_calc_ev_mlb, axis=1)
+    else:
+        frame = frame.copy()
+        frame['_ev_calc'] = pd.Series(dtype=float)
+
+    top5_global = filtrar_top5_dataframe(
+        frame,
+        prob_col='probabilidad',
+        ev_col='_ev_calc',
+        limite=TOP_N_PICKS,
+        min_prob=0.54,
+        min_ev=0.0,
+    )
 
     c1, c2, c3, c4 = st.columns(4)
     with c1:
@@ -44,58 +66,50 @@ def render_mlb_today(market):
     with c3:
         st.metric("Finalizados", finalizados)
     with c4:
-        st.metric("Picks Calificados (+EV)", picks_calificados)
+        st.metric("🏆 Top Picks (+EV)", f"{len(top5_global)} / {TOP_N_PICKS}")
     st.markdown("<div style='margin-bottom: 1.25rem;'></div>", unsafe_allow_html=True)
 
-    f_col1, f_col2 = st.columns([2, 1], gap="medium")
-    with f_col1:
-        busqueda_mlb = st.text_input(
-            "Buscar equipo MLB",
-            key=f"mlb_{market.lower()}_search_input",
-            placeholder="🔍 Ej: Yankees, Dodgers, Red Sox, Astros, Cubs...",
-        ).strip().lower()
-    with f_col2:
-        st.markdown("<div style='margin-top: 1.8rem;'></div>", unsafe_allow_html=True)
-        solo_ev_mlb = st.checkbox("🔥 Solo picks Calificados (+EV)", key=f"mlb_{market.lower()}_ev_filter")
+    busqueda_mlb = st.text_input(
+        "Buscar equipo MLB",
+        key=f"mlb_{market.lower()}_search_input",
+        placeholder="🔍 Ej: Yankees, Dodgers, Red Sox, Astros, Cubs...",
+    ).strip().lower()
 
     if frame.empty:state_message('No hay picks publicados para partidos de hoy sin iniciar.');return
-    shown=frame.sort_values('probabilidad',ascending=False)
+    shown=frame.copy()
     if busqueda_mlb:
         shown = shown[
             shown.get('equipo_local', pd.Series('', index=shown.index)).astype(str).str.lower().str.contains(busqueda_mlb) |
             shown.get('equipo_visitante', pd.Series('', index=shown.index)).astype(str).str.lower().str.contains(busqueda_mlb) |
             shown.get('partido', pd.Series('', index=shown.index)).astype(str).str.lower().str.contains(busqueda_mlb)
         ]
-    if solo_ev_mlb:
-        if 'probabilidad' in shown:
-            shown = shown[shown['probabilidad'] >= 0.54]
-        if not shown.empty:
-            from core.ui_boleta import parsear_cuota_decimal
-            def _calc_ev_mlb(row):
-                p_val = float(row.get('probabilidad', 0.5) or 0.5)
-                c_dec = parsear_cuota_decimal(row.get('cuota'))
-                if c_dec > 1.0 and p_val > 0:
-                    return (p_val * c_dec - 1.0) * 100.0
-                return (p_val * 1.909 - 1.0) * 100.0
 
-            shown['_ev_calc'] = shown.apply(_calc_ev_mlb, axis=1)
-            shown = shown.sort_values('_ev_calc', ascending=False)
-            st.caption("🔥 Mostrando picks calificados ordenados de **Mayor a Menor Valor Esperado (+EV)**.")
+    shown = filtrar_top5_dataframe(
+        shown,
+        prob_col='probabilidad',
+        ev_col='_ev_calc',
+        limite=TOP_N_PICKS,
+        min_prob=0.54,
+        min_ev=0.0,
+    )
 
     if shown.empty:
-        st.warning("No hay partidos o picks que coincidan con los filtros de búsqueda seleccionados.")
+        st.info("🛡️ Hoy no hay partidos MLB que superen el umbral estricto de seguridad (Prob IA ≥ 54% y +EV).")
         return
+
+    st.caption(f"🏆 **Filtro Automático Top {TOP_N_PICKS}:** Mostrando los **{len(shown)} picks MLB más confiables con +EV**.")
     for start in range(0,len(shown),2):
         columns=st.columns(2,gap='medium')
-        for col,(_,row) in zip(columns,shown.iloc[start:start+2].iterrows()):
+        for offset,(col,(_,row)) in enumerate(zip(columns,shown.iloc[start:start+2].iterrows())):
             with col:
+                rank_lbl = etiqueta_top(start + offset + 1)
                 pick=dict(fecha=row.fecha,deporte='MLB',partido=f'{row.get("equipo_visitante","Visitante")} @ {row.get("equipo_local","Local")}',
                     equipo_visitante=row.get("equipo_visitante"),equipo_local=row.get("equipo_local"),
                     seleccion=str(row.get('seleccion','Selección guardada'))+(f' {row.linea:g}' if pd.notna(row.get('linea')) else ''),
                     probabilidad=row.probabilidad,cuota=row.cuota,casa='DraftKings',modelo=row.modelo,mercado_confianza=market,
                     origen='mlb_total' if market=='Totales' else 'mlb_ml',p_push=row.get('p_push',0),
                     referencia=dict(game_id=str(row.identidad),inicio_utc=pd.to_datetime(row.start_utc,utc=True).isoformat()))
-                details = [('Procedencia', row.procedencia)]
+                details = [('Ranking', rank_lbl), ('Procedencia', row.procedencia)]
                 if market == 'Moneyline':
                     details.append(('Motor IA', 'Ensamble V5.0 (LightGBM + DNN)'))
                 render_pick(pick, market=market, state='Publicado', details=details)

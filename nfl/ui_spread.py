@@ -48,8 +48,8 @@ def render():
                     <p style="color:#94a3b8; font-size:0.88rem; margin:0;">Ensamble Híbrido: Regresión Logística L2 + HistGradientBoosting · Validación en 682 partidos (2024-2026)</p>
                 </div>
                 <div style="text-align:right;">
-                    <div style="color:#b7ff3c; font-size:1.4rem; font-weight:900;">56.13% WR</div>
-                    <div style="color:#64748b; font-size:0.75rem; font-weight:700;">+7.06% ROI EN PRUEBA</div>
+                    <div style="color:#b7ff3c; font-size:1.4rem; font-weight:900;">55.24% WR</div>
+                    <div style="color:#64748b; font-size:0.75rem; font-weight:700;">+5.34% ROI EN PRUEBA</div>
                 </div>
             </div>
         </div>
@@ -85,43 +85,56 @@ def render_cartelera():
         st.info("🏈 La cartelera de la semana se actualizará en cuanto las casas de apuestas publiquen las líneas de la próxima jornada.")
         return
 
-    picks_ev = [p for p in predicciones if p.get("recomendar")]
+    from core.filtro_top5 import TOP_N_PICKS, etiqueta_top
+
+    picks_top5 = sorted(
+        [
+            p for p in predicciones
+            if p.get("recomendar")
+            and float(p.get("ev_esperado_pct") or 0.0) > 0.0
+            and float(p.get("prob_seleccion") or 0.0) >= 0.53
+        ],
+        key=lambda x: (float(x.get("prob_seleccion") or 0.0), float(x.get("ev_esperado_pct") or 0.0)),
+        reverse=True,
+    )[:TOP_N_PICKS]
 
     # Métricas superiores
     c1, c2, c3, c4 = st.columns(4)
     with c1:
         st.metric("Partidos Analizados", len(predicciones))
     with c2:
-        st.metric("Picks Calificados (+EV)", len(picks_ev))
+        st.metric("🏆 Top Picks (+EV)", f"{len(picks_top5)} / {TOP_N_PICKS}")
     with c3:
         st.metric("Punto Equilibrio (-110)", "52.38%")
     with c4:
-        st.metric("Confianza Mínima", "P >= 52.0%")
+        st.metric("Confianza Mínima", "P >= 53.0%")
 
     st.markdown("<div style='margin-bottom: 1.5rem;'></div>", unsafe_allow_html=True)
 
-    # Render de tarjetas
-    for p in predicciones:
-        es_rec = p.get("recomendar", False)
-        border_col = "#b7ff3c" if es_rec else "#26352c"
-        bg_card = "#101e17" if es_rec else "#0b1510"
+    if not picks_top5:
+        st.info("🛡️ Ningún partido de la semana supera el umbral estricto de seguridad (P >= 53.0% y +EV). No forzamos picks sin valor.")
+        return
 
-        pick_txt = f"{p['pick']} {p['linea_pick']:+g}" if es_rec else "PASS / SIN VENTAJA"
-        prob_txt = f"{p['prob_seleccion']*100:.1f}%" if es_rec else "--"
-        ev_txt = f"{p['ev_esperado_pct']:+.1f}%" if es_rec else "--"
-        badge_txt = "🔥 VENTAJA ESTADÍSTICA (+EV)" if es_rec else "ZONA MUERTA"
-        badge_bg = "#b7ff3c" if es_rec else "#334155"
-        badge_col = "#000000" if es_rec else "#cbd5e1"
+    st.caption(
+        f"🏆 **Filtro Automático Top {TOP_N_PICKS}:** Mostrando únicamente los **{len(picks_top5)} spreads más seguros con +EV** (sin zona muerta ni picks sin valor)."
+    )
+
+    # Render exclusivo de tarjetas Top 5 con ventaja estadística
+    for idx, p in enumerate(picks_top5):
+        pick_txt = f"{p['pick']} {p['linea_pick']:+g}"
+        prob_txt = f"{p['prob_seleccion']*100:.1f}%"
+        ev_txt = f"{p['ev_esperado_pct']:+.1f}%"
+        badge_txt = f"{etiqueta_top(idx + 1)} · +EV"
 
         card_html = f"""
-        <div style="background:{bg_card}; border:1px solid {border_col}; border-radius:12px; padding:1.1rem 1.4rem; margin-bottom:1rem;">
+        <div style="background:#101e17; border:1px solid #b7ff3c; border-radius:12px; padding:1.1rem 1.4rem; margin-bottom:1rem;">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
                 <div>
                     <span style="font-size:0.75rem; font-weight:800; color:#64748b;">PARTIDO</span>
                     <h3 style="color:#ffffff; margin:0; font-size:1.2rem; font-weight:800;">{p['away_team']} @ {p['home_team']}</h3>
                 </div>
                 <div style="text-align:right;">
-                    <span style="background:{badge_bg}; color:{badge_col}; font-weight:900; font-size:0.72rem; padding:0.25rem 0.6rem; border-radius:6px;">
+                    <span style="background:#b7ff3c; color:#000000; font-weight:900; font-size:0.72rem; padding:0.25rem 0.6rem; border-radius:6px;">
                         {badge_txt}
                     </span>
                     <div style="color:#94a3b8; font-size:0.78rem; margin-top:0.2rem;">Línea Local: {p['spread_line_raw']:+g}</div>
@@ -130,7 +143,7 @@ def render_cartelera():
             <div style="display:grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap:0.75rem; background:#080f0c; padding:0.8rem 1rem; border-radius:8px; align-items:center;">
                 <div>
                     <div style="font-size:0.72rem; color:#64748b; font-weight:700;">SELECCIÓN MODELO</div>
-                    <div style="font-size:1.1rem; color:{'#b7ff3c' if es_rec else '#94a3b8'}; font-weight:900;">{pick_txt}</div>
+                    <div style="font-size:1.1rem; color:#b7ff3c; font-weight:900;">{pick_txt}</div>
                 </div>
                 <div>
                     <div style="font-size:0.72rem; color:#64748b; font-weight:700;">PROB COBERTURA</div>
@@ -138,7 +151,7 @@ def render_cartelera():
                 </div>
                 <div>
                     <div style="font-size:0.72rem; color:#64748b; font-weight:700;">VALOR ESPERADO (EV)</div>
-                    <div style="font-size:1.05rem; color:{'#b7ff3c' if es_rec else '#94a3b8'}; font-weight:800;">{ev_txt}</div>
+                    <div style="font-size:1.05rem; color:#b7ff3c; font-weight:800;">{ev_txt}</div>
                 </div>
                 <div>
                     <div style="font-size:0.72rem; color:#64748b; font-weight:700;">ROL</div>

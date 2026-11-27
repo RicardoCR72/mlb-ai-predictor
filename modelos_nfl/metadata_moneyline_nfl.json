@@ -1,14 +1,15 @@
 {
   "modelo": "nfl_moneyline_v2_ensemble",
   "version": "v2_ensemble_epa",
-  "algoritmo": "Ensamble Hibrido Ponderado (Calibrated Logistic Regression 65% + Calibrated LightGBM 35%)",
+  "algoritmo": "Ensamble Hibrido Ponderado (Calibrated StandardScaler+LogReg 65% + Calibrated HistGradientBoosting 35%)",
   "variables_clave": [
     "spread_line",
-    "diff_total_epa_8",
     "diff_pass_epa_8",
     "diff_rush_epa_8",
     "diff_sacks_8",
-    "diff_margin_avg_8",
+    "diff_def_pass_epa_8",
+    "diff_def_rush_epa_8",
+    "diff_def_sacks_8",
     "diff_points_for_avg_8",
     "diff_points_against_avg_8",
     "diff_win_pct_8",
@@ -23,15 +24,15 @@
     "div_game"
   ],
   "metricas_out_of_sample": {
-    "auc": 0.7328,
-    "accuracy": 0.6794,
-    "brier": 0.2082,
-    "log_loss": 0.6032,
-    "backtest_picks": 101,
-    "backtest_win_rate": 74.26,
-    "backtest_unidades": 7.66,
-    "backtest_roi": 7.59
+    "auc": 0.7357,
+    "accuracy": 0.6701,
+    "brier": 0.2086,
+    "log_loss": 0.6044,
+    "backtest_picks": 126,
+    "backtest_win_rate": 73.02,
+    "backtest_unidades": 8.92,
+    "backtest_roi": 7.08
   },
-  "fecha_entrenamiento": "2026-10-24T22:57:48.684240",
-  "total_partidos_entrenamiento": 3696
+  "fecha_entrenamiento": "2026-11-27T08:00:34.432742",
+  "total_partidos_entrenamiento": 3801
 }

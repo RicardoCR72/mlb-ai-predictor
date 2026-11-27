@@ -164,6 +164,21 @@ def _comprimir_ev_suave(ev_raw: float) -> float:
     return round(6.0 + 6.0 * math.tanh((ev_raw - 6.0) / 8.0), 1)
 
 
+def _decimal_a_americana(dec: Any) -> Optional[str]:
+    """Convierte cuota decimal (> 1.0) a formato americano legible (ej. '+110', '-115', 'EVEN')."""
+    try:
+        d = float(dec)
+    except (TypeError, ValueError):
+        return None
+    if not math.isfinite(d) or d <= 1.0:
+        return None
+    if abs(d - 2.0) < 1e-3:
+        return "EVEN"
+    if d > 2.0:
+        return f"+{int(round((d - 1.0) * 100.0))}"
+    return f"{int(round(-100.0 / (d - 1.0)))}"
+
+
 def _calcular_probabilidades_mercado(mercado: str, linea: float, mu: float, sigma: float) -> Tuple[float, float, float]:
     """Calcula P(Over), P(Under) y P(Push).
 
@@ -217,47 +232,42 @@ def _calcular_probabilidades_mercado(mercado: str, linea: float, mu: float, sigm
     return p_over, p_under, p_push
 
 
-def seleccionar_top_props_diarios(df_preds: pd.DataFrame, limite: int = 20) -> pd.DataFrame:
-    """Selecciona hasta `limite` picks de props con la mayor convicción, estabilidad y balance del día.
-    
-    Criterios de Selección y Gestión de Riesgo Profesional:
-    1. Prioridad por Nivel de Confianza:
-       - Candados oficiales (es_candado == True)
-       - Top Picks (stars == '⭐⭐⭐')
-       - Alta Confianza (stars == '⭐⭐')
-    2. Puntuación cuantitativa balanceada (evita la Maldición del Ganador):
-       - Bonificación por muestra consolidada (games_played)
-       - Bonificación por consistencia histórica (hit rate L5 y temporada concordantes)
-       - Edge real calibrado
-    3. Diversificación anti-blowout y control de banca:
-       - Máximo 1 pick por jugador (evita sobre-exposición a noches frías o lesiones tempranas).
-       - Máximo 3 picks por partido (evita exposición a palizas y rotaciones de suplentes).
-    4. Corte estricto en `limite` (20 picks máximo diarios).
+def seleccionar_top_props_diarios(df_preds: pd.DataFrame, limite: int = 5) -> pd.DataFrame:
+    """Selecciona hasta `limite` (por defecto Top 5) props más seguros con EV positivo (+EV).
+
+    Criterios estrictos de Selección:
+    1. Probabilidad calibrada mínima >= 54.0% y EV positivo (`ev_pct > 0`), excluyendo líneas neutrales (`⚪`).
+    2. Ordenamiento que prioriza seguridad (probabilidad y consistencia histórica) + valor esperado (+EV).
+    3. Diversificación estricta: máximo 1 pick por jugador y máximo 2 picks por partido.
+    4. Corte estricto en `limite` (Top 5 diarios por defecto).
     """
     if df_preds is None or df_preds.empty:
         return pd.DataFrame()
 
     df = df_preds.copy()
+    if "model_prob" in df.columns:
+        probs = pd.to_numeric(df["model_prob"], errors="coerce").fillna(0.0)
+        df = df[probs >= 0.54].copy()
+    if "ev_pct" in df.columns:
+        evs = pd.to_numeric(df["ev_pct"], errors="coerce").fillna(0.0)
+        df = df[evs > 0.0].copy()
+    if "stars" in df.columns:
+        df = df[df["stars"].astype(str).str.strip() != "⚪"].copy()
+    if df.empty:
+        return pd.DataFrame()
 
     def _calcular_score_seleccion(r: pd.Series) -> float:
-        tier_puntos = 0.0
+        prob_val = float(r.get("model_prob", 0.54) or 0.54)
+        tier_puntos = prob_val * 100.0  # Base por probabilidad pura (seguridad primero)
         if bool(r.get("es_candado")):
-            tier_puntos = 30.0
-        elif r.get("stars") == "⭐⭐⭐":
-            tier_puntos = 20.0
-        elif r.get("stars") == "⭐⭐":
-            tier_puntos = 10.0
-        elif r.get("stars") == "⭐":
-            tier_puntos = 2.0
+            tier_puntos += 12.0
 
         ev_val = float(r.get("ev_pct", 0.0) or 0.0)
-        ev_capped = min(max(ev_val, -5.0), 10.0)
+        ev_capped = min(max(ev_val, 0.0), 12.0)
 
-        # Bonificación por muestra y minutos consolidados
         gp = float(r.get("games_played", 5) or 5)
         bonus_muestra = min(gp / 5.0, 3.0)
 
-        # Consistencia histórica en la dirección del pick
         hr_l5 = float(r.get("hit_rate_l5", 0.5) or 0.5)
         hr_sea = float(r.get("hit_rate_season", 0.5) or 0.5)
         if str(r.get("pick_type")).upper() == "UNDER":
@@ -268,44 +278,26 @@ def seleccionar_top_props_diarios(df_preds: pd.DataFrame, limite: int = 20) -> p
         return tier_puntos + ev_capped + bonus_muestra + bonus_consistencia
 
     df["_score_ranking"] = df.apply(_calcular_score_seleccion, axis=1)
-    df.sort_values(by="_score_ranking", ascending=False, inplace=True)
+    df.sort_values(by=["_score_ranking", "model_prob", "ev_pct"], ascending=[False, False, False], inplace=True)
 
-    conteo_por_jugador: Dict[str, int] = {}
-    props_jugador_mercado = set()
+    jugadores_usados: set[str] = set()
     juegos_conteo: Dict[str, int] = {}
-    mercados_por_juego: Dict[Tuple[str, str], int] = {}
     top_indices = []
 
     for idx, r in df.iterrows():
         p_name = str(r.get("player_name", "")).strip()
         game = str(r.get("game", "")).strip()
-        market = str(r.get("market", "")).strip()
 
-        # NUNCA el mismo mercado duplicado para el mismo jugador (ej. dos líneas distintas de triples o puntos)
-        if (p_name, market) in props_jugador_mercado:
+        # Máximo 1 pick por jugador
+        if p_name and p_name in jugadores_usados:
             continue
-        # Máximo 2 props diferentes por jugador (permite mercados distintos como triples y asistencias sin sobre-concentración)
-        if conteo_por_jugador.get(p_name, 0) >= 2:
-            continue
-        # Máximo 3 picks por juego en total
-        if juegos_conteo.get(game, 0) >= 3:
-            continue
-        # Control estricto de concentración: Máximo 1 pick de Triples por juego
-        # y máximo 2 de cualquier otro mercado por juego para evitar correlación extrema
-        clave_juego_mercado = (game, market)
-        limite_mercado = 1 if market == "Total Triples" else 2
-        if mercados_por_juego.get(clave_juego_mercado, 0) >= limite_mercado:
+        # Máximo 2 picks por partido para evitar exposición a blowouts
+        if juegos_conteo.get(game, 0) >= 2:
             continue
 
-        # Debe tener valor positivo o estrella asignada
-        ev_val = float(r.get("ev_pct", 0.0) or 0.0)
-        if r.get("stars") in ["⚪", ""] and ev_val <= 0.0:
-            continue
-
-        props_jugador_mercado.add((p_name, market))
-        conteo_por_jugador[p_name] = conteo_por_jugador.get(p_name, 0) + 1
+        if p_name:
+            jugadores_usados.add(p_name)
         juegos_conteo[game] = juegos_conteo.get(game, 0) + 1
-        mercados_por_juego[clave_juego_mercado] = mercados_por_juego.get(clave_juego_mercado, 0) + 1
         top_indices.append(idx)
 
         if len(top_indices) >= limite:
@@ -413,6 +405,24 @@ def generar_predicciones_props_hoy(
         logger.warning(f"No se pudieron cargar perfiles de equipos para ritmo y defensa: {e_eq}")
         perfiles_equipos = {}
 
+    # Contexto de spread y total del partido desde las predicciones diarias de equipos
+    contexto_partidos: Dict[Tuple[str, str], Dict[str, float]] = {}
+    ruta_preds_juego = DIR_PRED / "predicciones_nba_hoy.json"
+    if ruta_preds_juego.exists():
+        try:
+            with open(ruta_preds_juego, "r", encoding="utf-8") as fj:
+                preds_hoy_eq = json.load(fj)
+            for pj in preds_hoy_eq:
+                h_s = normalizar_sigla_equipo(pj.get("abbr_local", ""))
+                a_s = normalizar_sigla_equipo(pj.get("abbr_visita", ""))
+                if h_s and a_s:
+                    contexto_partidos[(h_s, a_s)] = {
+                        "game_spread": float(pj.get("linea_spread") or 0.0),
+                        "total_line": float(pj.get("linea_total") or 226.0),
+                    }
+        except Exception as e_ctx:
+            logger.warning(f"No se pudo cargar contexto de spreads/totales desde predicciones_nba_hoy.json: {e_ctx}")
+
     # 3. Líneas de Bovada
     df_bovada = extraer_props_nba(usar_cache=usar_cache_bovada, permitir_odds_api=permitir_odds_api)
     if df_bovada.empty:
@@ -504,8 +514,28 @@ def generar_predicciones_props_hoy(
         factor_mercado = 0.70 if mercado in ["Total Points", "Total Triples", "Total PRA", "Total PA"] else 0.35
         boost_mercado = round(1.0 + (boost_lesion - 1.0) * factor_mercado, 3)
 
-        # Descuento por riesgo de blowout
-        game_spread = abs(float(row.get("game_spread") or 0.0))
+        # Contexto del partido (spread, total y B2B real) con fallback a predicciones diarias de equipo
+        ctx_partido = contexto_partidos.get((home_sigla, away_sigla), {})
+        raw_spread = row.get("game_spread")
+        if raw_spread is None or (isinstance(raw_spread, float) and math.isnan(raw_spread)) or float(raw_spread or 0.0) == 0.0:
+            raw_spread = ctx_partido.get("game_spread", 0.0)
+        game_spread = abs(float(raw_spread or 0.0))
+
+        raw_total = row.get("total_line")
+        if raw_total is None or (isinstance(raw_total, float) and math.isnan(raw_total)) or float(raw_total or 0.0) <= 0.0:
+            raw_total = ctx_partido.get("total_line", 226.0)
+        total_line_val = float(raw_total or 226.0)
+
+        es_b2b_jugador = bool(row.get("es_b2b", False))
+        if not es_b2b_jugador:
+            last_dt_eq = str(perfiles_equipos.get(equipo_canon, {}).get("LAST_DATE", "") or "")[:10]
+            if last_dt_eq and fecha_corte:
+                try:
+                    dt_corte = datetime.strptime(fecha_corte, "%Y-%m-%d").date()
+                    dt_last = datetime.strptime(last_dt_eq, "%Y-%m-%d").date()
+                    es_b2b_jugador = (dt_corte - dt_last).days == 1
+                except Exception:
+                    es_b2b_jugador = False
 
         # Desacoplamiento Cuantitativo: Minutos Proyectados × Tasa por Minuto (con Shrinkage Bayesiano)
         col_min = "min" if (not hist_player.empty and "min" in hist_player.columns) else None
@@ -522,10 +552,10 @@ def generar_predicciones_props_hoy(
                 posicion=pos_jugador,
                 clave_stat=raw_col,
                 spread_partido=game_spread,
-                total_partido=float(row.get("total_line") or 226.0),
+                total_partido=total_line_val,
                 pace_local=pace_home,
                 pace_visita=pace_away,
-                es_b2b=False,
+                es_b2b=es_b2b_jugador,
                 defensa_rival_factor=factor_defensa_rival,
             )
             proj_cuant = res_cuant["proyeccion"]
@@ -537,6 +567,8 @@ def generar_predicciones_props_hoy(
 
             # Ponderación: 75% modelo desacoplado cuantitativo / 25% forma ponderada
             proj_base = 0.75 * proj_cuant + 0.25 * (0.35 * stat_l5 + 0.65 * stat_avg)
+            # Evitar doble descuento por blowout: ya aplicado en proyectar_minutos_jugador()
+            factor_blowout_extra = 1.0
         else:
             proj_base = 0.35 * stat_l5 + 0.65 * stat_avg
             minutos_prom = float(perfil.get("min_avg", 0.0) or 0.0)
@@ -544,8 +576,9 @@ def generar_predicciones_props_hoy(
             es_titular = (minutos_prom >= 24.0) or (minutos_l5 >= 25.0)
             if game_spread >= 8.5 and es_titular:
                 descuento_blowout = 0.88 if game_spread >= 11.5 else 0.94
+            factor_blowout_extra = descuento_blowout
 
-        proy_bruta = proj_base * boost_mercado * descuento_blowout
+        proy_bruta = proj_base * boost_mercado * factor_blowout_extra
 
         # Shrinkage Bayesiano hacia la línea de mercado de Las Vegas / Bovada:
         # Ponderación 60% a la línea de mercado, 40% al modelo bruto del jugador.
@@ -560,7 +593,7 @@ def generar_predicciones_props_hoy(
         n_partidos = float(perfil.get("games_played", 5) or 5)
         peso_prior_sigma = 5.0 / (n_partidos + 5.0)
         stat_std_blended = (1.0 - peso_prior_sigma) * max(stat_std_raw, sigma_floor) + peso_prior_sigma * sigma_prior
-        factor_escala = max(0.1, boost_mercado * descuento_blowout)
+        factor_escala = max(0.1, boost_mercado * factor_blowout_extra)
         sigma_floor_adj = sigma_floor * math.sqrt(factor_escala)
         stat_std = max(sigma_floor_adj, stat_std_blended * math.sqrt(factor_escala))
         stat_std *= math.sqrt(1.0 + 1.0 / max(n_partidos, 1.0))
@@ -605,11 +638,7 @@ def generar_predicciones_props_hoy(
         max_p = min(0.96, implied_over + max_edge_prob)
         p_over_shrunk = float(np.clip(p_over_cond_shrunk, min_p, max_p))
 
-        # 3B. Penalización por Sesgo de Under / Atrición NBA (-3.5% a Overs)
-        # En la NBA, los factores imprevistos (palizas/blowouts que sientan a titulares en el 4to cuarto,
-        # problemas tempranos de faltas personales, torceduras o descansos preventivos)
-        # perjudican desproporcionadamente al OVER y benefician sistemáticamente al UNDER.
-        p_over_cond_clipped = float(np.clip(p_over_shrunk - 0.035, 0.05, 0.95))
+        p_over_cond_clipped = float(np.clip(p_over_shrunk, 0.05, 0.95))
         p_under_cond_clipped = 1.0 - p_over_cond_clipped
 
         # 4. Reescalar por (1 - push)
@@ -692,8 +721,13 @@ def generar_predicciones_props_hoy(
             else (hit_rate_l5 <= 0.50 and hit_rate_season <= 0.50)
         )
 
+        es_asistencias = (mercado == "Total Assists")
+        min_ev_top = (3.0 if es_asistencias else 2.0) * umbral_factor
+        min_prob_top = 0.55 if es_asistencias else 0.52
+
         es_top_pick = (
-            pick_ev >= 2.0 * umbral_factor
+            pick_prob >= min_prob_top
+            and pick_ev >= min_ev_top
             and edge_pick >= 0.015
             and colchon_linea >= min_colchon
             and misma_direccion
@@ -705,7 +739,8 @@ def generar_predicciones_props_hoy(
         )
 
         es_alta_confianza = (
-            pick_ev >= 1.0 * umbral_factor
+            pick_prob >= 0.52
+            and pick_ev >= 1.0 * umbral_factor
             and edge_pick >= 0.008
             and games_p >= 5
             and minutos_prom >= 16.0
@@ -774,7 +809,11 @@ def generar_predicciones_props_hoy(
             "hit_rate_season": hit_rate_season,
             "hit_rate_l5": hit_rate_l5,
             "pick_type": pick_tipo,
-            "pick_odds_american": pick_cuota_am,
+            "pick_odds_american": (
+                str(pick_cuota_am).strip()
+                if pick_cuota_am is not None and not pd.isna(pick_cuota_am) and str(pick_cuota_am).strip() not in ("", "None", "nan")
+                else _decimal_a_americana(pick_cuota_dec)
+            ),
             "pick_odds_decimal": pick_cuota_dec,
             "model_prob": pick_prob,
             "implied_prob_vig": round(1.0 / pick_cuota_dec, 4),
@@ -841,11 +880,13 @@ def generar_predicciones_props_hoy(
         df_res["confidence"] = confianzas_ajustadas
         df_res["es_candado"] = candados_ajustados
 
-        # Selección oficial de los Top 20 picks con mayor confianza del día
+        # Selección oficial de los Top 5 picks más seguros del día (+EV)
+        df_res["es_top5_oficial"] = False
         df_res["es_top20_oficial"] = False
-        df_top20 = seleccionar_top_props_diarios(df_res, limite=20)
-        if not df_top20.empty:
-            df_res.loc[df_top20.index, "es_top20_oficial"] = True
+        df_top5 = seleccionar_top_props_diarios(df_res, limite=5)
+        if not df_top5.empty:
+            df_res.loc[df_top5.index, "es_top5_oficial"] = True
+            df_res.loc[df_top5.index, "es_top20_oficial"] = True
 
         df_res.to_parquet(RUTA_PRED_PARQUET, index=False)
         with open(RUTA_PRED_JSON, "w", encoding="utf-8") as f:
@@ -853,10 +894,11 @@ def generar_predicciones_props_hoy(
 
         try:
             from nba.evaluar_props import registrar_props_pendientes
-            # Solo registramos en el historial oficial los Top 20 de máxima confianza
-            props_para_registro = df_top20 if not df_top20.empty else df_res.head(20)
-            registrar_props_pendientes(props_para_registro)
-            logger.info(f"💾 Registrados {len(props_para_registro)} props oficiales (Top 20) en el historial de rendimiento.")
+            # Solo registramos en el historial oficial el Top 5 de máxima confianza
+            props_para_registro = df_top5
+            if not props_para_registro.empty:
+                registrar_props_pendientes(props_para_registro)
+            logger.info(f"💾 Registrados {len(props_para_registro)} props oficiales (Top 5) en el historial de rendimiento.")
         except Exception as e_reg:
             logger.warning(f"No se pudieron registrar props pendientes en el historial: {e_reg}")
 
@@ -870,7 +912,7 @@ def generar_predicciones_props_hoy(
         except Exception as e_audit:
             logger.warning(f"No se pudo registrar en ledger criptográfico de auditoría: {e_audit}")
 
-        logger.info(f"🎯 Generadas {len(df_res)} predicciones de props ({len(df_top20)} Top 20 oficiales). Top EV: +{df_res['ev_pct'].max()}%")
+        logger.info(f"🎯 Generadas {len(df_res)} predicciones de props ({len(df_top5)} Top 5 oficiales). Top EV: +{df_res['ev_pct'].max()}%")
 
     return df_res
 

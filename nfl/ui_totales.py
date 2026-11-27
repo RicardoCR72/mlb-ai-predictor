@@ -15,6 +15,7 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 
+from core.filtro_top5 import TOP_N_PICKS, etiqueta_top, filtrar_top5_dataframe
 from core.ui_controles import state_message
 from core.ui_tarjetas import nfl_pick
 from nfl.ui_lesiones_helper import crear_callback_lesiones_nfl
@@ -94,7 +95,7 @@ def cargar_predicciones_mysql():
     return read()
 
 
-def mostrar_partido(fila: pd.Series):
+def mostrar_partido(fila: pd.Series, ranking_pos: int | None = None):
     """Renderiza el partido con Tarjeta Universal homologada."""
     res = str(fila.get("resultado_pick") or "").strip().upper()
     es_resuelta = res in ("GANADA", "PERDIDA", "PUSH")
@@ -146,18 +147,7 @@ def mostrar_partido(fila: pd.Series):
     ev_num = float(fila.get("ev", 0.0) or 0.0) * 100.0
     edge_num = float(fila.get("edge_absoluto", 0.0) or fila.get("edge", 0.0) or 0.0)
     es_pick = (fila.get("estado") == "PICK")
-
-    if es_pick:
-        if ev_num >= 10.0 or edge_num >= 4.0:
-            estrellas = "⭐⭐⭐"
-        elif ev_num >= 5.0 or edge_num >= 2.5:
-            estrellas = "⭐⭐"
-        elif ev_num > 0:
-            estrellas = "⭐"
-        else:
-            estrellas = "⚪"
-    else:
-        estrellas = "⚪"
+    estrellas = etiqueta_top(ranking_pos or 1) if es_pick else "⚪"
 
     tendencia = f"Proyección IA: {proy_total:.1f} pts · Ventaja: {edge_num:+.1f} pts vs línea {lin_total} · P({pick_sel}): {float(fila.get('prob_pick', 0.5))*100:.1f}%"
 
@@ -262,11 +252,19 @@ def render():
     ].copy()
 
     pendientes = filtrar_partidos_pendientes(df)
-    picks = pendientes[pendientes["estado"] == "PICK"].copy()
+    picks_top5 = filtrar_top5_dataframe(
+        pendientes,
+        prob_col="prob_pick",
+        ev_col="ev",
+        valid_mask=(pendientes["estado"] == "PICK") if "estado" in pendientes.columns else None,
+        limite=TOP_N_PICKS,
+        min_prob=0.53,
+        min_ev=0.0,
+    )
 
     seccion_totales = st.radio(
         "Sección de totales",
-        ["🔥 Picks filtrados", "📋 Todos los partidos", "📈 Rendimiento"],
+        ["🔥 Top 5 Picks", "📈 Rendimiento"],
         horizontal=True,
         format_func=lambda value: value.lstrip("🔥📋📈⚾🏈📊⚽🔮💼 "),
         label_visibility="collapsed",
@@ -306,29 +304,22 @@ def render():
         with c3:
             st.metric("Finalizados", num_finalizados)
         with c4:
-            st.metric("Picks de Alto Valor", len(picks))
+            st.metric("Picks de Alto Valor", len(picks_top5))
         st.markdown("<div style='margin-bottom: 1.25rem;'></div>", unsafe_allow_html=True)
 
-        # Filtros ejecutivos homologados con NBA y Fútbol
-        f_col1, f_col2, f_col3 = st.columns([1.6, 1.2, 1.2], gap="medium")
+        # Filtros de contexto (filtro Top 5 +EV siempre automático en próximos)
+        f_col1, f_col3 = st.columns([2.0, 1.3], gap="medium")
         with f_col1:
             busqueda_tot = st.text_input(
                 "Buscar equipo NFL",
                 key="nfl_tot_search_input",
                 placeholder="🔍 Ej: Chiefs, 49ers, Eagles, Cowboys...",
             ).strip().lower()
-        with f_col2:
-            st.markdown("<div style='margin-top: 1.8rem;'></div>", unsafe_allow_html=True)
-            solo_ev_tot = st.checkbox(
-                "🔥 Solo picks Calificados (+EV)",
-                key="nfl_tot_ev_filter",
-                value=(seccion_totales == "🔥 Picks filtrados"),
-            )
         with f_col3:
             filtro_estado = st.selectbox(
                 "Estado:",
                 ["Solo Próximos (Por Jugar)", "Solo Finalizados", "Todos los partidos"],
-                index=0 if seccion_totales != "📋 Todos los partidos" else 2,
+                index=0,
                 key="nfl_tot_filtro_estado",
             )
 
@@ -348,16 +339,20 @@ def render():
         elif filtro_estado == "Solo Finalizados":
             base_mostrar = base_mostrar[es_fin]
 
-        # Filtro "Solo Picks Calificados ordenados de Mayor a Menor EV%"
-        if solo_ev_tot or seccion_totales == "🔥 Picks filtrados":
-            base_mostrar = base_mostrar[
-                (base_mostrar["estado"] == "PICK") |
-                ((pd.to_numeric(base_mostrar.get("ev", 0.0), errors="coerce") > 0) &
-                 (pd.to_numeric(base_mostrar.get("edge_absoluto", 0.0), errors="coerce") >= 2.0))
-            ]
-            if not base_mostrar.empty and "ev" in base_mostrar.columns:
-                base_mostrar = base_mostrar.sort_values(by="ev", ascending=False).reset_index(drop=True)
-            st.caption("🔥 Mostrando picks calificados ordenados de **Mayor a Menor Valor Esperado (+EV)**.")
+        if filtro_estado != "Solo Finalizados":
+            base_mostrar = filtrar_top5_dataframe(
+                base_mostrar,
+                prob_col="prob_pick",
+                ev_col="ev",
+                valid_mask=(base_mostrar["estado"] == "PICK") if "estado" in base_mostrar.columns else None,
+                limite=TOP_N_PICKS,
+                min_prob=0.53,
+                min_ev=0.0,
+            )
+            if not base_mostrar.empty:
+                st.caption(
+                    f"🏆 **Filtro Automático Top {TOP_N_PICKS}:** Mostrando los **{len(base_mostrar)} totales más confiables con +EV** (sin NO PICK ni líneas neutrales)."
+                )
         else:
             base_mostrar = base_mostrar.sort_values(
                 ["ev", "edge_absoluto"],
@@ -366,10 +361,10 @@ def render():
             ).reset_index(drop=True)
 
         if base_mostrar.empty:
-            st.warning("No hay partidos o picks que coincidan con los filtros de búsqueda seleccionados.")
+            st.info("🛡️ Hoy no hay totales NFL que superen el umbral estricto de seguridad y +EV.")
         else:
-            for _, fila in base_mostrar.iterrows():
-                mostrar_partido(fila)
+            for idx_fila, (_, fila) in enumerate(base_mostrar.iterrows()):
+                mostrar_partido(fila, ranking_pos=idx_fila + 1)
 
     if seccion_totales == "📈 Rendimiento":
         from core.ui_historial_publicado import render_history

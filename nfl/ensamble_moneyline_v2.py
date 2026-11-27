@@ -1,8 +1,8 @@
 """Definición del Ensamble Híbrido NFL Moneyline V2.
 
 Combina:
-1. Regresión Logística Calibrada con regularización L2 (anclaje al spread y pendiente de mercado).
-2. LightGBM Calibrado (interacciones no lineales entre EPA, lesiones posicionales y clima).
+1. Regresión Logística Calibrada con StandardScaler y regularización L2 (anclaje al spread y pendiente de mercado).
+2. HistGradientBoostingClassifier Calibrado (interacciones no lineales entre EPA ofensivo/defensivo y salud posicional).
 """
 from __future__ import annotations
 

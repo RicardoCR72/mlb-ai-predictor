@@ -80,10 +80,10 @@ IMPACTO_JUGADORES: Dict[str, Dict[str, float]] = {
     "Jaren Jackson Jr.": {"spread": 3.2, "total": 2.8, "tier": 2},
 
     # Tier 3: Titulares de Alto Impacto / Especialistas / Anclas Defensivas (1.5 - 2.8 pts)
-    "Jarrett Allen": {"spread": 2.5, "total": 2.2, "tier": 3},
+    "Jarrett Allen": {"spread": 2.5, "total": 0.0, "tier": 3},
     "Evan Mobley": {"spread": 2.8, "total": 2.2, "tier": 3},
     "Jalen Suggs": {"spread": 2.2, "total": 2.0, "tier": 3},
-    "Draymond Green": {"spread": 2.6, "total": 2.0, "tier": 3},
+    "Draymond Green": {"spread": 2.6, "total": 0.0, "tier": 3},
     "Derrick White": {"spread": 2.5, "total": 2.5, "tier": 3},
     "Jrue Holiday": {"spread": 2.5, "total": 2.2, "tier": 3},
     "Kristaps Porzingis": {"spread": 2.8, "total": 2.8, "tier": 3},
@@ -102,11 +102,11 @@ IMPACTO_JUGADORES: Dict[str, Dict[str, float]] = {
     "Brandon Ingram": {"spread": 2.8, "total": 2.8, "tier": 3},
     "Austin Reaves": {"spread": 2.0, "total": 2.2, "tier": 3},
     "Bradley Beal": {"spread": 2.3, "total": 2.6, "tier": 3},
-    "Rudy Gobert": {"spread": 2.5, "total": 1.8, "tier": 3},
+    "Rudy Gobert": {"spread": 2.5, "total": 0.0, "tier": 3},
     "Josh Hart": {"spread": 1.8, "total": 1.5, "tier": 3},
     "DeMar DeRozan": {"spread": 2.6, "total": 2.6, "tier": 3},
-    "Steven Adams": {"spread": 1.5, "total": 1.2, "tier": 3},
-    "Clint Capela": {"spread": 1.6, "total": 1.4, "tier": 3},
+    "Steven Adams": {"spread": 1.5, "total": 0.0, "tier": 3},
+    "Clint Capela": {"spread": 1.6, "total": 0.0, "tier": 3},
     "Shaedon Sharpe": {"spread": 2.0, "total": 2.2, "tier": 3},
 }
 
@@ -189,8 +189,8 @@ def obtener_reporte_lesiones_nba(force_refresh: bool = False, max_age_minutes: i
                     tier = metricas["tier"]
                 else:
                     # Titulares y jugadores de rol no listados expresamente
-                    imp_spread = 0.8
-                    imp_total = 0.9
+                    imp_spread = 0.25
+                    imp_total = 0.20
                     tier = 4
 
                 lista_equipo.append({
@@ -292,6 +292,12 @@ def calcular_impacto_lesiones_partido(
                 alertas.append(f"⚠️ {p['jugador']} ({abbr_loc}) EN DUDA ({p['estado']})")
                 if p["tier"] == 1:
                     hay_candado = True
+
+    # Topes máximos por equipo (los reemplazos NBA absorben gran parte de los minutos)
+    pen_spread_vis = min(pen_spread_vis, 8.5)
+    pen_spread_loc = min(pen_spread_loc, 8.5)
+    pen_total_vis = min(pen_total_vis, 6.5)
+    pen_total_loc = min(pen_total_loc, 6.5)
 
     # El ajuste de spread favorable al local es: (penalizacion visita - penalizacion local)
     # Si la visita está más disminuida, pen_spread_vis > pen_spread_loc => ajuste_neto_spread > 0 (Local más favorito)

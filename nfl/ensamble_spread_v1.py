@@ -11,6 +11,28 @@ import numpy as np
 import pandas as pd
 
 
+def _cuota_a_decimal_y_str(odds: float | str | None, fallback_str: str = "-110", fallback_dec: float = 1.9091) -> tuple[float, str]:
+    """Convierte un momio americano o decimal a (decimal, texto_americano)."""
+    if odds is None or (isinstance(odds, float) and np.isnan(odds)):
+        return fallback_dec, fallback_str
+    try:
+        s = str(odds).strip()
+        if not s:
+            return fallback_dec, fallback_str
+        num = float(s.replace("+", ""))
+        if num == 0:
+            return fallback_dec, fallback_str
+        if abs(num) >= 100:
+            dec = 1.0 + (num / 100.0) if num > 0 else 1.0 + (100.0 / abs(num))
+            txt = f"+{int(num)}" if num > 0 else f"{int(num)}"
+            return round(dec, 4), txt
+        if num > 1.0:
+            return round(num, 4), s
+    except (ValueError, TypeError):
+        pass
+    return fallback_dec, fallback_str
+
+
 class EnsambleSpreadNFLv1:
     """Ensamble calibrado para predicción de cobertura de línea de hándicap (Spread / ATS) en la NFL."""
 
@@ -21,7 +43,7 @@ class EnsambleSpreadNFLv1:
         features: list[str],
         peso_lr: float = 0.80,
         peso_hgb: float = 0.20,
-        umbral_edge: float = 0.520,
+        umbral_edge: float = 0.530,
         version: str = "v1_spread_ats_hybrid",
     ):
         self.modelo_lr = modelo_lr
@@ -74,45 +96,58 @@ class EnsambleSpreadNFLv1:
         spread_line: float,
         home_team: str,
         away_team: str,
+        odds_home: float | str | None = None,
+        odds_away: float | str | None = None,
     ) -> dict[str, any]:
-        """Evalúa un partido individual y entrega diagnóstico con EV y recomendación."""
+        """Evalúa un partido individual y entrega diagnóstico con EV real y recomendación."""
         df_row = pd.DataFrame([features_dict])
         probs = self.predict_proba(df_row)[0]
         p_away, p_home = float(probs[0]), float(probs[1])
 
-        # Selección según ventaja estadística
-        # Cuota estándar -110 requiere 52.38% para punto de equilibrio (BEP)
-        BEP = 0.5238
+        dec_home, str_home = _cuota_a_decimal_y_str(odds_home)
+        dec_away, str_away = _cuota_a_decimal_y_str(odds_away)
 
-        if p_home >= self.umbral_edge:
+        ev_home = (p_home * dec_home) - 1.0
+        ev_away = (p_away * dec_away) - 1.0
+        bep_home = 1.0 / dec_home
+        bep_away = 1.0 / dec_away
+
+        califica_home = (p_home >= self.umbral_edge) and (ev_home > 0.0)
+        califica_away = (p_away >= self.umbral_edge) and (ev_away > 0.0)
+
+        if califica_home and (not califica_away or ev_home >= ev_away):
             pick = home_team
             lado = "HOME"
             prob_sel = p_home
-            edge = p_home - BEP
-            # Línea de spread del pick:
-            # Si Home es favorito (spread_line > 0), el spread del mercado suele anotarse -spread_line
-            # En la convención nflverse: spread_line = 3.5 significa Home fav por 3.5 (-3.5 en casas)
+            edge = p_home - bep_home
             linea_pick = -spread_line if spread_line > 0 else abs(spread_line)
             rol = "Favorito" if spread_line > 0 else "Underdog"
-            ev = (p_home * 1.9091) - 1.0
+            ev = ev_home
+            cuota_pick = str_home
+            cuota_pick_dec = dec_home
             recomendar = True
-        elif p_away >= self.umbral_edge:
+        elif califica_away:
             pick = away_team
             lado = "AWAY"
             prob_sel = p_away
-            edge = p_away - BEP
+            edge = p_away - bep_away
             linea_pick = spread_line if spread_line > 0 else -abs(spread_line)
             rol = "Underdog" if spread_line > 0 else "Favorito"
-            ev = (p_away * 1.9091) - 1.0
+            ev = ev_away
+            cuota_pick = str_away
+            cuota_pick_dec = dec_away
             recomendar = True
         else:
             pick = None
             lado = "PASS"
             prob_sel = max(p_home, p_away)
-            edge = prob_sel - BEP
+            bep_best = bep_home if p_home >= p_away else bep_away
+            edge = prob_sel - bep_best
             linea_pick = 0.0
             rol = "Neutral"
             ev = 0.0
+            cuota_pick = str_home if p_home >= p_away else str_away
+            cuota_pick_dec = dec_home if p_home >= p_away else dec_away
             recomendar = False
 
         return {
@@ -129,4 +164,6 @@ class EnsambleSpreadNFLv1:
             "prob_seleccion": round(prob_sel, 4),
             "edge_vs_bep": round(edge * 100, 2),
             "ev_esperado_pct": round(ev * 100, 2),
+            "cuota_pick": cuota_pick,
+            "cuota_pick_dec": round(cuota_pick_dec, 4),
         }

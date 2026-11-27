@@ -54,6 +54,7 @@ def cargar_datos():
                 "game_id", "gameday", "home_team", "away_team",
                 "home_qb_id", "away_qb_id", "home_rest", "away_rest",
                 "roof", "surface", "temp", "wind",
+                "spread_line", "total_line", "div_game",
             ]
         ],
         on="game_id",
@@ -78,6 +79,7 @@ def cargar_datos():
         + [
             "season", "week", "receptions", "receiving_yards",
             "receiving_tds", "rest", "temp", "wind",
+            "spread_line", "total_line", "div_game",
         ]
     ))
     for columna in numericas:

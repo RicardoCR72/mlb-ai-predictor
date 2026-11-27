@@ -56,7 +56,7 @@ def proyectar_minutos_jugador(
     es_titular: bool,
     spread_partido: float = 0.0,
     es_b2b: bool = False,
-    faltas_promedio_l5: float = 2.0,
+    faltas_promedio_l5: Optional[float] = None,
     edad: Optional[int] = None,
 ) -> Dict[str, Any]:
     """Proyecta los minutos esperados de un jugador en cancha desacoplando factores tácticos y contextuales.
@@ -96,10 +96,11 @@ def proyectar_minutos_jugador(
     # 4. Ajuste por riesgo de problemas de faltas (Foul Trouble)
     # Jugadores que promedian >= 3.5 faltas tienen riesgo alto de sentarse 4-6 min en la primera mitad
     minutos_penalizacion_faltas = 0.0
-    if faltas_promedio_l5 >= 3.8:
-        minutos_penalizacion_faltas = 2.0
-    elif faltas_promedio_l5 >= 3.2:
-        minutos_penalizacion_faltas = 1.0
+    if faltas_promedio_l5 is not None:
+        if faltas_promedio_l5 >= 3.8:
+            minutos_penalizacion_faltas = 2.0
+        elif faltas_promedio_l5 >= 3.2:
+            minutos_penalizacion_faltas = 1.0
 
     # Minutos calculados
     min_ajustados = (base_min * factor_blowout * factor_b2b) - minutos_penalizacion_faltas
@@ -191,13 +192,17 @@ def proyectar_prop_por_minuto(
     es_titular = (min_season >= 24.0) or (min_l5 >= 25.0)
 
     # 1. Proyectar minutos
+    faltas_l5 = None
+    if "pf" in df_boxscores_jugador.columns and not df_boxscores_jugador["pf"].dropna().empty:
+        faltas_l5 = float(df_boxscores_jugador["pf"].dropna().head(5).mean())
+
     res_min = proyectar_minutos_jugador(
         min_season=min_season,
         min_l5=min_l5,
         es_titular=es_titular,
         spread_partido=spread_partido,
         es_b2b=es_b2b,
-        faltas_promedio_l5=2.0
+        faltas_promedio_l5=faltas_l5
     )
     min_esperados = res_min["minutos_proyectados"]
 
@@ -226,11 +231,14 @@ def proyectar_prop_por_minuto(
     pace_esperado = (pace_local + pace_visita) / 2.0
     factor_pace = float(np.clip(pace_esperado / 100.0, 0.92, 1.08))
 
-    # 4. Total del mercado: más puntos globales implica ritmo/eficiencia mayor
+    # 4. Total del mercado y factor de entorno sin sobre-escalar ni inflar rebotes por eficiencia ofensiva
     factor_total = float(np.clip(total_partido / 226.0, 0.95, 1.05))
+    if clave_stat == "reb":
+        factor_entorno = factor_pace * defensa_rival_factor
+    else:
+        factor_entorno = float(np.sqrt(factor_pace * factor_total)) * defensa_rival_factor
 
     # 5. Proyección cuantitativa final
-    factor_entorno = factor_pace * factor_total * defensa_rival_factor
     proy_final = tasa_blended * min_esperados * factor_entorno
 
     return {

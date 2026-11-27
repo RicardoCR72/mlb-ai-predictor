@@ -22,6 +22,7 @@ RUTA_PRED_PARQUET = RAIZ / "data" / "nba" / "predictions" / "predicciones_props_
 RUTA_PRED_JSON = RAIZ / "data" / "nba" / "predictions" / "predicciones_props_nba_hoy.json"
 
 from core.constants import ZONA_CDMX
+from core.filtro_top5 import TOP_N_PICKS, etiqueta_top, filtrar_top5_dataframe
 from nba.predecir_props import generar_predicciones_props_hoy
 from nba.servicio_bovada_props import (
     extraer_props_nba,
@@ -144,9 +145,9 @@ def renderizar_ui_props_nba():
         st.info(f"ℹ️ **Líneas de Props en Espera ({hoy_str})**: Las casas de apuestas aún no abren la totalidad de líneas de props individuales para hoy (suelen abrir entre 10:30 y 11:30 AM). Si estás en una red con bloqueo de firewall, recuerda activar tu VPN para 0 créditos o marcar la casilla de The Odds API.")
         return
 
-    # Controles y Filtros
+    # Controles y Filtros de Contexto (el filtro Top 5 de alta confianza es automático)
     st.markdown("---")
-    c_partido, c_mercado, c_conf, c_tipo = st.columns(4)
+    c_partido, c_mercado, c_tipo = st.columns(3)
 
     # 1. Filtro por Partido
     partidos_unicos = ["Todos los partidos"] + sorted(df_props["game"].dropna().unique().tolist())
@@ -161,52 +162,19 @@ def renderizar_ui_props_nba():
     mercado_sel_label = c_mercado.selectbox("📊 Mercado:", list(opciones_mercado.keys()))
     mercado_sel = opciones_mercado[mercado_sel_label]
 
-    # 3. Filtro por Confianza / EV
-    opciones_conf = {
-        "🌟 Top 20 Oficiales (Máxima Confianza)": "top_20",
-        "🔒 Candados de Oro (Ultra Convicción)": "candado",
-        "⭐⭐⭐ Top Picks (Solo 3 Estrellas)": "top_picks",
-        "⭐⭐ Alta Confianza (2 y 3 Estrellas)": "alta_confianza",
-        "⭐ Solo Picks de Valor (1, 2 y 3 Estrellas)": "picks_valor",
-        "Todos los props (Incluye Neutrales)": "todos",
-    }
-    conf_sel_label = c_conf.selectbox("🔥 Nivel de Valor / EV:", list(opciones_conf.keys()), index=0)
-    filtro_conf_tipo = opciones_conf.get(conf_sel_label, "top_20")
-
-    # 4. Filtro por Selección
+    # 3. Filtro por Selección
     tipo_sel = c_tipo.selectbox("🎯 Selección:", ["Todos", "Solo OVER", "Solo UNDER"])
 
     # Buscador de jugador
     busqueda_jugador = st.text_input("🔍 Buscar jugador específico (ej. Jokic, Curry, Edwards, Tatum):", "")
 
-    # Aplicar Filtros
+    # Aplicar Filtros de contexto + Filtro Automático Top 5 más confiable (+EV, sin neutrales/estrellas bajas)
     df_filtrado = df_props.copy()
     if partido_sel != "Todos los partidos":
         df_filtrado = df_filtrado[df_filtrado["game"] == partido_sel]
 
     if mercado_sel:
         df_filtrado = df_filtrado[df_filtrado["market"] == mercado_sel]
-
-    if filtro_conf_tipo == "top_20" or "Top 20" in conf_sel_label:
-        if "es_top20_oficial" in df_filtrado.columns and df_filtrado["es_top20_oficial"].any():
-            df_filtrado = df_filtrado[df_filtrado["es_top20_oficial"] == True]
-        else:
-            try:
-                from nba.predecir_props import seleccionar_top_props_diarios
-                df_filtrado = seleccionar_top_props_diarios(df_filtrado, limite=20)
-            except Exception:
-                df_filtrado = df_filtrado.head(20)
-    elif filtro_conf_tipo == "candado" or "Candado" in conf_sel_label:
-        if "es_candado" in df_filtrado.columns:
-            df_filtrado = df_filtrado[df_filtrado["es_candado"] == True]
-        else:
-            df_filtrado = df_filtrado[df_filtrado["stars"] == "⭐⭐⭐"]
-    elif filtro_conf_tipo == "top_picks" or "⭐⭐⭐" in conf_sel_label:
-        df_filtrado = df_filtrado[df_filtrado["stars"] == "⭐⭐⭐"]
-    elif filtro_conf_tipo == "alta_confianza" or "⭐⭐" in conf_sel_label:
-        df_filtrado = df_filtrado[df_filtrado["stars"].isin(["⭐⭐⭐", "⭐⭐"])]
-    elif filtro_conf_tipo == "picks_valor" or "⭐" in conf_sel_label:
-        df_filtrado = df_filtrado[df_filtrado["stars"].isin(["⭐⭐⭐", "⭐⭐", "⭐"])]
 
     if tipo_sel == "Solo OVER":
         df_filtrado = df_filtrado[df_filtrado["pick_type"] == "OVER"]
@@ -217,22 +185,33 @@ def renderizar_ui_props_nba():
         q = busqueda_jugador.strip().lower()
         df_filtrado = df_filtrado[df_filtrado["player_name"].str.lower().str.contains(q)]
 
-    # Ordenar estrictamente de Mayor a Menor EV% y deduplicar por jugador y mercado
-    if not df_filtrado.empty and "ev_pct" in df_filtrado.columns:
-        df_filtrado = df_filtrado.sort_values(by="ev_pct", ascending=False).reset_index(drop=True)
-        # Evita mostrar múltiples tarjetas del mismo jugador en el mismo mercado (conserva la de mayor EV)
-        df_filtrado = df_filtrado.drop_duplicates(subset=["player_name", "market"], keep="first").reset_index(drop=True)
+    valid_mask = pd.Series(True, index=df_filtrado.index)
+    if "stars" in df_filtrado.columns:
+        valid_mask &= df_filtrado["stars"].astype(str).str.strip() != "⚪"
+    if "confidence" in df_filtrado.columns:
+        valid_mask &= ~df_filtrado["confidence"].astype(str).str.upper().isin(["NEUTRAL", "BAJA", "SIN VALOR", "LONGSHOT"])
 
-    # KPIs de la Selección
+    df_filtrado = filtrar_top5_dataframe(
+        df_filtrado,
+        prob_col="model_prob",
+        ev_col="ev_pct",
+        valid_mask=valid_mask,
+        dedupe_col="player_name",
+        limite=TOP_N_PICKS,
+        min_prob=0.54,
+        min_ev=0.0,
+    )
+
+    # KPIs de la Selección Top 5
     kpi1, kpi2, kpi3, kpi4 = st.columns(4)
     total_filtrado = len(df_filtrado)
-    kpi1.metric("Picks Filtrados", f"{total_filtrado}")
-    
+    kpi1.metric(f"🏆 Top {TOP_N_PICKS} Más Seguros", f"{total_filtrado} / {TOP_N_PICKS}")
+
     top_ev = df_filtrado["ev_pct"].max() if not df_filtrado.empty else 0.0
     kpi2.metric("Mejor EV%", f"+{top_ev:.1f}%" if top_ev > 0 else f"{top_ev:.1f}%")
-    
-    picks_3estrellas = (df_filtrado["stars"] == "⭐⭐⭐").sum() if not df_filtrado.empty else 0
-    kpi3.metric("Top Picks ⭐⭐⭐", f"{picks_3estrellas}")
+
+    prob_media = (df_filtrado["model_prob"].mean() * 100.0) if not df_filtrado.empty else 0.0
+    kpi3.metric("Prob. Media IA", f"{prob_media:.1f}%")
 
     cuota_media = df_filtrado["pick_odds_decimal"].median() if not df_filtrado.empty else 1.90
     kpi4.metric("Momio Promedio", f"{cuota_media:.2f} dec")
@@ -240,45 +219,38 @@ def renderizar_ui_props_nba():
     st.markdown("---")
 
     if df_filtrado.empty:
-        st.warning("⚠️ No se encontraron props con los filtros aplicados. Intenta ampliar los criterios de búsqueda.")
+        st.info("🛡️ Hoy no hay props que superen el umbral estricto de seguridad (Prob IA ≥ 54% y +EV). No mostramos picks sin valor.")
         return
 
     # Pestañas de Vista: Tarjetas vs Tabla
-    tab_cards, tab_tabla = st.tabs(["🎴 Tarjetas de Oportunidades", "📋 Tabla Cuantitativa Completa"])
+    tab_cards, tab_tabla = st.tabs([f"🏆 Top {TOP_N_PICKS} Oportunidades", "📋 Tabla Cuantitativa Top 5"])
 
     with tab_cards:
-        c_h1, c_h2, c_h3 = st.columns([2, 1, 1])
+        c_h1, c_h3 = st.columns([3, 1])
         with c_h1:
-            st.markdown("##### 🎴 Oportunidades de Valor Seleccionadas")
-        with c_h2:
-            limite_tarjetas = st.selectbox(
-                "Cantidad de tarjetas:",
-                [50, 80, 120, "Todas"],
-                index=1,
-                key="nba_props_limite_cards",
-            )
+            st.markdown(f"##### 🏆 Top {total_filtrado} Props Más Confiables del Día (+EV)")
         with c_h3:
             desplegar_todas_graficas = st.toggle("📊 Desplegar gráficas", value=False, key="nba_props_toggle_graficas")
 
-        n_cards = len(df_filtrado) if limite_tarjetas == "Todas" else int(limite_tarjetas)
-        props_a_mostrar = df_filtrado.head(n_cards).to_dict(orient="records")
+        props_a_mostrar = df_filtrado.to_dict(orient="records")
         cols = st.columns(2)
 
         for i, p in enumerate(props_a_mostrar):
             with cols[i % 2]:
-                _renderizar_tarjeta_prop(p, desplegar_grafica_directa=desplegar_todas_graficas)
-
-        if total_filtrado > n_cards:
-            st.caption(f"Mostrando los mejores {n_cards} picks de {total_filtrado} disponibles. Aumenta el selector o consulta la pestaña 'Tabla Cuantitativa' para ver la lista completa.")
+                _renderizar_tarjeta_prop(p, desplegar_grafica_directa=desplegar_todas_graficas, ranking_pos=i + 1)
 
     with tab_tabla:
+        df_tabla = df_filtrado.copy()
+        df_tabla["ranking"] = [etiqueta_top(i + 1) for i in range(len(df_tabla))]
         columnas_tabla = [
-            "player_name", "team", "market", "line", "projection",
+            "ranking", "player_name", "team", "market", "line", "projection",
             "pick_type", "pick_odds_american", "pick_odds_decimal",
-            "model_prob", "implied_prob", "ev_pct", "stars", "hit_rate_season", "hit_rate_l5", "trend"
+            "model_prob", "implied_prob", "ev_pct", "hit_rate_season", "hit_rate_l5", "trend"
         ]
-        df_display = df_filtrado[columnas_tabla].copy()
+        columnas_presentes = [c for c in columnas_tabla if c in df_tabla.columns]
+        df_display = df_tabla[columnas_presentes].copy()
         df_display.rename(columns={
+            "ranking": "Top",
             "player_name": "Jugador",
             "team": "Equipo",
             "market": "Mercado",
@@ -290,7 +262,6 @@ def renderizar_ui_props_nba():
             "model_prob": "Prob. Modelo",
             "implied_prob": "Prob. Casa",
             "ev_pct": "EV %",
-            "stars": "Confianza",
             "hit_rate_season": "Hit Rate Temp",
             "hit_rate_l5": "Hit Rate L5",
             "trend": "Tendencia",
@@ -310,7 +281,7 @@ def renderizar_ui_props_nba():
         )
 
 
-def _renderizar_tarjeta_prop(p: Dict[str, Any], desplegar_grafica_directa: bool = False):
+def _renderizar_tarjeta_prop(p: Dict[str, Any], desplegar_grafica_directa: bool = False, ranking_pos: int = 1):
     """Dibuja una tarjeta individual usando el componente universal homologado."""
     nombre = p["player_name"]
     equipo = p["team"]
@@ -321,11 +292,7 @@ def _renderizar_tarjeta_prop(p: Dict[str, Any], desplegar_grafica_directa: bool 
     momio_am = p.get("pick_odds_american", "-110")
     cuota_dec = p.get("pick_odds_decimal", 1.909)
     ev = p["ev_pct"]
-    estrellas = p.get("stars", "⭐")
-    if p.get("es_candado"):
-        estrellas = f"🔒 {estrellas}"
-    elif p.get("es_top20_oficial"):
-        estrellas = f"🌟 {estrellas}"
+    estrellas = etiqueta_top(ranking_pos)
     tendencia = p.get("trend", "")
     boost_lesion = p.get("boost_lesion_pct", 0.0)
     desc_blowout = p.get("descuento_blowout_pct", 0.0)

@@ -367,15 +367,35 @@ def render_cartelera_nba(predicciones: list[dict], mercado: str):
             pass
         return False
 
+    from core.filtro_top5 import TOP_N_PICKS, etiqueta_top, filtrar_top5_picks_dict
+
     total_partidos = len(predicciones)
     n_pendientes = sum(1 for p in predicciones if not _es_partido_pasado_nba(p) and not _es_en_vivo_nba(p))
     n_liquidados = sum(1 for p in predicciones if _es_partido_pasado_nba(p))
     n_en_vivo = sum(1 for p in predicciones if _es_en_vivo_nba(p))
 
-    # Picks calificados (+EV fuera de Dead Zone) en el mercado activo
-    picks_calificados = sum(
-        1 for p in predicciones
-        if not _es_partido_pasado_nba(p) and obtener_pick_para_mercado(p, mercado).get("confianza") in ["ALTA", "MEDIA"]
+    def _ev_partido_nba(p: dict) -> float:
+        pk = obtener_pick_para_mercado(p, mercado)
+        ev_raw = pk.get("ev")
+        if ev_raw is not None:
+            val = float(ev_raw)
+            return val * 100.0 if abs(val) <= 1.0 else val
+        from core.ui_boleta import parsear_cuota_decimal
+        c_d = parsear_cuota_decimal(pk.get("momio"))
+        pr = float(pk.get("probabilidad") or 0.0)
+        return (pr * c_d - 1.0) * 100.0 if (c_d > 1.0 and pr > 0) else 0.0
+
+    # Top 5 picks más seguros (+EV, excluye neutrales y baja confianza)
+    top5_activos = filtrar_top5_picks_dict(
+        [p for p in predicciones if not _es_partido_pasado_nba(p)],
+        get_conf=lambda p: obtener_pick_para_mercado(p, mercado).get("confianza"),
+        get_prob=lambda p: obtener_pick_para_mercado(p, mercado).get("probabilidad"),
+        get_ev=_ev_partido_nba,
+        get_id_unico=lambda p: p.get("id_evento") or p.get("id_juego") or p.get("partido"),
+        limite=TOP_N_PICKS,
+        min_prob=0.53,
+        min_ev=0.0,
+        confianzas_validas=("ALTA", "MEDIA"),
     )
 
     # 4 tarjetas métricas ejecutivas homologadas
@@ -387,21 +407,18 @@ def render_cartelera_nba(predicciones: list[dict], mercado: str):
     with c3:
         st.metric("Finalizados", n_liquidados)
     with c4:
-        st.metric("Picks Calificados (+EV)", picks_calificados)
+        st.metric("🏆 Top Picks (+EV)", f"{len(top5_activos)} / {TOP_N_PICKS}")
     st.markdown("<div style='margin-bottom: 1.25rem;'></div>", unsafe_allow_html=True)
 
     from core.ui_boleta import render_boton_boleta, render_widget_boleta
 
-    f_col1, f_col2, f_col3 = st.columns([1.6, 1.2, 1.2], gap="medium")
+    f_col1, f_col3 = st.columns([2.0, 1.3], gap="medium")
     with f_col1:
         busqueda_nba = st.text_input(
             "Buscar equipo NBA",
             key="nba_search_input",
             placeholder="🔍 Ej: Lakers, Celtics, GSW, Warriors, Miami...",
         ).strip().lower()
-    with f_col2:
-        st.markdown("<div style='margin-top: 1.8rem;'></div>", unsafe_allow_html=True)
-        solo_ev = st.checkbox("🔥 Solo picks Calificados (+EV)", key="nba_ev_filter")
     with f_col3:
         filtro_estado = st.selectbox(
             "Estado:",
@@ -420,11 +437,6 @@ def render_cartelera_nba(predicciones: list[dict], mercado: str):
                 busqueda_nba in str(p.get("abbr_visita", "")).lower() or
                 busqueda_nba in str(p.get("partido", "")).lower())
         ]
-    if solo_ev:
-        lista_mostrar = [
-            p for p in lista_mostrar
-            if obtener_pick_para_mercado(p, mercado).get("confianza") in ["ALTA", "MEDIA"]
-        ]
 
     if filtro_estado == "Solo Próximos (Por Jugar)":
         lista_mostrar = [p for p in lista_mostrar if not _es_partido_pasado_nba(p) and not _es_en_vivo_nba(p)]
@@ -435,13 +447,22 @@ def render_cartelera_nba(predicciones: list[dict], mercado: str):
     elif filtro_estado == "Solo Finalizados":
         lista_mostrar = [p for p in lista_mostrar if _es_partido_pasado_nba(p)]
 
-    # Ordenar de MAYOR a MENOR por EV% al filtrar por picks calificados
-    if solo_ev and lista_mostrar:
-        lista_mostrar.sort(
-            key=lambda p: float(obtener_pick_para_mercado(p, mercado).get("ev", 0.0) or 0.0),
-            reverse=True
+    if filtro_estado != "Solo Finalizados":
+        lista_mostrar = filtrar_top5_picks_dict(
+            lista_mostrar,
+            get_conf=lambda p: obtener_pick_para_mercado(p, mercado).get("confianza"),
+            get_prob=lambda p: obtener_pick_para_mercado(p, mercado).get("probabilidad"),
+            get_ev=_ev_partido_nba,
+            get_id_unico=lambda p: p.get("id_evento") or p.get("id_juego") or p.get("partido"),
+            limite=TOP_N_PICKS,
+            min_prob=0.53,
+            min_ev=0.0,
+            confianzas_validas=("ALTA", "MEDIA"),
         )
-        st.caption("🔥 Mostrando picks calificados ordenados de **Mayor a Menor Valor Esperado (+EV)**.")
+        if lista_mostrar:
+            st.caption(
+                f"🏆 **Filtro Automático Top {TOP_N_PICKS}:** Mostrando únicamente los **{len(lista_mostrar)} picks más seguros con +EV** (sin neutrales ni selecciones de bajo valor)."
+            )
 
     if not lista_mostrar:
         if n_liquidados > 0 and filtro_estado in ["Solo Próximos (Por Jugar)", "Solo Próximos y En Vivo"] and n_pendientes == 0 and n_en_vivo == 0:
@@ -456,7 +477,7 @@ Los partidos de hoy ({n_liquidados} juegos) ya finalizaron y están auditados en
                 unsafe_allow_html=True,
             )
         else:
-            st.warning("No hay partidos o picks que coincidan con los filtros de búsqueda seleccionados.")
+            st.info("🛡️ Hoy no hay partidos que superen el umbral estricto de confianza y +EV en este mercado. No forzamos picks sin valor.")
         return
 
     # Renderizado de Tarjetas de partidos individuales para el mercado seleccionado
@@ -625,14 +646,7 @@ Los partidos de hoy ({n_liquidados} juegos) ya finalizaron y están auditados en
             } if conf in ["ALTA", "MEDIA", "LONGSHOT"] else None
 
             ev_num = float(ev_calc)
-            if conf == "ALTA" or ev_num >= 10.0:
-                estrellas_nba = "⭐⭐⭐"
-            elif conf == "MEDIA" or ev_num >= 5.0:
-                estrellas_nba = "⭐⭐"
-            elif ev_num > 0:
-                estrellas_nba = "⭐"
-            else:
-                estrellas_nba = "⚪"
+            estrellas_nba = etiqueta_top(idx + 1)
 
             def _render_nba_desglose():
                 col_c1, col_c2, col_c3 = st.columns(3)
@@ -714,9 +728,6 @@ Los partidos de hoy ({n_liquidados} juegos) ya finalizaron y están auditados en
                 contenido_lesiones=fn_lesiones,
                 probabilidad_modelo=pick_info.get("probabilidad"),
             )
-
-            if conf == "NEUTRAL":
-                st.caption("🛡️ *Filtro de Disciplina Activo: Este partido está en la Zona Muerta (edge < +4.5%). Descartado para apuestas.*")
 
     render_widget_boleta()
 

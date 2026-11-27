@@ -77,6 +77,9 @@ if "candidatos_hoy" not in st.session_state:
 candidatos = st.session_state.candidatos_hoy
 total_cand = candidatos.get("total_candidatos", 0)
 
+for adv in candidatos.get("advertencias", []):
+    st.warning(adv, icon="⚠️")
+
 # ==============================================================================
 # SIDEBAR / CONFIGURACIÓN DE IA Y ESTADO DEL DOBLE FILTRO
 # ==============================================================================

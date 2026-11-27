@@ -40,15 +40,17 @@ logger = logging.getLogger(__name__)
 # Features clave para proyectar puntos totales en la NBA
 FEATURES_TOTALES = [
     # Ritmo (Pace) de ambos equipos
-    "PACE_PROYECTADO_L10", "HOME_PACE_L5", "AWAY_PACE_L5", "HOME_PACE_L10", "AWAY_PACE_L10",
+    "HOME_PACE_L5", "AWAY_PACE_L5", "HOME_PACE_L10", "AWAY_PACE_L10",
     # Puntos anotados y permitidos
     "HOME_PTS_L10", "AWAY_PTS_L10", "HOME_OPP_PTS_L10", "AWAY_OPP_PTS_L10",
     # Eficiencia ofensiva y defensiva (Ratings)
     "HOME_ORTG_L10", "AWAY_ORTG_L10", "HOME_DRTG_L10", "AWAY_DRTG_L10",
-    # Tiro y Pérdidas (Four Factors)
+    # Tiro, Pérdidas y Tiros Libres (Four Factors)
     "HOME_EFG_PCT_L10", "AWAY_EFG_PCT_L10", "HOME_TOV_PCT_L10", "AWAY_TOV_PCT_L10",
-    # Fatiga y descanso
-    "HOME_REST_DAYS", "AWAY_REST_DAYS", "HOME_IS_B2B", "AWAY_IS_B2B"
+    "HOME_FT_RATE_L10", "AWAY_FT_RATE_L10",
+    # Fatiga, descanso y contexto de postemporada
+    "HOME_REST_DAYS", "AWAY_REST_DAYS", "HOME_IS_B2B", "AWAY_IS_B2B",
+    "IS_PLAYOFF",
 ]
 
 
@@ -119,10 +121,9 @@ def entrenar_modelo_totales() -> Dict[str, Any]:
     prod_ridge = make_pipeline(StandardScaler(), RidgeCV(alphas=np.logspace(-2, 3, 20)))
     prod_ridge.fit(df[FEATURES_TOTALES], df["TOTAL_PTS"])
 
-    preds_prod = 0.65 * prod_hgb.predict(df[FEATURES_TOTALES]) + 0.35 * prod_ridge.predict(df[FEATURES_TOTALES])
-    residuales = df["TOTAL_PTS"] - preds_prod
-    sigma_residual = float(np.std(residuales))
-    logger.info(f"Desviación estándar real de residuales (sigma): {sigma_residual:.2f} pts")
+    # Sigma empírico honesto calculado Out-of-Sample sobre la validación 2024-25
+    sigma_residual = float(np.std(y_test - preds_val))
+    logger.info(f"Desviación estándar Out-of-Sample de residuales (sigma): {sigma_residual:.2f} pts")
 
     bundle = {
         "model": prod_hgb,
@@ -164,19 +165,20 @@ def proyectar_partido_totales(
     linea_total: float = 225.0,
     ajuste_lesiones: float = 0.0,
 ) -> Dict[str, Any]:
-    """Calcula los puntos proyectados con Shrinkage Bayesiano y probabilidades Over/Under."""
+    """Calcula los puntos proyectados con Shrinkage Bayesiano hacia el mercado y probabilidades Over/Under."""
     features = bundle.get("features", FEATURES_TOTALES)
-    sigma = bundle.get("sigma_condicional", 13.5)
 
     DEFAULTS_TOTALES = {
-        "PACE_PROYECTADO_L10": 100.2, "HOME_PACE_L5": 100.2, "AWAY_PACE_L5": 100.2,
+        "HOME_PACE_L5": 100.2, "AWAY_PACE_L5": 100.2,
         "HOME_PACE_L10": 100.2, "AWAY_PACE_L10": 100.2,
         "HOME_PTS_L10": 113.6, "AWAY_PTS_L10": 113.6, "HOME_OPP_PTS_L10": 113.6, "AWAY_OPP_PTS_L10": 113.6,
         "HOME_ORTG_L10": 113.6, "AWAY_ORTG_L10": 113.6, "HOME_DRTG_L10": 113.6, "AWAY_DRTG_L10": 113.6,
         "HOME_EFG_PCT_L10": 0.54, "AWAY_EFG_PCT_L10": 0.54,
         "HOME_TOV_PCT_L10": 0.135, "AWAY_TOV_PCT_L10": 0.135,
+        "HOME_FT_RATE_L10": 0.22, "AWAY_FT_RATE_L10": 0.22,
         "HOME_REST_DAYS": 2.0, "AWAY_REST_DAYS": 2.0,
-        "HOME_IS_B2B": 0, "AWAY_IS_B2B": 0
+        "HOME_IS_B2B": 0, "AWAY_IS_B2B": 0,
+        "IS_PLAYOFF": 0,
     }
 
     # Construcción segura de vector de features: solo usa default si es None o NaN
@@ -204,29 +206,10 @@ def proyectar_partido_totales(
     else:
         raw_pred = 227.2
 
-    def _obtener_num(d: Dict[str, Any], k: str, def_val: float) -> float:
-        v = d.get(k)
-        if v is None or (isinstance(v, float) and np.isnan(v)):
-            return def_val
-        try:
-            return float(v)
-        except (ValueError, TypeError):
-            return def_val
-
-    # Puntos esperados basados en matchup ofensivo/defensivo reciente
-    h_pts = _obtener_num(features_dict, "HOME_PTS_L10", 113.6)
-    a_opp = _obtener_num(features_dict, "AWAY_OPP_PTS_L10", 113.6)
-    a_pts = _obtener_num(features_dict, "AWAY_PTS_L10", 113.6)
-    h_opp = _obtener_num(features_dict, "HOME_OPP_PTS_L10", 113.6)
-    pts_matchup = ((h_pts + a_opp) / 2.0) + ((a_pts + h_opp) / 2.0)
-
-    # Blending de modelo estadístico (60%) y matchup dinámico reciente (40%)
-    modelo_combinado = 0.60 * raw_pred + 0.40 * pts_matchup
-
     # Control de Lesiones sin Doble Conteo:
     # La línea consensuada del mercado ya reacciona y descuenta las bajas públicas de estrellas.
     # Por tanto, atenuamos el impacto residual al 40% para evitar castigar dos veces el mismo juego.
-    modelo_combinado += float(ajuste_lesiones) * 0.40
+    modelo_combinado = raw_pred + float(ajuste_lesiones) * 0.40
 
     # Shrinkage Bayesiano institucional hacia la línea consensuada del mercado (65% mercado / 35% modelo)
     if linea_total and linea_total > 0:
@@ -234,14 +217,13 @@ def proyectar_partido_totales(
         edge_puntos = total_pred - linea_total
         diff_cruda = modelo_combinado - linea_total
 
-        # Sigma empírico real calibrado para totales NBA (~17.0 - 18.5 pts)
+        # Sigma empírico Out-of-Sample calibrado para totales NBA (~17.0 - 21.0 pts)
         sigma_tot = float(bundle.get("sigma_residual") or bundle.get("sigma_condicional") or 17.5)
         sigma_tot = max(16.0, min(sigma_tot, 21.0))
         z_score = diff_cruda / sigma_tot
         prob_over_raw = float(norm.cdf(z_score))
 
-        # Penalización por Sesgo de Under / Atrición NBA (-3.5% a Overs por riesgo de paliza/blowout y ritmo lento):
-        prob_over = float(np.clip(prob_over_raw - 0.035, 0.05, 0.95))
+        prob_over = float(np.clip(prob_over_raw, 0.05, 0.95))
         prob_under = 1.0 - prob_over
 
         # Filtro de Divergencia Extrema: si el modelo crudo difiere en más de 14 puntos de Las Vegas, veto preventivo

@@ -1,18 +1,19 @@
 {
   "modelo": "NFL Spread (ATS) V1",
   "version": "v1_spread_ats_hybrid",
-  "n_features": 22,
+  "n_features": 23,
   "features": [
     "spread_line",
     "abs_spread",
     "key_3",
     "key_7",
     "is_home_dog",
-    "diff_total_epa_8",
     "diff_pass_epa_8",
     "diff_rush_epa_8",
     "diff_sacks_8",
-    "diff_margin_avg_8",
+    "diff_def_pass_epa_8",
+    "diff_def_rush_epa_8",
+    "diff_def_sacks_8",
     "diff_points_for_avg_8",
     "diff_points_against_avg_8",
     "diff_win_pct_8",
@@ -28,7 +29,7 @@
   ],
   "peso_lr": 0.8,
   "peso_hgb": 0.2,
-  "umbral_edge_oficial": 0.52,
+  "umbral_edge_oficial": 0.53,
   "entrenamiento": {
     "seasons": "2012-2023",
     "n_partidos": 3034
@@ -36,10 +37,10 @@
   "prueba_out_of_sample": {
     "seasons": "2024-2026",
     "n_partidos_totales": 682,
-    "picks_ejecutados": 322,
-    "victorias": 176,
-    "win_rate_pct": 54.66,
-    "unidades_netas": 14.0,
-    "roi_pct": 4.35
+    "picks_ejecutados": 315,
+    "victorias": 174,
+    "win_rate_pct": 55.24,
+    "unidades_netas": 17.18,
+    "roi_pct": 5.45
   }
 }

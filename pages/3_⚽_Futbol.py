@@ -330,12 +330,30 @@ def render_cartelera_futbol(predicciones: list[dict], mercado_activo: str):
         if _parsear_fecha_segura(p) and _parsear_fecha_segura(p) >= hoy_cdmx
     ]
 
+    from core.filtro_top5 import TOP_N_PICKS, etiqueta_top, filtrar_top5_picks_dict
+    from core.ui_boleta import parsear_cuota_decimal
+
+    def _ev_partido_futbol(partido: dict) -> float:
+        pd_item = obtener_pick_para_mercado_futbol(partido, mercado_activo)
+        c_dec = parsear_cuota_decimal(pd_item.get("cuota"))
+        prob = float(pd_item.get("probabilidad", 0.5) or 0.5)
+        if c_dec > 1.0 and prob > 0:
+            return (prob * c_dec - 1.0) * 100.0
+        return float(partido.get("ev_total", 0.0) or 0.0) * 100.0
+
     tot_partidos = len(predicciones)
     n_pendientes = sum(1 for p in predicciones if not _es_partido_pasado(p) and not _es_partido_en_vivo(p))
     n_finalizados = sum(1 for p in predicciones if _es_partido_pasado(p))
-    picks_calificados = sum(
-        1 for p in predicciones
-        if not _es_partido_pasado(p) and obtener_pick_para_mercado_futbol(p, mercado_activo).get("confianza") in ["ALTA", "MEDIA"]
+    top5_activos = filtrar_top5_picks_dict(
+        [p for p in predicciones if not _es_partido_pasado(p)],
+        get_conf=lambda p: obtener_pick_para_mercado_futbol(p, mercado_activo).get("confianza"),
+        get_prob=lambda p: obtener_pick_para_mercado_futbol(p, mercado_activo).get("probabilidad"),
+        get_ev=_ev_partido_futbol,
+        get_id_unico=lambda p: p.get("id_partido") or p.get("id_evento") or p.get("partido"),
+        limite=TOP_N_PICKS,
+        min_prob=0.53,
+        min_ev=0.0,
+        confianzas_validas=("ALTA", "MEDIA"),
     )
 
     # Nivel 4: 4 Tarjetas Métricas
@@ -343,20 +361,15 @@ def render_cartelera_futbol(predicciones: list[dict], mercado_activo: str):
     mcol1.metric("Total Partidos", f"{tot_partidos} juegos")
     mcol2.metric("Pendientes", n_pendientes)
     mcol3.metric("Finalizados", n_finalizados)
-    mcol4.metric("Picks Calificados (+EV)", picks_calificados)
+    mcol4.metric("🏆 Top Picks (+EV)", f"{len(top5_activos)} / {TOP_N_PICKS}")
 
     st.markdown("<div style='margin-bottom: 0.8rem;'></div>", unsafe_allow_html=True)
 
-    f_col1, f_col2 = st.columns([2, 1], gap="medium")
-    with f_col1:
-        busqueda_futbol = st.text_input(
-            "Buscar equipo de Fútbol",
-            key="futbol_search_input",
-            placeholder="🔍 Ej: Real Madrid, Barcelona, Arsenal, América, Chivas...",
-        ).strip().lower()
-    with f_col2:
-        st.markdown("<div style='margin-top: 1.8rem;'></div>", unsafe_allow_html=True)
-        solo_ev = st.checkbox("🔥 Solo picks Calificados (+EV)", key="futbol_ev_filter")
+    busqueda_futbol = st.text_input(
+        "Buscar equipo de Fútbol",
+        key="futbol_search_input",
+        placeholder="🔍 Ej: Real Madrid, Barcelona, Arsenal, América, Chivas...",
+    ).strip().lower()
 
     # Selector de Ligas y Filtros
     nombres_ligas = {
@@ -382,7 +395,7 @@ def render_cartelera_futbol(predicciones: list[dict], mercado_activo: str):
         for c in opciones_selector
     ]
 
-    f_lig_col, f_fec_col, f_conf_col, f_est_col = st.columns([1.4, 1.1, 1.1, 1.1])
+    f_lig_col, f_fec_col, f_est_col = st.columns([1.6, 1.2, 1.2])
     with f_lig_col:
         liga_sel_idx = st.selectbox(
             "Filtrar por Liga:",
@@ -397,13 +410,6 @@ def render_cartelera_futbol(predicciones: list[dict], mercado_activo: str):
             "Fecha:",
             ["Hoy y Próximos", "Solo Hoy", "Solo Mañana", "Próximos días"],
             key="f_fecha_futbol",
-        )
-
-    with f_conf_col:
-        filtro_confianza = st.selectbox(
-            "Nivel de Confianza:",
-            ["Todas las selecciones", "Solo ALTA confianza", "Solo MEDIA confianza"],
-            key="f_confianza_futbol",
         )
 
     with f_est_col:
@@ -422,11 +428,6 @@ def render_cartelera_futbol(predicciones: list[dict], mercado_activo: str):
                 busqueda_futbol in str(p.get("equipo_visita", "")).lower() or
                 busqueda_futbol in str(p.get("partido", "")).lower())
         ]
-    if solo_ev:
-        filtrados = [
-            p for p in filtrados
-            if obtener_pick_para_mercado_futbol(p, mercado_activo).get("confianza") in ["ALTA", "MEDIA"]
-        ]
     if liga_seleccionada != "todas":
         filtrados = [p for p in filtrados if p.get("liga_codigo") == liga_seleccionada]
 
@@ -439,11 +440,6 @@ def render_cartelera_futbol(predicciones: list[dict], mercado_activo: str):
     else: # "Hoy y Próximos"
         filtrados = [p for p in filtrados if _parsear_fecha_segura(p) and _parsear_fecha_segura(p) >= hoy_cdmx]
 
-    if filtro_confianza == "Solo ALTA confianza":
-        filtrados = [p for p in filtrados if p.get("confianza") == "ALTA"]
-    elif filtro_confianza == "Solo MEDIA confianza":
-        filtrados = [p for p in filtrados if p.get("confianza") == "MEDIA"]
-
     if filtro_estado == "Solo Próximos (Por Jugar)":
         filtrados = [p for p in filtrados if not _es_partido_pasado(p) and not _es_partido_en_vivo(p)]
     elif filtro_estado == "Solo Próximos y En Vivo":
@@ -453,25 +449,28 @@ def render_cartelera_futbol(predicciones: list[dict], mercado_activo: str):
     elif filtro_estado == "Solo Finalizados":
         filtrados = [p for p in filtrados if _es_partido_pasado(p)]
 
-    # Ordenar de MAYOR a MENOR por EV% al filtrar por picks calificados
-    if solo_ev and filtrados:
-        from core.ui_boleta import parsear_cuota_decimal
-        def _obtener_ev_futbol(partido):
-            pd_item = obtener_pick_para_mercado_futbol(partido, mercado_activo)
-            c_dec = parsear_cuota_decimal(pd_item.get("cuota"))
-            prob = float(pd_item.get("probabilidad", 0.5) or 0.5)
-            if c_dec > 1.0 and prob > 0:
-                return (prob * c_dec - 1.0) * 100.0
-            return float(partido.get("ev_total", 0.0) or 0.0) * 100.0
-
-        filtrados.sort(key=_obtener_ev_futbol, reverse=True)
-        st.caption("🔥 Mostrando picks calificados ordenados de **Mayor a Menor Valor Esperado (+EV)**.")
+    if filtro_estado != "Solo Finalizados":
+        filtrados = filtrar_top5_picks_dict(
+            filtrados,
+            get_conf=lambda p: obtener_pick_para_mercado_futbol(p, mercado_activo).get("confianza"),
+            get_prob=lambda p: obtener_pick_para_mercado_futbol(p, mercado_activo).get("probabilidad"),
+            get_ev=_ev_partido_futbol,
+            get_id_unico=lambda p: p.get("id_partido") or p.get("id_evento") or p.get("partido"),
+            limite=TOP_N_PICKS,
+            min_prob=0.53,
+            min_ev=0.0,
+            confianzas_validas=("ALTA", "MEDIA"),
+        )
+        if filtrados:
+            st.caption(
+                f"🏆 **Filtro Automático Top {TOP_N_PICKS}:** Mostrando los **{len(filtrados)} picks de fútbol más seguros con +EV** (sin líneas neutrales ni longshots)."
+            )
 
     if not filtrados:
         if filtro_fecha == "Solo Hoy" and n_finalizados > 0:
             st.info("⚽ Los partidos programados para hoy ya finalizaron y han sido liquidados en **Rendimiento e Historial**. Selecciona **'Hoy y Próximos'** o **'Solo Mañana'** para consultar los siguientes partidos por disputarse.")
         else:
-            st.warning("No hay partidos que coincidan con los filtros seleccionados.")
+            st.info("🛡️ Hoy no hay partidos de fútbol que superen el umbral estricto de seguridad (Prob IA ≥ 53% y +EV) para estos filtros.")
         return
 
     # Despliegue de tarjetas de partidos
@@ -691,14 +690,7 @@ def render_cartelera_futbol(predicciones: list[dict], mercado_activo: str):
                     lbl_pf = "Probabilidad"
 
                 ev_fut = float(ev_calc_f)
-                if confianza == "ALTA" or ev_fut >= 10.0:
-                    estrellas_f = "⭐⭐⭐"
-                elif confianza == "MEDIA" or ev_fut >= 5.0:
-                    estrellas_f = "⭐⭐"
-                elif ev_fut > 0:
-                    estrellas_f = "⭐"
-                else:
-                    estrellas_f = "⚪"
+                estrellas_f = etiqueta_top(idx + 1)
 
                 partido_id = str(p.get("id_partido") or p.get("id_evento") or f"{p.get('equipo_visita')}_{p.get('equipo_local')}_{idx}")
                 clean_mercado = str(pick_data.get("mercado")).replace(" ", "_").replace("(", "").replace(")", "")

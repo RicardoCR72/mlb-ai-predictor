@@ -288,11 +288,12 @@ def mostrar_prop(fila):
                 st.write(contexto)
 
 
+from core.filtro_top5 import TOP_N_PICKS, etiqueta_top, filtrar_top5_dataframe
 from core.ui_tarjeta_universal import render_tarjeta_universal
 from core.ui_boleta import parsear_cuota_decimal
 
 
-def mostrar_prop_compacto(fila):
+def mostrar_prop_compacto(fila, ranking_pos: int | None = None):
     res = str(fila.get('resultado_pick') or '').strip().upper()
     es_resuelta = res in ('GANADA', 'PERDIDA', 'PUSH')
 
@@ -341,14 +342,7 @@ def mostrar_prop_compacto(fila):
     else:
         ev_pct = round(ev_val, 1)
 
-    if ev_pct >= 10.0:
-        estrellas = "⭐⭐⭐"
-    elif ev_pct >= 5.0:
-        estrellas = "⭐⭐"
-    elif ev_pct > 0.0:
-        estrellas = "⭐"
-    else:
-        estrellas = "⚪"
+    estrellas = etiqueta_top(ranking_pos or 1)
 
     prob_pick = float(fila.get("probabilidad_pick", 0.5) or 0.5) * 100.0
     edge_val = float(fila.get("edge", 0.0) or 0.0)
@@ -485,7 +479,7 @@ def render():
 
     seccion_props = st.radio(
         "Sección de props",
-        ["🔥 Candidatos", "📈 Rendimiento"],
+        ["🔥 Top 5 Picks", "📈 Rendimiento"],
         horizontal=True,
         format_func=lambda value: value.lstrip("🔥📋📈⚾🏈📊⚽🔮💼 "),
         label_visibility="collapsed",
@@ -586,6 +580,15 @@ def render():
         juegos_resueltos = set(df[df["resultado_pick"].isin(["GANADA", "PERDIDA", "PUSH"])]["id_juego"].unique())
         num_finalizados = len(juegos_resueltos)
         num_pendientes = max(0, df["id_juego"].nunique() - num_finalizados)
+        top5_global = filtrar_top5_dataframe(
+            candidatos,
+            prob_col="probabilidad_pick",
+            ev_col="ev_estimado",
+            dedupe_col="player_name",
+            limite=TOP_N_PICKS,
+            min_prob=0.53,
+            min_ev=0.0,
+        )
 
         c1, c2, c3, c4 = st.columns(4)
         with c1:
@@ -595,32 +598,17 @@ def render():
         with c3:
             st.metric("Finalizados", num_finalizados)
         with c4:
-            st.metric("Picks Calificados (+EV)", len(candidatos))
+            st.metric("🏆 Top Picks (+EV)", f"{len(top5_global)} / {TOP_N_PICKS}")
         st.markdown("<div style='margin-bottom: 1.25rem;'></div>", unsafe_allow_html=True)
 
-
-    # ---------------------------------------------------------------------------
-    # Navegación interna: solamente las tres vistas operativas.
-    # Capturar Draftea vive en la barra lateral; las proyecciones completas se
-    # consultan mediante los filtros y la metodología ya no ocupa una pestaña.
-    # ---------------------------------------------------------------------------
-
-    if seccion_props == "🔥 Candidatos":
-        candidatos_mostrar = pendientes[
-            pendientes["estado_pick"] == "CANDIDATO"
-        ].sort_values(
-            ["ev_estimado", "probabilidad_pick"],
-            ascending=[False, False],
-            na_position="last",
-        )
+    if seccion_props != "📈 Rendimiento":
+        candidatos_mostrar = pendientes[pendientes["estado_pick"] == "CANDIDATO"].copy()
         with st.container():
-            st.subheader(f"Oportunidades · Semana {semana}")
+            st.subheader(f"Top 5 Oportunidades Más Confiables · Semana {semana}")
             st.caption(
-                "Solo partidos pendientes de hoy en adelante. Confirma "
-                "participación, lesión y movimiento de la línea antes de "
-                "utilizarlos."
+                "Filtro automático estricto: únicamente los 5 Player Props más seguros y con EV positivo (+EV)."
             )
-            selector_partido, selector_mercado, selector_busqueda, selector_ev = st.columns([1.1, 1.1, 1.3, 0.9], gap="medium")
+            selector_partido, selector_mercado, selector_busqueda = st.columns([1.2, 1.2, 1.4], gap="medium")
             with selector_partido:
                 partidos_candidatos = opciones_partidos(candidatos_mostrar)
                 partido_candidato = safe_select(
@@ -641,17 +629,6 @@ def render():
                     key="nfl_props_search_input",
                     placeholder="🔍 Ej: Mahomes, Kelce, KC...",
                 ).strip().lower()
-            with selector_ev:
-                st.markdown("<div style='margin-top: 1.8rem;'></div>", unsafe_allow_html=True)
-                solo_ev_props = st.checkbox("🔥 Solo picks Calificados (+EV)", key="nfl_props_ev_filter", value=False)
-
-            if solo_ev_props:
-                candidatos_mostrar = candidatos_mostrar[
-                    (candidatos_mostrar["ev_estimado"] > 0) & (candidatos_mostrar["estado_pick"] == "CANDIDATO")
-                ]
-                if not candidatos_mostrar.empty and "ev_estimado" in candidatos_mostrar.columns:
-                    candidatos_mostrar = candidatos_mostrar.sort_values(by="ev_estimado", ascending=False).reset_index(drop=True)
-                st.caption("🔥 Mostrando props calificados ordenados de **Mayor a Menor Valor Esperado (+EV)**.")
 
             if partidos_candidatos[partido_candidato] is not None:
                 candidatos_mostrar = candidatos_mostrar[
@@ -669,21 +646,31 @@ def render():
                     candidatos_mostrar.get("away_team", pd.Series("", index=candidatos_mostrar.index)).astype(str).str.lower().str.contains(busqueda_jugador, na=False)
                 ]
 
+            candidatos_mostrar = filtrar_top5_dataframe(
+                candidatos_mostrar,
+                prob_col="probabilidad_pick",
+                ev_col="ev_estimado",
+                valid_mask=(candidatos_mostrar["estado_pick"] == "CANDIDATO") if "estado_pick" in candidatos_mostrar.columns else None,
+                dedupe_col="player_name",
+                limite=TOP_N_PICKS,
+                min_prob=0.53,
+                min_ev=0.0,
+            )
+
             if candidatos_mostrar.empty:
-                state_message('No quedan candidatos pendientes para ese partido y mercado en la semana actual.',kind='filters')
+                state_message('No quedan props de alta confianza con +EV para ese filtro en la semana actual.',kind='filters')
             else:
-                if solo_ev_props:
-                    filas_candidatos = list(candidatos_mostrar.iterrows())
-                else:
-                    filas_candidatos = list(render_order(candidatos_mostrar,'nfl_prop_picks',date_col='gameday',
-                        confidence_col='probabilidad_pick',ev_col='ev_estimado',upcoming=True).iterrows())
+                st.caption(
+                    f"🏆 **Filtro Automático Top {TOP_N_PICKS}:** Mostrando los **{len(candidatos_mostrar)} props más seguros con +EV** (1 por jugador, sin picks sin valor)."
+                )
+                filas_candidatos = list(candidatos_mostrar.iterrows())
                 for inicio in range(0, len(filas_candidatos), 2):
                     columnas_picks = st.columns(2, gap="medium")
-                    for columna, (_, fila) in zip(
+                    for offset, (columna, (_, fila)) in enumerate(zip(
                         columnas_picks, filas_candidatos[inicio:inicio + 2]
-                    ):
+                    )):
                         with columna:
-                            mostrar_prop_compacto(fila)
+                            mostrar_prop_compacto(fila, ranking_pos=inicio + offset + 1)
 
             from core.ui_boleta import render_widget_boleta
             render_widget_boleta()

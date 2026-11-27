@@ -35,6 +35,7 @@ from nba.entrenar_totales import proyectar_partido_totales, FEATURES_TOTALES
 from core.constants import NBA_TEAMS, ZONA_CDMX
 from core.calibracion_probabilidades import calibrar_probabilidades_2way
 
+RUTA_RAW = RAIZ / "data" / "nba" / "raw" / "partidos_historicos_nba.parquet"
 RUTA_DATASET = RAIZ / "data" / "nba" / "processed" / "dataset_partidos_nba.parquet"
 RUTA_MODELO_SPREAD = RAIZ / "modelos_nba" / "modelo_spread_ml.joblib"
 RUTA_MODELO_TOTALES = RAIZ / "modelos_nba" / "modelo_totales.joblib"
@@ -45,8 +46,88 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 logger = logging.getLogger(__name__)
 
 
-def cargar_perfiles_recientes_equipos() -> Dict[str, Dict[str, float]]:
-    """Extrae el perfil rodante más reciente de cada franquicia con regresión a medias de temporada regular."""
+def cargar_perfiles_recientes_equipos() -> Dict[str, Dict[str, Any]]:
+    """Calcula el perfil rodante ACTUALIZADO (incluyendo el último juego disputado) por equipo dentro de su temporada."""
+    if RUTA_RAW.exists():
+        from nba.construir_dataset import (
+            resolver_local_visitante,
+            calcular_metricas_avanzadas_equipo,
+            fusionar_datos_rival,
+        )
+
+        df_raw = pd.read_parquet(RUTA_RAW)
+        df_raw = df_raw[df_raw["GAME_ID"].str[:3].isin(["002", "004", "005"])].copy()
+        df_home = resolver_local_visitante(df_raw)
+        df_metrics = calcular_metricas_avanzadas_equipo(df_home)
+        df_team = fusionar_datos_rival(df_metrics)
+        df_team["GAME_DATE_DT"] = pd.to_datetime(df_team["GAME_DATE"])
+        df_team = df_team.sort_values(["TEAM_ABBREVIATION", "SEASON", "GAME_DATE_DT"]).reset_index(drop=True)
+
+        metricas_calc = [
+            "PTS", "OPP_PTS", "PACE", "ORTG", "DRTG", "NET_RTG",
+            "EFG_PCT", "OPP_EFG_PCT", "TOV_PCT", "ORB_PCT", "FT_RATE", "WIN",
+        ]
+
+        # Promedios dinámicos derivados de la temporada actual
+        latest_season_global = str(df_team["SEASON"].max())
+        df_act = df_team[df_team["SEASON"] == latest_season_global]
+        if not df_act.empty and len(df_act) >= 40:
+            baseline_pts = round(float(df_act["PTS"].mean()), 1)
+            baseline_pace = round(float(df_act["PACE"].mean()), 1)
+            baseline_rtg = round(float(df_act["ORTG"].mean()), 1)
+        else:
+            baseline_pts = 113.6
+            baseline_pace = 100.2
+            baseline_rtg = 113.6
+
+        perfiles: Dict[str, Dict[str, Any]] = {}
+        for team, grp in df_team.groupby("TEAM_ABBREVIATION"):
+            latest_season = grp["SEASON"].max()
+            grp_season = grp[grp["SEASON"] == latest_season].sort_values("GAME_DATE_DT")
+            if grp_season.empty:
+                continue
+
+            prof: Dict[str, Any] = {}
+            for ventana in [5, 10, 20]:
+                tail = grp_season.tail(ventana)
+                for m in metricas_calc:
+                    prof[f"{m}_L{ventana}"] = float(tail[m].mean())
+
+            # Promedios de temporada completa del equipo
+            prof["PACE_SEASON"] = float(grp_season["PACE"].mean())
+            prof["ORTG_SEASON"] = float(grp_season["ORTG"].mean())
+            prof["DRTG_SEASON"] = float(grp_season["DRTG"].mean())
+            prof["NET_RTG_SEASON"] = float(grp_season["NET_RTG"].mean())
+
+            fechas = grp_season["GAME_DATE_DT"].tolist()
+            last_dt_ts = fechas[-1]
+            last_dt = last_dt_ts.strftime("%Y-%m-%d")
+            prev_dt_2 = fechas[-2].strftime("%Y-%m-%d") if len(fechas) >= 2 else ""
+
+            if len(fechas) >= 2:
+                rest_hist = float(max(0, min((fechas[-1] - fechas[-2]).days, 7)))
+            else:
+                rest_hist = 3.0
+            prof["REST_DAYS"] = rest_hist
+            prof["IS_B2B"] = 1 if rest_hist == 1.0 else 0
+            prof["IS_3_IN_4"] = 1 if (len(fechas) >= 3 and (fechas[-1] - fechas[-3]).days <= 4) else 0
+
+            # Regresión si el equipo no ha debutado aún en la temporada 2026-27
+            if last_dt < "2026-01-01":
+                for c in ["PTS_L5", "PTS_L10", "PTS_L20", "OPP_PTS_L5", "OPP_PTS_L10", "OPP_PTS_L20"]:
+                    prof[c] = 0.50 * prof.get(c, baseline_pts) + 0.50 * baseline_pts
+                for c in ["PACE_L5", "PACE_L10", "PACE_L20"]:
+                    prof[c] = 0.50 * prof.get(c, baseline_pace) + 0.50 * baseline_pace
+                for c in ["ORTG_L5", "ORTG_L10", "ORTG_L20", "DRTG_L5", "DRTG_L10", "DRTG_L20"]:
+                    prof[c] = 0.50 * prof.get(c, baseline_rtg) + 0.50 * baseline_rtg
+
+            prof["LAST_DATE"] = last_dt
+            prof["PREV_DATE_2"] = prev_dt_2
+            perfiles[str(team)] = prof
+
+        if perfiles:
+            return perfiles
+
     if not RUTA_DATASET.exists():
         raise FileNotFoundError(f"Falta el dataset procesado en {RUTA_DATASET}.")
 
@@ -56,24 +137,13 @@ def cargar_perfiles_recientes_equipos() -> Dict[str, Dict[str, float]]:
         "PTS_L5", "OPP_PTS_L5", "PACE_L5", "ORTG_L5", "DRTG_L5", "NET_RTG_L5",
         "EFG_PCT_L5", "TOV_PCT_L5", "ORB_PCT_L5", "FT_RATE_L5", "WIN_L5",
         "PTS_L10", "OPP_PTS_L10", "PACE_L10", "ORTG_L10", "DRTG_L10", "NET_RTG_L10",
-        "EFG_PCT_L10", "TOV_PCT_L10", "ORB_PCT_L10", "FT_RATE_L10", "WIN_L10",
+        "EFG_PCT_L10", "OPP_EFG_PCT_L10", "TOV_PCT_L10", "ORB_PCT_L10", "FT_RATE_L10", "WIN_L10",
         "PTS_L20", "OPP_PTS_L20", "PACE_L20", "ORTG_L20", "DRTG_L20", "NET_RTG_L20",
-        "EFG_PCT_L20", "TOV_PCT_L20", "ORB_PCT_L20", "FT_RATE_L20", "WIN_L20"
+        "EFG_PCT_L20", "TOV_PCT_L20", "ORB_PCT_L20", "FT_RATE_L20", "WIN_L20",
     ]
 
-    perfiles: Dict[str, Dict[str, float]] = {}
+    perfiles = {}
     todos_equipos = set(df["HOME_TEAM"].unique()).union(set(df["AWAY_TEAM"].unique()))
-
-    # Promedios dinámicos derivados directamente de la temporada actual 2026-27
-    df_act = df[df["SEASON"] == "2026-27"]
-    if not df_act.empty and len(df_act) >= 20:
-        baseline_pts = round(float(df_act["TOTAL_PTS"].mean() / 2.0), 1)
-        baseline_pace = round(float(df_act[["HOME_PACE_L10", "AWAY_PACE_L10"]].mean().mean()), 1)
-        baseline_rtg = baseline_pts
-    else:
-        baseline_pts = 113.6
-        baseline_pace = 100.2
-        baseline_rtg = 113.6
 
     for team in todos_equipos:
         matches = df[(df["HOME_TEAM"] == team) | (df["AWAY_TEAM"] == team)].sort_values("GAME_DATE")
@@ -84,21 +154,35 @@ def cargar_perfiles_recientes_equipos() -> Dict[str, Dict[str, float]]:
         pref = "HOME_" if is_home else "AWAY_"
 
         prof = {c: float(last_match.get(pref + c, 0.0)) for c in cols_base}
-        last_dt = str(last_match["GAME_DATE"])
-
-        # Si el partido proviene de la postemporada anterior, regresionar hacia la media de regular season
-        if last_dt < "2026-01-01":
-            for c in ["PTS_L5", "PTS_L10", "PTS_L20", "OPP_PTS_L5", "OPP_PTS_L10", "OPP_PTS_L20"]:
-                prof[c] = 0.50 * prof.get(c, baseline_pts) + 0.50 * baseline_pts
-            for c in ["PACE_L5", "PACE_L10", "PACE_L20"]:
-                prof[c] = 0.50 * prof.get(c, baseline_pace) + 0.50 * baseline_pace
-            for c in ["ORTG_L5", "ORTG_L10", "ORTG_L20", "DRTG_L5", "DRTG_L10", "DRTG_L20"]:
-                prof[c] = 0.50 * prof.get(c, baseline_rtg) + 0.50 * baseline_rtg
-
-        prof["LAST_DATE"] = last_dt
+        prof["LAST_DATE"] = str(last_match["GAME_DATE"])[:10]
+        prof["PREV_DATE_2"] = ""
         perfiles[team] = prof
 
     return perfiles
+
+
+def _calcular_fatiga_en_fecha(prof: Dict[str, Any], fecha_juego_str: Any) -> tuple[float, int, int]:
+    """Calcula REST_DAYS, IS_B2B e IS_3_IN_4 exactos para la fecha del partido."""
+    last_dt_str = str(prof.get("LAST_DATE", "") or "")[:10]
+    prev_2_str = str(prof.get("PREV_DATE_2", "") or "")[:10]
+    if not last_dt_str or not fecha_juego_str:
+        return float(prof.get("REST_DAYS", 2.0)), int(prof.get("IS_B2B", 0)), int(prof.get("IS_3_IN_4", 0))
+    try:
+        dt_juego = datetime.strptime(str(fecha_juego_str)[:10], "%Y-%m-%d").date()
+        dt_last = datetime.strptime(last_dt_str, "%Y-%m-%d").date()
+        diff = max(0, (dt_juego - dt_last).days)
+        if diff > 20:
+            return 3.0, 0, 0
+        rest = float(min(diff, 7))
+        is_b2b = 1 if diff == 1 else 0
+        is_3_in_4 = 0
+        if prev_2_str:
+            dt_prev2 = datetime.strptime(prev_2_str, "%Y-%m-%d").date()
+            if (dt_juego - dt_prev2).days <= 4:
+                is_3_in_4 = 1
+        return rest, is_b2b, is_3_in_4
+    except Exception:
+        return float(prof.get("REST_DAYS", 2.0)), int(prof.get("IS_B2B", 0)), int(prof.get("IS_3_IN_4", 0))
 
 
 def predecir_partidos_hoy(force_refresh: bool = False, fecha: Optional[str] = None) -> List[Dict[str, Any]]:
@@ -140,9 +224,11 @@ def predecir_partidos_hoy(force_refresh: bool = False, fecha: Optional[str] = No
     # Perfil promedio de la liga como fallback neutral (elimina sesgo BOS como local y DET como visita)
     perfil_liga_neutral = {
         "NET_RTG_L5": 0.0, "NET_RTG_L10": 0.0, "NET_RTG_L20": 0.0,
-        "ORTG_L10": 114.5, "DRTG_L10": 114.5, "EFG_PCT_L10": 0.54,
-        "WIN_L10": 0.5, "REST_DAYS": 2.0, "PACE_L10": 100.2,
-        "PACE_SEASON": 100.2, "ORTG_SEASON": 114.5, "DRTG_SEASON": 114.5, "NET_RTG_SEASON": 0.0,
+        "ORTG_L10": 113.6, "DRTG_L10": 113.6, "EFG_PCT_L10": 0.54,
+        "TOV_PCT_L10": 0.135, "ORB_PCT_L10": 0.24, "FT_RATE_L10": 0.22,
+        "PTS_L10": 113.6, "OPP_PTS_L10": 113.6,
+        "WIN_L10": 0.5, "REST_DAYS": 2.0, "PACE_L5": 100.2, "PACE_L10": 100.2,
+        "PACE_SEASON": 100.2, "ORTG_SEASON": 113.6, "DRTG_SEASON": 113.6, "NET_RTG_SEASON": 0.0,
     }
     if perfiles:
         try:
@@ -226,68 +312,58 @@ def predecir_partidos_hoy(force_refresh: bool = False, fecha: Optional[str] = No
         home_prof = perfiles.get(home_abbr, perfil_liga_neutral)
         away_prof = perfiles.get(away_abbr, perfil_liga_neutral)
 
-        # Diferenciales clave
+        home_rest, home_b2b, _ = _calcular_fatiga_en_fecha(home_prof, j.get("fecha_cdmx"))
+        away_rest, away_b2b, _ = _calcular_fatiga_en_fecha(away_prof, j.get("fecha_cdmx"))
+        is_playoff = int(j.get("is_playoff", 0) or 0)
+
+        # Diferenciales clave no redundantes
         diff_net_l5 = home_prof.get("NET_RTG_L5", 0.0) - away_prof.get("NET_RTG_L5", 0.0)
-        diff_net_l10 = home_prof.get("NET_RTG_L10", 0.0) - away_prof.get("NET_RTG_L10", 0.0)
         diff_net_l20 = home_prof.get("NET_RTG_L20", 0.0) - away_prof.get("NET_RTG_L20", 0.0)
-        diff_ortg_l10 = home_prof.get("ORTG_L10", 114.5) - away_prof.get("ORTG_L10", 114.5)
-        diff_drtg_l10 = home_prof.get("DRTG_L10", 114.5) - away_prof.get("DRTG_L10", 114.5)
-        diff_efg_l10 = home_prof.get("EFG_PCT_L10", 0.54) - away_prof.get("EFG_PCT_L10", 0.54)
-        diff_win_l10 = home_prof.get("WIN_L10", 0.5) - away_prof.get("WIN_L10", 0.5)
-        diff_rest = home_prof.get("REST_DAYS", 2.0) - away_prof.get("REST_DAYS", 2.0)
-        pace_proj = (home_prof.get("PACE_L10", 100.2) + away_prof.get("PACE_L10", 100.2)) / 2.0
-        off_vs_def_home = home_prof.get("ORTG_L10", 114.5) - away_prof.get("DRTG_L10", 114.5)
-        off_vs_def_away = away_prof.get("ORTG_L10", 114.5) - home_prof.get("DRTG_L10", 114.5)
 
         feats_spread = {
             "DIFF_NET_RTG_L5": diff_net_l5,
-            "DIFF_NET_RTG_L10": diff_net_l10,
             "DIFF_NET_RTG_L20": diff_net_l20,
-            "DIFF_ORTG_L10": diff_ortg_l10,
-            "DIFF_DRTG_L10": diff_drtg_l10,
-            "DIFF_EFG_L10": diff_efg_l10,
-            "DIFF_WIN_L10": diff_win_l10,
-            "DIFF_REST": diff_rest,
-            "HOME_NET_RTG_L10": home_prof.get("NET_RTG_L10", 0.0),
-            "AWAY_NET_RTG_L10": away_prof.get("NET_RTG_L10", 0.0),
-            "HOME_ORTG_L10": home_prof.get("ORTG_L10", 114.5),
-            "AWAY_ORTG_L10": away_prof.get("ORTG_L10", 114.5),
-            "HOME_DRTG_L10": home_prof.get("DRTG_L10", 114.5),
-            "AWAY_DRTG_L10": away_prof.get("DRTG_L10", 114.5),
-            "HOME_EFG_PCT_L10": home_prof.get("EFG_PCT_L10", 0.54),
-            "AWAY_EFG_PCT_L10": away_prof.get("EFG_PCT_L10", 0.54),
-            "HOME_WIN_L10": home_prof.get("WIN_L10", 0.5),
-            "AWAY_WIN_L10": away_prof.get("WIN_L10", 0.5),
-            "HOME_REST_DAYS": home_prof.get("REST_DAYS", 2.0),
-            "AWAY_REST_DAYS": away_prof.get("REST_DAYS", 2.0),
-            "HOME_IS_B2B": home_prof.get("IS_B2B", 0),
-            "AWAY_IS_B2B": away_prof.get("IS_B2B", 0),
-            "OFF_VS_DEF_HOME": off_vs_def_home,
-            "OFF_VS_DEF_AWAY": off_vs_def_away,
-        }
-
-        feats_totales = {
-            "PACE_PROYECTADO_L10": pace_proj,
-            "HOME_PACE_L5": home_prof.get("PACE_L5", 100.2),
-            "AWAY_PACE_L5": away_prof.get("PACE_L5", 100.2),
-            "HOME_PACE_L10": home_prof.get("PACE_L10", 100.2),
-            "AWAY_PACE_L10": away_prof.get("PACE_L10", 100.2),
-            "HOME_PTS_L10": home_prof.get("PTS_L10", 114.5),
-            "AWAY_PTS_L10": away_prof.get("PTS_L10", 114.5),
-            "HOME_OPP_PTS_L10": home_prof.get("OPP_PTS_L10", 114.5),
-            "AWAY_OPP_PTS_L10": away_prof.get("OPP_PTS_L10", 114.5),
-            "HOME_ORTG_L10": home_prof.get("ORTG_L10", 114.5),
-            "AWAY_ORTG_L10": away_prof.get("ORTG_L10", 114.5),
-            "HOME_DRTG_L10": home_prof.get("DRTG_L10", 114.5),
-            "AWAY_DRTG_L10": away_prof.get("DRTG_L10", 114.5),
+            "HOME_ORTG_L10": home_prof.get("ORTG_L10", 113.6),
+            "AWAY_ORTG_L10": away_prof.get("ORTG_L10", 113.6),
+            "HOME_DRTG_L10": home_prof.get("DRTG_L10", 113.6),
+            "AWAY_DRTG_L10": away_prof.get("DRTG_L10", 113.6),
             "HOME_EFG_PCT_L10": home_prof.get("EFG_PCT_L10", 0.54),
             "AWAY_EFG_PCT_L10": away_prof.get("EFG_PCT_L10", 0.54),
             "HOME_TOV_PCT_L10": home_prof.get("TOV_PCT_L10", 0.135),
             "AWAY_TOV_PCT_L10": away_prof.get("TOV_PCT_L10", 0.135),
-            "HOME_REST_DAYS": home_prof.get("REST_DAYS", 2.0),
-            "AWAY_REST_DAYS": away_prof.get("REST_DAYS", 2.0),
-            "HOME_IS_B2B": home_prof.get("IS_B2B", 0),
-            "AWAY_IS_B2B": away_prof.get("IS_B2B", 0),
+            "HOME_ORB_PCT_L10": home_prof.get("ORB_PCT_L10", 0.24),
+            "AWAY_ORB_PCT_L10": away_prof.get("ORB_PCT_L10", 0.24),
+            "HOME_REST_DAYS": home_rest,
+            "AWAY_REST_DAYS": away_rest,
+            "HOME_IS_B2B": home_b2b,
+            "AWAY_IS_B2B": away_b2b,
+            "IS_PLAYOFF": is_playoff,
+        }
+
+        feats_totales = {
+            "HOME_PACE_L5": home_prof.get("PACE_L5", 100.2),
+            "AWAY_PACE_L5": away_prof.get("PACE_L5", 100.2),
+            "HOME_PACE_L10": home_prof.get("PACE_L10", 100.2),
+            "AWAY_PACE_L10": away_prof.get("PACE_L10", 100.2),
+            "HOME_PTS_L10": home_prof.get("PTS_L10", 113.6),
+            "AWAY_PTS_L10": away_prof.get("PTS_L10", 113.6),
+            "HOME_OPP_PTS_L10": home_prof.get("OPP_PTS_L10", 113.6),
+            "AWAY_OPP_PTS_L10": away_prof.get("OPP_PTS_L10", 113.6),
+            "HOME_ORTG_L10": home_prof.get("ORTG_L10", 113.6),
+            "AWAY_ORTG_L10": away_prof.get("ORTG_L10", 113.6),
+            "HOME_DRTG_L10": home_prof.get("DRTG_L10", 113.6),
+            "AWAY_DRTG_L10": away_prof.get("DRTG_L10", 113.6),
+            "HOME_EFG_PCT_L10": home_prof.get("EFG_PCT_L10", 0.54),
+            "AWAY_EFG_PCT_L10": away_prof.get("EFG_PCT_L10", 0.54),
+            "HOME_TOV_PCT_L10": home_prof.get("TOV_PCT_L10", 0.135),
+            "AWAY_TOV_PCT_L10": away_prof.get("TOV_PCT_L10", 0.135),
+            "HOME_FT_RATE_L10": home_prof.get("FT_RATE_L10", 0.22),
+            "AWAY_FT_RATE_L10": away_prof.get("FT_RATE_L10", 0.22),
+            "HOME_REST_DAYS": home_rest,
+            "AWAY_REST_DAYS": away_rest,
+            "HOME_IS_B2B": home_b2b,
+            "AWAY_IS_B2B": away_b2b,
+            "IS_PLAYOFF": is_playoff,
         }
 
         # 0. Evaluación oficial del impacto de lesiones y ausencias
@@ -309,12 +385,19 @@ def predecir_partidos_hoy(force_refresh: bool = False, fecha: Optional[str] = No
             bundle_totales, feats_totales, linea_total=linea_tot if linea_tot else 0.0, ajuste_lesiones=ajuste_tot_les
         )
 
-        # Probabilidades implícitas desparasitadas de mercado
-        prob_ml_home_book = j.get("moneyline_local_prob") or 0.50
-        prob_ml_away_book = j.get("moneyline_visita_prob") or 0.50
+        # Probabilidades implícitas desparasitadas de mercado (sin vig)
+        raw_ml_home = float(j.get("moneyline_local_prob") or 0.50)
+        raw_ml_away = float(j.get("moneyline_visita_prob") or 0.50)
+        suma_ml = raw_ml_home + raw_ml_away
+        if suma_ml > 0:
+            prob_ml_home_book = raw_ml_home / suma_ml
+            prob_ml_away_book = raw_ml_away / suma_ml
+        else:
+            prob_ml_home_book = 0.50
+            prob_ml_away_book = 0.50
         cuota_dec_home = float(j.get("moneyline_local_dec") or 1.91)
         cuota_dec_away = float(j.get("moneyline_visita_dec") or 1.91)
-        cuota_dec_std = 1.909  # -110
+        cuota_dec_std = 1.909  # -110 fallback
 
         # Calibración Logística conjunta en el símplex 2-way (Moneyline)
         prob_ml_home_raw = res_spread["prob_local_win"]
@@ -331,12 +414,17 @@ def predecir_partidos_hoy(force_refresh: bool = False, fecha: Optional[str] = No
         # Selección rigurosa de candidatos con filtro EV > 0 y Dead Zone
         picks_candidatos = []
 
-        # 1. Totales Over / Under (Calibrado con Temperature Scaling 2-way, sin doble compresión de Platt)
+        # 1. Totales Over / Under (Calibrado con Temperature Scaling 2-way, usando momio real)
         if linea_tot is not None and linea_tot > 0 and res_tot["recomendacion"] in ["OVER", "UNDER"]:
             prob_tot_raw = res_tot["prob_over"] if res_tot["recomendacion"] == "OVER" else res_tot["prob_under"]
             prob_tot_cal, _ = calibrar_probabilidades_2way(prob_tot_raw, 1.0 - prob_tot_raw, temp=1.04)
-            edge_tot = prob_tot_cal - 0.5238
-            ev_tot = (prob_tot_cal * cuota_dec_std) - 1.0
+            cuota_tot_str = str(
+                (j.get("over_momio") if res_tot["recomendacion"] == "OVER" else j.get("under_momio")) or "-110"
+            )
+            cuota_tot_dec = american_to_decimal(cuota_tot_str) or cuota_dec_std
+            breakeven_tot = 1.0 / cuota_tot_dec
+            edge_tot = prob_tot_cal - breakeven_tot
+            ev_tot = (prob_tot_cal * cuota_tot_dec) - 1.0
             if edge_tot >= 0.025 and ev_tot >= 0.020:
                 picks_candidatos.append({
                     "mercado": f"Totales ({res_tot['recomendacion']})",
@@ -345,15 +433,14 @@ def predecir_partidos_hoy(force_refresh: bool = False, fecha: Optional[str] = No
                     "probabilidad_cruda": round(prob_tot_raw, 4),
                     "edge": round(edge_tot, 4),
                     "ev": round(ev_tot, 4),
-                    "cuota": "-110",
-                    "cuota_dec": cuota_dec_std,
+                    "cuota": cuota_tot_str,
+                    "cuota_dec": cuota_tot_dec,
                     "confianza": "ALTA" if edge_tot >= 0.055 and ev_tot >= 0.04 else "MEDIA",
                     "detalle": f"Proyección Calibrada: {res_tot['total_proyectado']} pts vs línea {linea_tot} (Edge: {edge_tot*100:+.1f}%, EV: {ev_tot*100:+.1f}%)"
                 })
 
-        # 2. Moneyline con valor real calibrado (SOLO favoritos con P >= 50%)
-        # Un underdog (P < 50%) pertenece al mercado de Spread con ventaja de puntos, jamás a Moneyline directo.
-        if prob_ml_home_cal >= 0.50 and edge_ml_home >= 0.035 and ev_ml_home >= 0.020:
+        # 2. Moneyline con valor real calibrado (permite underdogs con +EV real y P >= 32%)
+        if prob_ml_home_cal >= 0.32 and edge_ml_home >= 0.035 and ev_ml_home >= 0.030:
             conf_h = "ALTA" if (edge_ml_home >= 0.060 and ev_ml_home >= 0.04 and prob_ml_home_cal >= 0.55) else "MEDIA"
             picks_candidatos.append({
                 "mercado": "Moneyline",
@@ -367,7 +454,7 @@ def predecir_partidos_hoy(force_refresh: bool = False, fecha: Optional[str] = No
                 "confianza": conf_h,
                 "detalle": f"Prob Calibrada: {prob_ml_home_cal*100:.1f}% vs Book: {prob_ml_home_book*100:.1f}% (Edge: {edge_ml_home*100:+.1f}%, EV: +{ev_ml_home*100:.1f}%)"
             })
-        elif prob_ml_away_cal >= 0.50 and edge_ml_away >= 0.035 and ev_ml_away >= 0.020:
+        elif prob_ml_away_cal >= 0.32 and edge_ml_away >= 0.035 and ev_ml_away >= 0.030:
             conf_a = "ALTA" if (edge_ml_away >= 0.060 and ev_ml_away >= 0.04 and prob_ml_away_cal >= 0.55) else "MEDIA"
             picks_candidatos.append({
                 "mercado": "Moneyline",
@@ -382,17 +469,22 @@ def predecir_partidos_hoy(force_refresh: bool = False, fecha: Optional[str] = No
                 "detalle": f"Prob Calibrada: {prob_ml_away_cal*100:.1f}% vs Book: {prob_ml_away_book*100:.1f}% (Edge: {edge_ml_away*100:+.1f}%, EV: +{ev_ml_away*100:.1f}%)"
             })
 
-        # 3. Spread / Hándicap (Calibrado con Temperature Scaling 2-way)
+        # 3. Spread / Hándicap (Calibrado con Temperature Scaling 2-way, usando momio real)
         prob_cov_home_raw = res_spread["prob_cover_home"]
         prob_cov_away_raw = res_spread["prob_cover_away"]
         prob_cov_home_cal, prob_cov_away_cal = calibrar_probabilidades_2way(
             prob_cov_home_raw, prob_cov_away_raw, temp=1.04
         )
 
-        edge_cov_home = prob_cov_home_cal - 0.5238
-        edge_cov_away = prob_cov_away_cal - 0.5238
-        ev_cov_home = (prob_cov_home_cal * cuota_dec_std) - 1.0
-        ev_cov_away = (prob_cov_away_cal * cuota_dec_std) - 1.0
+        cuota_sp_home_str = str(j.get("spread_local_momio") or "-110")
+        cuota_sp_away_str = str(j.get("spread_visita_momio") or "-110")
+        cuota_dec_sp_home = american_to_decimal(cuota_sp_home_str) or cuota_dec_std
+        cuota_dec_sp_away = american_to_decimal(cuota_sp_away_str) or cuota_dec_std
+
+        edge_cov_home = prob_cov_home_cal - (1.0 / cuota_dec_sp_home)
+        edge_cov_away = prob_cov_away_cal - (1.0 / cuota_dec_sp_away)
+        ev_cov_home = (prob_cov_home_cal * cuota_dec_sp_home) - 1.0
+        ev_cov_away = (prob_cov_away_cal * cuota_dec_sp_away) - 1.0
 
         if j.get("spread_linea") is not None and abs(spread_val) > 0.0 and edge_cov_home >= 0.035 and ev_cov_home >= 0.02:
             picks_candidatos.append({
@@ -402,8 +494,8 @@ def predecir_partidos_hoy(force_refresh: bool = False, fecha: Optional[str] = No
                 "probabilidad_cruda": round(prob_cov_home_raw, 4),
                 "edge": round(edge_cov_home, 4),
                 "ev": round(ev_cov_home, 4),
-                "cuota": "-110",
-                "cuota_dec": cuota_dec_std,
+                "cuota": cuota_sp_home_str,
+                "cuota_dec": cuota_dec_sp_home,
                 "confianza": "ALTA" if edge_cov_home >= 0.06 and ev_cov_home >= 0.04 else "MEDIA",
                 "detalle": f"Margen Proyectado: {res_spread['margen_local_esperado']:+0.1f} pts (Spread: {spread_val:+0.1f})"
             })
@@ -415,8 +507,8 @@ def predecir_partidos_hoy(force_refresh: bool = False, fecha: Optional[str] = No
                 "probabilidad_cruda": round(prob_cov_away_raw, 4),
                 "edge": round(edge_cov_away, 4),
                 "ev": round(ev_cov_away, 4),
-                "cuota": "-110",
-                "cuota_dec": cuota_dec_std,
+                "cuota": cuota_sp_away_str,
+                "cuota_dec": cuota_dec_sp_away,
                 "confianza": "ALTA" if edge_cov_away >= 0.06 and ev_cov_away >= 0.04 else "MEDIA",
                 "detalle": f"Margen Proyectado Visita: {-res_spread['margen_local_esperado']:+0.1f} pts (Spread: {-spread_val:+0.1f})"
             })

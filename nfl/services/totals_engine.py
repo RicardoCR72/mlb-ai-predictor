@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 from nfl.feature_spec import FEATURES_BASE, FEATURES_CATEGORICAS, FEATURES_MERCADO
 EDGE_MINIMO = 1.05  # Calibrado proporcional al Shrinkage Bayesiano (equivale a ~3.0 pts crudos)
-NFL_TOTALS_INTERCEPT_BIAS = 1.10  # Ajuste de calibración empírica (modelo 2012-2024 vs entorno anotador 2024-2026)
+NFL_TOTALS_INTERCEPT_BIAS = 0.0  # Modelo ya calibrado sin sesgo artificial hacia UNDER
 
 def american_a_decimal(odds):
 
@@ -145,11 +145,11 @@ def generar_predicciones(
         pd.DataFrame({"edge_absoluto": diff_cruda.abs()})
     )[:, 1]
 
-    # 2. Penalización por Sesgo de Under / Atrición NFL (-3.5% a Overs por riesgo de clima adverso y posesiones lentas):
+    # 2. Probabilidad empírica calibrada simétrica sin penalización fija contra Overs
     prob_over_cal = np.where(
         resultado.loc[con_linea, "pick"] == "OVER",
-        np.clip(prob_raw - 0.035, 0.05, 0.95),
-        np.clip(1.0 - prob_raw - 0.035, 0.05, 0.95)
+        np.clip(prob_raw, 0.05, 0.95),
+        np.clip(1.0 - prob_raw, 0.05, 0.95),
     )
 
     resultado.loc[con_linea, "prob_over"] = prob_over_cal

@@ -147,9 +147,20 @@ def render_tarjeta_universal(
         with c2:
             signo_ev = "+" if ev_pct > 0 else ""
             html_prob_mod = f"<br><span style='font-size:0.75rem; color:#A1A1AA;'>Prob IA: <b style='color:#F4F4F5;'>{prob_mod_pct:.1f}%</b></span>" if prob_mod_pct is not None else ""
+            estrellas_str = str(estrellas or "").strip()
+            if estrellas_str.startswith("🏆") or estrellas_str.startswith("🔒"):
+                badge_html = (
+                    f"<span style='background:#F59E0B22; color:#FBBF24; border:1px solid #F59E0B66; "
+                    f"border-radius:6px; padding:2px 8px; font-size:0.80rem; font-weight:700; "
+                    f"display:inline-block; margin-bottom:2px;'>{estrellas_str}</span>"
+                )
+            elif estrellas_str:
+                badge_html = f"<span style='font-size:1.1rem;'>{estrellas_str}</span>"
+            else:
+                badge_html = ""
             st.markdown(
                 f"<div style='text-align:right; line-height:1.25;'>"
-                f"<span style='font-size:1.1rem;'>{estrellas}</span><br>"
+                f"{badge_html}<br>"
                 f"<b style='color:{color_ev}; font-size:1.0rem;'>{signo_ev}{ev_pct:.1f}% EV</b>"
                 f"{html_prob_mod}"
                 f"</div>",
