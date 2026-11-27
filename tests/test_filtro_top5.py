@@ -123,3 +123,41 @@ def test_seleccionar_top_props_diarios_top5_y_1_por_jugador():
     assert "Neutro" not in set(df_top["player_name"])
     assert (df_top["ev_pct"] > 0).all()
     assert (df_top["model_prob"] >= 0.54).all()
+
+
+def test_seleccionar_top_props_diarios_excluye_asistencias():
+    """Total Assists debe quedar excluido del Top 5 oficial automático aunque tenga prob alta."""
+    rows = [
+        {
+            "player_name": "Asistidor Estrella",
+            "game": "A @ B",
+            "market": "Total Assists",
+            "pick_type": "UNDER",
+            "model_prob": 0.72,
+            "ev_pct": 9.0,
+            "stars": "⭐⭐⭐",
+            "games_played": 20,
+            "hit_rate_l5": 0.0,
+            "hit_rate_season": 0.1,
+            "es_candado": True,
+        }
+    ]
+    for i in range(6):
+        rows.append({
+            "player_name": f"Anotador_{i}",
+            "game": f"G{i % 3} @ H{i % 3}",
+            "market": "Total Points" if i % 2 == 0 else "Total Rebounds",
+            "pick_type": "UNDER",
+            "model_prob": 0.56 + i * 0.01,
+            "ev_pct": 3.0 + i * 0.5,
+            "stars": "⭐⭐",
+            "games_played": 15,
+            "hit_rate_l5": 0.2,
+            "hit_rate_season": 0.3,
+            "es_candado": False,
+        })
+
+    df_top = seleccionar_top_props_diarios(pd.DataFrame(rows))
+    assert len(df_top) == 5
+    assert "Total Assists" not in set(df_top["market"])
+    assert "Asistidor Estrella" not in set(df_top["player_name"])

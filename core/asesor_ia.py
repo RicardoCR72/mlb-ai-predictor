@@ -22,7 +22,12 @@ import pandas as pd
 import requests
 
 from core.constants import ZONA_CDMX
-from core.filtro_top5 import TOP_N_PICKS, etiqueta_top, filtrar_top5_picks_dict
+from core.filtro_top5 import (
+    MERCADOS_PROPS_NBA_EXCLUIDOS_TOP5,
+    TOP_N_PICKS,
+    etiqueta_top,
+    filtrar_top5_picks_dict,
+)
 
 RAIZ = Path(__file__).resolve().parents[1]
 logger = logging.getLogger(__name__)
@@ -81,6 +86,8 @@ def cargar_candidatos_hoy(fecha_objetivo: Optional[str] = None) -> Dict[str, Any
                 df_nba_p = df_hoy
             if not df_nba_p.empty and "stars" in df_nba_p.columns:
                 top_nba = df_nba_p[df_nba_p["stars"].astype(str).str.strip() != "⚪"].copy()
+                if "market" in top_nba.columns:
+                    top_nba = top_nba[~top_nba["market"].astype(str).isin(MERCADOS_PROPS_NBA_EXCLUIDOS_TOP5)]
                 if "model_prob" in top_nba.columns:
                     probs = pd.to_numeric(top_nba["model_prob"], errors="coerce").fillna(0.0)
                     top_nba = top_nba[probs >= 0.54]

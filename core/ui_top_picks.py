@@ -9,7 +9,12 @@ import pandas as pd
 import streamlit as st
 
 from core.constants import ZONA_CDMX
-from core.filtro_top5 import TOP_N_PICKS, CONFIANZAS_EXCLUIDAS, etiqueta_top
+from core.filtro_top5 import (
+    CONFIANZAS_EXCLUIDAS,
+    MERCADOS_PROPS_NBA_EXCLUIDOS_TOP5,
+    TOP_N_PICKS,
+    etiqueta_top,
+)
 from core.ui_boleta import parsear_cuota_decimal, obtener_boleta, alternar_en_boleta, esta_en_boleta
 
 RAIZ = Path(__file__).resolve().parents[1]
@@ -38,6 +43,8 @@ def obtener_picks_candado_del_dia(max_picks: int = TOP_N_PICKS, modo: str = "glo
             for p in data_props:
                 f_j = str(p.get("fecha") or "")[:10]
                 if f_j and f_j < hoy_cdmx:
+                    continue
+                if str(p.get("market") or "").strip() in MERCADOS_PROPS_NBA_EXCLUIDOS_TOP5:
                     continue
                 if str(p.get("stars") or "").strip() == "⚪":
                     continue

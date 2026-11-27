@@ -13,6 +13,8 @@ import pandas as pd
 
 TOP_N_PICKS: int = 5
 
+MERCADOS_PROPS_NBA_EXCLUIDOS_TOP5 = frozenset({"Total Assists"})
+
 CONFIANZAS_EXCLUIDAS = frozenset({
     "NEUTRAL",
     "SIN VALOR",

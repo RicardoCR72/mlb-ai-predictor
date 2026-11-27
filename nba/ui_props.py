@@ -22,7 +22,12 @@ RUTA_PRED_PARQUET = RAIZ / "data" / "nba" / "predictions" / "predicciones_props_
 RUTA_PRED_JSON = RAIZ / "data" / "nba" / "predictions" / "predicciones_props_nba_hoy.json"
 
 from core.constants import ZONA_CDMX
-from core.filtro_top5 import TOP_N_PICKS, etiqueta_top, filtrar_top5_dataframe
+from core.filtro_top5 import (
+    MERCADOS_PROPS_NBA_EXCLUIDOS_TOP5,
+    TOP_N_PICKS,
+    etiqueta_top,
+    filtrar_top5_dataframe,
+)
 from nba.predecir_props import generar_predicciones_props_hoy
 from nba.servicio_bovada_props import (
     extraer_props_nba,
@@ -190,6 +195,8 @@ def renderizar_ui_props_nba():
         valid_mask &= df_filtrado["stars"].astype(str).str.strip() != "⚪"
     if "confidence" in df_filtrado.columns:
         valid_mask &= ~df_filtrado["confidence"].astype(str).str.upper().isin(["NEUTRAL", "BAJA", "SIN VALOR", "LONGSHOT"])
+    if mercado_sel is None and "market" in df_filtrado.columns:
+        valid_mask &= ~df_filtrado["market"].astype(str).isin(MERCADOS_PROPS_NBA_EXCLUIDOS_TOP5)
 
     df_filtrado = filtrar_top5_dataframe(
         df_filtrado,

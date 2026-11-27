@@ -38,6 +38,7 @@ if str(RAIZ) not in sys.path:
     sys.path.insert(0, str(RAIZ))
 
 from core.constants import ZONA_CDMX
+from core.filtro_top5 import MERCADOS_PROPS_NBA_EXCLUIDOS_TOP5
 from nba.servicio_bovada_props import extraer_props_nba, _limpiar_nombre_jugador
 from nba.servicio_jugadores_boxscores import (
     RUTA_PARQUET_JUGADORES,
@@ -245,6 +246,8 @@ def seleccionar_top_props_diarios(df_preds: pd.DataFrame, limite: int = 5) -> pd
         return pd.DataFrame()
 
     df = df_preds.copy()
+    if "market" in df.columns:
+        df = df[~df["market"].astype(str).isin(MERCADOS_PROPS_NBA_EXCLUIDOS_TOP5)].copy()
     if "model_prob" in df.columns:
         probs = pd.to_numeric(df["model_prob"], errors="coerce").fillna(0.0)
         df = df[probs >= 0.54].copy()
